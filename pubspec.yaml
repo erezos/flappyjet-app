@@ -1,0 +1,109 @@
+name: flappy_jet_pro
+description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
+publish_to: 'none'
+version: 1.1.0+2
+
+environment:
+  sdk: ^3.8.0
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Game Engine
+  flame: ^1.20.0
+  
+  # State Management
+  flutter_bloc: ^8.1.0
+  equatable: ^2.0.0
+  
+  # Storage & Preferences
+  shared_preferences: ^2.3.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # Audio
+  audioplayers: ^5.2.0
+  flame_audio: ^2.0.0
+  
+  # Ads & Monetization (TEMPORARILY DISABLED to fix crash)
+  # google_mobile_ads: ^5.2.0
+  
+  # Analytics & Crashlytics (TEMPORARILY DISABLED to fix crash)
+  # firebase_analytics: ^11.3.3
+  # firebase_remote_config: ^5.1.3
+  # firebase_core: ^3.11.0
+  # firebase_crashlytics: ^4.3.10
+  # cloud_firestore: ^5.6.3
+  # firebase_auth: ^5.4.2
+  # google_sign_in: ^6.2.2
+  http: ^1.3.0
+  intl: ^0.20.2
+  
+  # UI & Animations
+  flutter_animate: ^4.5.2
+  
+  # Device & System
+  vibration: ^3.1.3  # Updated to latest version for NDK 27 compatibility
+  device_info_plus: ^9.1.1
+  package_info_plus: ^4.2.0
+  
+  # Performance & Development
+  path_provider: ^2.1.0
+  in_app_purchase: ^3.2.1
+  
+  firebase_core: any
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.7
+  hive_generator: ^2.0.1
+  flutter_launcher_icons: ^0.13.1
+  integration_test:
+    sdk: flutter
+  test: ^1.25.15
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/
+    - assets/images/
+    - assets/images/effects/
+    - assets/images/jets/
+    - assets/images/jets/states/     # 🔥 BLOCKBUSTER jet fire sprites
+    - assets/images/homepage/      # Stunning homepage assets
+    - assets/images/buttons/       # Button graphics  
+    - assets/images/icons/         # Homepage button icons
+    - assets/images/backgrounds/   # Background elements
+    - assets/images/text/          # Custom text assets
+    - assets/audio/
+    - assets/backgrounds/
+    - assets/images/obstacles/   # Dynamic obstacle sprites
+    - assets/particles/
+    
+  # fonts:
+  #   - family: GameFont
+  #     fonts:
+  #       - asset: assets/fonts/PressStart2P-Regular.ttf
+
+# Flutter Launcher Icons Configuration
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon/logo.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/images/app_icon/logo.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/images/app_icon/logo.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/images/app_icon/logo.png" 

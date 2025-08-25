@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Players collection - users can read/write their own data
+    match /players/{playerId} {
+      allow read, write: if request.auth != null && request.auth.uid == playerId;
+      // Allow read access for leaderboard queries (limited fields)
+      allow read: if resource.data.keys().hasOnly(['nickname', 'bestScore', 'skinUsed']);
+    }
+    
+    // Scores collection - authenticated users can write, anyone can read for leaderboards
+    match /scores/{scoreId} {
+      allow create: if request.auth != null && 
+                       request.auth.uid == resource.data.playerId &&
+                       isValidScore(resource.data);
+      allow read: if true; // Public read for leaderboards
+    }
+    
+    // Leaderboards collection - read-only for clients
+    match /leaderboards/{period} {
+      allow read: if true;
+      match /entries/{playerId} {
+        allow read: if true;
+      }
+    }
+    
+    // Missions collection - users can read their own missions
+    match /missions/{playerId} {
+      allow read: if request.auth != null && request.auth.uid == playerId;
+    }
+    
+    // Analytics collection - write-only for clients
+    match /analytics/{eventId} {
+      allow create: if request.auth != null;
+    }
+    
+    // Purchases collection - users can read their own purchases
+    match /purchases/{purchaseId} {
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.playerId;
+    }
+    
+    // Config collection - read-only for all
+    match /config/{configId} {
+      allow read: if true;
+    }
+    
+    // Helper function to validate score submissions
+    function isValidScore(data) {
+      return data.keys().hasAll(['playerId', 'score', 'timestamp']) &&
+             data.score is number &&
+             data.score >= 0 &&
+             data.score <= 1000 && // Max reasonable score
+             data.playerId is string &&
+             data.timestamp is timestamp;
+    }
+  }
+}
