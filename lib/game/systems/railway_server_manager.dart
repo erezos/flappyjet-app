@@ -1,5 +1,6 @@
 /// 🚂 Railway Server Manager - Production backend integration for FlappyJet Pro
 library;
+import '../../core/debug_logger.dart';
 
 import 'dart:convert';
 import 'dart:io';
@@ -221,7 +222,7 @@ class RailwayServerManager extends ChangeNotifier {
     // Check server connectivity
     await _checkServerHealth();
     
-    debugPrint('🚂 Railway Server Manager initialized - Online: $_isOnline, Authenticated: $_isAuthenticated');
+    safePrint('🚂 Railway Server Manager initialized - Online: $_isOnline, Authenticated: $_isAuthenticated');
   }
 
   /// Load stored authentication data
@@ -263,7 +264,7 @@ class RailwayServerManager extends ChangeNotifier {
       await prefs.setString(_keyDeviceId, _deviceId!);
       
     } catch (e) {
-      debugPrint('🚂 ⚠️ Failed to generate device ID: $e');
+      safePrint('🚂 ⚠️ Failed to generate device ID: $e');
       _deviceId = 'fallback_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
@@ -280,11 +281,11 @@ class RailwayServerManager extends ChangeNotifier {
       
       if (_isOnline) {
         final healthData = jsonDecode(response.body);
-        debugPrint('🚂 ✅ Server healthy: ${healthData['status']}');
+        safePrint('🚂 ✅ Server healthy: ${healthData['status']}');
       }
     } catch (e) {
       _isOnline = false;
-      debugPrint('🚂 ❌ Server health check failed: $e');
+      safePrint('🚂 ❌ Server health check failed: $e');
     }
     
     notifyListeners();
@@ -304,14 +305,14 @@ class RailwayServerManager extends ChangeNotifier {
         _isAuthenticated = true;
         final data = jsonDecode(response.body);
         _playerId = data['player']['id'];
-        debugPrint('🚂 ✅ Token validated for player: $_playerId');
+        safePrint('🚂 ✅ Token validated for player: $_playerId');
       } else {
         // Token expired or invalid
         await _clearAuthData();
-        debugPrint('🚂 ⚠️ Token validation failed, cleared auth data');
+        safePrint('🚂 ⚠️ Token validation failed, cleared auth data');
       }
     } catch (e) {
-      debugPrint('🚂 ⚠️ Token validation error: $e');
+      safePrint('🚂 ⚠️ Token validation error: $e');
     }
   }
 
@@ -343,7 +344,7 @@ class RailwayServerManager extends ChangeNotifier {
           
           await _saveAuthData();
           
-          debugPrint('🚂 ✅ Player authenticated: $_playerId (New: ${data['isNewPlayer']})');
+          safePrint('🚂 ✅ Player authenticated: $_playerId (New: ${data['isNewPlayer']})');
           
           notifyListeners();
           return ServerPlayerData.fromJson(data['player']);
@@ -353,7 +354,7 @@ class RailwayServerManager extends ChangeNotifier {
       throw Exception('Authentication failed: ${response.statusCode}');
       
     } catch (e) {
-      debugPrint('🚂 ❌ Authentication error: $e');
+      safePrint('🚂 ❌ Authentication error: $e');
       return null;
     }
   }
@@ -368,7 +369,7 @@ class RailwayServerManager extends ChangeNotifier {
     required int gameDuration,
   }) async {
     if (!_isAuthenticated) {
-      debugPrint('🚂 ⚠️ Cannot submit score: not authenticated');
+      safePrint('🚂 ⚠️ Cannot submit score: not authenticated');
       return null;
     }
 
@@ -392,7 +393,7 @@ class RailwayServerManager extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success']) {
-          debugPrint('🚂 ✅ Score submitted: $score (Rank: ${data['rank']})');
+          safePrint('🚂 ✅ Score submitted: $score (Rank: ${data['rank']})');
           return data;
         }
       }
@@ -400,7 +401,7 @@ class RailwayServerManager extends ChangeNotifier {
       throw Exception('Score submission failed: ${response.statusCode}');
       
     } catch (e) {
-      debugPrint('🚂 ❌ Score submission error: $e');
+      safePrint('🚂 ❌ Score submission error: $e');
       
       // Add to offline queue
       _addToOfflineQueue('submitScore', {
@@ -450,7 +451,7 @@ class RailwayServerManager extends ChangeNotifier {
       throw Exception('Leaderboard fetch failed: ${response.statusCode}');
       
     } catch (e) {
-      debugPrint('🚂 ❌ Leaderboard fetch error: $e');
+      safePrint('🚂 ❌ Leaderboard fetch error: $e');
       return [];
     }
   }
@@ -478,7 +479,7 @@ class RailwayServerManager extends ChangeNotifier {
       throw Exception('Missions fetch failed: ${response.statusCode}');
       
     } catch (e) {
-      debugPrint('🚂 ❌ Missions fetch error: $e');
+      safePrint('🚂 ❌ Missions fetch error: $e');
       return [];
     }
   }
@@ -502,7 +503,7 @@ class RailwayServerManager extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success']) {
-          debugPrint('🚂 ✅ Mission progress updated: $missionType +$amount');
+          safePrint('🚂 ✅ Mission progress updated: $missionType +$amount');
           return true;
         }
       }
@@ -510,12 +511,64 @@ class RailwayServerManager extends ChangeNotifier {
       throw Exception('Mission progress update failed: ${response.statusCode}');
       
     } catch (e) {
-      debugPrint('🚂 ❌ Mission progress update error: $e');
+      safePrint('🚂 ❌ Mission progress update error: $e');
       
       // Add to offline queue
       _addToOfflineQueue('updateMissionProgress', {
         'missionType': missionType,
         'amount': amount,
+      });
+      
+      return false;
+    }
+  }
+
+  /// Update player profile on Railway backend
+  Future<bool> updatePlayerProfile({
+    String? nickname,
+    String? countryCode,
+    String? timezone,
+  }) async {
+    if (!_isAuthenticated) {
+      safePrint('🚂 ❌ Cannot update profile - not authenticated');
+      return false;
+    }
+
+    try {
+      final updateData = <String, dynamic>{};
+      if (nickname != null) updateData['nickname'] = nickname;
+      if (countryCode != null) updateData['countryCode'] = countryCode;
+      if (timezone != null) updateData['timezone'] = timezone;
+
+      if (updateData.isEmpty) {
+        safePrint('🚂 ⚠️ No profile data to update');
+        return true;
+      }
+
+      final response = await http.put(
+        Uri.parse(RailwayConfig.playerProfile),
+        headers: _getHeaders(includeAuth: true),
+        body: jsonEncode(updateData),
+      ).timeout(RailwayConfig.requestTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success']) {
+          safePrint('🚂 ✅ Player profile updated successfully');
+          return true;
+        }
+      }
+      
+      throw Exception('Profile update failed: ${response.statusCode}');
+      
+    } catch (e) {
+      safePrint('🚂 ❌ Profile update error: $e');
+      
+      // Add to offline queue for retry when connection is restored
+      _addToOfflineQueue('updatePlayerProfile', {
+        'nickname': nickname,
+        'countryCode': countryCode,
+        'timezone': timezone,
       });
       
       return false;
@@ -538,7 +591,7 @@ class RailwayServerManager extends ChangeNotifier {
       ).timeout(RailwayConfig.requestTimeout);
 
     } catch (e) {
-      debugPrint('🚂 ⚠️ Analytics event error: $e');
+      safePrint('🚂 ⚠️ Analytics event error: $e');
     }
   }
 
@@ -610,7 +663,7 @@ class RailwayServerManager extends ChangeNotifier {
   Future<void> processOfflineQueue() async {
     if (!_isOnline || !_isAuthenticated || _offlineQueue.isEmpty) return;
 
-    debugPrint('🚂 Processing ${_offlineQueue.length} offline requests');
+    safePrint('🚂 Processing ${_offlineQueue.length} offline requests');
     
     final processedItems = <Map<String, dynamic>>[];
     
@@ -640,6 +693,14 @@ class RailwayServerManager extends ChangeNotifier {
               data['amount'],
             );
             break;
+            
+          case 'updatePlayerProfile':
+            success = await updatePlayerProfile(
+              nickname: data['nickname'],
+              countryCode: data['countryCode'],
+              timezone: data['timezone'],
+            );
+            break;
         }
         
         if (success) {
@@ -647,7 +708,7 @@ class RailwayServerManager extends ChangeNotifier {
         }
         
       } catch (e) {
-        debugPrint('🚂 ⚠️ Failed to process offline item: $e');
+        safePrint('🚂 ⚠️ Failed to process offline item: $e');
         break; // Stop processing if we're offline again
       }
     }
@@ -658,7 +719,7 @@ class RailwayServerManager extends ChangeNotifier {
     }
     
     if (processedItems.isNotEmpty) {
-      debugPrint('🚂 ✅ Processed ${processedItems.length} offline requests');
+      safePrint('🚂 ✅ Processed ${processedItems.length} offline requests');
     }
   }
 
@@ -680,6 +741,6 @@ class RailwayServerManager extends ChangeNotifier {
   Future<void> logout() async {
     await _clearAuthData();
     _offlineQueue.clear();
-    debugPrint('🚂 ✅ Logged out successfully');
+    safePrint('🚂 ✅ Logged out successfully');
   }
 }
