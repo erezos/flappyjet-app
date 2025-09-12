@@ -1,19 +1,18 @@
 /// 🎮 Profile Action Buttons Component - Choose jet and other action buttons
+library;
+
 import 'package:flutter/material.dart';
 import 'profile_responsive_config.dart';
 
 class ProfileActionButtons extends StatelessWidget {
   final VoidCallback onChooseJetPressed;
-  
-  const ProfileActionButtons({
-    super.key,
-    required this.onChooseJetPressed,
-  });
+
+  const ProfileActionButtons({super.key, required this.onChooseJetPressed});
 
   @override
   Widget build(BuildContext context) {
     final config = context.profileConfig;
-    
+
     return Padding(
       padding: config.getResponsivePadding(
         const EdgeInsets.symmetric(horizontal: 20.0),
@@ -36,7 +35,7 @@ class _CapsuleButton extends StatelessWidget {
   final VoidCallback onPressed;
   final Gradient gradient;
   final ProfileResponsiveConfig config;
-  
+
   const _CapsuleButton({
     required this.label,
     required this.onPressed,

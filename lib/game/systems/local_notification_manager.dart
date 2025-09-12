@@ -13,6 +13,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'lives_manager.dart';
 import 'daily_streak_manager.dart';
 import 'firebase_analytics_manager.dart';
+import '../../core/debug_logger.dart';
 
 /// Notification types for analytics and management
 enum NotificationType {
@@ -132,43 +133,107 @@ class LocalNotificationManager {
 
   /// Request notification permissions
   Future<void> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+    try {
+      if (Platform.isAndroid) {
+        final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+            _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>();
 
-      final bool? granted = await androidImplementation?.requestNotificationsPermission();
-      _permissionsGranted = granted ?? false;
-    } else if (Platform.isIOS) {
-      final bool? result = await _flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
+        if (androidImplementation != null) {
+          // First check if we already have permission
+          final bool? alreadyGranted = await androidImplementation.areNotificationsEnabled();
+          
+          if (alreadyGranted == true) {
+            _permissionsGranted = true;
+            Logger.i('🔔 Android notifications already enabled');
+          } else {
+            // Request permission - this will show the native OS popup
+            final bool? granted = await androidImplementation.requestNotificationsPermission();
+            _permissionsGranted = granted ?? false;
+            
+            if (_permissionsGranted) {
+              Logger.i('🔔 Android notification permission granted by user');
+            } else {
+              Logger.w('🔔 Android notification permission denied by user');
+            }
+          }
+        } else {
+          Logger.w('🔔 Android notification plugin not available');
+          _permissionsGranted = false;
+        }
+      } else if (Platform.isIOS) {
+        final IOSFlutterLocalNotificationsPlugin? iosImplementation = 
+            _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+                IOSFlutterLocalNotificationsPlugin>();
+                
+        if (iosImplementation != null) {
+          final bool? result = await iosImplementation.requestPermissions(
             alert: true,
             badge: true,
             sound: true,
           );
-      _permissionsGranted = result ?? false;
-    }
+          _permissionsGranted = result ?? false;
+          
+          if (_permissionsGranted) {
+            Logger.i('🔔 iOS notification permission granted by user');
+          } else {
+            Logger.w('🔔 iOS notification permission denied by user');
+          }
+        } else {
+          Logger.w('🔔 iOS notification plugin not available');
+          _permissionsGranted = false;
+        }
+      }
 
-    // Save permission status
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_notificationsEnabledKey, _permissionsGranted);
+      // Save permission status
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_notificationsEnabledKey, _permissionsGranted);
+      
+    } catch (e) {
+      Logger.e('🔔 Error requesting notification permissions: $e');
+      _permissionsGranted = false;
+    }
   }
 
   /// Get local timezone name
   Future<String> _getLocalTimeZone() async {
     // Default to UTC if we can't determine local timezone
     try {
-      return DateTime.now().timeZoneName;
+      final timeZoneName = DateTime.now().timeZoneName;
+      // Handle problematic timezone names
+      if (timeZoneName == 'IDT' || timeZoneName.isEmpty) {
+        return 'UTC';
+      }
+      return timeZoneName;
     } catch (e) {
+      Logger.w('🔔 Timezone detection error: $e, using UTC');
       return 'UTC';
     }
   }
 
   /// Schedule initial notifications
   Future<void> _scheduleInitialNotifications() async {
+    // Cancel any outdated heart notifications first
+    await _cancelOutdatedHeartNotifications();
+    
     await scheduleEngagementReminders();
     await scheduleDailyStreakReminder();
+  }
+
+  /// Cancel outdated heart notifications when app starts
+  Future<void> _cancelOutdatedHeartNotifications() async {
+    try {
+      final livesManager = LivesManager();
+      final currentLives = livesManager.currentLives;
+      
+      // If hearts are already full, cancel any pending heart notifications
+      if (currentLives >= 3) {
+        await cancelNotification(NotificationType.heartsRefilled);
+        debugPrint('🔔 Cancelled outdated hearts notification - hearts already full');
+      }
+    } catch (e) {
+      debugPrint('🔔 Error cancelling outdated heart notifications: $e');
+    }
   }
 
   /// Schedule hearts refilled notification
@@ -180,7 +245,11 @@ class LocalNotificationManager {
       final livesManager = LivesManager();
       final currentLives = livesManager.currentLives;
       
-      if (currentLives >= 3) return; // Already full
+      if (currentLives >= 3) {
+        // Cancel any existing hearts notification if hearts are already full
+        await cancelNotification(NotificationType.heartsRefilled);
+        return;
+      }
 
       final minutesToFull = (3 - currentLives) * 30; // 30 min per heart
       final timeToFullHearts = Duration(minutes: minutesToFull);
@@ -242,6 +311,17 @@ class LocalNotificationManager {
     if (!_permissionsGranted || !_isInitialized) return;
 
     try {
+      // Check if there's already a scheduled engagement reminder
+      final prefs = await SharedPreferences.getInstance();
+      final lastScheduledTime = prefs.getInt(_lastEngagementNotificationKey) ?? 0;
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      
+      // If there's a recent reminder scheduled (within last hour), don't schedule another
+      if (lastScheduledTime > 0 && (currentTime - lastScheduledTime) < 3600000) { // 1 hour in ms
+        debugPrint('🔔 Engagement reminder already scheduled recently, skipping');
+        return;
+      }
+
       // Cancel existing engagement reminders
       await _flutterLocalNotificationsPlugin.cancel(_engagementReminderId);
 
@@ -292,7 +372,6 @@ class LocalNotificationManager {
       );
 
       // Save last notification time
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_lastEngagementNotificationKey, nextReminderTime.millisecondsSinceEpoch);
 
       debugPrint('🔔 Engagement reminder scheduled for: $nextReminderTime');
@@ -302,23 +381,13 @@ class LocalNotificationManager {
         'scheduled_time': nextReminderTime.millisecondsSinceEpoch,
       });
 
-      // Schedule the next one after this
-      _scheduleNextEngagementReminder(nextReminderTime);
+      // Next reminder will be scheduled when this one fires
 
     } catch (e) {
       debugPrint('🔔 Error scheduling engagement reminder: $e');
     }
   }
 
-  /// Schedule next engagement reminder recursively
-  Future<void> _scheduleNextEngagementReminder(tz.TZDateTime currentTime) async {
-    final nextTime = _getNextEngagementReminderTime(currentTime.add(const Duration(hours: 4)));
-    if (nextTime != null) {
-      // Schedule the next reminder
-      await Future.delayed(const Duration(seconds: 1));
-      await scheduleEngagementReminders();
-    }
-  }
 
   /// Get next suitable time for engagement reminder (avoiding bedtime)
   tz.TZDateTime? _getNextEngagementReminderTime(tz.TZDateTime from) {
@@ -508,4 +577,10 @@ class LocalNotificationManager {
   // Getters
   bool get isInitialized => _isInitialized;
   bool get permissionsGranted => _permissionsGranted;
+  bool get hasPermissions => _permissionsGranted && _isInitialized;
+
+  /// Request permissions (can be called externally)
+  Future<void> requestPermissions() async {
+    await _requestPermissions();
+  }
 }

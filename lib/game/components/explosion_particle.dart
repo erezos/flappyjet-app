@@ -26,26 +26,24 @@ class ExplosionParticle extends PositionComponent {
   @override
   Future<void> onLoad() async {
     // Scale up effect
-    add(ScaleEffect.to(
-      Vector2.all(maxSize),
-      EffectController(duration: duration * 0.3),
-    ));
+    add(
+      ScaleEffect.to(
+        Vector2.all(maxSize),
+        EffectController(duration: duration * 0.3),
+      ),
+    );
 
     // Scale down effect
-    add(ScaleEffect.to(
-      Vector2.zero(),
-      EffectController(
-        duration: duration * 0.7,
-        startDelay: duration * 0.3,
+    add(
+      ScaleEffect.to(
+        Vector2.zero(),
+        EffectController(duration: duration * 0.7, startDelay: duration * 0.3),
+        onComplete: () => removeFromParent(),
       ),
-      onComplete: () => removeFromParent(),
-    ));
+    );
 
     // Fade out effect
-    add(OpacityEffect.to(
-      0.0,
-      EffectController(duration: duration),
-    ));
+    add(OpacityEffect.to(0.0, EffectController(duration: duration)));
   }
 
   @override
@@ -66,7 +64,7 @@ class ExplosionParticle extends PositionComponent {
         (_random.nextDouble() - 0.5) * radius * 0.5,
         (_random.nextDouble() - 0.5) * radius * 0.5,
       );
-      
+
       canvas.drawCircle(
         Offset(center.x + offset.x, center.y + offset.y),
         radius * (0.3 + i * 0.15),

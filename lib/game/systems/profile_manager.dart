@@ -34,5 +34,3 @@ class ProfileManager extends ChangeNotifier {
     return 'Pilot$num';
   }
 }
-
-

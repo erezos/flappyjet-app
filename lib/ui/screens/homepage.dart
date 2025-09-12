@@ -78,7 +78,22 @@ class _HomepageState extends State<Homepage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _audioManager.handleAppLifecycleChange(state == AppLifecycleState.resumed);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came back to foreground - resume audio
+        _audioManager.handleAppLifecycleChange(true);
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        // App went to background - pause audio immediately
+        _audioManager.handleAppLifecycleChange(false);
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden - pause audio
+        _audioManager.handleAppLifecycleChange(false);
+        break;
+    }
   }
 
   @override
@@ -558,18 +573,24 @@ class _HomepageState extends State<Homepage>
         builder: (dialogContext) => DailyStreakPopupStable(
           streakManager: DailyStreakIntegration.streakManager,
           onClaim: () async {
-            // Claim is handled by the popup itself, just refresh the UI
+            // Handle successful claim
             if (mounted) {
-              setState(() {});
+              setState(() {}); // Refresh UI
+            }
+            
+            // Close the dialog
+            if (dialogContext.mounted && Navigator.canPop(dialogContext)) {
+              Navigator.of(dialogContext).pop();
             }
           },
           onClose: () {
+            // Handle close button
             if (dialogContext.mounted && Navigator.canPop(dialogContext)) {
               Navigator.of(dialogContext).pop();
             }
           },
           onRestore: () async {
-            // Handle restore if needed
+            // Handle restore and close
             if (dialogContext.mounted && Navigator.canPop(dialogContext)) {
               Navigator.of(dialogContext).pop();
             }

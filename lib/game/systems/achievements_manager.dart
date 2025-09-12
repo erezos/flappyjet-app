@@ -4,6 +4,8 @@ library;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'inventory_manager.dart';
+import '../../core/debug_logger.dart';
 
 /// Achievement categories for organization
 enum AchievementCategory {
@@ -38,7 +40,9 @@ class Achievement {
   final bool isSecret; // Hidden until unlocked
   final int progress;
   final bool unlocked;
+  final bool claimed;
   final DateTime? unlockedAt;
+  final DateTime? claimedAt;
 
   Achievement({
     required this.id,
@@ -53,14 +57,18 @@ class Achievement {
     this.isSecret = false,
     this.progress = 0,
     this.unlocked = false,
+    this.claimed = false,
     this.unlockedAt,
+    this.claimedAt,
   });
 
   /// Create a copy with updated progress
   Achievement copyWith({
     int? progress,
     bool? unlocked,
+    bool? claimed,
     DateTime? unlockedAt,
+    DateTime? claimedAt,
   }) {
     return Achievement(
       id: id,
@@ -75,7 +83,9 @@ class Achievement {
       isSecret: isSecret,
       progress: progress ?? this.progress,
       unlocked: unlocked ?? this.unlocked,
+      claimed: claimed ?? this.claimed,
       unlockedAt: unlockedAt ?? this.unlockedAt,
+      claimedAt: claimedAt ?? this.claimedAt,
     );
   }
 
@@ -88,7 +98,9 @@ class Achievement {
       'id': id,
       'progress': progress,
       'unlocked': unlocked,
+      'claimed': claimed,
       'unlockedAt': unlockedAt?.millisecondsSinceEpoch,
+      'claimedAt': claimedAt?.millisecondsSinceEpoch,
     };
   }
 
@@ -97,8 +109,12 @@ class Achievement {
     return copyWith(
       progress: json['progress'] ?? 0,
       unlocked: json['unlocked'] ?? false,
+      claimed: json['claimed'] ?? false,
       unlockedAt: json['unlockedAt'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(json['unlockedAt'])
+          : null,
+      claimedAt: json['claimedAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(json['claimedAt'])
           : null,
     );
   }
@@ -166,7 +182,7 @@ class AchievementsManager extends ChangeNotifier {
       category: AchievementCategory.score,
       rarity: AchievementRarity.bronze,
       target: 1,
-      coinReward: 50,
+      coinReward: 75,  // Optimized: 75-150 bronze range
       iconPath: 'achievements/first_flight.png',
     ));
 
@@ -177,7 +193,7 @@ class AchievementsManager extends ChangeNotifier {
       category: AchievementCategory.score,
       rarity: AchievementRarity.bronze,
       target: 10,
-      coinReward: 100,
+      coinReward: 125, // Optimized: 75-150 bronze range
       iconPath: 'achievements/rookie_pilot.png',
     ));
 
@@ -188,7 +204,8 @@ class AchievementsManager extends ChangeNotifier {
       category: AchievementCategory.score,
       rarity: AchievementRarity.silver,
       target: 25,
-      coinReward: 200,
+      coinReward: 275, // Optimized: 200-350 silver range
+      gemReward: 5,    // Optimized: 3-8 gems for silver
       iconPath: 'achievements/sky_navigator.png',
     ));
 
@@ -199,8 +216,8 @@ class AchievementsManager extends ChangeNotifier {
       category: AchievementCategory.score,
       rarity: AchievementRarity.gold,
       target: 50,
-      coinReward: 400,
-      gemReward: 5,
+      coinReward: 550, // Optimized: 400-700 gold range
+      gemReward: 15,   // Optimized: 10-20 gems for gold
       iconPath: 'achievements/ace_pilot.png',
     ));
 
@@ -396,6 +413,79 @@ class AchievementsManager extends ChangeNotifier {
       iconPath: 'achievements/dedication_incarnate.png',
       isSecret: true,
     ));
+
+    // === SOCIAL SHARING ACHIEVEMENTS ===
+    _registerAchievement(Achievement(
+      id: 'first_share',
+      title: 'First Share',
+      description: 'Share your score for the first time',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.bronze,
+      target: 1,
+      coinReward: 100,
+      gemReward: 5,
+      iconPath: 'achievements/first_share.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'social_pilot',
+      title: 'Social Pilot',
+      description: 'Share your score 5 times total',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.silver,
+      target: 5,
+      coinReward: 200,
+      gemReward: 10,
+      iconPath: 'achievements/social_pilot.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'influencer',
+      title: 'Influencer',
+      description: 'Share your score 10 times total',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 10,
+      coinReward: 300,
+      gemReward: 15,
+      iconPath: 'achievements/influencer.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'viral_star',
+      title: 'Viral Star',
+      description: 'Share your score 20 times total',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 20,
+      coinReward: 500,
+      gemReward: 25,
+      iconPath: 'achievements/viral_star.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'social_legend',
+      title: 'Social Legend',
+      description: 'Share your score 50 times total',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.platinum,
+      target: 50,
+      coinReward: 1000,
+      gemReward: 50,
+      iconPath: 'achievements/social_legend.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'platform_master',
+      title: 'Platform Master',
+      description: 'Share to all 4 platforms in one session',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.platinum,
+      target: 1,
+      coinReward: 750,
+      gemReward: 30,
+      iconPath: 'achievements/platform_master.png',
+    ));
   }
 
   /// Register a single achievement
@@ -422,7 +512,7 @@ class AchievementsManager extends ChangeNotifier {
           }
         }
       } catch (e) {
-        debugPrint('🏅 Error loading achievement progress: $e');
+        safePrint('🏅 Error loading achievement progress: $e');
       }
     }
   }
@@ -443,13 +533,25 @@ class AchievementsManager extends ChangeNotifier {
 
   /// Update achievement progress
   Future<void> updateProgress(String achievementId, int progress) async {
-    if (!_achievements.containsKey(achievementId)) return;
+    safePrint('🏅 AchievementsManager.updateProgress called: $achievementId, progress: $progress');
+    
+    if (!_achievements.containsKey(achievementId)) {
+      safePrint('🏅 ❌ Achievement not found: $achievementId');
+      return;
+    }
     
     final achievement = _achievements[achievementId]!;
-    if (achievement.unlocked) return; // Already unlocked
+    safePrint('🏅 Current achievement state: ${achievement.id}, progress: ${achievement.progress}/${achievement.target}, unlocked: ${achievement.unlocked}');
+    
+    if (achievement.unlocked) {
+      safePrint('🏅 ❌ Achievement already unlocked: $achievementId');
+      return; // Already unlocked
+    }
     
     final newProgress = (achievement.progress + progress).clamp(0, achievement.target);
     final shouldUnlock = newProgress >= achievement.target;
+    
+    safePrint('🏅 Updating progress: ${achievement.progress} + $progress = $newProgress, shouldUnlock: $shouldUnlock');
     
     _achievements[achievementId] = achievement.copyWith(
       progress: newProgress,
@@ -458,11 +560,13 @@ class AchievementsManager extends ChangeNotifier {
     );
     
     if (shouldUnlock) {
+      safePrint('🏅 🎉 Achievement unlocked: ${achievement.title}');
       await _onAchievementUnlocked(achievement);
     }
     
     await _saveProgress();
     notifyListeners();
+    safePrint('🏅 ✅ Achievement progress updated and saved');
   }
 
   /// Set achievement progress to specific value
@@ -491,8 +595,8 @@ class AchievementsManager extends ChangeNotifier {
 
   /// Handle achievement unlock
   Future<void> _onAchievementUnlocked(Achievement achievement) async {
-    debugPrint('🏅 Achievement unlocked: ${achievement.title}');
-    debugPrint('🏅 Rewards: ${achievement.coinReward} coins, ${achievement.gemReward} gems');
+    safePrint('🏅 Achievement unlocked: ${achievement.title}');
+    safePrint('🏅 Rewards: ${achievement.coinReward} coins, ${achievement.gemReward} gems');
     
     // Grant rewards (will be integrated with InventoryManager)
     // await InventoryManager().grantSoftCurrency(achievement.coinReward);
@@ -571,9 +675,18 @@ class AchievementsManager extends ChangeNotifier {
         .where((achievement) => !achievement.isSecret || achievement.unlocked)
         .toList()
         ..sort((a, b) {
-          // Sort by: unlocked first, then by rarity, then by category
+          // Sort by: uncompleted first, then unlocked but unclaimed, then claimed at the end
+          if (a.unlocked && !a.claimed && (!b.unlocked || b.claimed)) {
+            return -1; // Unlocked but unclaimed achievements come first
+          }
+          if (b.unlocked && !b.claimed && (!a.unlocked || a.claimed)) {
+            return 1; // Unlocked but unclaimed achievements come first
+          }
+          if (a.claimed != b.claimed) {
+            return a.claimed ? 1 : -1; // Claimed achievements go to the end
+          }
           if (a.unlocked != b.unlocked) {
-            return a.unlocked ? -1 : 1;
+            return a.unlocked ? -1 : 1; // Unlocked achievements come before locked ones
           }
           if (a.category != b.category) {
             return a.category.index.compareTo(b.category.index);
@@ -603,5 +716,53 @@ class AchievementsManager extends ChangeNotifier {
     }
     
     return {'coins': totalCoins, 'gems': totalGems};
+  }
+
+  /// Claim achievement reward and mark as claimed
+  Future<bool> claimAchievementReward(String achievementId) async {
+    try {
+      final achievement = _achievements[achievementId];
+      if (achievement == null) {
+        safePrint('🏅 ❌ Achievement not found: $achievementId');
+        return false;
+      }
+      
+      if (!achievement.unlocked) {
+        safePrint('🏅 ❌ Achievement not unlocked: ${achievement.title}');
+        return false;
+      }
+      
+      if (achievement.claimed) {
+        safePrint('🏅 ❌ Achievement already claimed: ${achievement.title}');
+        return false;
+      }
+      
+      // Grant rewards
+      final inventory = InventoryManager();
+      if (achievement.coinReward > 0) {
+        await inventory.grantSoftCurrency(achievement.coinReward);
+      }
+      if (achievement.gemReward > 0) {
+        await inventory.grantGems(achievement.gemReward);
+        safePrint('🏅 💎 Granted ${achievement.gemReward} gems for achievement: ${achievement.title}');
+      }
+      
+      safePrint('🏅 💰 Achievement reward claimed: ${achievement.coinReward} coins${achievement.gemReward > 0 ? ' + ${achievement.gemReward} gems' : ''} for "${achievement.title}"');
+      
+      // Mark as claimed
+      _achievements[achievementId] = achievement.copyWith(
+        claimed: true,
+        claimedAt: DateTime.now(),
+      );
+      
+      // Save progress
+      await _saveProgress();
+      notifyListeners();
+      
+      return true;
+    } catch (e) {
+      safePrint('🏅 ❌ Failed to claim achievement reward: $e');
+      return false;
+    }
   }
 }

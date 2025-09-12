@@ -1,5 +1,6 @@
 /// 🌐 Server Manager - Production-ready backend for missions, leaderboards, and analytics
 library;
+import '../../core/debug_logger.dart';
 
 import 'dart:convert';
 import 'dart:math';
@@ -12,18 +13,18 @@ import 'player_identity_manager.dart';
 
 /// Server endpoints configuration
 class ServerConfig {
-  // 🔥 Firebase Functions URLs (replace with your project)
-  static const String baseUrl = 'https://us-central1-flappyjet-pro.cloudfunctions.net';
-  
+  // 🚂 Railway Backend URLs (Production)
+  static const String baseUrl = 'https://flappyjet-backend-production.up.railway.app';
+
   // API Endpoints
-  static const String syncPlayerData = '$baseUrl/syncPlayerData';
-  static const String submitScore = '$baseUrl/submitScore';
-  static const String getLeaderboard = '$baseUrl/getLeaderboard';
-  static const String syncMissions = '$baseUrl/syncMissions';
-  static const String validatePurchase = '$baseUrl/validatePurchase';
-  static const String reportEvent = '$baseUrl/reportEvent';
-  static const String getRemoteConfig = '$baseUrl/getRemoteConfig';
-  
+  static const String syncPlayerData = '$baseUrl/api/player/sync';
+  static const String submitScore = '$baseUrl/api/scores/submit';
+  static const String getLeaderboard = '$baseUrl/api/leaderboards/global';
+  static const String syncMissions = '$baseUrl/api/missions/sync';
+  static const String validatePurchase = '$baseUrl/api/purchases/validate';
+  static const String reportEvent = '$baseUrl/api/analytics/event';
+  static const String getRemoteConfig = '$baseUrl/api/config/remote';
+
   // Fallback to local if server unavailable
   static const bool enableOfflineMode = true;
   static const int requestTimeoutSeconds = 10;
@@ -150,12 +151,15 @@ class ServerManager extends ChangeNotifier {
     await _loadOfflineQueue();
     await _loadLastSyncTime();
     await _generatePlayerToken();
-    
+
+    // Clear old Firebase requests from offline queue (migration from Firebase to Railway)
+    await _clearFirebaseRequests();
+
     // Try to sync offline data
     if (_offlineQueue.isNotEmpty) {
       await _processOfflineQueue();
     }
-    
+
     // Start periodic sync
     _startPeriodicSync();
   }
@@ -178,16 +182,29 @@ class ServerManager extends ChangeNotifier {
   Future<void> _loadOfflineQueue() async {
     final prefs = await SharedPreferences.getInstance();
     final queueJson = prefs.getString(_keyOfflineQueue);
-    
+
     if (queueJson != null) {
       try {
         final List<dynamic> queue = jsonDecode(queueJson);
         _offlineQueue.clear();
         _offlineQueue.addAll(queue.cast<Map<String, dynamic>>());
       } catch (e) {
-        debugPrint('🌐 Error loading offline queue: $e');
+        safePrint('🌐 Error loading offline queue: $e');
       }
     }
+  }
+
+  /// Clear old Firebase requests from offline queue (migration cleanup)
+  Future<void> _clearFirebaseRequests() async {
+    if (_offlineQueue.isEmpty) return;
+
+    final initialCount = _offlineQueue.length;
+    
+    // Clear entire queue to remove all old Firebase requests
+    _offlineQueue.clear();
+    
+    safePrint('🧹 Cleared entire offline queue ($initialCount requests) to remove old Firebase requests');
+    await _saveOfflineQueue();
   }
 
   /// Save offline queue to storage
@@ -235,11 +252,11 @@ class ServerManager extends ChangeNotifier {
         notifyListeners();
         return jsonDecode(response.body);
       } else {
-        debugPrint('🌐 Server error ${response.statusCode}: ${response.body}');
+        safePrint('🌐 Server error ${response.statusCode}: ${response.body}');
         throw Exception('Server error: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('🌐 Network error: $e');
+      safePrint('🌐 Network error: $e');
       _isOnline = false;
       
       // Add to offline queue if enabled
@@ -345,7 +362,7 @@ class ServerManager extends ChangeNotifier {
 
       if (response != null && response['success'] == true) {
         await _saveLastSyncTime();
-        debugPrint('🌐 Player data synced successfully');
+        safePrint('🌐 Player data synced successfully');
         return true;
       }
 
@@ -442,7 +459,7 @@ class ServerManager extends ChangeNotifier {
   Future<void> _processOfflineQueue() async {
     if (_offlineQueue.isEmpty || !_isOnline) return;
 
-    debugPrint('🌐 Processing ${_offlineQueue.length} offline requests');
+    safePrint('🌐 Processing ${_offlineQueue.length} offline requests');
     
     final processedItems = <Map<String, dynamic>>[];
     
@@ -458,7 +475,7 @@ class ServerManager extends ChangeNotifier {
           processedItems.add(item);
         }
       } catch (e) {
-        debugPrint('🌐 Failed to process offline item: $e');
+        safePrint('🌐 Failed to process offline item: $e');
         break; // Stop processing if we're offline again
       }
     }
@@ -471,7 +488,7 @@ class ServerManager extends ChangeNotifier {
     await _saveOfflineQueue();
     
     if (processedItems.isNotEmpty) {
-      debugPrint('🌐 Processed ${processedItems.length} offline requests');
+      safePrint('🌐 Processed ${processedItems.length} offline requests');
     }
   }
 

@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
-import 'enhanced_difficulty_system.dart';
+import 'difficulty_system.dart';
+import '../../core/debug_logger.dart';
 
 /// Manages dynamic asset loading based on game difficulty phases
 class VisualAssetManager {
@@ -35,7 +35,7 @@ class VisualAssetManager {
     final phaseNumber = _getBackgroundPhaseForScore(score);
     final assetPath = _backgroundAssets[phaseNumber] ?? _backgroundAssets[1]!;
     
-    debugPrint('🎨 ASSET: Score $score → BG Phase $phaseNumber → $assetPath');
+    safePrint('🎨 ASSET: Score $score → BG Phase $phaseNumber → $assetPath');
     return assetPath;
   }
   
@@ -44,7 +44,7 @@ class VisualAssetManager {
     final phaseNumber = _getObstaclePhaseForScore(score);
     final assetPath = _obstacleAssets[phaseNumber] ?? _obstacleAssets[1]!;
     
-    debugPrint('🎨 OBSTACLE: Score $score → OBS Phase $phaseNumber → $assetPath');
+    safePrint('🎨 OBSTACLE: Score $score → OBS Phase $phaseNumber → $assetPath');
     return assetPath;
   }
   
@@ -93,7 +93,7 @@ class VisualAssetManager {
     if (phaseName.startsWith('Expert')) return 7;
     
     // Fallback to phase 1 for any unrecognized phases
-    debugPrint('⚠️ Unknown phase name: $phaseName, falling back to phase 1');
+    safePrint('⚠️ Unknown phase name: $phaseName, falling back to phase 1');
     return 1;
   }
 
@@ -120,8 +120,8 @@ class VisualAssetManager {
 
   /// Staggered obstacle phase mapping by score
   static int _getObstaclePhaseForScore(int s) {
-    if (s <= 6) return 1;       // 0–6 obs1
-    if (s <= 23) return 2;      // 7–23 obs2 (moved earlier)
+    if (s <= 15) return 2;      // 0–15 obs2 (Reinforced Wood)
+    if (s <= 23) return 1;      // 16–23 obs1 (Wooden Pipes)
     if (s <= 35) return 3;      // 24–35 obs3
     if (s <= 60) return 4;      // 36–60 obs4
     if (s <= 100) return 5;     // 61–100 obs5
@@ -133,7 +133,7 @@ class VisualAssetManager {
   /// Get phase-appropriate color scheme for UI elements
   static Map<String, dynamic> getPhaseColors(int score) {
     final phaseNumber = _getPhaseNumber(
-      EnhancedDifficultySystem.getPhaseForScore(score).name
+      DifficultySystem.getPhaseForScore(score).name
     );
     
     switch (phaseNumber) {
@@ -196,14 +196,14 @@ class VisualAssetManager {
   
   /// Debug: Print all available assets
   static void debugPrintAssets() {
-    debugPrint('🎨 === AVAILABLE BACKGROUND ASSETS ===');
+    safePrint('🎨 === AVAILABLE BACKGROUND ASSETS ===');
     _backgroundAssets.forEach((phase, path) {
-      debugPrint('🎨 Phase $phase: $path');
+      safePrint('🎨 Phase $phase: $path');
     });
     
-    debugPrint('🎨 === AVAILABLE OBSTACLE ASSETS ===');
+    safePrint('🎨 === AVAILABLE OBSTACLE ASSETS ===');
     _obstacleAssets.forEach((phase, path) {
-      debugPrint('🎨 Phase $phase: $path');
+      safePrint('🎨 Phase $phase: $path');
     });
   }
 }

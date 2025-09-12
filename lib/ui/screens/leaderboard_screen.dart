@@ -1,12 +1,21 @@
 /// 🏆 Leaderboard Screen
 library;
+import '../../core/debug_logger.dart';
 
 import 'package:flutter/material.dart';
 import '../../game/systems/leaderboard_manager.dart';
 import '../../game/systems/global_leaderboard_service.dart';
+import '../../services/tournament_service.dart';
 
 class LeaderboardScreen extends StatefulWidget {
-  const LeaderboardScreen({super.key});
+  final bool showBackButton;
+  final String? customTitle;
+  
+  const LeaderboardScreen({
+    super.key,
+    this.showBackButton = true,
+    this.customTitle,
+  });
 
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
@@ -17,6 +26,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final List<String> tabs = ['Global', 'Weekly', 'Local'];
   final LeaderboardManager _leaderboardManager = LeaderboardManager();
   final GlobalLeaderboardService _globalService = GlobalLeaderboardService();
+  final TournamentService _tournamentService = TournamentService(
+    baseUrl: 'https://flappyjet-backend-production.up.railway.app',
+  );
   bool _isInitialized = false;
 
   @override
@@ -40,6 +52,151 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   @override
+  void dispose() {
+    _tournamentService.dispose();
+    super.dispose();
+  }
+
+  /// Load weekly tournament leaderboard
+  Future<List<Map<String, dynamic>>?> _loadWeeklyTournamentLeaderboard() async {
+    try {
+      // Get current tournament
+      final tournamentResult = await _tournamentService.getCurrentTournament();
+      if (!tournamentResult.isSuccess || tournamentResult.data == null) {
+        return null;
+      }
+
+      final tournament = tournamentResult.data!;
+      
+      // Get tournament leaderboard
+      final leaderboardResult = await _tournamentService.getTournamentLeaderboard(
+        tournamentId: tournament.id,
+        limit: 50,
+      );
+
+      if (leaderboardResult.isSuccess && leaderboardResult.data != null) {
+        return leaderboardResult.data!.entries.map((entry) => {
+          'playerName': entry.playerName,
+          'score': entry.score,
+          'rank': entry.rank,
+          'totalGames': entry.totalGames,
+        }).toList();
+      }
+
+      return null;
+    } catch (e) {
+      safePrint('Error loading tournament leaderboard: $e');
+      return null;
+    }
+  }
+
+  /// Build tournament leaderboard item
+  Widget _buildTournamentLeaderboardItem(Map<String, dynamic> entry, int rank) {
+    final isCurrentPlayer = entry['playerName'] == 'Erezos'; // You can make this dynamic
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isCurrentPlayer 
+            ? [Colors.blue.withValues(alpha: 0.3), Colors.blue.withValues(alpha: 0.1)]
+            : [Colors.white.withValues(alpha: 0.2), Colors.white.withValues(alpha: 0.05)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: isCurrentPlayer 
+          ? Border.all(color: Colors.blue, width: 2)
+          : null,
+      ),
+      child: Row(
+        children: [
+          // Rank
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _getRankColor(rank),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '$rank',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          // Player info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry['playerName'] ?? 'Anonymous',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: isCurrentPlayer ? FontWeight.bold : FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  '${entry['totalGames'] ?? 0} games played',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Score
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${entry['score']}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              Text(
+                'best score',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getRankColor(int rank) {
+    switch (rank) {
+      case 1:
+        return Colors.amber; // Gold
+      case 2:
+        return Colors.grey[400]!; // Silver
+      case 3:
+        return Colors.brown[400]!; // Bronze
+      default:
+        return Colors.blue[600]!;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -54,32 +211,33 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           child: Column(
             children: [
               // Header with back button and title
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Leaderboard',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+              if (widget.showBackButton)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                      Expanded(
+                        child: Text(
+                          widget.customTitle ?? 'Leaderboard',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => _refreshGlobalLeaderboard(),
-                      icon: const Icon(Icons.refresh, color: Colors.white),
-                    ),
-                  ],
+                      IconButton(
+                        onPressed: () => _refreshGlobalLeaderboard(),
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               
               // Tab selector
               Container(
@@ -210,34 +368,68 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Widget _buildWeeklyLeaderboard() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.calendar_today,
-            size: 64,
-            color: Colors.white70,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Weekly Leaderboard',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
+    return FutureBuilder<List<Map<String, dynamic>>?>(
+      future: _loadWeeklyTournamentLeaderboard(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load tournament',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Coming Soon!',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
+          );
+        }
+        
+        final leaderboard = snapshot.data;
+        if (leaderboard == null || leaderboard.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.calendar_today, size: 64, color: Colors.white70),
+                const SizedBox(height: 16),
+                Text(
+                  'Weekly Tournament',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'No scores yet this week',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
+          );
+        }
+        
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: leaderboard.length,
+          itemBuilder: (context, index) {
+            final entry = leaderboard[index];
+            return _buildTournamentLeaderboardItem(entry, index + 1);
+          },
+        );
+      },
     );
   }
 
@@ -318,7 +510,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 height: 36,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  debugPrint('Error loading jet image: $error');
+                  safePrint('Error loading jet image: $error');
                   return Icon(
                     Icons.flight,
                     color: Colors.grey.shade600,
@@ -458,7 +650,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 height: 36,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  debugPrint('Error loading jet image: $error');
+                  safePrint('Error loading jet image: $error');
                   return Icon(
                     Icons.flight,
                     color: Colors.grey.shade600,

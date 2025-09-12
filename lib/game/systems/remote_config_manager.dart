@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../core/economy_config.dart';
+import '../../core/debug_logger.dart';
 
 /// Remote Config manager for live updates without app deployment
 /// This provides a foundation for Firebase Remote Config integration
@@ -18,7 +19,7 @@ class RemoteConfigManager extends ChangeNotifier {
   /// Initialize Remote Config (placeholder for Firebase integration)
   Future<void> initialize() async {
     try {
-      debugPrint('📱 🔧 Initializing Remote Config Manager...');
+      safePrint('📱 🔧 Initializing Remote Config Manager...');
       
       // For now, use development mode with local defaults
       _developmentMode = true;
@@ -34,11 +35,11 @@ class RemoteConfigManager extends ChangeNotifier {
       // ));
       // await FirebaseRemoteConfig.instance.fetchAndActivate();
       
-      debugPrint('📱 ✅ Remote Config Manager initialized (development mode)');
+      safePrint('📱 ✅ Remote Config Manager initialized (development mode)');
       notifyListeners();
       
     } catch (e) {
-      debugPrint('📱 ⚠️ Remote Config initialization failed: $e');
+      safePrint('📱 ⚠️ Remote Config initialization failed: $e');
       _initialized = false;
       _developmentMode = true;
     }
@@ -95,17 +96,17 @@ class RemoteConfigManager extends ChangeNotifier {
   /// Fetch latest config from server
   Future<void> fetchConfig() async {
     if (!_initialized) {
-      debugPrint('📱 ⚠️ Remote Config not initialized, skipping fetch');
+      safePrint('📱 ⚠️ Remote Config not initialized, skipping fetch');
       return;
     }
 
     try {
-      debugPrint('📱 🔄 Fetching Remote Config...');
+      safePrint('📱 🔄 Fetching Remote Config...');
       
       if (_developmentMode) {
         // Simulate fetch delay in development
         await Future.delayed(const Duration(milliseconds: 500));
-        debugPrint('📱 🧪 Development mode: Using cached config');
+        safePrint('📱 🧪 Development mode: Using cached config');
       } else {
         // TODO: Fetch from Firebase Remote Config
         // await FirebaseRemoteConfig.instance.fetchAndActivate();
@@ -113,11 +114,11 @@ class RemoteConfigManager extends ChangeNotifier {
       }
       
       await _applyConfigToEconomy();
-      debugPrint('📱 ✅ Remote Config fetched and applied');
+      safePrint('📱 ✅ Remote Config fetched and applied');
       notifyListeners();
       
     } catch (e) {
-      debugPrint('📱 ❌ Remote Config fetch failed: $e');
+      safePrint('📱 ❌ Remote Config fetch failed: $e');
     }
   }
 
@@ -128,7 +129,7 @@ class RemoteConfigManager extends ChangeNotifier {
       if (value is T) return value;
       return defaultValue;
     } catch (e) {
-      debugPrint('📱 ⚠️ Error getting config value for $key: $e');
+      safePrint('📱 ⚠️ Error getting config value for $key: $e');
       return defaultValue;
     }
   }
@@ -153,13 +154,13 @@ class RemoteConfigManager extends ChangeNotifier {
   /// Update a config value for development testing
   Future<void> updateDevelopmentValue(String key, dynamic value) async {
     if (!_developmentMode) {
-      debugPrint('📱 ⚠️ Cannot update config values in production mode');
+      safePrint('📱 ⚠️ Cannot update config values in production mode');
       return;
     }
     
     _cachedConfig[key] = value;
     await _applyConfigToEconomy();
-    debugPrint('📱 🧪 Development config updated: $key = $value');
+    safePrint('📱 🧪 Development config updated: $key = $value');
     notifyListeners();
   }
 
@@ -171,13 +172,13 @@ class RemoteConfigManager extends ChangeNotifier {
     final variantIndex = hash % variants.length;
     
     final variant = variants[variantIndex];
-    debugPrint('📱 🧪 A/B Test "$testName": assigned variant "$variant"');
+    safePrint('📱 🧪 A/B Test "$testName": assigned variant "$variant"');
     return variant;
   }
 
   /// Force refresh config (for admin/debug purposes)
   Future<void> forceRefresh() async {
-    debugPrint('📱 🔄 Force refreshing Remote Config...');
+    safePrint('📱 🔄 Force refreshing Remote Config...');
     _cachedConfig.clear();
     await _loadDevelopmentDefaults();
     await fetchConfig();
@@ -186,4 +187,3 @@ class RemoteConfigManager extends ChangeNotifier {
   /// Get all current config for debugging
   Map<String, dynamic> getAllConfig() => Map.from(_cachedConfig);
 }
-

@@ -1,6 +1,7 @@
 /// 🔥 BLOCKBUSTER Jet Fire State System
 /// Professional sprite-based fire effects for AAA quality
 library;
+import '../../core/debug_logger.dart';
 
 import 'package:flame/components.dart';
 import 'dart:ui' as ui;
@@ -42,14 +43,14 @@ class JetFireStateManager extends Component {
     };
     for (final path in candidates) {
       try {
-        debugPrint('🧪 Attempting to load thrust sprite from: $path');
+        safePrint('🧪 Attempting to load thrust sprite from: $path');
         _thrustSprite = await Sprite.load(path);
         _hasThrustAsset = true;
-        debugPrint('🔥 Loaded generic thrust sprite: $path');
+        safePrint('🔥 Loaded generic thrust sprite: $path');
         return;
       } catch (_) {}
     }
-    debugPrint('🔥 Generic thrust sprite not found in any path, using procedural fallback');
+    safePrint('🔥 Generic thrust sprite not found in any path, using procedural fallback');
     _thrustSprite = await _createProceduralThrustSprite();
     _hasThrustAsset = false;
   }
@@ -121,7 +122,7 @@ class JetFireStateManager extends Component {
     _currentState = JetFireState.firing;
     _fireTimer = _fireDuration;
     _fireIntensity = 1.0;
-    debugPrint('🔥 BLOCKBUSTER: Jet engine fire triggered!');
+    safePrint('🔥 BLOCKBUSTER: Jet engine fire triggered!');
   }
   
   /// Render thrust into the provided canvas using provided params (synchronous)
@@ -159,7 +160,7 @@ class JetFireStateManager extends Component {
     }
     // Dev log (first frames only) with actual computed size
     if (intensity > 0.85) {
-      debugPrint('🔥 RENDER THRUST at $center, size=(${drawW.toStringAsFixed(1)}x${drawH.toStringAsFixed(1)}), asset=$_hasThrustAsset, intensity=${intensity.toStringAsFixed(2)}');
+      safePrint('🔥 RENDER THRUST at $center, size=(${drawW.toStringAsFixed(1)}x${drawH.toStringAsFixed(1)}), asset=$_hasThrustAsset, intensity=${intensity.toStringAsFixed(2)}');
     }
     sprite.render(
       canvas,

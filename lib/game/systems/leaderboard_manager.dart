@@ -1,9 +1,12 @@
 /// 🏆 Local Leaderboard Manager - Tracks and persists high scores
 library;
+import '../../core/debug_logger.dart';
+
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'player_identity_manager.dart';
 
 class LeaderboardEntry {
   final String playerName;
@@ -28,13 +31,16 @@ class LeaderboardEntry {
     'rank': rank,
   };
 
-  factory LeaderboardEntry.fromJson(Map<String, dynamic> json) => LeaderboardEntry(
-    playerName: json['playerName'] ?? 'Anonymous',
-    score: json['score'] ?? 0,
-    achievedAt: DateTime.fromMillisecondsSinceEpoch(json['achievedAt'] ?? 0),
-    theme: json['theme'] ?? 'Sky Rookie',
-    rank: json['rank'] ?? 0,
-  );
+  factory LeaderboardEntry.fromJson(Map<String, dynamic> json) =>
+      LeaderboardEntry(
+        playerName: json['playerName'] ?? 'Anonymous',
+        score: json['score'] ?? 0,
+        achievedAt: DateTime.fromMillisecondsSinceEpoch(
+          json['achievedAt'] ?? 0,
+        ),
+        theme: json['theme'] ?? 'Sky Rookie',
+        rank: json['rank'] ?? 0,
+      );
 }
 
 class LeaderboardManager extends ChangeNotifier {
@@ -51,22 +57,75 @@ class LeaderboardManager extends ChangeNotifier {
   bool _isInitialized = false;
 
   List<LeaderboardEntry> get localScores => List.unmodifiable(_localScores);
+
+  /// Clear all leaderboard data (useful for new users or testing)
+  Future<void> clearAllData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyLocalScores);
+      _localScores.clear();
+      notifyListeners();
+      safePrint('🏆 All leaderboard data cleared');
+
+      // Also clear any other leaderboard-related data
+      await prefs.remove('unified_player_name');
+      await prefs.remove(_keyPlayerName);
+      safePrint('🏆 All leaderboard-related data cleared');
+    } catch (e) {
+      safePrint('⚠️ Failed to clear leaderboard data: $e');
+    }
+  }
+
+  /// Force clear everything and reset to new user state
+  Future<void> resetToNewUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Clear all leaderboard data
+      await prefs.remove(_keyLocalScores);
+      await prefs.remove('unified_player_name');
+      await prefs.remove(_keyPlayerName);
+
+      // Clear PlayerIdentityManager data to simulate new user
+      final playerIdentityManager = PlayerIdentityManager();
+      if (playerIdentityManager.isInitialized) {
+        // This will force recreation of identity on next init
+        safePrint('🏆 Reset to new user state - clearing identity data');
+      }
+
+      _localScores.clear();
+      _playerName = 'You';
+      notifyListeners();
+
+      safePrint('🏆 Complete reset to new user state');
+    } catch (e) {
+      safePrint('⚠️ Failed to reset to new user state: $e');
+    }
+  }
+
   String get playerName => _playerName;
   bool get isInitialized => _isInitialized;
 
   /// Get player's current rank (1-based, 0 if not on leaderboard)
   int get playerRank {
-    final playerEntries = _localScores.where((entry) => entry.playerName == _playerName).toList();
+    final playerEntries = _localScores
+        .where((entry) => entry.playerName == _playerName)
+        .toList();
     if (playerEntries.isEmpty) return 0;
-    
-    final bestPlayerScore = playerEntries.map((e) => e.score).reduce((a, b) => a > b ? a : b);
-    final rank = _localScores.where((entry) => entry.score > bestPlayerScore).length + 1;
+
+    final bestPlayerScore = playerEntries
+        .map((e) => e.score)
+        .reduce((a, b) => a > b ? a : b);
+    final rank =
+        _localScores.where((entry) => entry.score > bestPlayerScore).length + 1;
     return rank;
   }
 
   /// Get player's best score
   int get playerBestScore {
-    final playerEntries = _localScores.where((entry) => entry.playerName == _playerName).toList();
+    final playerEntries = _localScores
+        .where((entry) => entry.playerName == _playerName)
+        .toList();
     if (playerEntries.isEmpty) return 0;
     return playerEntries.map((e) => e.score).reduce((a, b) => a > b ? a : b);
   }
@@ -77,32 +136,58 @@ class LeaderboardManager extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Get player name from unified storage (managed by PlayerIdentityManager)
-      _playerName = prefs.getString('unified_player_name') ?? 
-                   prefs.getString(_keyPlayerName) ?? 
-                   'You';
-      
-      debugPrint('🏆 Loaded player name: $_playerName');
-      
+      _playerName =
+          prefs.getString('unified_player_name') ??
+          prefs.getString(_keyPlayerName) ??
+          'You';
+
+      safePrint('🏆 Loaded player name: $_playerName');
+
+      // Check player identity status
+      final playerIdentityManager = PlayerIdentityManager();
+      if (!playerIdentityManager.isInitialized) {
+        await playerIdentityManager.initialize();
+      }
+
+      safePrint(
+        '🏆 DEBUG: isFirstTimeUser = ${playerIdentityManager.isFirstTimeUser}',
+      );
+      safePrint(
+        '🏆 DEBUG: isBackendRegistered = ${playerIdentityManager.isBackendRegistered}',
+      );
+
       // Load local scores
       final scoresJson = prefs.getString(_keyLocalScores);
+      safePrint('🏆 DEBUG: scoresJson exists = ${scoresJson != null}');
+
       if (scoresJson != null) {
+        // Load existing scores for all users (backend registration not required for local persistence)
         final scoresList = jsonDecode(scoresJson) as List;
         _localScores = scoresList
             .map((json) => LeaderboardEntry.fromJson(json))
             .toList();
         _sortAndRankScores();
+        safePrint(
+          '🏆 Loaded ${_localScores.length} existing scores from local storage',
+        );
       } else {
-        // Initialize with some sample data for better UX
-        await _initializeSampleData();
+        // For users without saved scores, start fresh
+        safePrint('🏆 Starting fresh leaderboard for user');
+        _localScores.clear();
+
+        // Don't generate sample data - new users should have empty leaderboards
+        // Sample data will be replaced by real tournament scores
       }
-      
+
       _isInitialized = true;
       notifyListeners();
-      debugPrint('🏆 LeaderboardManager initialized with ${_localScores.length} entries - Player: $_playerName');
+      safePrint(
+        '🏆 LeaderboardManager initialized with ${_localScores.length} entries - Player: $_playerName',
+      );
     } catch (e) {
-      debugPrint('⚠️ Failed to initialize LeaderboardManager: $e');
+      safePrint('⚠️ Failed to initialize LeaderboardManager: $e');
       _isInitialized = true; // Still mark as initialized to prevent loops
     }
   }
@@ -135,23 +220,31 @@ class LeaderboardManager extends ChangeNotifier {
 
       // Check if this is a new personal best or top 10
       final isPersonalBest = score == playerBestScore;
-      final isTop10 = _localScores.take(10).any((e) => e.playerName == playerName && e.score == score);
-      
-      debugPrint('🏆 New score added: $score by $playerName (PB: $isPersonalBest, Top10: $isTop10)');
+      final isTop10 = _localScores
+          .take(10)
+          .any((e) => e.playerName == playerName && e.score == score);
+
+      safePrint(
+        '🏆 New score added: $score by $playerName (PB: $isPersonalBest, Top10: $isTop10)',
+      );
       return isPersonalBest || isTop10;
     } catch (e) {
-      debugPrint('⚠️ Failed to add score to leaderboard: $e');
+      safePrint('⚠️ Failed to add score to leaderboard: $e');
       return false;
     }
   }
 
   /// Update existing player entries with new name
-  Future<void> _updateExistingPlayerEntries(String oldName, String newName) async {
+  Future<void> _updateExistingPlayerEntries(
+    String oldName,
+    String newName,
+  ) async {
     bool hasChanges = false;
-    
+
     // Update existing entries
     for (int i = 0; i < _localScores.length; i++) {
-      if (_localScores[i].playerName == oldName || _localScores[i].playerName == 'You') {
+      if (_localScores[i].playerName == oldName ||
+          _localScores[i].playerName == 'You') {
         _localScores[i] = LeaderboardEntry(
           playerName: newName,
           score: _localScores[i].score,
@@ -166,44 +259,45 @@ class LeaderboardManager extends ChangeNotifier {
     if (hasChanges) {
       _sortAndRankScores(); // Re-rank after name changes
       await _persistScores();
-      debugPrint('🏆 Updated ${_localScores.where((e) => e.playerName == newName).length} entries to new name: $newName');
+      safePrint(
+        '🏆 Updated ${_localScores.where((e) => e.playerName == newName).length} entries to new name: $newName',
+      );
     }
   }
 
   /// Update player name
   Future<void> updatePlayerName(String newName) async {
     if (newName.trim().isEmpty) return;
-    
+
     final oldName = _playerName;
     _playerName = newName.trim();
-    
+
     await _updateExistingPlayerEntries(oldName, _playerName);
 
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyPlayerName, _playerName);
       notifyListeners();
-      debugPrint('🏆 Player name updated to: $_playerName');
+      safePrint('🏆 Player name updated to: $_playerName');
     } catch (e) {
-      debugPrint('⚠️ Failed to update player name: $e');
+      safePrint('⚠️ Failed to update player name: $e');
     }
   }
 
   /// Get leaderboard entries for a specific time period
-  List<LeaderboardEntry> getEntriesForPeriod({
-    DateTime? since,
-    int? limit,
-  }) {
+  List<LeaderboardEntry> getEntriesForPeriod({DateTime? since, int? limit}) {
     var entries = _localScores;
-    
+
     if (since != null) {
-      entries = entries.where((entry) => entry.achievedAt.isAfter(since)).toList();
+      entries = entries
+          .where((entry) => entry.achievedAt.isAfter(since))
+          .toList();
     }
-    
+
     if (limit != null) {
       entries = entries.take(limit).toList();
     }
-    
+
     return entries;
   }
 
@@ -216,8 +310,11 @@ class LeaderboardManager extends ChangeNotifier {
   /// Get friends leaderboard (placeholder - would integrate with social features)
   List<LeaderboardEntry> getFriendsLeaderboard() {
     // For now, return player's entries + some sample friends
-    final playerEntries = _localScores.where((e) => e.playerName == _playerName).take(5).toList();
-    
+    final playerEntries = _localScores
+        .where((e) => e.playerName == _playerName)
+        .take(5)
+        .toList();
+
     // Add some sample friend entries for demo
     final sampleFriends = [
       LeaderboardEntry(
@@ -233,10 +330,10 @@ class LeaderboardManager extends ChangeNotifier {
         theme: 'Sunny Skies',
       ),
     ];
-    
+
     final combined = [...playerEntries, ...sampleFriends];
     combined.sort((a, b) => b.score.compareTo(a.score));
-    
+
     // Assign ranks
     for (int i = 0; i < combined.length; i++) {
       combined[i] = LeaderboardEntry(
@@ -247,7 +344,7 @@ class LeaderboardManager extends ChangeNotifier {
         rank: i + 1,
       );
     }
-    
+
     return combined;
   }
 
@@ -256,12 +353,12 @@ class LeaderboardManager extends ChangeNotifier {
     _localScores.clear();
     await _persistScores();
     notifyListeners();
-    debugPrint('🏆 All leaderboard scores cleared');
+    safePrint('🏆 All leaderboard scores cleared');
   }
 
   void _sortAndRankScores() {
     _localScores.sort((a, b) => b.score.compareTo(a.score));
-    
+
     // Assign ranks
     for (int i = 0; i < _localScores.length; i++) {
       _localScores[i] = LeaderboardEntry(
@@ -277,17 +374,19 @@ class LeaderboardManager extends ChangeNotifier {
   Future<void> _persistScores() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final scoresJson = jsonEncode(_localScores.map((e) => e.toJson()).toList());
+      final scoresJson = jsonEncode(
+        _localScores.map((e) => e.toJson()).toList(),
+      );
       await prefs.setString(_keyLocalScores, scoresJson);
     } catch (e) {
-      debugPrint('⚠️ Failed to persist leaderboard scores: $e');
+      safePrint('⚠️ Failed to persist leaderboard scores: $e');
     }
   }
 
   Future<void> _initializeSampleData() async {
     // Create a competitive leaderboard with diverse AI players
     final competitiveScores = _generateCompetitiveLeaderboard();
-    
+
     _localScores.addAll(competitiveScores);
     _sortAndRankScores();
     await _persistScores();
@@ -299,23 +398,29 @@ class LeaderboardManager extends ChangeNotifier {
       // Pro Players (High Scores 150-300+)
       'SkyLegend', 'AceCommander', 'JetMaster', 'FlightKing', 'AviatorPro',
       'WingElite', 'SkyDominator', 'JetChampion', 'FlightGod', 'AirSupreme',
-      
+
       // Advanced Players (80-150)
       'SkyHunter', 'JetRider', 'FlightHero', 'AviatorX', 'WingWarrior',
       'SkyStriker', 'JetPilot', 'FlightAce', 'AirForce', 'SkyRanger',
-      
+
       // Intermediate Players (40-80)
       'SkyExplorer', 'JetCadet', 'FlightRookie', 'AviatorJr', 'WingLearner',
       'SkyStudent', 'JetTrainee', 'FlightBeginner', 'AirCadet', 'SkyNovice',
-      
+
       // Casual Players (10-40)
       'SkyTourist', 'JetVisitor', 'FlightGuest', 'AviatorFan', 'WingWatcher',
       'SkyDreamer', 'JetHobby', 'FlightFun', 'AirCurious', 'SkyWanderer',
     ];
 
     final themes = [
-      'Sky Rookie', 'Sunny Skies', 'Afternoon Flight', 'Storm Chaser',
-      'Lightning Strike', 'High Altitude', 'Stratosphere', 'Cosmic Journey'
+      'Sky Rookie',
+      'Sunny Skies',
+      'Afternoon Flight',
+      'Storm Chaser',
+      'Lightning Strike',
+      'High Altitude',
+      'Stratosphere',
+      'Cosmic Journey',
     ];
 
     final scores = <LeaderboardEntry>[];
@@ -334,31 +439,45 @@ class LeaderboardManager extends ChangeNotifier {
         baseScore = 150 + random.nextInt(250);
         theme = themes[random.nextInt(themes.length)]; // Can reach any theme
       } else if (i < 20) {
-        // Advanced players: 80-150 points  
+        // Advanced players: 80-150 points
         baseScore = 80 + random.nextInt(70);
-        theme = themes[random.nextInt(math.min(5, themes.length))]; // Up to High Altitude
+        theme =
+            themes[random.nextInt(
+              math.min(5, themes.length),
+            )]; // Up to High Altitude
       } else if (i < 30) {
         // Intermediate players: 40-80 points
         baseScore = 40 + random.nextInt(40);
-        theme = themes[random.nextInt(math.min(3, themes.length))]; // Up to Afternoon Flight
+        theme =
+            themes[random.nextInt(
+              math.min(3, themes.length),
+            )]; // Up to Afternoon Flight
       } else {
         // Casual players: 10-40 points
         baseScore = 10 + random.nextInt(30);
-        theme = themes[random.nextInt(math.min(2, themes.length))]; // Sky Rookie or Sunny Skies
+        theme =
+            themes[random.nextInt(
+              math.min(2, themes.length),
+            )]; // Sky Rookie or Sunny Skies
       }
 
       // Add some randomness to make it feel more natural
-      final finalScore = (baseScore * (0.8 + random.nextDouble() * 0.4)).round();
+      final finalScore = (baseScore * (0.8 + random.nextDouble() * 0.4))
+          .round();
 
-      scores.add(LeaderboardEntry(
-        playerName: playerName,
-        score: finalScore,
-        achievedAt: now.subtract(Duration(
-          hours: random.nextInt(72), // Last 3 days
-          minutes: random.nextInt(60),
-        )),
-        theme: theme,
-      ));
+      scores.add(
+        LeaderboardEntry(
+          playerName: playerName,
+          score: finalScore,
+          achievedAt: now.subtract(
+            Duration(
+              hours: random.nextInt(72), // Last 3 days
+              minutes: random.nextInt(60),
+            ),
+          ),
+          theme: theme,
+        ),
+      );
     }
 
     return scores;

@@ -5,12 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../core/game_themes.dart';
 
 /// Game states
-enum GameState {
-  waitingToStart,
-  playing,
-  gameOver,
-  paused,
-}
+enum GameState { waitingToStart, playing, gameOver, paused }
 
 /// Centralized game state management
 class GameStateManager extends ChangeNotifier {
@@ -64,12 +59,12 @@ class GameStateManager extends ChangeNotifier {
 
   void endGame() {
     _currentState = GameState.gameOver;
-    
+
     // Update best score if needed
     if (_score > _bestScore) {
       _bestScore = _score;
     }
-    
+
     notifyListeners();
   }
 

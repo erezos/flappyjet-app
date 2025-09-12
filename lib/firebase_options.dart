@@ -3,10 +3,11 @@
 // Replace with real firebase_options.dart from `flutterfire configure` for production
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
-/// 
+///
 /// Example for development/testing - replace with real configuration:
 /// 1. Run: `flutterfire configure`
 /// 2. Follow the setup wizard
@@ -33,22 +34,22 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // Mock configurations - replace with real ones
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'mock-api-key-android',
-    appId: 'mock-app-id-android',
-    messagingSenderId: 'mock-sender-id',
-    projectId: 'flappyjet-pro-mock',
-    storageBucket: 'flappyjet-pro-mock.appspot.com',
+    apiKey: 'AIzaSyB-6Cbv1mTWilDIXDsMuXDB7PA-8rbLpIs',
+    appId: '1:861286493216:android:6fa25aec2fa3528be92045',
+    messagingSenderId: '861286493216',
+    projectId: 'flappyjet-b31f9',
+    storageBucket: 'flappyjet-b31f9.firebasestorage.app',
   );
 
+  // Mock configurations - replace with real ones
+
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'mock-api-key-ios',
-    appId: 'mock-app-id-ios',
-    messagingSenderId: 'mock-sender-id',
-    projectId: 'flappyjet-pro-mock',
-    storageBucket: 'flappyjet-pro-mock.appspot.com',
-    iosClientId: 'mock-client-id.apps.googleusercontent.com',
+    apiKey: 'AIzaSyAygq88sH-2E1-zrTz9beKYVeRjf18dXVQ',
+    appId: '1:861286493216:ios:b2ea7b7e3a893178e92045',
+    messagingSenderId: '861286493216',
+    projectId: 'flappyjet-b31f9',
+    storageBucket: 'flappyjet-b31f9.firebasestorage.app',
     iosBundleId: 'com.flappyjet.pro.flappyJetPro',
   );
 
@@ -75,4 +76,4 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'mock-sender-id',
     projectId: 'flappyjet-pro-mock',
   );
-} 
+}

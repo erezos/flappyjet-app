@@ -1,4 +1,6 @@
 /// 🎯 Profile Header Component - "PROFILE" title with responsive sizing
+library;
+
 import 'package:flutter/material.dart';
 import 'profile_responsive_config.dart';
 import '../text_3d_widget.dart';
@@ -9,7 +11,7 @@ class ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = context.profileConfig;
-    
+
     return Image.asset(
       'assets/images/text/profile_text.png',
       height: config.profileHeaderHeight,

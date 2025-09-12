@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/systems/daily_streak_manager.dart';
+import '../../../game/core/jet_skins.dart';
 import '../gem_3d_icon.dart';
 
 /// Stable Daily Streak Popup - Pure Flutter UI without complex animations
@@ -74,7 +75,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
     final screenHeight = screenSize.height;
     
     return Scaffold(
-      backgroundColor: Colors.black.withOpacity(0.7),
+      backgroundColor: Colors.black.withValues(alpha: 0.7),
       body: SlideTransition(
         position: _slideAnimation,
         child: Center(
@@ -128,12 +129,12 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: const Color(0xFFFFE06A).withOpacity(0.5),
+            color: const Color(0xFFFFE06A).withValues(alpha: 0.5),
             blurRadius: 20,
             offset: const Offset(0, -2),
           ),
@@ -167,7 +168,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFFFFE06A).withOpacity(0.3),
+            const Color(0xFFFFE06A).withValues(alpha: 0.3),
             Colors.transparent,
           ],
         ),
@@ -181,7 +182,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
           color: const Color(0xFF283C66),
           shadows: [
             Shadow(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               offset: const Offset(0, 1),
               blurRadius: 2,
             ),
@@ -244,8 +245,8 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                 ]
               : isClaimed
                   ? [
-                      const Color(0xFF27AE60).withOpacity(0.9),
-                      const Color(0xFF2ECC71).withOpacity(0.9),
+                      const Color(0xFF27AE60).withValues(alpha: 0.9),
+                      const Color(0xFF2ECC71).withValues(alpha: 0.9),
                     ]
                   : isLocked
                       ? [
@@ -275,7 +276,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                     : isClaimed
                         ? const Color(0xFF27AE60)
                         : const Color(0xFF1FB7C4))
-                .withOpacity(isToday ? 0.8 : 0.4),
+                .withValues(alpha: isToday ? 0.8 : 0.4),
             blurRadius: isToday ? 16 : 6,
             spreadRadius: isToday ? 4 : 1,
           ),
@@ -298,7 +299,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                     color: Colors.white,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         offset: const Offset(1, 1),
                         blurRadius: 2,
                       ),
@@ -327,7 +328,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                         color: Colors.white,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.8),
+                            color: Colors.black.withValues(alpha: 0.8),
                             offset: const Offset(1, 1),
                             blurRadius: 3,
                           ),
@@ -355,7 +356,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
+                      color: Colors.black.withValues(alpha: 0.4),
                       blurRadius: 4,
                       offset: const Offset(1, 1),
                     ),
@@ -380,7 +381,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
+                      color: Colors.black.withValues(alpha: 0.4),
                       blurRadius: 4,
                       offset: const Offset(1, 1),
                     ),
@@ -408,13 +409,13 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
           Icons.monetization_on,
           size: iconSize,
           color: isLocked 
-              ? const Color(0xFFFFD700).withOpacity(0.4)
+              ? const Color(0xFFFFD700).withValues(alpha: 0.4)
               : isClaimed 
-                  ? const Color(0xFFFFD700).withOpacity(0.7)
+                  ? const Color(0xFFFFD700).withValues(alpha: 0.7)
                   : const Color(0xFFFFD700),
           shadows: [
             Shadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               offset: const Offset(1, 1),
               blurRadius: 2,
             ),
@@ -440,13 +441,13 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
           Icons.favorite,
           size: iconSize,
           color: isLocked 
-              ? const Color(0xFFE74C3C).withOpacity(0.4)
+              ? const Color(0xFFE74C3C).withValues(alpha: 0.4)
               : isClaimed 
-                  ? const Color(0xFFE74C3C).withOpacity(0.7)
+                  ? const Color(0xFFE74C3C).withValues(alpha: 0.7)
                   : const Color(0xFFE74C3C),
           shadows: [
             Shadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               offset: const Offset(1, 1),
               blurRadius: 2,
             ),
@@ -454,17 +455,60 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
         );
         
       case DailyStreakRewardType.jetSkin:
+        // Show actual jet preview instead of generic plane icon
+        if (reward.jetSkinId != null) {
+          final jetSkin = JetSkinCatalog.getSkinById(reward.jetSkinId!);
+          if (jetSkin != null) {
+            return Opacity(
+              opacity: isLocked 
+                  ? 0.4
+                  : isClaimed 
+                      ? 0.7
+                      : 1.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      offset: const Offset(1, 1),
+                      blurRadius: 3,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/${jetSkin.assetPath}',
+                    width: iconSize,
+                    height: iconSize,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      // Fallback to plane icon if image fails to load
+                      return Icon(
+                        Icons.flight,
+                        size: iconSize,
+                        color: const Color(0xFF9B59B6),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          }
+        }
+        // Fallback to generic plane icon
         return Icon(
           Icons.flight,
           size: iconSize,
           color: isLocked 
-              ? const Color(0xFF9B59B6).withOpacity(0.4)
+              ? const Color(0xFF9B59B6).withValues(alpha: 0.4)
               : isClaimed 
-                  ? const Color(0xFF9B59B6).withOpacity(0.7)
+                  ? const Color(0xFF9B59B6).withValues(alpha: 0.7)
                   : const Color(0xFF9B59B6),
           shadows: [
             Shadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               offset: const Offset(1, 1),
               blurRadius: 2,
             ),
@@ -516,7 +560,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4A90E2).withOpacity(0.3),
+              color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(2, 2),
             ),
@@ -546,7 +590,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00BCD4).withOpacity(0.6),
+                      color: const Color(0xFF00BCD4).withValues(alpha: 0.6),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),
@@ -621,7 +665,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                     : _isClaiming
                         ? const Color(0xFF95A5A6)
                         : const Color(0xFF4A90E2))
-                .withOpacity(0.4),
+                .withValues(alpha: 0.4),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -649,13 +693,8 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                     });
                     
                     if (success) {
+                      // Let the parent handle the claim and navigation
                       widget.onClaim?.call();
-                      // Auto-close popup after successful claim
-                      await Future.delayed(const Duration(milliseconds: 500));
-                      if (mounted && Navigator.canPop(context)) {
-                        Navigator.of(context).pop();
-                        widget.onClose?.call();
-                      }
                     }
                   }
                 },
@@ -719,10 +758,10 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 0.7),
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
@@ -732,7 +771,7 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
             borderRadius: BorderRadius.circular(20),
             onTap: () {
               HapticFeedback.lightImpact();
-              Navigator.of(context).pop();
+              // Let the parent handle navigation
               widget.onClose?.call();
             },
             child: const Icon(

@@ -45,7 +45,7 @@ class Text3D extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Middle shadow layer (orange/brown)
         Transform.translate(
           offset: Offset(shadowOffset, shadowOffset),
@@ -60,7 +60,7 @@ class Text3D extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Outline layer
         Text(
           text,
@@ -75,7 +75,7 @@ class Text3D extends StatelessWidget {
             fontFamily: 'Arial',
           ),
         ),
-        
+
         // Main text layer (yellow)
         Text(
           text,
@@ -87,7 +87,7 @@ class Text3D extends StatelessWidget {
             fontFamily: 'Arial',
           ),
         ),
-        
+
         // Top highlight layer (lighter yellow)
         Text(
           text,
@@ -126,7 +126,7 @@ class Text3DStyles {
     outlineWidth: 3.0,
     letterSpacing: 3.0,
   );
-  
+
   /// Header style (like "PROFILE", "STORE")
   static Text3D header(String text) => Text3D(
     text: text,
@@ -138,7 +138,7 @@ class Text3DStyles {
     outlineWidth: 2.0,
     letterSpacing: 2.0,
   );
-  
+
   /// Smaller header style
   static Text3D subHeader(String text) => Text3D(
     text: text,
@@ -150,7 +150,7 @@ class Text3DStyles {
     outlineWidth: 1.5,
     letterSpacing: 1.5,
   );
-  
+
   /// Button text style
   static Text3D button(String text) => Text3D(
     text: text,

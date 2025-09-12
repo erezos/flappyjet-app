@@ -1,10 +1,12 @@
 /// 🛒 Hearts Store Component - Heart refill functionality
+library;
+
 import 'package:flutter/material.dart';
 import '../../../game/core/economy_config.dart';
 import '../../../game/systems/lives_manager.dart';
 import '../gem_3d_icon.dart';
 
-class HeartsStore extends StatelessWidget {
+class HeartsStore extends StatefulWidget {
   final LivesManager livesManager;
   final EconomyConfig economy;
   final VoidCallback onPurchaseFullHeartsRefill;
@@ -17,15 +19,42 @@ class HeartsStore extends StatelessWidget {
   });
 
   @override
+  State<HeartsStore> createState() => _HeartsStoreState();
+}
+
+class _HeartsStoreState extends State<HeartsStore> {
+  @override
+  void initState() {
+    super.initState();
+    // Listen to lives manager changes
+    widget.livesManager.addListener(_onLivesChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.livesManager.removeListener(_onLivesChanged);
+    super.dispose();
+  }
+
+  void _onLivesChanged() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild when lives change
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final currentHearts = livesManager.currentLives;
-    final maxHearts = livesManager.maxLives;
+    final currentHearts = widget.livesManager.currentLives;
+    final maxHearts = widget.livesManager.maxLives;
     final isAtMax = currentHearts >= maxHearts;
-    
+
     return Padding(
       padding: const EdgeInsets.all(8), // Reduced from 16 to 8
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Better distribution
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween, // Better distribution
         mainAxisSize: MainAxisSize.max, // Use available space
         children: [
           // Header - More compact
@@ -52,18 +81,18 @@ class HeartsStore extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           // Current Hearts Status
           _buildHeartsStatus(currentHearts, maxHearts),
-          
+
           // Full Hearts Refill Card
           _buildRefillCard(isAtMax),
-          
+
           // Info text - More compact
           Text(
-            isAtMax 
+            isAtMax
                 ? 'Your hearts are already at maximum!'
-                : 'Instantly refill all hearts for just ${economy.fullHeartsRefillGemCost} gems!',
+                : 'Instantly refill all hearts for just ${widget.economy.fullHeartsRefillGemCost} gems!',
             style: TextStyle(
               fontSize: 12, // Reduced from 14 to 12
               color: Colors.white.withValues(alpha: 0.7),
@@ -103,11 +132,15 @@ class HeartsStore extends StatelessWidget {
             children: List.generate(maxHearts, (index) {
               final filled = index < currentHearts;
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3), // Reduced from 4 to 3
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 3,
+                ), // Reduced from 4 to 3
                 child: Icon(
                   Icons.favorite,
                   size: 28, // Reduced from 32 to 28
-                  color: filled ? Colors.red : Colors.red.withValues(alpha: 0.3),
+                  color: filled
+                      ? Colors.red
+                      : Colors.red.withValues(alpha: 0.3),
                 ),
               );
             }),
@@ -133,7 +166,7 @@ class HeartsStore extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isAtMax 
+          colors: isAtMax
               ? [Colors.grey.shade600, Colors.grey.shade800]
               : [const Color(0xFF4CAF50), const Color(0xFF388E3C)],
         ),
@@ -150,7 +183,7 @@ class HeartsStore extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: isAtMax ? null : onPurchaseFullHeartsRefill,
+          onTap: isAtMax ? null : widget.onPurchaseFullHeartsRefill,
           child: Padding(
             padding: const EdgeInsets.all(16), // Reduced from 20 to 16
             child: Column(
@@ -170,7 +203,6 @@ class HeartsStore extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12), // Reduced from 16 to 12
-                
                 // Title
                 Text(
                   'Full Hearts Refill',
@@ -182,26 +214,27 @@ class HeartsStore extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 6), // Reduced from 8 to 6
-                
                 // Description
                 Text(
-                  isAtMax 
+                  isAtMax
                       ? 'Hearts are already full!'
                       : 'Fill all hearts to maximum instantly',
                   style: TextStyle(
                     fontSize: 14,
-                    color: isAtMax 
-                        ? Colors.grey.shade500 
+                    color: isAtMax
+                        ? Colors.grey.shade500
                         : Colors.white.withValues(alpha: 0.9),
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12), // Reduced from 16 to 12
-                
                 // Price
                 if (!isAtMax) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reduced padding
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ), // Reduced padding
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(20),
@@ -215,7 +248,7 @@ class HeartsStore extends StatelessWidget {
                         ),
                         const SizedBox(width: 6), // Reduced from 8 to 6
                         Text(
-                          '${economy.fullHeartsRefillGemCost} Gems',
+                          '${widget.economy.fullHeartsRefillGemCost} Gems',
                           style: TextStyle(
                             fontSize: 14, // Reduced from 16 to 14
                             fontWeight: FontWeight.bold,

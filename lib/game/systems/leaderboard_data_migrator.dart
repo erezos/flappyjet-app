@@ -1,9 +1,9 @@
 /// 🔧 Leaderboard Data Migrator - Fixes corrupted leaderboard data
 library;
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'leaderboard_manager.dart';
+import '../../core/debug_logger.dart';
 
 /// Utility to migrate and fix corrupted leaderboard data
 class LeaderboardDataMigrator {
@@ -17,7 +17,7 @@ class LeaderboardDataMigrator {
       final currentVersion = prefs.getInt(_migrationVersionKey) ?? 0;
       
       if (currentVersion < _currentMigrationVersion) {
-        debugPrint('🔧 Running leaderboard data migration...');
+        safePrint('🔧 Running leaderboard data migration...');
         
         // Migration v1: Fix corrupted entries and ranks
         if (currentVersion < 1) {
@@ -26,10 +26,10 @@ class LeaderboardDataMigrator {
         
         // Mark migration as complete
         await prefs.setInt(_migrationVersionKey, _currentMigrationVersion);
-        debugPrint('🔧 Leaderboard migration completed');
+        safePrint('🔧 Leaderboard migration completed');
       }
     } catch (e) {
-      debugPrint('⚠️ Leaderboard migration failed: $e');
+      safePrint('⚠️ Leaderboard migration failed: $e');
     }
   }
 
@@ -82,10 +82,10 @@ class LeaderboardDataMigrator {
         // Save the fixed data
         final fixedJson = jsonEncode(entries.map((e) => e.toJson()).toList());
         await prefs.setString('local_high_scores', fixedJson);
-        debugPrint('🔧 Fixed ${entries.length} leaderboard entries');
+        safePrint('🔧 Fixed ${entries.length} leaderboard entries');
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to fix corrupted entries: $e');
+      safePrint('⚠️ Failed to fix corrupted entries: $e');
     }
   }
 }

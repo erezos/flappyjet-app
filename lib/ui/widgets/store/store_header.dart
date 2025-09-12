@@ -1,4 +1,6 @@
 /// 🛒 Store Header Component - Reusable header with title and currency display
+library;
+
 import 'package:flutter/material.dart';
 import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
@@ -30,26 +32,28 @@ class StoreHeader extends StatelessWidget {
               onPressed: onBackPressed,
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // STORE title - Even bigger and more prominent
           Expanded(
             flex: 12, // Increased from 10 to 12 for more space
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2), // Reduced padding for more space
+              padding: const EdgeInsets.symmetric(
+                horizontal: 2,
+              ), // Reduced padding for more space
               child: Image.asset(
                 'assets/images/text/store_text.png',
                 width: double.infinity,
                 fit: BoxFit.fitWidth,
                 errorBuilder: (context, error, stackTrace) {
                   return Center(
-                                          child: Text(
-                        'STORE',
-                        style: TextStyle(
-                          fontSize: 72, // Increased from 64 to 72
-                          fontWeight: FontWeight.w900,
-                          color: Colors.yellow[700],
+                    child: Text(
+                      'STORE',
+                      style: TextStyle(
+                        fontSize: 72, // Increased from 64 to 72
+                        fontWeight: FontWeight.w900,
+                        color: Colors.yellow[700],
                         shadows: [
                           Shadow(
                             offset: const Offset(2, 2),
@@ -64,9 +68,9 @@ class StoreHeader extends StatelessWidget {
               ),
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // Currency display
           _buildCurrencyDisplay(),
         ],
@@ -117,9 +121,9 @@ class StoreHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 6),
-              
+
               // Gems - Beautiful asset icon
               const Gem3DIcon(
                 size: 16,

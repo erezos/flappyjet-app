@@ -1,4 +1,6 @@
 /// 🛒 Store Navigation Component - Category tabs with modern gaming design
+library;
+
 import 'package:flutter/material.dart';
 import '../gem_3d_icon.dart';
 
@@ -21,10 +23,7 @@ class StoreNavigation extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF1A237E),
-            Color(0xFF3949AB),
-          ],
+          colors: [Color(0xFF1A237E), Color(0xFF3949AB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -53,50 +52,58 @@ class StoreNavigation extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => onCategorySelected(category),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 8,
+                  ),
                   decoration: BoxDecoration(
-                    gradient: isSelected ? const LinearGradient(
-                      colors: [
-                        Color(0xFFFFD700),
-                        Color(0xFFFFA000),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ) : null,
+                    gradient: isSelected
+                        ? const LinearGradient(
+                            colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          )
+                        : null,
                     borderRadius: BorderRadius.circular(30),
-                    boxShadow: isSelected ? [
-                      BoxShadow(
-                        color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ] : null,
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: const Color(
+                                0xFFFFD700,
+                              ).withValues(alpha: 0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Use gem icon widget for Gems category, emoji for others
-                      category == 'Gems' 
-                        ? Gem3DIcon(
-                            size: isSelected ? 20 : 16,
-                            // Beautiful asset gem icon
-                          )
-                        : Text(
-                            categoryIcon,
-                            style: TextStyle(
-                              fontSize: isSelected ? 20 : 16,
-                              color: Colors.white,
+                      category == 'Gems'
+                          ? Gem3DIcon(
+                              size: isSelected ? 20 : 16,
+                              // Beautiful asset gem icon
+                            )
+                          : Text(
+                              categoryIcon,
+                              style: TextStyle(
+                                fontSize: isSelected ? 20 : 16,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
                       const SizedBox(height: 2),
                       Text(
-                        category == 'Heart Booster' ? 'BOOST' : category.toUpperCase(),
+                        category == 'Heart Booster'
+                            ? 'BOOST'
+                            : category.toUpperCase(),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: isSelected ? Colors.white : Colors.white70,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          letterSpacing: 1,
+                          fontSize: 13,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
@@ -116,6 +123,8 @@ class StoreNavigation extends StatelessWidget {
         return '🛩️';
       case 'Gems':
         return '💎';
+      case 'Coins':
+        return '🪙';
       case 'Hearts':
         return '❤️';
       case 'Heart Booster':

@@ -1,4 +1,6 @@
 /// 🏗️ Profile Layout Component - Main responsive layout system
+library;
+
 import 'package:flutter/material.dart';
 import '../../../game/core/jet_skins.dart';
 import 'profile_responsive_config.dart';
@@ -13,7 +15,7 @@ class ProfileLayout extends StatelessWidget {
   final VoidCallback onNicknameSave;
   final VoidCallback onChooseJetPressed;
   final JetSkin equippedSkin;
-  
+
   const ProfileLayout({
     super.key,
     required this.nicknameController,
@@ -25,7 +27,7 @@ class ProfileLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = context.profileConfig;
-    
+
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
@@ -37,11 +39,7 @@ class ProfileLayout extends StatelessWidget {
         child: Stack(
           children: [
             // Back button (top-left overlay)
-            Positioned(
-              top: 8,
-              left: 8,
-              child: _BackButton(),
-            ),
+            Positioned(top: 8, left: 8, child: _BackButton()),
 
             // Main content - Responsive Column Layout
             Padding(
@@ -51,41 +49,39 @@ class ProfileLayout extends StatelessWidget {
                 children: [
                   // Top spacing
                   SizedBox(height: config.topSpacing),
-                  
+
                   // Profile Header
                   const ProfileHeader(),
-                  
+
                   // Spacing after header
                   SizedBox(height: config.headerBottomSpacing),
-                  
+
                   // Nickname Banner
                   ProfileNicknameBanner(
                     controller: nicknameController,
                     onSave: onNicknameSave,
                   ),
-                  
+
                   // Spacing after nickname
                   SizedBox(height: config.nicknameBottomSpacing),
-                  
+
                   // Stats Row (High Score + Hottest Streak)
                   const ProfileStatsRow(),
-                  
+
                   // Spacing after stats
                   SizedBox(height: config.statsBottomSpacing),
-                  
+
                   // Jet Preview (takes remaining space)
                   Expanded(
                     child: ProfileJetPreview(equippedSkin: equippedSkin),
                   ),
-                  
+
                   // Spacing before buttons
                   SizedBox(height: config.jetPreviewBottomSpacing),
-                  
+
                   // Action Buttons
-                  ProfileActionButtons(
-                    onChooseJetPressed: onChooseJetPressed,
-                  ),
-                  
+                  ProfileActionButtons(onChooseJetPressed: onChooseJetPressed),
+
                   // Bottom spacing
                   SizedBox(height: config.bottomSpacing),
                 ],

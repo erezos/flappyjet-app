@@ -1,11 +1,13 @@
 /// 🏷️ Profile Nickname Banner Component - Nickname input with custom banner image
+library;
+
 import 'package:flutter/material.dart';
 import 'profile_responsive_config.dart';
 
 class ProfileNicknameBanner extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSave;
-  
+
   const ProfileNicknameBanner({
     super.key,
     required this.controller,
@@ -15,15 +17,20 @@ class ProfileNicknameBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = context.profileConfig;
-    
+
     return Container(
       width: double.infinity,
-      height: config.nicknameBannerHeight * 0.5, // Reduced height to move closer to PROFILE
+      height:
+          config.nicknameBannerHeight *
+          0.5, // Reduced height to move closer to PROFILE
       decoration: BoxDecoration(
         image: DecorationImage(
           image: AssetImage('assets/images/icons/nickname.png'),
           fit: BoxFit.fitWidth, // Maintains aspect ratio, fills width
-          alignment: Alignment(0, -0.3), // Adjusted to show yellow banner area better
+          alignment: Alignment(
+            0,
+            -0.3,
+          ), // Adjusted to show yellow banner area better
         ),
       ),
       // Use Align for semantic positioning instead of manual coordinates
@@ -31,8 +38,11 @@ class ProfileNicknameBanner extends StatelessWidget {
         alignment: Alignment(0, 0.1), // Slightly lower to center in yellow area
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: config.getResponsivePadding(EdgeInsets.symmetric(horizontal: 20)).horizontal,
-            vertical: config.nicknameBannerHeight * 0.02, // Reduced vertical padding
+            horizontal: config
+                .getResponsivePadding(EdgeInsets.symmetric(horizontal: 20))
+                .horizontal,
+            vertical:
+                config.nicknameBannerHeight * 0.02, // Reduced vertical padding
           ),
           child: TextField(
             controller: controller,
@@ -67,9 +77,12 @@ class ProfileNicknameBanner extends StatelessWidget {
       ),
     );
   }
-  
+
   /// Fallback banner design if image fails to load
-  Widget _buildFallbackBanner(BuildContext context, ProfileResponsiveConfig config) {
+  Widget _buildFallbackBanner(
+    BuildContext context,
+    ProfileResponsiveConfig config,
+  ) {
     return Container(
       padding: config.getResponsivePadding(
         const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

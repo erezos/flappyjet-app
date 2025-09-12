@@ -10,7 +10,7 @@ class GameTheme {
   final ThemeVisuals visuals;
   final String musicTrack;
   final double difficultyMultiplier;
-  
+
   const GameTheme({
     required this.id,
     required this.displayName,
@@ -34,7 +34,7 @@ class ThemeColors {
   final Color obstacleAccent;
   final Color text;
   final Color particle;
-  
+
   const ThemeColors({
     required this.primary,
     required this.secondary,
@@ -59,7 +59,7 @@ class ThemeVisuals {
   final bool hasLightning;
   final bool hasMeteors;
   final bool hasAurora;
-  
+
   const ThemeVisuals({
     required this.particleStyle,
     required this.obstacleStyle,
@@ -75,25 +75,24 @@ class ThemeVisuals {
 
 /// Particle effect style
 enum ParticleStyle {
-  sparkles,    // Sky theme
-  stars,       // Space theme  
-  lightning,   // Storm theme
-  energy,      // Void theme
-  cosmic,      // Legend theme
+  sparkles, // Sky theme
+  stars, // Space theme
+  lightning, // Storm theme
+  energy, // Void theme
+  cosmic, // Legend theme
 }
 
 /// Obstacle visual style
 enum ObstacleStyle {
-  pipes,       // Sky theme - classic pipes
-  crystals,    // Space theme - crystal formations
-  storm,       // Storm theme - lightning rods
-  voidEnergy,  // Void theme - dark energy
-  legendary,   // Legend theme - golden pillars
+  pipes, // Sky theme - classic pipes
+  crystals, // Space theme - crystal formations
+  storm, // Storm theme - lightning rods
+  voidEnergy, // Void theme - dark energy
+  legendary, // Legend theme - golden pillars
 }
 
 /// Complete theme definitions for FlappyJet Pro
 class GameThemes {
-  
   /// Sky Rookie - Beginner theme (Score: 0+)
   static const skyRookie = GameTheme(
     id: 'sky_rookie',
@@ -125,13 +124,13 @@ class GameThemes {
     musicTrack: 'sky_theme',
     difficultyMultiplier: 1.0,
   );
-  
-  /// Space Cadet - Cosmic theme (Score: 25+)
+
+  /// Space Cadet - Cosmic theme (Score: 5+)
   static const spaceCadet = GameTheme(
     id: 'space_cadet',
     displayName: 'Space Cadet',
     description: 'Journey through the cosmos',
-    scoreThreshold: 25,
+    scoreThreshold: 5,
     colors: ThemeColors(
       primary: Color(0xFF4B0082),
       secondary: Color(0xFF663399),
@@ -157,13 +156,13 @@ class GameThemes {
     musicTrack: 'space_theme',
     difficultyMultiplier: 1.3,
   );
-  
-  /// Storm Ace - Turbulent theme (Score: 75+)
+
+  /// Storm Ace - Turbulent theme (Score: 25+)
   static const stormAce = GameTheme(
     id: 'storm_ace',
     displayName: 'Storm Ace',
     description: 'Navigate the lightning storms',
-    scoreThreshold: 75,
+    scoreThreshold: 25,
     colors: ThemeColors(
       primary: Color(0xFF2F4F4F),
       secondary: Color(0xFF708090),
@@ -189,13 +188,13 @@ class GameThemes {
     musicTrack: 'storm_theme',
     difficultyMultiplier: 1.6,
   );
-  
-  /// Void Master - Dark dimension theme (Score: 150+)
+
+  /// Void Master - Dark dimension theme (Score: 61+)
   static const voidMaster = GameTheme(
     id: 'void_master',
     displayName: 'Void Master',
     description: 'Master the dark dimensions',
-    scoreThreshold: 150,
+    scoreThreshold: 61,
     colors: ThemeColors(
       primary: Color(0xFF1C1C1C),
       secondary: Color(0xFF4A4A4A),
@@ -221,13 +220,13 @@ class GameThemes {
     musicTrack: 'void_theme',
     difficultyMultiplier: 2.0,
   );
-  
-  /// Legend - Ultimate mastery theme (Score: 300+)
+
+  /// Legend - Ultimate mastery theme (Score: 100+)
   static const legend = GameTheme(
     id: 'legend',
     displayName: 'Legend',
     description: 'Legendary pilot status achieved',
-    scoreThreshold: 300,
+    scoreThreshold: 100,
     colors: ThemeColors(
       primary: Color(0xFFFFD700),
       secondary: Color(0xFFFFA500),
@@ -253,16 +252,16 @@ class GameThemes {
     musicTrack: 'legend_theme',
     difficultyMultiplier: 2.5,
   );
-  
+
   /// All themes in order
   static const List<GameTheme> allThemes = [
     skyRookie,
-    spaceCadet, 
+    spaceCadet,
     stormAce,
     voidMaster,
     legend,
   ];
-  
+
   /// Get theme by score
   static GameTheme getThemeForScore(int score) {
     for (int i = allThemes.length - 1; i >= 0; i--) {
@@ -272,7 +271,7 @@ class GameThemes {
     }
     return skyRookie; // Default fallback
   }
-  
+
   /// Get next theme (for progression preview)
   static GameTheme? getNextTheme(GameTheme currentTheme) {
     final currentIndex = allThemes.indexOf(currentTheme);
@@ -281,21 +280,21 @@ class GameThemes {
     }
     return null; // Already at max theme
   }
-  
+
   /// Check if score unlocks new theme
   static bool isThemeUnlocked(int score, GameTheme theme) {
     return score >= theme.scoreThreshold;
   }
-  
+
   /// Get progression percentage to next theme
   static double getProgressToNext(int score, GameTheme currentTheme) {
     final nextTheme = getNextTheme(currentTheme);
     if (nextTheme == null) return 1.0; // Max level
-    
+
     final current = currentTheme.scoreThreshold;
     final next = nextTheme.scoreThreshold;
     final progress = (score - current) / (next - current);
-    
+
     return progress.clamp(0.0, 1.0);
   }
-} 
+}

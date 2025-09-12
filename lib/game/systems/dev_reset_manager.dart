@@ -4,18 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lives_manager.dart';
 import 'player_identity_manager.dart';
+import '../../core/debug_logger.dart';
 
 class DevResetManager {
   /// Reset all player data to simulate fresh app install
   static Future<void> resetToNewPlayerState() async {
-    debugPrint('🔧 🚨 RESET FUNCTION CALLED - Starting reset process...');
+    safePrint('🔧 🚨 RESET FUNCTION CALLED - Starting reset process...');
     
     if (!kDebugMode) {
-      debugPrint('🔧 Reset only available in debug mode');
+      safePrint('🔧 Reset only available in debug mode');
       return;
     }
 
-    debugPrint('🔧 Resetting to new player state...');
+    safePrint('🔧 Resetting to new player state...');
     
     final prefs = await SharedPreferences.getInstance();
     
@@ -24,7 +25,7 @@ class DevResetManager {
     await prefs.remove('unified_player_id');
     
     // Clear profile data (ProfileManager)
-    debugPrint('🔧 Clearing profile_nickname: ${prefs.getString('profile_nickname')}');
+    safePrint('🔧 Clearing profile_nickname: ${prefs.getString('profile_nickname')}');
     await prefs.remove('profile_nickname');
     await prefs.remove('pf_nickname'); // Old ProfileManager key
     
@@ -75,7 +76,7 @@ class DevResetManager {
           key.contains('leaderboard') ||
           key.contains('global')) {
         await prefs.remove(key);
-        debugPrint('🔧 Cleared key: $key');
+        safePrint('🔧 Cleared key: $key');
       }
     }
     
@@ -89,11 +90,11 @@ class DevResetManager {
       final livesManager = LivesManager();
       await livesManager.forceResetToNewPlayer();
       
-      debugPrint('🔧 ✅ Reset complete - All systems reset to new player state');
-      debugPrint('🔧 New player will have: 3 hearts, 500 coins, 25 gems, ${playerIdentity.playerName}');
+      safePrint('🔧 ✅ Reset complete - All systems reset to new player state');
+      safePrint('🔧 New player will have: 3 hearts, 500 coins, 25 gems, ${playerIdentity.playerName}');
     } catch (e) {
-      debugPrint('🔧 ⚠️ Error during manager reset: $e');
-      debugPrint('🔧 ✅ SharedPreferences cleared - Restart app for full reset');
+      safePrint('🔧 ⚠️ Error during manager reset: $e');
+      safePrint('🔧 ✅ SharedPreferences cleared - Restart app for full reset');
     }
   }
   
@@ -115,7 +116,7 @@ class DevResetManager {
   static Future<void> markSetupComplete() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('first_time_setup_complete', true);
-    debugPrint('🎯 First-time setup marked as complete');
+    safePrint('🎯 First-time setup marked as complete');
   }
   
   /// Check if first-time setup is complete

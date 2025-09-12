@@ -1,5 +1,6 @@
 /// ⚙️ Settings Screen
 library;
+
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -55,69 +56,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-              
+
               // Settings Content
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    _buildSettingCard(
-                      'AUDIO',
-                      [
-                        _buildSwitchSetting('Sound Effects', soundEnabled, (value) {
-                          setState(() => soundEnabled = value);
-                        }),
-                        _buildSwitchSetting('Music', musicEnabled, (value) {
-                          setState(() => musicEnabled = value);
-                        }),
-                        _buildSliderSetting('Sound Volume', soundVolume, (value) {
-                          setState(() => soundVolume = value);
-                        }, enabled: soundEnabled),
-                        _buildSliderSetting('Music Volume', musicVolume, (value) {
-                          setState(() => musicVolume = value);
-                        }, enabled: musicEnabled),
-                      ],
-                    ),
-                    
+                    _buildSettingCard('AUDIO', [
+                      _buildSwitchSetting('Sound Effects', soundEnabled, (
+                        value,
+                      ) {
+                        setState(() => soundEnabled = value);
+                      }),
+                      _buildSwitchSetting('Music', musicEnabled, (value) {
+                        setState(() => musicEnabled = value);
+                      }),
+                      _buildSliderSetting('Sound Volume', soundVolume, (value) {
+                        setState(() => soundVolume = value);
+                      }, enabled: soundEnabled),
+                      _buildSliderSetting('Music Volume', musicVolume, (value) {
+                        setState(() => musicVolume = value);
+                      }, enabled: musicEnabled),
+                    ]),
+
                     const SizedBox(height: 16),
-                    
-                    _buildSettingCard(
-                      'CONTROLS',
-                      [
-                        _buildSwitchSetting('Haptic Feedback', hapticEnabled, (value) {
-                          setState(() => hapticEnabled = value);
-                        }),
-                      ],
-                    ),
-                    
+
+                    _buildSettingCard('CONTROLS', [
+                      _buildSwitchSetting('Haptic Feedback', hapticEnabled, (
+                        value,
+                      ) {
+                        setState(() => hapticEnabled = value);
+                      }),
+                    ]),
+
                     const SizedBox(height: 16),
-                    
-                    _buildSettingCard(
-                      'GAME',
-                      [
-                        _buildButtonSetting('Reset High Score', Icons.refresh, () {
+
+                    _buildSettingCard('GAME', [
+                      _buildButtonSetting(
+                        'Reset High Score',
+                        Icons.refresh,
+                        () {
                           _showResetDialog();
-                        }),
-                        _buildButtonSetting('Clear Game Data', Icons.delete, () {
-                          _showClearDataDialog();
-                        }),
-                      ],
-                    ),
-                    
+                        },
+                      ),
+                      _buildButtonSetting('Clear Game Data', Icons.delete, () {
+                        _showClearDataDialog();
+                      }),
+                    ]),
+
                     const SizedBox(height: 16),
-                    
-                    _buildSettingCard(
-                      'ABOUT',
-                      [
-                        _buildInfoSetting('Version', '1.0.0'),
-                        _buildButtonSetting('Rate Us', Icons.star, () {
-                          // App store rating integration ready
-                        }),
-                        _buildButtonSetting('Privacy Policy', Icons.privacy_tip, () {
+
+                    _buildSettingCard('ABOUT', [
+                      _buildInfoSetting('Version', '1.0.0'),
+                      _buildButtonSetting('Rate Us', Icons.star, () {
+                        // App store rating integration ready
+                      }),
+                      _buildButtonSetting(
+                        'Privacy Policy',
+                        Icons.privacy_tip,
+                        () {
                           // Privacy policy integration ready
-                        }),
-                      ],
-                    ),
+                        },
+                      ),
+                    ]),
                   ],
                 ),
               ),
@@ -154,12 +155,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSwitchSetting(String title, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitchSetting(
+    String title,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return ListTile(
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white),
-      ),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -168,7 +170,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSliderSetting(String title, double value, ValueChanged<double> onChanged, {bool enabled = true}) {
+  Widget _buildSliderSetting(
+    String title,
+    double value,
+    ValueChanged<double> onChanged, {
+    bool enabled = true,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -176,9 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             title,
-            style: TextStyle(
-              color: enabled ? Colors.white : Colors.grey,
-            ),
+            style: TextStyle(color: enabled ? Colors.white : Colors.grey),
           ),
           Slider(
             value: value,
@@ -194,25 +199,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildButtonSetting(String title, IconData icon, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        color: Colors.grey,
+        size: 16,
       ),
-      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
       onTap: onTap,
     );
   }
 
   Widget _buildInfoSetting(String title, String value) {
     return ListTile(
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white),
-      ),
-      trailing: Text(
-        value,
-        style: const TextStyle(color: Colors.grey),
-      ),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
+      trailing: Text(value, style: const TextStyle(color: Colors.grey)),
     );
   }
 
@@ -247,7 +247,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear Game Data'),
-        content: const Text('This will delete all your progress. Are you sure?'),
+        content: const Text(
+          'This will delete all your progress. Are you sure?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

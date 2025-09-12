@@ -1,12 +1,11 @@
-/// 🌍 Global Leaderboard Service - Real worldwide competition with Firebase
+/// 🌍 Global Leaderboard Service - Local leaderboard with Railway backend integration
 library;
+import '../../core/debug_logger.dart';
+
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'leaderboard_manager.dart';
-// Firebase packages ready for integration: cloud_firestore, firebase_auth
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
 
 class GlobalLeaderboardEntry {
   final String playerId;
@@ -40,7 +39,10 @@ class GlobalLeaderboardEntry {
     'verified': true, // Anti-cheat verification
   };
 
-  factory GlobalLeaderboardEntry.fromFirestore(Map<String, dynamic> data, String docId) {
+  factory GlobalLeaderboardEntry.fromFirestore(
+    Map<String, dynamic> data,
+    String docId,
+  ) {
     return GlobalLeaderboardEntry(
       playerId: data['playerId'] ?? docId,
       playerName: data['playerName'] ?? 'Anonymous',
@@ -54,28 +56,29 @@ class GlobalLeaderboardEntry {
 }
 
 class GlobalLeaderboardService extends ChangeNotifier {
-  static final GlobalLeaderboardService _instance = GlobalLeaderboardService._internal();
+  static final GlobalLeaderboardService _instance =
+      GlobalLeaderboardService._internal();
   factory GlobalLeaderboardService() => _instance;
   GlobalLeaderboardService._internal();
 
-  // Firebase integration ready
-  // final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+  // Using local leaderboard data (Railway backend integration planned)
+
   static const String _keyPlayerId = 'global_player_id';
   static const String _keyPlayerName = 'global_player_name';
-  
-  List<GlobalLeaderboardEntry> _globalScores = [];
+
+  final List<GlobalLeaderboardEntry> _globalScores = [];
   List<GlobalLeaderboardEntry> _weeklyScores = [];
-  
+
   String _playerId = '';
   String _playerName = '';
   bool _isInitialized = false;
-  bool _isOnline = false;
+  final bool _isOnline = false;
 
   // Getters
-  List<GlobalLeaderboardEntry> get globalScores => List.unmodifiable(_globalScores);
-  List<GlobalLeaderboardEntry> get weeklyScores => List.unmodifiable(_weeklyScores);
+  List<GlobalLeaderboardEntry> get globalScores =>
+      List.unmodifiable(_globalScores);
+  List<GlobalLeaderboardEntry> get weeklyScores =>
+      List.unmodifiable(_weeklyScores);
   String get playerId => _playerId;
   String get playerName => _playerName;
   bool get isInitialized => _isInitialized;
@@ -83,7 +86,9 @@ class GlobalLeaderboardService extends ChangeNotifier {
 
   /// Get player's global rank (0 if not found)
   int get globalRank {
-    final playerEntry = _globalScores.where((e) => e.playerId == _playerId).firstOrNull;
+    final playerEntry = _globalScores
+        .where((e) => e.playerId == _playerId)
+        .firstOrNull;
     return playerEntry?.rank ?? 0;
   }
 
@@ -93,15 +98,15 @@ class GlobalLeaderboardService extends ChangeNotifier {
     if (playerEntries.isNotEmpty) {
       return playerEntries.map((e) => e.score).reduce((a, b) => a > b ? a : b);
     }
-    
+
     // Fallback: always try to get from local leaderboard manager
     try {
       final localManager = LeaderboardManager();
       return localManager.playerBestScore;
     } catch (e) {
-      debugPrint('⚠️ Failed to get local best score: $e');
+      safePrint('⚠️ Failed to get local best score: $e');
     }
-    
+
     return 0;
   }
 
@@ -111,54 +116,50 @@ class GlobalLeaderboardService extends ChangeNotifier {
 
     try {
       await _loadPlayerData();
-      
+
       // Try to sync with profile manager name first
       await _syncWithProfileManager();
-      
+
       // Auto-generate player if still not exists (seamless participation)
       if (_playerId.isEmpty) {
         await _generatePlayerProfile();
       }
-      
-      // TODO: Uncomment when Firebase is added
-      // await _initializeFirebase();
-      
-      // For now, use mock data (will switch to Firebase when packages are added)
+
+      // Initialize local leaderboard data
       await _loadMockGlobalData();
-      
+
       _isInitialized = true;
       notifyListeners();
-      debugPrint('🌍 GlobalLeaderboardService initialized - Player: $_playerName');
+      safePrint(
+        '🌍 GlobalLeaderboardService initialized - Player: $_playerName',
+      );
     } catch (e) {
-      debugPrint('⚠️ Failed to initialize GlobalLeaderboardService: $e');
+      safePrint('⚠️ Failed to initialize GlobalLeaderboardService: $e');
       _isInitialized = true; // Still mark as initialized
     }
   }
 
   /// Register a new player or update existing player info
-  Future<bool> registerPlayer({
-    required String playerName,
-  }) async {
+  Future<bool> registerPlayer({required String playerName}) async {
     try {
       if (playerName.trim().isEmpty) return false;
-      
+
       _playerName = playerName.trim();
-      
+
       // Generate unique player ID if not exists
       if (_playerId.isEmpty) {
         _playerId = _generatePlayerId();
       }
 
       await _savePlayerData();
-      
-      // TODO: Uncomment when Firebase is re-enabled
-      // await _registerPlayerInFirebase();
-      
+
+      // Player registration handled locally
+
       notifyListeners();
-      debugPrint('🌍 Player registered: $_playerName');
+      safePrint('🌍 Player registered: $_playerName');
       return true;
     } catch (e) {
-      debugPrint('⚠️ Failed to register player: $e');
+      safePrint('⚠️ Failed to register player: $e');
       return false;
     }
   }
@@ -182,21 +183,15 @@ class GlobalLeaderboardService extends ChangeNotifier {
         deviceInfo: await _getDeviceInfo(),
       );
 
-      // TODO: Uncomment when Firebase is added
-      // if (_isOnline) {
-      //   await _submitScoreToFirebase(entry);
-      //   await _fetchGlobalScores();
-      // } else {
-        // For now: add to local mock data
-        _globalScores.add(entry);
-        _sortAndRankScores();
-      // }
-      
+      // Add to local leaderboard data (Railway backend integration coming later)
+      _globalScores.add(entry);
+      _sortAndRankScores();
+
       notifyListeners();
-      debugPrint('🌍 Score submitted: $score by $_playerName');
+      safePrint('🌍 Score submitted: $score by $_playerName');
       return true;
     } catch (e) {
-      debugPrint('⚠️ Failed to submit score: $e');
+      safePrint('⚠️ Failed to submit score: $e');
       return false;
     }
   }
@@ -204,24 +199,15 @@ class GlobalLeaderboardService extends ChangeNotifier {
   /// Refresh leaderboard data from server
   Future<void> refreshLeaderboards() async {
     try {
-      // TODO: Uncomment when Firebase is added
-      // if (_isOnline) {
-      //   await _fetchGlobalScores();
-      //   await _fetchWeeklyScores();
-      //   await _fetchCountryScores();
-      // } else {
-        // For now: refresh mock data
-        await _loadMockGlobalData();
-      // }
-      
+      // Refresh local leaderboard data
+      await _loadMockGlobalData();
+
       notifyListeners();
-      debugPrint('🌍 Leaderboards refreshed');
+      safePrint('🌍 Leaderboards refreshed');
     } catch (e) {
-      debugPrint('⚠️ Failed to refresh leaderboards: $e');
+      safePrint('⚠️ Failed to refresh leaderboards: $e');
     }
   }
-
-
 
   // Private methods
 
@@ -249,19 +235,17 @@ class GlobalLeaderboardService extends ChangeNotifier {
     // Generate random player name for new players
     _playerId = _generatePlayerId();
     _playerName = _generateRandomPlayerName();
-    
+
     await _savePlayerData();
-    debugPrint('🌍 Generated new player name: $_playerName');
+    safePrint('🌍 Generated new player name: $_playerName');
   }
-  
+
   /// Generate a random player name for new players
   String _generateRandomPlayerName() {
     final random = math.Random();
     final num = 1000 + random.nextInt(9000);
     return 'Pilot$num';
   }
-
-
 
   Future<String> _getDeviceInfo() async {
     // Device info collection ready for anti-cheat
@@ -272,28 +256,28 @@ class GlobalLeaderboardService extends ChangeNotifier {
   Future<void> _syncWithProfileManager() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Try to get name from profile manager (different key)
       final profileName = prefs.getString('profile_nickname') ?? '';
       final leaderboardName = prefs.getString('player_name') ?? '';
-      
+
       if (profileName.isNotEmpty) {
         _playerName = profileName;
         await _savePlayerData();
-        debugPrint('🌍 Synced player name from profile: $_playerName');
+        safePrint('🌍 Synced player name from profile: $_playerName');
       } else if (leaderboardName.isNotEmpty) {
         _playerName = leaderboardName;
         await _savePlayerData();
-        debugPrint('🌍 Synced player name from leaderboard: $_playerName');
+        safePrint('🌍 Synced player name from leaderboard: $_playerName');
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to sync with profile manager: $e');
+      safePrint('⚠️ Failed to sync with profile manager: $e');
     }
   }
 
   void _sortAndRankScores() {
     _globalScores.sort((a, b) => b.score.compareTo(a.score));
-    
+
     // Assign ranks
     for (int i = 0; i < _globalScores.length; i++) {
       _globalScores[i] = GlobalLeaderboardEntry(
@@ -309,7 +293,7 @@ class GlobalLeaderboardService extends ChangeNotifier {
     }
   }
 
-  /// Load mock global data until Firebase is re-enabled
+  /// Load local leaderboard data
   Future<void> _loadMockGlobalData() async {
     final mockPlayers = [
       // Top global players
@@ -332,30 +316,36 @@ class GlobalLeaderboardService extends ChangeNotifier {
 
     final random = math.Random();
     final now = DateTime.now();
-    
+
     // Preserve player's existing scores before clearing
-    final playerScores = _globalScores.where((e) => e.playerId == _playerId).toList();
+    final playerScores = _globalScores
+        .where((e) => e.playerId == _playerId)
+        .toList();
     _globalScores.clear();
-    
+
     // Re-add player's scores first
     _globalScores.addAll(playerScores);
-    
+
     for (int i = 0; i < mockPlayers.length; i++) {
       final player = mockPlayers[i];
-      _globalScores.add(GlobalLeaderboardEntry(
-        playerId: 'mock_${i}_${player['name']}',
-        playerName: player['name'] as String,
-        score: player['score'] as int,
-        achievedAt: now.subtract(Duration(
-          hours: random.nextInt(168), // Last week
-          minutes: random.nextInt(60),
-        )),
-        theme: _getThemeForScore(player['score'] as int),
-        jetSkin: _getJetForScore(player['score'] as int),
-        rank: i + 1,
-      ));
+      _globalScores.add(
+        GlobalLeaderboardEntry(
+          playerId: 'mock_${i}_${player['name']}',
+          playerName: player['name'] as String,
+          score: player['score'] as int,
+          achievedAt: now.subtract(
+            Duration(
+              hours: random.nextInt(168), // Last week
+              minutes: random.nextInt(60),
+            ),
+          ),
+          theme: _getThemeForScore(player['score'] as int),
+          jetSkin: _getJetForScore(player['score'] as int),
+          rank: i + 1,
+        ),
+      );
     }
-    
+
     // Add weekly data
     _weeklyScores = _globalScores.take(10).toList();
   }
@@ -380,68 +370,4 @@ class GlobalLeaderboardService extends ChangeNotifier {
     if (score >= 25) return 'jets/flames.png';
     return 'jets/sky_jet.png';
   }
-
-  // Firebase integration ready to pubspec.yaml
-  /*
-  Future<void> _initializeFirebase() async {
-    try {
-      // Anonymous authentication for basic access
-      if (_auth.currentUser == null) {
-        await _auth.signInAnonymously();
-      }
-      _isOnline = true;
-      debugPrint('🌍 Firebase initialized successfully');
-    } catch (e) {
-      debugPrint('⚠️ Firebase auth failed: $e');
-      _isOnline = false;
-    }
-  }
-
-  Future<void> _submitScoreToFirebase(GlobalLeaderboardEntry entry) async {
-    await _firestore.collection('global_scores').add(entry.toFirestore());
-  }
-
-  Future<void> _fetchGlobalScores() async {
-    final snapshot = await _firestore
-        .collection('global_scores')
-        .orderBy('score', descending: true)
-        .limit(100)
-        .get();
-    
-    _globalScores = snapshot.docs
-        .map((doc) => GlobalLeaderboardEntry.fromFirestore(doc.data(), doc.id))
-        .toList();
-    
-    _sortAndRankScores();
-  }
-
-  Future<void> _fetchWeeklyScores() async {
-    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final snapshot = await _firestore
-        .collection('global_scores')
-        .where('achievedAt', isGreaterThan: weekAgo.millisecondsSinceEpoch)
-        .orderBy('score', descending: true)
-        .limit(50)
-        .get();
-    
-    _weeklyScores = snapshot.docs
-        .map((doc) => GlobalLeaderboardEntry.fromFirestore(doc.data(), doc.id))
-        .toList();
-  }
-
-  Future<void> _fetchCountryScores() async {
-    if (_playerCountry.isNotEmpty) {
-      final snapshot = await _firestore
-          .collection('global_scores')
-          .where('country', isEqualTo: _playerCountry)
-          .orderBy('score', descending: true)
-          .limit(50)
-          .get();
-      
-      _countryScores = snapshot.docs
-          .map((doc) => GlobalLeaderboardEntry.fromFirestore(doc.data(), doc.id))
-          .toList();
-    }
-  }
-  */
 }

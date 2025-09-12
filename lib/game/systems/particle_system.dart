@@ -38,11 +38,12 @@ class GameParticle {
     this.angularVelocity = 0.0,
     this.gravityY = 800.0,
     this.sizeGrowthPerSecond = 0.0,
-  }) : age = 0.0, isAlive = true;
+  }) : age = 0.0,
+       isAlive = true;
 
   void update(double dt) {
     if (!isAlive) return;
-    
+
     position += velocity * dt;
     velocity.y += gravityY * dt;
     if (sizeGrowthPerSecond != 0.0) {
@@ -51,7 +52,7 @@ class GameParticle {
     }
     age += dt;
     rotation += angularVelocity * dt;
-    
+
     if (age >= lifetime) {
       isAlive = false;
     }
@@ -61,7 +62,9 @@ class GameParticle {
     if (!isAlive || size <= 0) return;
 
     final paint = Paint()
-      ..color = color.withValues(alpha: (1.0 - (age / lifetime)).clamp(0.0, 1.0));
+      ..color = color.withValues(
+        alpha: (1.0 - (age / lifetime)).clamp(0.0, 1.0),
+      );
 
     canvas.save();
     canvas.translate(position.x, position.y);
@@ -89,13 +92,13 @@ class GameParticle {
     final path = Path();
     final radius = size / 2;
     final innerRadius = radius * 0.5;
-    
+
     for (int i = 0; i < 10; i++) {
       final angle = (i * math.pi) / 5;
       final r = i.isEven ? radius : innerRadius;
       final x = r * math.cos(angle - math.pi / 2);
       final y = r * math.sin(angle - math.pi / 2);
-      
+
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -124,7 +127,7 @@ class GameParticle {
     path.lineTo(size / 2, 0);
     path.moveTo(0, -size / 2);
     path.lineTo(0, size / 2);
-    
+
     paint.strokeWidth = 2.0;
     paint.style = PaintingStyle.stroke;
     canvas.drawPath(path, paint);
@@ -135,14 +138,14 @@ class GameParticle {
 class ParticleSystem {
   final List<GameParticle> _particles = [];
   final math.Random _random = math.Random();
-  
+
   static const int _maxParticles = 200; // Performance limit
-  
+
   /// Create score burst effect
   void createScoreBurst(Vector2 position, GameTheme theme, int score) {
     final particleCount = math.min(10 + (score ~/ 5), 20);
     final baseColor = theme.colors.primary;
-    
+
     for (int i = 0; i < particleCount; i++) {
       final angle = (i / particleCount) * 2 * math.pi;
       final speed = 100.0 + _random.nextDouble() * 150.0;
@@ -150,48 +153,62 @@ class ParticleSystem {
         math.cos(angle) * speed,
         math.sin(angle) * speed - 50.0, // Slight upward bias
       );
-      
-      _addParticle(GameParticle(
-        position: position.clone(),
-        velocity: velocity,
-        color: Color.lerp(baseColor, Colors.white, _random.nextDouble() * 0.3)!,
-        size: 4.0 + _random.nextDouble() * 6.0,
-        lifetime: 0.8 + _random.nextDouble() * 0.4,
-        shape: ParticleShape.star,
-        angularVelocity: (_random.nextDouble() - 0.5) * 10.0,
-        gravityY: 300.0,
-      ));
+
+      _addParticle(
+        GameParticle(
+          position: position.clone(),
+          velocity: velocity,
+          color: Color.lerp(
+            baseColor,
+            Colors.white,
+            _random.nextDouble() * 0.3,
+          )!,
+          size: 4.0 + _random.nextDouble() * 6.0,
+          lifetime: 0.8 + _random.nextDouble() * 0.4,
+          shape: ParticleShape.star,
+          angularVelocity: (_random.nextDouble() - 0.5) * 10.0,
+          gravityY: 300.0,
+        ),
+      );
     }
   }
 
   /// Create jet trail effect
   void createJetTrail(Vector2 position, Vector2 velocity, GameTheme theme) {
     if (_particles.length > _maxParticles - 5) return; // Performance guard
-    
+
     for (int i = 0; i < 3; i++) {
       final offset = Vector2(
         (_random.nextDouble() - 0.5) * 10.0,
         (_random.nextDouble() - 0.5) * 10.0,
       );
-      
-      _addParticle(GameParticle(
-        position: position + offset,
-        velocity: velocity * -0.3 + Vector2(
-          (_random.nextDouble() - 0.5) * 50.0,
-          (_random.nextDouble() - 0.5) * 50.0,
+
+      _addParticle(
+        GameParticle(
+          position: position + offset,
+          velocity:
+              velocity * -0.3 +
+              Vector2(
+                (_random.nextDouble() - 0.5) * 50.0,
+                (_random.nextDouble() - 0.5) * 50.0,
+              ),
+          color: theme.colors.accent.withValues(alpha: 0.6),
+          size: 2.0 + _random.nextDouble() * 3.0,
+          lifetime: 0.3 + _random.nextDouble() * 0.2,
+          shape: ParticleShape.circle,
+          gravityY: 100.0,
+          sizeGrowthPerSecond: -5.0,
         ),
-        color: theme.colors.accent.withValues(alpha: 0.6),
-        size: 2.0 + _random.nextDouble() * 3.0,
-        lifetime: 0.3 + _random.nextDouble() * 0.2,
-        shape: ParticleShape.circle,
-        gravityY: 100.0,
-        sizeGrowthPerSecond: -5.0,
-      ));
+      );
     }
   }
 
   /// Create theme transition effect
-  void createThemeTransition(Vector2 position, GameTheme oldTheme, GameTheme newTheme) {
+  void createThemeTransition(
+    Vector2 position,
+    GameTheme oldTheme,
+    GameTheme newTheme,
+  ) {
     for (int i = 0; i < 30; i++) {
       final angle = _random.nextDouble() * 2 * math.pi;
       final speed = 50.0 + _random.nextDouble() * 100.0;
@@ -199,44 +216,48 @@ class ParticleSystem {
         math.cos(angle) * speed,
         math.sin(angle) * speed,
       );
-      
+
       final color = i < 15 ? oldTheme.colors.primary : newTheme.colors.primary;
-      
-      _addParticle(GameParticle(
-        position: position.clone(),
-        velocity: velocity,
-        color: color,
-        size: 3.0 + _random.nextDouble() * 4.0,
-        lifetime: 1.0 + _random.nextDouble() * 0.5,
-        shape: ParticleShape.confetti,
-        angularVelocity: (_random.nextDouble() - 0.5) * 8.0,
-        gravityY: 200.0,
-      ));
+
+      _addParticle(
+        GameParticle(
+          position: position.clone(),
+          velocity: velocity,
+          color: color,
+          size: 3.0 + _random.nextDouble() * 4.0,
+          lifetime: 1.0 + _random.nextDouble() * 0.5,
+          shape: ParticleShape.confetti,
+          angularVelocity: (_random.nextDouble() - 0.5) * 8.0,
+          gravityY: 200.0,
+        ),
+      );
     }
   }
 
   /// Create ambient sparkles
   void createAmbientSparkles(Vector2 size, GameTheme theme) {
     if (_particles.length > _maxParticles - 10) return;
-    
+
     for (int i = 0; i < 5; i++) {
       final position = Vector2(
         _random.nextDouble() * size.x,
         _random.nextDouble() * size.y,
       );
-      
-      _addParticle(GameParticle(
-        position: position,
-        velocity: Vector2(
-          (_random.nextDouble() - 0.5) * 20.0,
-          -20.0 - _random.nextDouble() * 30.0,
+
+      _addParticle(
+        GameParticle(
+          position: position,
+          velocity: Vector2(
+            (_random.nextDouble() - 0.5) * 20.0,
+            -20.0 - _random.nextDouble() * 30.0,
+          ),
+          color: theme.colors.accent.withValues(alpha: 0.4),
+          size: 1.0 + _random.nextDouble() * 2.0,
+          lifetime: 2.0 + _random.nextDouble() * 1.0,
+          shape: ParticleShape.spark,
+          gravityY: 50.0,
         ),
-        color: theme.colors.accent.withValues(alpha: 0.4),
-        size: 1.0 + _random.nextDouble() * 2.0,
-        lifetime: 2.0 + _random.nextDouble() * 1.0,
-        shape: ParticleShape.spark,
-        gravityY: 50.0,
-      ));
+      );
     }
   }
 

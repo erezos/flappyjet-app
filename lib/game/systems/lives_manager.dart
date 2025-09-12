@@ -2,7 +2,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/game_config.dart';
+import '../../core/debug_logger.dart';
+
 import 'inventory_manager.dart';
+import 'local_notification_manager.dart';
 
 /// Lives/Energy system with timed regeneration and Heart Booster support
 /// - Regenerates 1 heart every regen interval (10 min default, 8 min with booster)
@@ -18,7 +21,9 @@ class LivesManager extends ChangeNotifier {
   static const String _keyBestScore = 'lm_best_score';
   static const String _keyBestStreak = 'lm_best_streak';
 
-  final ValueNotifier<int> _livesNotifier = ValueNotifier<int>(3); // Will be updated in initialize()
+  final ValueNotifier<int> _livesNotifier = ValueNotifier<int>(
+    3,
+  ); // Will be updated in initialize()
   Timer? _timer;
   int _bestScore = 0;
   int _bestStreak = 0;
@@ -38,19 +43,23 @@ class LivesManager extends ChangeNotifier {
   /// Get current regen interval in seconds (10 min normal, 8 min with Heart Booster)
   int get regenIntervalSeconds {
     final inventory = InventoryManager();
-    return inventory.isHeartBoosterActive ? 8 * 60 : GameConfig.lifeRegenIntervalSeconds;
+    return inventory.isHeartBoosterActive
+        ? 8 * 60
+        : GameConfig.lifeRegenIntervalSeconds;
   }
 
   Future<void> initialize() async {
     if (_isInitialized) {
-      debugPrint('🔄 LivesManager already initialized, skipping duplicate initialization');
+      safePrint(
+        '🔄 LivesManager already initialized, skipping duplicate initialization',
+      );
       return;
     }
-    
+
     final prefs = await SharedPreferences.getInstance();
     final storedLives = prefs.getInt(_keyLives);
     final storedNextRegenMs = prefs.getInt(_keyNextRegenAtMs);
-    
+
     // Load best scores
     _bestScore = prefs.getInt(_keyBestScore) ?? 0;
     _bestStreak = prefs.getInt(_keyBestStreak) ?? 0;
@@ -62,7 +71,7 @@ class LivesManager extends ChangeNotifier {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final intervalMs = regenIntervalSeconds * 1000;
     final currentMaxLives = maxLives;
-    
+
     if (lives < currentMaxLives && nextRegenMs != null) {
       while (lives < currentMaxLives && nextRegenMs! <= nowMs) {
         lives += 1;
@@ -78,7 +87,7 @@ class LivesManager extends ChangeNotifier {
 
     _startTicker();
     _isInitialized = true;
-    debugPrint('🔄 LivesManager initialized with $_livesNotifier.value lives');
+    safePrint('🔄 LivesManager initialized with $_livesNotifier.value lives');
   }
 
   Future<void> consumeLife() async {
@@ -91,9 +100,16 @@ class LivesManager extends ChangeNotifier {
     int? nextRegenMs = prefs.getInt(_keyNextRegenAtMs);
     final currentMaxLives = maxLives;
     if (lives < currentMaxLives && nextRegenMs == null) {
-      nextRegenMs = DateTime.now().millisecondsSinceEpoch + regenIntervalSeconds * 1000;
+      nextRegenMs =
+          DateTime.now().millisecondsSinceEpoch + regenIntervalSeconds * 1000;
     }
     await _persist(lives: lives, nextRegenAtMs: nextRegenMs);
+    
+    // Schedule hearts refilled notification when hearts are consumed
+    if (lives < currentMaxLives) {
+      LocalNotificationManager().scheduleHeartsRefilledNotification();
+    }
+    
     notifyListeners();
   }
 
@@ -121,7 +137,10 @@ class LivesManager extends ChangeNotifier {
     final heartsToAdd = currentMaxLives - _livesNotifier.value;
     if (heartsToAdd > 0) {
       await addLife(heartsToAdd);
-      debugPrint('💖 Hearts refilled to max: $currentMaxLives');
+      safePrint('💖 Hearts refilled to max: $currentMaxLives');
+      
+      // Cancel any pending heart refill notifications since hearts are now full
+      LocalNotificationManager().cancelNotification(NotificationType.heartsRefilled);
     }
   }
 
@@ -132,14 +151,16 @@ class LivesManager extends ChangeNotifier {
     _bestStreak = 0;
     _timer?.cancel();
     _timer = null;
-    
+
     // Set to new player defaults
     _livesNotifier.value = GameConfig.maxLives; // 3 hearts
     await _persist(lives: GameConfig.maxLives, nextRegenAtMs: null);
-    
+
     _isInitialized = true;
     notifyListeners();
-    debugPrint('🔄 LivesManager force reset to new player: ${GameConfig.maxLives} lives');
+    safePrint(
+      '🔄 LivesManager force reset to new player: ${GameConfig.maxLives} lives',
+    );
   }
 
   /// Set lives to a specific value (for game over scenarios)
@@ -152,16 +173,19 @@ class LivesManager extends ChangeNotifier {
     if (clampedLives >= currentMaxLives) {
       nextRegenMs = null; // Full lives, no timer needed
     } else if (clampedLives <= 0) {
-      nextRegenMs = DateTime.now().millisecondsSinceEpoch + regenIntervalSeconds * 1000; // Start timer for regeneration
+      nextRegenMs =
+          DateTime.now().millisecondsSinceEpoch +
+          regenIntervalSeconds * 1000; // Start timer for regeneration
     } else {
       // Keep existing timer if it exists
       final prefs = await SharedPreferences.getInstance();
-      nextRegenMs = prefs.getInt(_keyNextRegenAtMs) ?? 
+      nextRegenMs =
+          prefs.getInt(_keyNextRegenAtMs) ??
           (DateTime.now().millisecondsSinceEpoch + regenIntervalSeconds * 1000);
     }
     await _persist(lives: clampedLives, nextRegenAtMs: nextRegenMs);
     notifyListeners();
-    debugPrint('🔄 LivesManager lives set to $clampedLives');
+    safePrint('🔄 LivesManager lives set to $clampedLives');
   }
 
   /// Update best score and return true if it's a new record
@@ -207,7 +231,7 @@ class LivesManager extends ChangeNotifier {
       int lives = _livesNotifier.value;
       int? nextRegenMs = prefs.getInt(_keyNextRegenAtMs);
       final currentMaxLives = maxLives;
-      
+
       if (lives >= currentMaxLives || nextRegenMs == null) return;
 
       final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -245,5 +269,3 @@ class LivesManager extends ChangeNotifier {
     return remaining > 0 ? (remaining / 1000).ceil() : 0;
   }
 }
-
-

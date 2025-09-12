@@ -106,5 +106,3 @@ class TiledPillar extends PositionComponent {
     }
   }
 }
-
-

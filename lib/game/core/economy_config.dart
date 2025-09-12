@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'jet_skins.dart';
+import '../../core/debug_logger.dart';
 
 /// Centralized economy configuration with Remote Config support
 /// This class manages all pricing, rewards, and monetization parameters
@@ -9,20 +10,30 @@ class EconomyConfig extends ChangeNotifier {
   EconomyConfig._internal();
 
   // === JET SKIN PRICING ===
-  /// 🎯 REBALANCED PRICING STRATEGY (Optimized for F2P retention)
-  /// More accessible pricing to improve new player experience and retention
+  /// 🎯 WORLD-CLASS PRICING STRATEGY (Optimized for mobile game economy)
+  /// Balanced progression with clear monetization tiers
   static const Map<JetRarity, int> _defaultSkinPrices = {
-    JetRarity.common: 199,     // Achievable in 2-3 good games (was 299)
-    JetRarity.rare: 399,       // 1-2 days of missions (was 599)  
-    JetRarity.epic: 799,       // 1 week of engagement (was 1199)
-    JetRarity.legendary: 1599, // Premium but achievable (was 2399)
+    JetRarity.common: 299,     // 1 day effort - Easy early goals
+    JetRarity.rare: 599,       // 2-3 days effort - Mid-game progression  
+    JetRarity.epic: 1199,      // 3-5 days effort - Long-term objectives
+    JetRarity.legendary: 2399, // 6-8 days effort - Premium achievements
+    // Mythic skins use gem pricing (handled separately)
   };
 
   Map<JetRarity, int> _skinPrices = Map.from(_defaultSkinPrices);
 
-  /// Get coin price for a jet skin
+  /// Get coin price for a jet skin (returns 0 for gem-exclusive skins)
   int getSkinCoinPrice(JetSkin skin) {
+    // Mythic skins are gem-exclusive, no coin price
+    if (skin.rarity == JetRarity.mythic) return 0;
     return _skinPrices[skin.rarity] ?? _defaultSkinPrices[skin.rarity]!;
+  }
+
+  /// Get gem price for mythic skins (converted from USD price)
+  int getSkinGemPrice(JetSkin skin) {
+    if (skin.rarity != JetRarity.mythic) return 0;
+    // Convert USD to gems (1 USD = ~100 gems base rate)
+    return (skin.price * 100).round();
   }
 
   /// Override skin prices (for Remote Config updates)
@@ -30,6 +41,44 @@ class EconomyConfig extends ChangeNotifier {
     _skinPrices = Map.from(newPrices);
     notifyListeners();
   }
+
+  // === COIN PACKS ===
+  /// Coin pack definitions (Gem-to-Coins exchange)
+  /// Following mobile game best practices: ~10-15 gems per 100 coins
+  static const Map<String, CoinPack> coinPacks = {
+    'coins_pack_small': CoinPack(
+      id: 'coins_pack_small',
+      coins: 500,
+      bonusCoins: 0,
+      gemPrice: 50,
+      displayName: 'Small Coin Pack',
+      description: '500 Coins',
+    ),
+    'coins_pack_medium': CoinPack(
+      id: 'coins_pack_medium',
+      coins: 1200,
+      bonusCoins: 300,
+      gemPrice: 120,
+      displayName: 'Medium Coin Pack',
+      description: '1200 + 300 Bonus Coins',
+    ),
+    'coins_pack_large': CoinPack(
+      id: 'coins_pack_large',
+      coins: 2500,
+      bonusCoins: 750,
+      gemPrice: 250,
+      displayName: 'Large Coin Pack',
+      description: '2500 + 750 Bonus Coins',
+    ),
+    'coins_pack_mega': CoinPack(
+      id: 'coins_pack_mega',
+      coins: 5000,
+      bonusCoins: 2000,
+      gemPrice: 500,
+      displayName: 'Mega Coin Pack',
+      description: '5000 + 2000 Bonus Coins',
+    ),
+  };
 
   // === GEMS PACKS ===
   /// Gem pack definitions (IAP products)
@@ -213,10 +262,10 @@ class EconomyConfig extends ChangeNotifier {
         updateDailyBonuses(bonuses.cast<int>());
       }
 
-      debugPrint('💰 📱 Economy config updated from Remote Config');
+      safePrint('💰 📱 Economy config updated from Remote Config');
       notifyListeners();
     } catch (e) {
-      debugPrint('💰 ⚠️ Error updating economy from Remote Config: $e');
+      safePrint('💰 ⚠️ Error updating economy from Remote Config: $e');
     }
   }
 
@@ -279,3 +328,28 @@ class HeartBoosterPack {
   Duration get duration => Duration(hours: durationHours);
 }
 
+/// Coin pack data class (Gem-to-Coins exchange)
+class CoinPack {
+  final String id;
+  final int coins;
+  final int bonusCoins;
+  final int gemPrice;
+  final String displayName;
+  final String description;
+
+  const CoinPack({
+    required this.id,
+    required this.coins,
+    required this.bonusCoins,
+    required this.gemPrice,
+    required this.displayName,
+    required this.description,
+  });
+
+  int get totalCoins => coins + bonusCoins;
+
+  bool get hasBonus => bonusCoins > 0;
+  
+  /// Gems per 100 coins ratio (for value comparison)
+  double get gemsPerHundredCoins => (gemPrice / totalCoins) * 100;
+}

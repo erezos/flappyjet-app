@@ -1,4 +1,6 @@
 /// 📊 Profile Stats Row Component - High Score + Hottest Streak display
+library;
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'profile_responsive_config.dart';
@@ -13,7 +15,7 @@ class ProfileStatsRow extends StatelessWidget {
       children: [
         // High Score Widget
         HighScoreWidget(),
-        // Hottest Streak Widget  
+        // Hottest Streak Widget
         HottestStreakWidget(),
       ],
     );
@@ -32,7 +34,7 @@ class HighScoreWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = context.profileConfig;
-    
+
     return FutureBuilder<int>(
       future: _loadHighScore(),
       builder: (context, snapshot) {
@@ -54,9 +56,13 @@ class HighScoreWidget extends StatelessWidget {
               ),
               // Score number positioned on the dark display area
               Positioned(
-                top: 45, // Adjust this to position the number in the dark display area
+                top:
+                    45, // Adjust this to position the number in the dark display area
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   child: Text(
                     '$value',
                     style: TextStyle(
@@ -81,8 +87,12 @@ class HighScoreWidget extends StatelessWidget {
       },
     );
   }
-  
-  Widget _buildFallbackHighScore(BuildContext context, ProfileResponsiveConfig config, int value) {
+
+  Widget _buildFallbackHighScore(
+    BuildContext context,
+    ProfileResponsiveConfig config,
+    int value,
+  ) {
     return Container(
       padding: config.getResponsivePadding(const EdgeInsets.all(16)),
       decoration: BoxDecoration(
@@ -104,23 +114,23 @@ class HighScoreWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.emoji_events, 
-            color: Colors.white, 
+            Icons.emoji_events,
+            color: Colors.white,
             size: config.getResponsiveIconSize(24),
           ),
           const SizedBox(height: 8),
           Text(
-            'HIGH SCORE', 
+            'HIGH SCORE',
             style: TextStyle(
-              color: Colors.white70, 
+              color: Colors.white70,
               fontSize: config.getResponsiveFontSize(10),
             ),
           ),
           Text(
-            '$value', 
+            '$value',
             style: TextStyle(
-              color: Colors.white, 
-              fontSize: config.getResponsiveFontSize(24), 
+              color: Colors.white,
+              fontSize: config.getResponsiveFontSize(24),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -142,13 +152,15 @@ class HottestStreakWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = context.profileConfig;
-    
+
     return FutureBuilder<int>(
       future: _loadHottestStreak(),
       builder: (context, snapshot) {
         final value = snapshot.data ?? 0;
         return SizedBox(
-          height: config.statsWidgetHeight + 10, // Slightly taller for the hottest streak
+          height:
+              config.statsWidgetHeight +
+              10, // Slightly taller for the hottest streak
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -168,7 +180,9 @@ class HottestStreakWidget extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.3), // Semi-transparent background
+                    color: Colors.black.withValues(
+                      alpha: 0.3,
+                    ), // Semi-transparent background
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -195,8 +209,12 @@ class HottestStreakWidget extends StatelessWidget {
       },
     );
   }
-  
-  Widget _buildFallbackHottestStreak(BuildContext context, ProfileResponsiveConfig config, int value) {
+
+  Widget _buildFallbackHottestStreak(
+    BuildContext context,
+    ProfileResponsiveConfig config,
+    int value,
+  ) {
     return Container(
       padding: config.getResponsivePadding(const EdgeInsets.all(16)),
       decoration: BoxDecoration(
@@ -218,23 +236,23 @@ class HottestStreakWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.local_fire_department, 
-            color: Colors.white, 
+            Icons.local_fire_department,
+            color: Colors.white,
             size: config.getResponsiveIconSize(24),
           ),
           const SizedBox(height: 8),
           Text(
-            'HOTTEST STREAK', 
+            'HOTTEST STREAK',
             style: TextStyle(
-              color: Colors.white70, 
+              color: Colors.white70,
               fontSize: config.getResponsiveFontSize(10),
             ),
           ),
           Text(
-            '$value', 
+            '$value',
             style: TextStyle(
-              color: Colors.white, 
-              fontSize: config.getResponsiveFontSize(24), 
+              color: Colors.white,
+              fontSize: config.getResponsiveFontSize(24),
               fontWeight: FontWeight.bold,
             ),
           ),

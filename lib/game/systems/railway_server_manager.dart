@@ -9,13 +9,18 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../services/player_auth_service.dart';
+import 'player_identity_manager.dart';
 
 /// Server configuration for Railway backend
 class RailwayConfig {
   // 🚂 Railway Backend URL (replace with your actual Railway deployment URL)
-  static const String baseUrl = kDebugMode 
-      ? 'http://localhost:3000'  // Local development
-      : 'https://flappyjet-backend-production.up.railway.app';  // Production
+  static const String baseUrl = 'https://flappyjet-backend-production.up.railway.app';  // Always use production
+  
+  // Alternative: Use localhost only when explicitly needed
+  // static const String baseUrl = kDebugMode 
+  //     ? 'http://localhost:3000'  // Local development
+  //     : 'https://flappyjet-backend-production.up.railway.app';  // Production
   
   // API Endpoints
   static const String authRegister = '$baseUrl/api/auth/register';
@@ -306,8 +311,16 @@ class RailwayServerManager extends ChangeNotifier {
         final data = jsonDecode(response.body);
         _playerId = data['player']['id'];
         safePrint('🚂 ✅ Token validated for player: $_playerId');
+      } else if (response.statusCode == 403) {
+        // Token expired - try to refresh
+        safePrint('🚂 🔄 Token expired, attempting refresh...');
+        final refreshSuccess = await _refreshAuthToken();
+        if (!refreshSuccess) {
+          await _clearAuthData();
+          safePrint('🚂 ⚠️ Token refresh failed, cleared auth data');
+        }
       } else {
-        // Token expired or invalid
+        // Other error - clear auth data
         await _clearAuthData();
         safePrint('🚂 ⚠️ Token validation failed, cleared auth data');
       }
@@ -316,42 +329,148 @@ class RailwayServerManager extends ChangeNotifier {
     }
   }
 
-  /// Register new player or login existing
+  /// Refresh expired authentication token
+  Future<bool> _refreshAuthToken() async {
+    if (_authToken == null) return false;
+
+    try {
+      final playerAuthService = PlayerAuthService(baseUrl: RailwayConfig.baseUrl.replaceAll('/api', ''));
+      final refreshResult = await playerAuthService.refreshToken(_authToken!);
+      
+      if (refreshResult.isSuccess) {
+        _authToken = refreshResult.data!;
+        _isAuthenticated = true;
+        await _saveAuthData();
+        safePrint('🚂 ✅ Token refreshed successfully');
+        return true;
+      } else {
+        safePrint('🚂 ❌ Token refresh failed: ${refreshResult.error}');
+        return false;
+      }
+    } catch (e) {
+      safePrint('🚂 ❌ Token refresh error: $e');
+      return false;
+    }
+  }
+
+  /// Make authenticated API call with automatic token refresh
+  Future<http.Response?> _makeAuthenticatedRequest(
+    Future<http.Response> Function() requestFunction,
+    {int maxRetries = 1}
+  ) async {
+    if (!_isAuthenticated) return null;
+
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        final response = await requestFunction();
+        
+        if (response.statusCode == 403) {
+          // Token expired - try to refresh
+          safePrint('🚂 🔄 API call failed with 403, attempting token refresh (attempt ${attempt + 1}/${maxRetries + 1})');
+          
+          if (attempt < maxRetries) {
+            final refreshSuccess = await _refreshAuthToken();
+            if (refreshSuccess) {
+              continue; // Retry with new token
+            }
+          }
+          
+          // Refresh failed or max retries reached
+          await _clearAuthData();
+          safePrint('🚂 ❌ Authentication failed, cleared auth data');
+          return response;
+        }
+        
+        return response;
+      } catch (e) {
+        if (attempt == maxRetries) {
+          safePrint('🚂 ❌ API request failed after ${maxRetries + 1} attempts: $e');
+          rethrow;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Register new player or login existing using PlayerAuthService
   Future<ServerPlayerData?> authenticatePlayer(String nickname) async {
     try {
-      final packageInfo = await PackageInfo.fromPlatform();
+      if (_deviceId == null) {
+        await _generateDeviceId();
+      }
+
+      // Use PlayerAuthService for proper authentication
+      final playerAuthService = PlayerAuthService(baseUrl: RailwayConfig.baseUrl.replaceAll('/api', ''));
       
-      final requestData = {
-        'deviceId': _deviceId,
-        'nickname': nickname,
-        'platform': Platform.isAndroid ? 'android' : Platform.isIOS ? 'ios' : 'web',
-        'appVersion': packageInfo.version,
-      };
-
-      final response = await http.post(
-        Uri.parse(RailwayConfig.authRegister),
-        headers: _getHeaders(),
-        body: jsonEncode(requestData),
-      ).timeout(RailwayConfig.requestTimeout);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      // Try login first (for existing players)
+      final loginResult = await playerAuthService.loginPlayer(_deviceId!);
+      
+      if (loginResult.isSuccess) {
+        // Login successful - update our state
+        final playerIdentity = PlayerIdentityManager();
+        _authToken = playerIdentity.authToken;
+        _playerId = playerIdentity.playerId;
+        _isAuthenticated = true;
         
-        if (data['success']) {
-          _authToken = data['token'];
-          _playerId = data['player']['id'];
+        await _saveAuthData();
+        
+        safePrint('🚂 ✅ Player authenticated via login: $_playerId');
+        
+        // Get player data from backend
+        final profileResult = await playerAuthService.getPlayerProfile(_authToken!);
+        if (profileResult.isSuccess) {
+          final profileData = profileResult.data!;
+          return ServerPlayerData(
+            id: profileData.playerId,
+            nickname: profileData.nickname,
+            bestScore: profileData.bestScore,
+            bestStreak: profileData.bestStreak,
+            totalGamesPlayed: profileData.totalGamesPlayed,
+            currentCoins: profileData.currentCoins,
+            currentGems: profileData.currentGems,
+            currentHearts: profileData.currentHearts,
+            isPremium: profileData.isPremium,
+            createdAt: DateTime.now(), // Will be updated from backend
+            lastActiveAt: DateTime.now(),
+          );
+        }
+        
+        notifyListeners();
+        return null;
+      } else {
+        // Login failed - try registration
+        safePrint('🚂 🔄 Login failed, trying registration: ${loginResult.error}');
+        
+        final packageInfo = await PackageInfo.fromPlatform();
+        final registrationResult = await playerAuthService.registerPlayer(
+          PlayerRegistrationData(
+            deviceId: _deviceId!,
+            nickname: nickname,
+            platform: Platform.isAndroid ? 'android' : Platform.isIOS ? 'ios' : 'web',
+            appVersion: packageInfo.version,
+            countryCode: 'US', // Default, could be detected
+            timezone: DateTime.now().timeZoneName,
+          ),
+        );
+        
+        if (registrationResult.isSuccess) {
+          // Registration successful - update our state
+          final playerIdentity = PlayerIdentityManager();
+          _authToken = playerIdentity.authToken;
+          _playerId = playerIdentity.playerId;
           _isAuthenticated = true;
           
           await _saveAuthData();
           
-          safePrint('🚂 ✅ Player authenticated: $_playerId (New: ${data['isNewPlayer']})');
+          safePrint('🚂 ✅ Player authenticated via registration: $_playerId');
           
           notifyListeners();
-          return ServerPlayerData.fromJson(data['player']);
+          return null; // PlayerAuthService already updated PlayerIdentityManager
+        } else {
+          throw Exception('Authentication failed: ${registrationResult.error}');
         }
       }
-      
-      throw Exception('Authentication failed: ${response.statusCode}');
       
     } catch (e) {
       safePrint('🚂 ❌ Authentication error: $e');
@@ -494,21 +613,23 @@ class RailwayServerManager extends ChangeNotifier {
         'amount': amount,
       };
 
-      final response = await http.post(
-        Uri.parse(RailwayConfig.missionsProgress),
-        headers: _getHeaders(includeAuth: true),
-        body: jsonEncode(requestData),
-      ).timeout(RailwayConfig.requestTimeout);
+      final response = await _makeAuthenticatedRequest(() => 
+        http.post(
+          Uri.parse(RailwayConfig.missionsProgress),
+          headers: _getHeaders(includeAuth: true),
+          body: jsonEncode(requestData),
+        ).timeout(RailwayConfig.requestTimeout)
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (response?.statusCode == 200) {
+        final data = jsonDecode(response!.body);
         if (data['success']) {
           safePrint('🚂 ✅ Mission progress updated: $missionType +$amount');
           return true;
         }
       }
       
-      throw Exception('Mission progress update failed: ${response.statusCode}');
+      throw Exception('Mission progress update failed: ${response?.statusCode}');
       
     } catch (e) {
       safePrint('🚂 ❌ Mission progress update error: $e');

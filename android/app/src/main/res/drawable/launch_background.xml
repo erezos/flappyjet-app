@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Flappy Jet Launch Screen with Prominent Logo -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+    <!-- Gradient background -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#87CEEB"
+                android:endColor="#4ECDC4"
+                android:angle="90" />
+        </shape>
+    </item>
 
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
+    <!-- Logo container with proper scaling for full screen logo -->
+    <item android:top="200dp" android:bottom="200dp" android:left="80dp" android:right="80dp">
         <bitmap
+            android:src="@drawable/launch_logo"
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+            android:scaleType="fitCenter"
+            android:tileMode="disabled" />
+    </item>
 </layer-list>

@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import '../../core/debug_logger.dart';
 
 import '../systems/visual_asset_manager.dart';
 import '../core/game_config.dart';
@@ -101,10 +102,10 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       
       _isLoaded = true;
       
-      debugPrint('🎨 OBSTACLE LOADED: Score $currentScore → $assetPath');
+      safePrint('🎨 OBSTACLE LOADED: Score $currentScore → $assetPath');
       
     } catch (e) {
-      debugPrint('🎨 ⚠️ Failed to load obstacle sprite: $assetPath - $e');
+      safePrint('🎨 ⚠️ Failed to load obstacle sprite: $assetPath - $e');
       
       // Fallback to colored rectangles
       _createFallbackObstacles();
@@ -198,7 +199,7 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     
     _isLoaded = true;
     
-    debugPrint('🎨 Using fallback obstacle rendering');
+    safePrint('🎨 Using fallback obstacle rendering');
   }
   
   @override
@@ -284,6 +285,40 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     return false;
   }
   
+  /// Get top pillar bounds for collision detection
+  Rect getTopPillarBounds() {
+    final gapTop = position.y - gapSize / 2;
+    return Rect.fromLTWH(
+      position.x + _visualXOffset,
+      0,
+      _visualWidth,
+      gapTop,
+    );
+  }
+
+  /// Get bottom pillar bounds for collision detection
+  Rect getBottomPillarBounds() {
+    final gapBottom = position.y + gapSize / 2;
+    return Rect.fromLTWH(
+      position.x + _visualXOffset,
+      gapBottom,
+      _visualWidth,
+      game.size.y - gapBottom,
+    );
+  }
+
+  /// Get scoring zone bounds for score detection
+  Rect getScoringZoneBounds() {
+    final gapTop = position.y - gapSize / 2;
+    final gapBottom = position.y + gapSize / 2;
+    return Rect.fromLTWH(
+      position.x + _visualXOffset,
+      gapTop,
+      _visualWidth,
+      gapBottom - gapTop,
+    );
+  }
+
   /// Get obstacle info for debugging
   String getObstacleInfo() {
     final assetPath = VisualAssetManager.getObstacleAsset(currentScore);

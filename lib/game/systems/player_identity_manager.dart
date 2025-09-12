@@ -11,7 +11,8 @@ import 'profile_manager.dart';
 import 'leaderboard_manager.dart';
 import 'global_leaderboard_service.dart';
 import 'game_events_tracker.dart';
-import 'railway_server_manager.dart';
+import '../../services/player_auth_service.dart';
+import '../../services/nickname_validation_service.dart';
 
 /// Centralized player identity management
 /// Ensures all systems use consistent player names and IDs
@@ -176,12 +177,18 @@ class PlayerIdentityManager extends ChangeNotifier {
     }
   }
 
-  /// Update player name across all systems
+  /// Update player name across all systems with validation
   Future<void> updatePlayerName(String newName) async {
     if (newName.trim().isEmpty || newName.trim() == _playerName) return;
 
+    // 🛡️ CRITICAL: Validate nickname before updating
+    final validationResult = await _validateNickname(newName.trim());
+    if (!validationResult.isValid) {
+      throw Exception('Nickname validation failed: ${validationResult.errorMessage}');
+    }
+
     final oldName = _playerName;
-    _playerName = newName.trim();
+    _playerName = validationResult.cleanedNickname;
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -190,23 +197,63 @@ class PlayerIdentityManager extends ChangeNotifier {
       // Update all dependent systems
       await _syncToAllSystems();
 
-      // 🚂 CRITICAL: Sync nickname to Railway backend
+      // 🚂 CRITICAL: Sync nickname to Railway backend using PlayerAuthService
+      bool backendSyncSuccess = false;
       try {
-        final railwayManager = RailwayServerManager();
-        if (railwayManager.isAuthenticated) {
-          final success = await railwayManager.updatePlayerProfile(nickname: _playerName);
-          if (success) {
+        if (_isBackendRegistered && _authToken.isNotEmpty) {
+          // Use PlayerAuthService for proper API communication
+          final playerAuthService = PlayerAuthService(
+            baseUrl: 'https://flappyjet-backend-production.up.railway.app',
+          );
+          
+          final updateResult = await playerAuthService.updatePlayerProfile(
+            authToken: _authToken,
+            nickname: _playerName,
+          );
+          
+          if (updateResult.isSuccess) {
             safePrint('🚂 ✅ Nickname synced to Railway backend: $_playerName');
+            backendSyncSuccess = true;
           } else {
-            safePrint('🚂 ⚠️ Nickname sync failed, added to offline queue for retry');
+            safePrint('🚂 ⚠️ Nickname sync failed: ${updateResult.error}');
+            
+            // If token expired, try to refresh and retry
+            if (updateResult.error?.contains('expired') == true || 
+                updateResult.error?.contains('Invalid') == true) {
+              safePrint('🚂 🔄 Token expired, attempting refresh...');
+              
+              final refreshResult = await playerAuthService.refreshToken(_authToken);
+              if (refreshResult.isSuccess) {
+                // Update our token and retry
+                await updateAuthToken(refreshResult.data!);
+                
+                final retryResult = await playerAuthService.updatePlayerProfile(
+                  authToken: _authToken,
+                  nickname: _playerName,
+                );
+                
+                if (retryResult.isSuccess) {
+                  safePrint('🚂 ✅ Nickname synced after token refresh: $_playerName');
+                  backendSyncSuccess = true;
+                } else {
+                  safePrint('🚂 ❌ Nickname sync failed even after token refresh');
+                }
+              } else {
+                safePrint('🚂 ❌ Token refresh failed: ${refreshResult.error}');
+              }
+            }
           }
         } else {
-          safePrint('🚂 ⚠️ Cannot sync nickname - not authenticated with Railway (will retry when online)');
-          // Still add to offline queue for when authentication is restored
-          railwayManager.updatePlayerProfile(nickname: _playerName);
+          safePrint('🚂 ⚠️ Cannot sync nickname - not authenticated with backend');
         }
       } catch (e) {
         safePrint('🚂 ❌ Failed to sync nickname to Railway backend: $e');
+      }
+
+      // 🚨 CRITICAL: Warn user if backend sync failed
+      if (!backendSyncSuccess) {
+        safePrint('🚨 WARNING: Nickname updated locally but backend sync failed!');
+        safePrint('🚨 Tournament scores may show old nickname until sync succeeds');
       }
 
       // 🎯 IMPORTANT: Track nickname change for missions/achievements
@@ -223,6 +270,93 @@ class PlayerIdentityManager extends ChangeNotifier {
     } catch (e) {
       safePrint('⚠️ Failed to update player name: $e');
       _playerName = oldName; // Rollback
+    }
+  }
+
+  /// Force immediate nickname sync to backend (for critical operations like tournaments)
+  Future<bool> forceNicknameSyncToBackend() async {
+    try {
+      if (!_isBackendRegistered) {
+        safePrint('🚂 ❌ Cannot force sync - not registered with backend');
+        return false;
+      }
+
+      // Use PlayerAuthService for proper API communication
+      final playerAuthService = PlayerAuthService(
+        baseUrl: 'https://flappyjet-backend-production.up.railway.app',
+      );
+      
+      // First try with current token
+      if (_authToken.isNotEmpty) {
+        final updateResult = await playerAuthService.updatePlayerProfile(
+          authToken: _authToken,
+          nickname: _playerName,
+        );
+        
+        if (updateResult.isSuccess) {
+          safePrint('🚂 ✅ Force nickname sync successful: $_playerName');
+          return true;
+        }
+        
+        // If token expired, try to refresh
+        if (updateResult.error?.contains('expired') == true || 
+            updateResult.error?.contains('Invalid') == true) {
+          safePrint('🚂 🔄 Force nickname sync: re-authenticating...');
+          
+          // Try to refresh token
+          final refreshResult = await playerAuthService.refreshToken(_authToken);
+          if (refreshResult.isSuccess) {
+            // Update our token and retry
+            await updateAuthToken(refreshResult.data!);
+            
+            final retryResult = await playerAuthService.updatePlayerProfile(
+              authToken: _authToken,
+              nickname: _playerName,
+            );
+            
+            if (retryResult.isSuccess) {
+              safePrint('🚂 ✅ Force nickname sync successful after token refresh: $_playerName');
+              return true;
+            } else {
+              safePrint('🚂 ❌ Force nickname sync failed even after token refresh');
+              return false;
+            }
+          } else {
+            // Token refresh failed - try full re-authentication
+            safePrint('🚂 🔄 Token refresh failed, trying full re-authentication...');
+            
+            final loginResult = await playerAuthService.loginPlayer(_deviceId);
+            if (loginResult.isSuccess) {
+              // Login successful - PlayerAuthService already updated PlayerIdentityManager
+              // Try the profile update again
+              final finalResult = await playerAuthService.updatePlayerProfile(
+                authToken: _authToken,
+                nickname: _playerName,
+              );
+              
+              if (finalResult.isSuccess) {
+                safePrint('🚂 ✅ Force nickname sync successful after re-authentication: $_playerName');
+                return true;
+              } else {
+                safePrint('🚂 ❌ Force nickname sync failed even after re-authentication');
+                return false;
+              }
+            } else {
+              safePrint('🚂 ❌ Re-authentication failed: ${loginResult.error}');
+              return false;
+            }
+          }
+        } else {
+          safePrint('🚂 ❌ Force nickname sync failed: ${updateResult.error}');
+          return false;
+        }
+      } else {
+        safePrint('🚂 ❌ No auth token available for force sync');
+        return false;
+      }
+    } catch (e) {
+      safePrint('🚂 ❌ Force nickname sync error: $e');
+      return false;
     }
   }
 
@@ -328,5 +462,25 @@ class PlayerIdentityManager extends ChangeNotifier {
     safePrint(
       '🎯 PlayerIdentityManager force reset: $_playerName ($_playerId)',
     );
+  }
+
+  /// 🛡️ Validate nickname using comprehensive validation service
+  Future<NicknameValidationResult> _validateNickname(String nickname) async {
+    try {
+      // Use server-side validation if authenticated, otherwise client-side
+      if (_isBackendRegistered && _authToken.isNotEmpty) {
+        return await NicknameValidationService.validateNicknameWithServer(
+          nickname,
+          authToken: _authToken,
+        );
+      } else {
+        // Fallback to client-side validation
+        return NicknameValidationService.validateNickname(nickname);
+      }
+    } catch (e) {
+      safePrint('🛡️ ❌ Nickname validation error: $e');
+      // Return client-side validation as fallback
+      return NicknameValidationService.validateNickname(nickname);
+    }
   }
 }

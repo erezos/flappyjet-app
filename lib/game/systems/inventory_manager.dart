@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/jet_skins.dart';
+import '../../core/debug_logger.dart';
 
 /// Enhanced inventory for jet skins, soft currency (coins), gems, and boosters
 class InventoryManager extends ChangeNotifier {
@@ -17,21 +18,33 @@ class InventoryManager extends ChangeNotifier {
 
   Set<String> _ownedSkinIds = {JetSkinCatalog.starterJet.id};
   String _equippedSkinId = JetSkinCatalog.starterJet.id;
-  int _softCurrency = 500; // New player starts with 500 coins
-  int _gems = 25; // New player starts with 25 gems
+  int _softCurrency = 500; // Production: New players start with 500 coins
+  int _gems = 25; // Production: New players start with 25 gems
   DateTime? _heartBoosterExpiry; // when Heart Booster expires
-  
+
+  // 🎁 Prize distribution properties
+  String? _playerId;
+  String? _authToken;
+
   final ValueNotifier<int> _softCurrencyNotifier = ValueNotifier<int>(0);
   final ValueNotifier<int> _gemsNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<bool> _heartBoosterActiveNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _heartBoosterActiveNotifier = ValueNotifier<bool>(
+    false,
+  );
 
   Set<String> get ownedSkinIds => _ownedSkinIds;
   String get equippedSkinId => _equippedSkinId;
   int get softCurrency => _softCurrency;
   int get gems => _gems;
-  bool get isHeartBoosterActive => _heartBoosterExpiry != null && DateTime.now().isBefore(_heartBoosterExpiry!);
+  bool get isHeartBoosterActive =>
+      _heartBoosterExpiry != null &&
+      DateTime.now().isBefore(_heartBoosterExpiry!);
   DateTime? get heartBoosterExpiry => _heartBoosterExpiry;
-  
+
+  // 🎁 Prize distribution properties
+  String? get playerId => _playerId;
+  String? get authToken => _authToken;
+
   /// Get remaining time for Heart Booster (null if not active)
   Duration? get heartBoosterTimeRemaining {
     if (_heartBoosterExpiry == null) return null;
@@ -39,10 +52,11 @@ class InventoryManager extends ChangeNotifier {
     if (now.isAfter(_heartBoosterExpiry!)) return null;
     return _heartBoosterExpiry!.difference(now);
   }
-  
+
   ValueListenable<int> get softCurrencyNotifier => _softCurrencyNotifier;
   ValueListenable<int> get gemsNotifier => _gemsNotifier;
-  ValueListenable<bool> get heartBoosterActiveNotifier => _heartBoosterActiveNotifier;
+  ValueListenable<bool> get heartBoosterActiveNotifier =>
+      _heartBoosterActiveNotifier;
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -51,21 +65,28 @@ class InventoryManager extends ChangeNotifier {
       final List<dynamic> list = jsonDecode(ownedJson);
       _ownedSkinIds = list.map((e) => e.toString()).toSet();
     }
-    _equippedSkinId = prefs.getString(_keyEquippedSkin) ?? JetSkinCatalog.starterJet.id;
-    _softCurrency = prefs.getInt(_keySoftCurrency) ?? 9000; // SCREENSHOT MODE
-    _gems = prefs.getInt(_keyGems) ?? 3000; // SCREENSHOT MODE
-    
+    _equippedSkinId =
+        prefs.getString(_keyEquippedSkin) ?? JetSkinCatalog.starterJet.id;
+    _softCurrency =
+        prefs.getInt(_keySoftCurrency) ??
+        500; // Production: New players start with 500 coins
+    _gems =
+        prefs.getInt(_keyGems) ??
+        25; // Production: New players start with 25 gems
+
     // Load Heart Booster expiry
     final boosterExpiryMs = prefs.getInt(_keyHeartBoosterExpiry);
     if (boosterExpiryMs != null) {
-      _heartBoosterExpiry = DateTime.fromMillisecondsSinceEpoch(boosterExpiryMs);
+      _heartBoosterExpiry = DateTime.fromMillisecondsSinceEpoch(
+        boosterExpiryMs,
+      );
       // Check if it's expired
       if (DateTime.now().isAfter(_heartBoosterExpiry!)) {
         _heartBoosterExpiry = null;
         await prefs.remove(_keyHeartBoosterExpiry);
       }
     }
-    
+
     _softCurrencyNotifier.value = _softCurrency;
     _gemsNotifier.value = _gems;
     _heartBoosterActiveNotifier.value = isHeartBoosterActive;
@@ -77,6 +98,30 @@ class InventoryManager extends ChangeNotifier {
     await _persistCurrency();
     _softCurrencyNotifier.value = _softCurrency;
     notifyListeners();
+  }
+
+  /// 🎁 Add coins with animation support (for prize distribution)
+  Future<int> addCoinsWithAnimation(int amount) async {
+    _softCurrency += amount;
+    await _persistCurrency();
+
+    // Trigger coin animation event
+    _triggerCoinAnimation(amount);
+
+    _softCurrencyNotifier.value = _softCurrency;
+    notifyListeners();
+
+    safePrint(
+      '💰 Coins added with animation: +$amount (Total: $_softCurrency)',
+    );
+    return _softCurrency;
+  }
+
+  /// Trigger coin collection animation
+  void _triggerCoinAnimation(int amount) {
+    // This would trigger celebration animation in the UI
+    // Implementation depends on the animation system used
+    safePrint('🎊 Coin animation triggered: $amount coins');
   }
 
   /// Ensure player has at least [min] coins (useful for development/testing)
@@ -129,26 +174,26 @@ class InventoryManager extends ChangeNotifier {
   Future<void> activateHeartBooster(Duration duration) async {
     final now = DateTime.now();
     final newExpiry = now.add(duration);
-    
+
     // If already active, extend the duration from current expiry
     if (_heartBoosterExpiry != null && _heartBoosterExpiry!.isAfter(now)) {
       _heartBoosterExpiry = _heartBoosterExpiry!.add(duration);
     } else {
       _heartBoosterExpiry = newExpiry;
     }
-    
+
     await _persistHeartBooster();
     _heartBoosterActiveNotifier.value = isHeartBoosterActive;
     notifyListeners();
-    
-    debugPrint('💖 Heart Booster activated! Duration: ${duration.inHours}h');
+
+    safePrint('💖 Heart Booster activated! Duration: ${duration.inHours}h');
   }
 
   /// Check and update Heart Booster status (call periodically)
   Future<void> updateHeartBoosterStatus() async {
     final wasActive = _heartBoosterActiveNotifier.value;
     final isActive = isHeartBoosterActive;
-    
+
     if (wasActive && !isActive) {
       // Booster just expired, clean up
       _heartBoosterExpiry = null;
@@ -201,11 +246,24 @@ class InventoryManager extends ChangeNotifier {
   Future<void> _persistHeartBooster() async {
     final prefs = await SharedPreferences.getInstance();
     if (_heartBoosterExpiry != null) {
-      await prefs.setInt(_keyHeartBoosterExpiry, _heartBoosterExpiry!.millisecondsSinceEpoch);
+      await prefs.setInt(
+        _keyHeartBoosterExpiry,
+        _heartBoosterExpiry!.millisecondsSinceEpoch,
+      );
     } else {
       await prefs.remove(_keyHeartBoosterExpiry);
     }
   }
+
+  /// 🎁 Set player ID for prize distribution
+  void setPlayerId(String playerId) {
+    _playerId = playerId;
+    safePrint('🎁 Player ID set for prize distribution: $playerId');
+  }
+
+  /// 🎁 Set auth token for prize distribution
+  void setAuthToken(String authToken) {
+    _authToken = authToken;
+    safePrint('🎁 Auth token set for prize distribution');
+  }
 }
-
-

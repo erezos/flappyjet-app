@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lives_manager.dart';
 import 'inventory_manager.dart';
+import 'game_events_tracker.dart';
+import '../../core/debug_logger.dart';
 
 /// Mission types that adapt to player skill level
 enum MissionType {
@@ -14,9 +16,9 @@ enum MissionType {
   reachScore,       // Reach Y score in a single game
   maintainStreak,   // Get Z consecutive games above threshold
   useContinue,      // Use continue R times
-  changeNickname,   // One-time mission (nickname change)
   collectCoins,     // Collect X coins (from any source)
   surviveTime,      // Survive for X seconds in a game
+  shareScore,       // Share score on social media
 }
 
 /// Mission difficulty levels that determine rewards
@@ -38,8 +40,10 @@ class Mission {
   final int reward;
   final int progress;
   final bool completed;
+  final bool claimed;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final DateTime? claimedAt;
 
   Mission({
     required this.id,
@@ -51,15 +55,19 @@ class Mission {
     required this.reward,
     this.progress = 0,
     this.completed = false,
+    this.claimed = false,
     required this.createdAt,
     this.completedAt,
+    this.claimedAt,
   });
 
   /// Create a copy with updated progress
   Mission copyWith({
     int? progress,
     bool? completed,
+    bool? claimed,
     DateTime? completedAt,
+    DateTime? claimedAt,
   }) {
     return Mission(
       id: id,
@@ -71,8 +79,10 @@ class Mission {
       reward: reward,
       progress: progress ?? this.progress,
       completed: completed ?? this.completed,
+      claimed: claimed ?? this.claimed,
       createdAt: createdAt,
       completedAt: completedAt ?? this.completedAt,
+      claimedAt: claimedAt ?? this.claimedAt,
     );
   }
 
@@ -88,8 +98,10 @@ class Mission {
       'reward': reward,
       'progress': progress,
       'completed': completed,
+      'claimed': claimed,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'completedAt': completedAt?.millisecondsSinceEpoch,
+      'claimedAt': claimedAt?.millisecondsSinceEpoch,
     };
   }
 
@@ -105,9 +117,13 @@ class Mission {
       reward: json['reward'],
       progress: json['progress'] ?? 0,
       completed: json['completed'] ?? false,
+      claimed: json['claimed'] ?? false,
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt']),
       completedAt: json['completedAt'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(json['completedAt'])
+          : null,
+      claimedAt: json['claimedAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(json['claimedAt'])
           : null,
     );
   }
@@ -155,9 +171,7 @@ enum PlayerSkillLevel {
 
 /// Adaptive Missions Manager - Core system for dynamic daily missions
 class MissionsManager extends ChangeNotifier {
-  static final MissionsManager _instance = MissionsManager._internal();
-  factory MissionsManager() => _instance;
-  MissionsManager._internal();
+  MissionsManager();
 
   static const String _keyDailyMissions = 'missions_daily';
   static const String _keyLastResetDate = 'missions_last_reset';
@@ -235,7 +249,7 @@ class MissionsManager extends ChangeNotifier {
             .map((json) => Mission.fromJson(json))
             .toList();
       } catch (e) {
-        debugPrint('🎯 Error loading missions: $e');
+        safePrint('🎯 Error loading missions: $e');
         _dailyMissions = [];
       }
     }
@@ -258,7 +272,7 @@ class MissionsManager extends ChangeNotifier {
       _lastResetDate = now;
       await prefs.setInt(_keyLastResetDate, now.millisecondsSinceEpoch);
       
-      debugPrint('🎯 Daily missions reset completed');
+      safePrint('🎯 Daily missions reset completed');
     }
   }
 
@@ -277,13 +291,11 @@ class MissionsManager extends ChangeNotifier {
     
     // Fourth mission varies based on player behavior
     final fourthMissionTypes = [MissionType.useContinue, MissionType.collectCoins, MissionType.surviveTime];
-    if (!_playerStats!.hasChangedNickname && random.nextBool()) {
-      missions.add(_generateNicknameMission(now));
-    } else {
-      final randomType = fourthMissionTypes[random.nextInt(fourthMissionTypes.length)];
-      final difficulty = _playerStats!.skillLevel.index >= 3 ? MissionDifficulty.hard : MissionDifficulty.medium;
-      missions.add(_generateMissionByType(randomType, _playerStats!, difficulty, now));
-    }
+    
+    // Always generate a random mission from the available types (nickname mission removed since we have Identity Established achievement)
+    final randomType = fourthMissionTypes[random.nextInt(fourthMissionTypes.length)];
+    final difficulty = _playerStats!.skillLevel.index >= 3 ? MissionDifficulty.hard : MissionDifficulty.medium;
+    missions.add(_generateMissionByType(randomType, _playerStats!, difficulty, now));
 
     _dailyMissions = missions;
   }
@@ -296,23 +308,23 @@ class MissionsManager extends ChangeNotifier {
     switch (stats.skillLevel) {
       case PlayerSkillLevel.beginner:
         target = 3;
-        reward = 75;
+        reward = 80;  // Optimized: 60-100 range
         break;
       case PlayerSkillLevel.novice:
         target = 4;
-        reward = 100;
+        reward = 120; // Optimized: 80-120 range
         break;
       case PlayerSkillLevel.intermediate:
         target = 5;
-        reward = 150;
+        reward = 180; // Optimized: 150-220 range
         break;
       case PlayerSkillLevel.advanced:
         target = 6;
-        reward = 200;
+        reward = 250; // Optimized: 180-250 range
         break;
       case PlayerSkillLevel.expert:
         target = 8;
-        reward = 300;
+        reward = 400; // Optimized: 400-600 range
         break;
     }
 
@@ -337,19 +349,19 @@ class MissionsManager extends ChangeNotifier {
     
     if (baseScore <= 5) {
       target = 3;
-      reward = 75;
+      reward = 90;  // Optimized: beginner tier
     } else if (baseScore <= 10) {
       target = (baseScore * 0.6).round().clamp(5, 8);
-      reward = 100;
+      reward = 140; // Optimized: novice tier
     } else if (baseScore <= 25) {
       target = (baseScore * 0.7).round();
-      reward = 150;
+      reward = 200; // Optimized: intermediate tier
     } else if (baseScore <= 50) {
       target = (baseScore * 0.75).round();
-      reward = 200;
+      reward = 300; // Optimized: advanced tier
     } else {
       target = (baseScore * 0.8).round();
-      reward = 300;
+      reward = 500; // Optimized: expert tier
     }
 
     return Mission(
@@ -410,19 +422,6 @@ class MissionsManager extends ChangeNotifier {
     );
   }
 
-  /// Generate nickname change mission (one-time)
-  Mission _generateNicknameMission(DateTime createdAt) {
-    return Mission(
-      id: 'daily_nickname_${createdAt.millisecondsSinceEpoch}',
-      type: MissionType.changeNickname,
-      difficulty: MissionDifficulty.easy,
-      title: 'Personal Touch',
-      description: 'Change your nickname to personalize your profile',
-      target: 1,
-      reward: 200,
-      createdAt: createdAt,
-    );
-  }
 
   /// Generate mission by specific type
   Mission _generateMissionByType(MissionType type, PlayerStats stats, MissionDifficulty difficulty, DateTime createdAt) {
@@ -465,6 +464,18 @@ class MissionsManager extends ChangeNotifier {
           createdAt: createdAt,
         );
       
+      case MissionType.shareScore:
+        return Mission(
+          id: 'daily_share_${createdAt.millisecondsSinceEpoch}',
+          type: MissionType.shareScore,
+          difficulty: MissionDifficulty.easy,
+          title: 'Social Butterfly',
+          description: 'Share your score on social media once today',
+          target: 1,
+          reward: 100,
+          createdAt: createdAt,
+        );
+      
       default:
         return _generatePlayGamesMission(stats, difficulty, createdAt);
     }
@@ -472,10 +483,14 @@ class MissionsManager extends ChangeNotifier {
 
   /// Update mission progress
   Future<void> updateMissionProgress(MissionType type, int amount) async {
+    safePrint('🎯 MISSION UPDATE: Updating progress for $type with amount $amount');
+    safePrint('🎯 MISSION UPDATE: Current missions count: ${_dailyMissions.length}');
+    
     bool hasUpdates = false;
     
     for (int i = 0; i < _dailyMissions.length; i++) {
       final mission = _dailyMissions[i];
+      safePrint('🎯 MISSION UPDATE: Checking mission ${mission.title} (${mission.type}) - completed: ${mission.completed}');
       if (mission.type == type && !mission.completed) {
         int newProgress;
         
@@ -499,9 +514,13 @@ class MissionsManager extends ChangeNotifier {
         
         if (isCompleted) {
           await _onMissionCompleted(_dailyMissions[i]);
-          debugPrint('🎯 ✅ Mission "${mission.title}" completed! Progress: $newProgress/${mission.target}');
+          safePrint('🎯 ✅ Mission "${mission.title}" completed! Progress: $newProgress/${mission.target}');
+          // Trigger completion notification
+          _showMissionCompletedNotification(mission.title, mission.reward);
         } else {
-          debugPrint('🎯 📈 Mission "${mission.title}" progress: $newProgress/${mission.target}');
+          safePrint('🎯 📈 Mission "${mission.title}" progress: $newProgress/${mission.target}');
+          // Trigger progress notification
+          _showMissionProgressNotification(mission.title, newProgress, mission.target);
         }
       }
     }
@@ -512,21 +531,24 @@ class MissionsManager extends ChangeNotifier {
     }
   }
 
-  /// Handle mission completion
+  /// Handle mission completion (no longer grants rewards automatically)
   Future<void> _onMissionCompleted(Mission mission) async {
-    debugPrint('🎯 Mission completed: ${mission.title} - Reward: ${mission.reward} coins');
-    
-    // Grant reward (coins)
-    try {
-      final inventory = InventoryManager();
-      await inventory.grantSoftCurrency(mission.reward);
-      debugPrint('💰 Mission reward granted: ${mission.reward} coins');
-    } catch (e) {
-      debugPrint('⚠️ Failed to grant mission reward: $e');
-    }
+    safePrint('🎯 Mission completed: ${mission.title} - Ready to claim ${mission.reward} coins');
     
     // Track completion for analytics
     await _trackMissionCompletion(mission);
+  }
+
+  /// Show mission completed notification (can be overridden by UI)
+  void _showMissionCompletedNotification(String missionTitle, int reward) {
+    // This can be overridden by the UI layer to show actual notifications
+    safePrint('🎯 🎉 MISSION COMPLETED: "$missionTitle" - Claim $reward coins!');
+  }
+
+  /// Show mission progress notification (can be overridden by UI)
+  void _showMissionProgressNotification(String missionTitle, int progress, int target) {
+    // This can be overridden by the UI layer to show actual notifications
+    safePrint('🎯 📈 MISSION PROGRESS: "$missionTitle" - $progress/$target');
   }
 
   /// Track mission completion for analytics
@@ -566,6 +588,9 @@ class MissionsManager extends ChangeNotifier {
       if (newScore > 0) {
         await updateMissionProgress(MissionType.reachScore, newScore);
       }
+      
+      // Handle streak missions
+      await _updateStreakMissions(newScore);
     }
     
     if (usedContinue == true) {
@@ -575,7 +600,7 @@ class MissionsManager extends ChangeNotifier {
     
     if (changedNickname == true) {
       await prefs.setBool('stats_nickname_changed', true);
-      await updateMissionProgress(MissionType.changeNickname, 1);
+      // Note: Nickname change tracking removed - handled by Identity Established achievement instead
     }
     
     if (coinsEarned != null && coinsEarned > 0) {
@@ -589,6 +614,117 @@ class MissionsManager extends ChangeNotifier {
     // Reload stats
     await _loadPlayerStats();
     notifyListeners();
+  }
+
+  /// Update streak missions based on consecutive games above threshold
+  Future<void> _updateStreakMissions(int newScore) async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Find all active streak missions
+    for (int i = 0; i < _dailyMissions.length; i++) {
+      final mission = _dailyMissions[i];
+      if (mission.type == MissionType.maintainStreak && !mission.completed) {
+        // Extract threshold from mission description
+        final threshold = _extractThresholdFromDescription(mission.description);
+        
+        // Get current streak for this mission
+        final streakKey = 'streak_${mission.id}';
+        int currentStreak = prefs.getInt(streakKey) ?? 0;
+        
+        if (newScore >= threshold) {
+          // Score meets threshold, increment streak
+          currentStreak++;
+          await prefs.setInt(streakKey, currentStreak);
+          
+          // Update mission progress with current streak
+          final newProgress = math.min(currentStreak, mission.target);
+          final isCompleted = newProgress >= mission.target;
+          
+          _dailyMissions[i] = mission.copyWith(
+            progress: newProgress,
+            completed: isCompleted,
+            completedAt: isCompleted ? DateTime.now() : null,
+          );
+          
+          if (isCompleted) {
+            await _onMissionCompleted(_dailyMissions[i]);
+            safePrint('🎯 ✅ Streak Mission "${mission.title}" completed! Streak: $currentStreak/${mission.target}');
+            _showMissionCompletedNotification(mission.title, mission.reward);
+          } else {
+            safePrint('🎯 📈 Streak Mission "${mission.title}" progress: $newProgress/${mission.target} (streak: $currentStreak)');
+          }
+        } else {
+          // Score doesn't meet threshold, reset streak
+          if (currentStreak > 0) {
+            await prefs.setInt(streakKey, 0);
+            _dailyMissions[i] = mission.copyWith(progress: 0);
+            safePrint('🎯 💔 Streak Mission "${mission.title}" reset - score $newScore below threshold $threshold');
+          }
+        }
+      }
+    }
+    
+    // Save updated missions
+    await _saveDailyMissions();
+  }
+
+  /// Extract score threshold from mission description
+  int _extractThresholdFromDescription(String description) {
+    // Parse "Score above X in Y consecutive games"
+    final regex = RegExp(r'Score above (\d+)');
+    final match = regex.firstMatch(description);
+    if (match != null) {
+      return int.parse(match.group(1)!);
+    }
+    return 3; // Default fallback
+  }
+
+  /// Claim mission reward and remove from list
+  Future<bool> claimMissionReward(String missionId) async {
+    try {
+      final missionIndex = _dailyMissions.indexWhere((m) => m.id == missionId);
+      if (missionIndex == -1) {
+        safePrint('🎯 ❌ Mission not found: $missionId');
+        return false;
+      }
+      
+      final mission = _dailyMissions[missionIndex];
+      if (!mission.completed) {
+        safePrint('🎯 ❌ Mission not completed: ${mission.title}');
+        return false;
+      }
+      
+      if (mission.claimed) {
+        safePrint('🎯 ❌ Mission already claimed: ${mission.title}');
+        return false;
+      }
+      
+      // Grant reward
+      final inventory = InventoryManager();
+      await inventory.grantSoftCurrency(mission.reward);
+      safePrint('🎯 💰 Mission reward claimed: ${mission.reward} coins for "${mission.title}"');
+      
+      // 🏆 CRITICAL FIX: Track mission completion for Perfectionist achievement
+      final gameEventsTracker = GameEventsTracker();
+      await gameEventsTracker.onMissionCompleted(
+        missionId: mission.id,
+        missionType: mission.type.toString(),
+        reward: mission.reward,
+      );
+      safePrint('🎯 🏆 Mission completion tracked for achievements: ${mission.title}');
+      
+      // Mark as claimed and remove from list
+      _dailyMissions.removeAt(missionIndex);
+      
+      // Save updated missions
+      await _saveDailyMissions();
+      notifyListeners();
+      
+      return true;
+    } catch (e) {
+      safePrint('🎯 ❌ Failed to claim mission reward: $e');
+      return false;
+    }
   }
 
   /// Force refresh missions (for testing or manual refresh)
