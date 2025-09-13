@@ -72,7 +72,7 @@
         
         <!-- Advertising ID declaration for Google Play Console -->
         <meta-data
-            android:name="com.google.android.gms.ads.AD_MANAGER_APP"
+            android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
             android:value="true" />
     </application>
     <!-- Required to query activities that can process text, see:
