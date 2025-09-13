@@ -14,6 +14,7 @@ import '../../game/core/economy_config.dart';
 import '../widgets/game_over_menu.dart';
 import '../widgets/no_hearts_dialog.dart';
 import '../widgets/rate_us_integration.dart';
+import '../../integrations/ftue_integration.dart';
 import 'store_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -93,6 +94,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       bestScore: game.bestScore,
                       onRestart: () => _handleRestart(),
                       onMainMenu: () async {
+                        // 🎮 Record game completion for FTUE tracking
+                        await FTUEIntegration.recordGameCompleted();
+                        
                         // Check for rate us after game completion
                         await RateUsIntegration.showAfterGameCompletion(
                           context,

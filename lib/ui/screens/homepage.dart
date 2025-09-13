@@ -23,7 +23,10 @@ import 'tournaments_screen.dart';
 import '../widgets/homepage/homepage_audio_manager.dart';
 import '../widgets/daily_streak/daily_streak_integration.dart';
 import '../widgets/daily_streak/daily_streak_popup_stable.dart';
+import '../widgets/daily_streak/duplicate_jet_popup.dart';
 import '../widgets/rate_us_integration.dart';
+import '../../game/systems/daily_streak_manager.dart';
+import '../../integrations/ftue_integration.dart';
 
 class Homepage extends StatefulWidget {
   final bool firebaseEnabled;
@@ -66,6 +69,9 @@ class _HomepageState extends State<Homepage>
 
     // 🎯 Initialize daily streak system
     _initializeDailyStreak();
+    
+    // 🎮 Initialize FTUE system
+    _initializeFTUE();
 
     // Initialize inventory for live coin counter
     _inventory.addListener(_onInventoryChanged);
@@ -105,6 +111,9 @@ class _HomepageState extends State<Homepage>
       // CRITICAL FIX: Mark returned FIRST, then handle route change
       _audioManager.markReturnedToHomepage();
       _audioManager.handleRouteChange(true);
+      
+      // 🎮 Check for FTUE popups when returning from game
+      _checkFTUEPopups();
     }
   }
 
@@ -147,6 +156,9 @@ class _HomepageState extends State<Homepage>
     try {
       await DailyStreakIntegration.initialize();
       
+      // Set up duplicate jet popup callback
+      DailyStreakManager.setDuplicateJetCallback(_showDuplicateJetPopup);
+      
       // Show popup after a short delay if needed
       if (mounted && DailyStreakIntegration.shouldShowPopup()) {
         await Future.delayed(const Duration(milliseconds: 2000));
@@ -164,6 +176,31 @@ class _HomepageState extends State<Homepage>
       }
     } catch (e) {
       debugPrint('Failed to initialize daily streak: $e');
+    }
+  }
+
+  /// Initialize FTUE system for new players
+  Future<void> _initializeFTUE() async {
+    try {
+      await FTUEIntegration.initialize();
+    } catch (e) {
+      debugPrint('Failed to initialize FTUE: $e');
+    }
+  }
+
+  /// Check for FTUE popups when returning from game
+  Future<void> _checkFTUEPopups() async {
+    if (!mounted) return;
+    
+    try {
+      // Small delay to ensure navigation is complete
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (mounted && FTUEIntegration.shouldShowPopup()) {
+        await FTUEIntegration.showFTUEPopup(context);
+      }
+    } catch (e) {
+      debugPrint('Error checking FTUE popups: $e');
     }
   }
 
@@ -589,17 +626,25 @@ class _HomepageState extends State<Homepage>
               Navigator.of(dialogContext).pop();
             }
           },
-          onRestore: () async {
-            // Handle restore and close
-            if (dialogContext.mounted && Navigator.canPop(dialogContext)) {
-              Navigator.of(dialogContext).pop();
-            }
-          },
         ),
       );
     } catch (e) {
       debugPrint('Error showing daily streak popup: $e');
     }
+  }
+
+  /// Show beautiful duplicate jet popup
+  void _showDuplicateJetPopup(String jetSkinId, int coinsAwarded) {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => DuplicateJetPopup(
+        jetSkinId: jetSkinId,
+        coinsAwarded: coinsAwarded,
+      ),
+    );
   }
 
   void _navigateToGame() async {

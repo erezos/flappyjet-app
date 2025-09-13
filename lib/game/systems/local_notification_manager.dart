@@ -195,18 +195,77 @@ class LocalNotificationManager {
     }
   }
 
-  /// Get local timezone name
+  /// Get local timezone name with improved detection
   Future<String> _getLocalTimeZone() async {
-    // Default to UTC if we can't determine local timezone
     try {
-      final timeZoneName = DateTime.now().timeZoneName;
-      // Handle problematic timezone names
-      if (timeZoneName == 'IDT' || timeZoneName.isEmpty) {
-        return 'UTC';
+      // Try multiple methods to get the most accurate timezone
+      final now = DateTime.now();
+      String timeZoneName = now.timeZoneName;
+      
+      // Enhanced timezone mapping for problematic zones
+      final timezoneMap = {
+        'IDT': 'Asia/Jerusalem',    // Israel Daylight Time
+        'IST': 'Asia/Jerusalem',    // Israel Standard Time  
+        'PST': 'America/Los_Angeles',
+        'PDT': 'America/Los_Angeles',
+        'EST': 'America/New_York',
+        'EDT': 'America/New_York',
+        'CST': 'America/Chicago',
+        'CDT': 'America/Chicago',
+        'MST': 'America/Denver',
+        'MDT': 'America/Denver',
+        'GMT': 'Europe/London',
+        'BST': 'Europe/London',
+        'CET': 'Europe/Paris',
+        'CEST': 'Europe/Paris',
+      };
+      
+      // Check if we have a mapping for this timezone
+      if (timezoneMap.containsKey(timeZoneName)) {
+        final mappedZone = timezoneMap[timeZoneName]!;
+        Logger.i('🔔 Mapped timezone $timeZoneName → $mappedZone');
+        return mappedZone;
       }
-      return timeZoneName;
+      
+      // Validate timezone name exists in tz database
+      try {
+        tz.getLocation(timeZoneName);
+        Logger.i('🔔 Using detected timezone: $timeZoneName');
+        return timeZoneName;
+      } catch (e) {
+        Logger.w('🔔 Timezone $timeZoneName not found in database: $e');
+        
+        // Fallback: Try to determine timezone from offset
+        final offset = now.timeZoneOffset;
+        final offsetHours = offset.inHours;
+        
+        // Common timezone mappings by UTC offset
+        final offsetMap = {
+          -8: 'America/Los_Angeles',  // PST/PDT
+          -7: 'America/Denver',       // MST/MDT
+          -6: 'America/Chicago',      // CST/CDT
+          -5: 'America/New_York',     // EST/EDT
+          0: 'Europe/London',         // GMT/BST
+          1: 'Europe/Paris',          // CET/CEST
+          2: 'Asia/Jerusalem',        // IST/IDT
+          3: 'Europe/Moscow',         // MSK
+          8: 'Asia/Shanghai',         // CST
+          9: 'Asia/Tokyo',            // JST
+        };
+        
+        if (offsetMap.containsKey(offsetHours)) {
+          final fallbackZone = offsetMap[offsetHours]!;
+          Logger.i('🔔 Using offset-based timezone: $fallbackZone (UTC${offset.isNegative ? '' : '+'}${offsetHours})');
+          return fallbackZone;
+        }
+      }
+      
+      // Final fallback to UTC
+      Logger.w('🔔 Could not determine timezone, using UTC');
+      return 'UTC';
+      
     } catch (e) {
-      Logger.w('🔔 Timezone detection error: $e, using UTC');
+      Logger.e('🔔 Critical timezone detection error: $e, using UTC');
       return 'UTC';
     }
   }
@@ -287,7 +346,7 @@ class LocalNotificationManager {
         'Your hearts are full! Ready for another epic flight? 🚀✈️',
         scheduledTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Precise timing for hearts refill
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'hearts_refilled',
@@ -365,7 +424,7 @@ class LocalNotificationManager {
         message,
         nextReminderTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // Flexible timing for engagement
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'engagement_reminder',
@@ -484,7 +543,7 @@ class LocalNotificationManager {
         'Your streak bonus is waiting! Claim it before it\'s gone! 🔥',
         adjustedTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Precise timing for streak preservation
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'daily_streak_reminder',
@@ -526,6 +585,155 @@ class LocalNotificationManager {
   Future<void> cancelAllNotifications() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
     debugPrint('🔔 All notifications cancelled');
+  }
+
+  /// Get notification delivery status and debugging info
+  Future<Map<String, dynamic>> getNotificationStatus() async {
+    try {
+      final pendingNotifications = await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Get scheduled times
+      final heartsScheduledTime = prefs.getInt('hearts_refilled_scheduled_time') ?? 0;
+      final engagementScheduledTime = prefs.getInt(_lastEngagementNotificationKey) ?? 0;
+      final streakScheduledTime = prefs.getInt(_lastStreakReminderKey) ?? 0;
+      
+      final status = {
+        'permissions_granted': _permissionsGranted,
+        'is_initialized': _isInitialized,
+        'platform': Platform.isAndroid ? 'android' : 'ios',
+        'timezone': tz.local.name,
+        'current_time': DateTime.now().toIso8601String(),
+        'pending_notifications': {
+          'total_count': pendingNotifications.length,
+          'notifications': pendingNotifications.map((n) => {
+            'id': n.id,
+            'title': n.title,
+            'body': n.body,
+            'payload': n.payload,
+          }).toList(),
+        },
+        'scheduled_times': {
+          'hearts_refilled': heartsScheduledTime > 0 
+              ? DateTime.fromMillisecondsSinceEpoch(heartsScheduledTime).toIso8601String()
+              : 'not_scheduled',
+          'engagement_reminder': engagementScheduledTime > 0
+              ? DateTime.fromMillisecondsSinceEpoch(engagementScheduledTime).toIso8601String()
+              : 'not_scheduled',
+          'daily_streak_reminder': streakScheduledTime > 0
+              ? DateTime.fromMillisecondsSinceEpoch(streakScheduledTime).toIso8601String()
+              : 'not_scheduled',
+        },
+        'notification_channels': await _getNotificationChannelStatus(),
+      };
+      
+      final pendingData = status['pending_notifications'] as Map<String, dynamic>?;
+      final pendingCount = pendingData?['total_count'] ?? 0;
+      Logger.i('🔔 Notification status retrieved: $pendingCount pending');
+      return status;
+      
+    } catch (e) {
+      Logger.e('🔔 Error getting notification status: $e');
+      return {
+        'error': e.toString(),
+        'permissions_granted': _permissionsGranted,
+        'is_initialized': _isInitialized,
+      };
+    }
+  }
+  
+  /// Get Android notification channel status
+  Future<Map<String, dynamic>> _getNotificationChannelStatus() async {
+    if (!Platform.isAndroid) return {'platform': 'ios'};
+    
+    try {
+      final androidImplementation = _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidImplementation != null) {
+        final notificationsEnabled = await androidImplementation.areNotificationsEnabled();
+        
+        return {
+          'platform': 'android',
+          'notifications_enabled': notificationsEnabled,
+          'channels': {
+            'hearts_channel': _heartsChannelId,
+            'engagement_channel': _engagementChannelId,
+            'streak_channel': _streakChannelId,
+          }
+        };
+      }
+    } catch (e) {
+      Logger.w('🔔 Error checking Android notification channels: $e');
+    }
+    
+    return {'platform': 'android', 'error': 'could_not_check_channels'};
+  }
+  
+  /// Validate notification scheduling (debug helper)
+  Future<bool> validateNotificationScheduling() async {
+    try {
+      Logger.i('🔔 Starting notification validation...');
+      
+      // Check permissions
+      if (!_permissionsGranted) {
+        Logger.w('🔔 Validation failed: No permissions granted');
+        return false;
+      }
+      
+      // Check initialization
+      if (!_isInitialized) {
+        Logger.w('🔔 Validation failed: Not initialized');
+        return false;
+      }
+      
+      // Check timezone
+      final timezone = tz.local.name;
+      Logger.i('🔔 Current timezone: $timezone');
+      
+      // Test scheduling a notification 10 seconds from now
+      final testTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+      
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'test_channel',
+        'Test Notifications',
+        channelDescription: 'Test notification validation',
+        importance: Importance.low,
+        priority: Priority.low,
+      );
+      
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
+      
+      const NotificationDetails platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+      
+      await _flutterLocalNotificationsPlugin.zonedSchedule(
+        999, // Test ID
+        '🔔 Test Notification',
+        'This is a test notification to validate scheduling',
+        testTime,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'test_notification',
+      );
+      
+      Logger.i('🔔 Test notification scheduled for: $testTime');
+      
+      // Cancel the test notification after 5 seconds
+      Future.delayed(const Duration(seconds: 5), () async {
+        await _flutterLocalNotificationsPlugin.cancel(999);
+        Logger.i('🔔 Test notification cancelled');
+      });
+      
+      return true;
+      
+    } catch (e) {
+      Logger.e('🔔 Notification validation failed: $e');
+      return false;
+    }
   }
 
   /// Cancel specific notification type

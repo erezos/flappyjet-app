@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'inventory_manager.dart';
 import 'local_notification_manager.dart';
@@ -149,8 +150,7 @@ class DailyStreakReward {
 enum DailyStreakState {
   available,    // Can claim today's reward
   claimed,      // Already claimed today
-  broken,       // Streak was broken, can restore with gems
-  expired,      // Grace period expired
+  expired,      // Streak was broken - must start over
 }
 
 /// Daily Streak Manager with smart local/cloud sync
@@ -210,10 +210,8 @@ class DailyStreakManager extends ChangeNotifier {
       return _claimedToday ? DailyStreakState.claimed : DailyStreakState.available;
     } else if (daysSinceLastClaim == 1) {
       return DailyStreakState.available;
-    } else if (daysSinceLastClaim == 2) {
-      // Grace period - can restore streak with gems
-      return DailyStreakState.broken;
     } else {
+      // Streak broken - must start over (no grace period)
       return DailyStreakState.expired;
     }
   }
@@ -221,8 +219,7 @@ class DailyStreakManager extends ChangeNotifier {
   /// Check if user should see the daily streak popup
   bool get shouldShowPopup {
     final state = currentState;
-    return state == DailyStreakState.available || 
-           state == DailyStreakState.broken;
+    return state == DailyStreakState.available;
   }
   
   /// Get appropriate rewards based on player's skin collection
@@ -283,21 +280,24 @@ class DailyStreakManager extends ChangeNotifier {
     final daysSinceLastClaim = today.difference(lastClaim).inDays;
     
     if (daysSinceLastClaim >= 1) {
-      // Reset daily claim status
+      // Reset daily claim status - CRITICAL FIX
       _claimedToday = false;
+      safePrint('📅 Daily reset: _claimedToday set to false (days since last claim: $daysSinceLastClaim)');
       await _persistData();
       
       // Check if streak should be broken
-      if (daysSinceLastClaim > 2) {
-        // Streak expired - reset to 0
+      if (daysSinceLastClaim > 1) {
+        // Streak broken - reset to 0 (no grace period)
         await _resetStreak();
-        safePrint('📅 Daily streak expired and reset');
+        safePrint('📅 Daily streak broken and reset (missed ${daysSinceLastClaim} days)');
       }
     }
   }
   
   /// Claim today's reward
   Future<bool> claimTodayReward() async {
+    safePrint('🎯 Daily Streak Claim Debug: streak=$_currentStreak, claimedToday=$_claimedToday, state=${currentState.name}');
+    
     if (currentState != DailyStreakState.available) {
       safePrint('❌ Cannot claim reward - state: ${currentState.name}');
       return false;
@@ -338,32 +338,6 @@ class DailyStreakManager extends ChangeNotifier {
     return true;
   }
   
-  /// Restore broken streak with gems
-  Future<bool> restoreStreakWithGems() async {
-    const gemCost = 10; // Cost to restore streak
-    
-    if (currentState != DailyStreakState.broken) {
-      return false;
-    }
-    
-    if (_inventory.gems < gemCost) {
-      return false;
-    }
-    
-    // Spend gems
-    final success = await _inventory.spendGems(gemCost);
-    if (!success) {
-      return false;
-    }
-    
-    // Reset claim status so user can claim today
-    _claimedToday = false;
-    await _persistData();
-    notifyListeners();
-    
-    safePrint('💎 Streak restored with $gemCost gems');
-    return true;
-  }
   
   /// Apply a reward to the player's inventory
   Future<bool> _applyReward(DailyStreakReward reward) async {
@@ -387,8 +361,20 @@ class DailyStreakManager extends ChangeNotifier {
           
         case DailyStreakRewardType.jetSkin:
           if (reward.jetSkinId != null) {
-            await _inventory.unlockSkin(reward.jetSkinId!);
-            safePrint('🚁 Unlocked jet skin: ${reward.jetSkinId}');
+            // Check if player already owns this jet
+            if (_inventory.isOwned(reward.jetSkinId!)) {
+              // Player already has this jet - give coins instead
+              const duplicateJetCoins = 400; // Flash Strike equivalent value
+              await _inventory.addCoinsWithAnimation(duplicateJetCoins);
+              safePrint('🚁 Duplicate jet detected: ${reward.jetSkinId} → Awarded $duplicateJetCoins coins instead');
+              
+              // Show beautiful duplicate jet popup
+              await _showDuplicateJetPopup(reward.jetSkinId!, duplicateJetCoins);
+            } else {
+              // Normal jet unlock
+              await _inventory.unlockSkin(reward.jetSkinId!);
+              safePrint('🚁 Unlocked jet skin: ${reward.jetSkinId}');
+            }
           }
           break;
           
@@ -403,6 +389,23 @@ class DailyStreakManager extends ChangeNotifier {
     }
   }
   
+  /// Callback for showing duplicate jet popup (set by UI layer)
+  static Function(String jetSkinId, int coinsAwarded)? _duplicateJetCallback;
+  
+  /// Set the duplicate jet popup callback
+  static void setDuplicateJetCallback(Function(String, int) callback) {
+    _duplicateJetCallback = callback;
+  }
+  
+  /// Show beautiful duplicate jet popup
+  Future<void> _showDuplicateJetPopup(String jetSkinId, int coinsAwarded) async {
+    if (_duplicateJetCallback != null) {
+      _duplicateJetCallback!(jetSkinId, coinsAwarded);
+    } else {
+      safePrint('⚠️ Duplicate jet popup callback not set - coins awarded: $coinsAwarded');
+    }
+  }
+
   /// Open mystery box and give random reward
   Future<void> _openMysteryBox() async {
     // Random rewards from mystery box

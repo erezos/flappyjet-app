@@ -1,6 +1,7 @@
 /// 👤 Profile Screen - Clean, modular, and responsive design
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../game/systems/player_identity_manager.dart';
 import '../../game/systems/profile_manager.dart';
@@ -12,6 +13,7 @@ import '../widgets/profile/profile_component_system.dart';
 import '../../game/systems/audio_settings_manager.dart';
 import '../widgets/gem_3d_icon.dart';
 import '../widgets/settings_toggle_buttons.dart';
+import '../widgets/notification_analytics_dashboard.dart';
 import 'store_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -274,9 +276,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
-                      child: SettingsToggleButtonsRow(
-                        buttonSize: isVerySmallScreen ? 16.0 : isSmallScreen ? 18.0 : 20.0, // Much smaller as requested
-                        spacing: isVerySmallScreen ? 12.0 : isSmallScreen ? 14.0 : 16.0, // Smaller spacing too
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Main settings toggles
+                          SettingsToggleButtonsRow(
+                            buttonSize: isVerySmallScreen ? 16.0 : isSmallScreen ? 18.0 : 20.0,
+                            spacing: isVerySmallScreen ? 12.0 : isSmallScreen ? 14.0 : 16.0,
+                          ),
+                          
+                          // Debug notification analytics (only in debug mode)
+                          if (kDebugMode) ...[
+                            SizedBox(height: isVerySmallScreen ? 8 : 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const NotificationAnalyticsDashboard(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.analytics, size: 16),
+                                label: const Text(
+                                  'Notification Analytics',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.withOpacity(0.2),
+                                  foregroundColor: Colors.blue,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  minimumSize: const Size(0, 32),
+                                ),
+                              ),
+                            ),
+                          ],
+                          
+                        ],
                       ),
                     ),
                   );
@@ -596,6 +634,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     return result ?? false;
   }
+
 
   /// Show insufficient gems dialog with "Get Gems" button
   Future<bool> _showInsufficientGemsDialog(JetSkin skin, int gemPrice) async {

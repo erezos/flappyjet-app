@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lives_manager.dart';
 import 'player_identity_manager.dart';
+import 'ftue_manager.dart';
+import 'daily_streak_manager.dart';
 import '../../core/debug_logger.dart';
 
 class DevResetManager {
@@ -65,6 +67,19 @@ class DevResetManager {
     // Clear any other game data
     await prefs.remove('first_time_setup_complete');
     
+    // Clear FTUE data (First Time User Experience)
+    await prefs.remove('ftue_is_first_session');
+    await prefs.remove('ftue_games_played');
+    await prefs.remove('ftue_popup1_shown');
+    await prefs.remove('ftue_popup2_shown');
+    
+    // Clear daily streak data
+    await prefs.remove('daily_streak_current');
+    await prefs.remove('daily_streak_last_claim');
+    await prefs.remove('daily_streak_claimed_today');
+    await prefs.remove('daily_streak_start_date');
+    await prefs.remove('daily_streak_total_completed');
+    
     // Clear ALL keys that might contain player data (comprehensive cleanup)
     final allKeys = prefs.getKeys();
     for (final key in allKeys) {
@@ -90,7 +105,16 @@ class DevResetManager {
       final livesManager = LivesManager();
       await livesManager.forceResetToNewPlayer();
       
+      // Reset FTUE Manager to new player state
+      final ftueManager = FTUEManager();
+      await ftueManager.resetFTUE();
+      
+      // Reset Daily Streak Manager
+      final dailyStreakManager = DailyStreakManager();
+      await dailyStreakManager.resetAllData();
+      
       safePrint('🔧 ✅ Reset complete - All systems reset to new player state');
+      safePrint('🔧 🎮 FTUE will trigger after first two games');
       safePrint('🔧 New player will have: 3 hearts, 500 coins, 25 gems, ${playerIdentity.playerName}');
     } catch (e) {
       safePrint('🔧 ⚠️ Error during manager reset: $e');

@@ -10,14 +10,12 @@ class DailyStreakPopupStable extends StatefulWidget {
   final DailyStreakManager streakManager;
   final VoidCallback? onClaim;
   final VoidCallback? onClose;
-  final VoidCallback? onRestore;
 
   const DailyStreakPopupStable({
     super.key,
     required this.streakManager,
     this.onClaim,
     this.onClose,
-    this.onRestore,
   });
 
   @override
@@ -628,7 +626,20 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
   }
   
   Widget _buildCollectButton() {
-    if (widget.streakManager.currentState != DailyStreakState.available) {
+    final state = widget.streakManager.currentState;
+    
+    // Handle claimed state - show claimed button
+    if (state == DailyStreakState.claimed) {
+      return _buildClaimedButton();
+    }
+    
+    // Handle expired state - hide button (streak broken, no popup should show)
+    if (state == DailyStreakState.expired) {
+      return const SizedBox.shrink();
+    }
+    
+    // Handle available state - show collect button
+    if (state != DailyStreakState.available) {
       return const SizedBox.shrink();
     }
     
@@ -693,8 +704,41 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                     });
                     
                     if (success) {
-                      // Let the parent handle the claim and navigation
+                      // Show success feedback immediately
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Text('🎉 Claimed: ${_currentReward.displayText}'),
+                            ],
+                          ),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                      
+                      // Wait a moment then close
+                      await Future.delayed(const Duration(milliseconds: 1500));
+                      
+                      // Let the parent handle navigation (but don't claim again)
                       widget.onClaim?.call();
+                    } else {
+                      // Show error feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.error, color: Colors.white),
+                              SizedBox(width: 8),
+                              Text('Failed to claim reward. Please try again.'),
+                            ],
+                          ),
+                          backgroundColor: Colors.red,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
                     }
                   }
                 },
@@ -750,6 +794,64 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
     );
   }
   
+
+  /// Build claimed button (already collected)
+  Widget _buildClaimedButton() {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF27AE60),
+            Color(0xFF2ECC71),
+            Color(0xFF229954),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF27AE60).withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: const Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'CLAIMED',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCloseButton(BuildContext context) {
     return Positioned(
       top: -10,
