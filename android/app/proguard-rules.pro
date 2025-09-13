@@ -57,3 +57,18 @@
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
+
+# Google Play Core - Fix for R8 missing classes
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
+
+# Flutter deferred components
+-keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+-keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
+
+# Google Play Services
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+
+# Additional R8 compatibility rules
+-dontwarn java.lang.invoke.StringConcatFactory
