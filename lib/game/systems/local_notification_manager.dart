@@ -346,7 +346,7 @@ class LocalNotificationManager {
         'Your hearts are full! Ready for another epic flight? 🚀✈️',
         scheduledTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Precise timing for hearts refill
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // Game-appropriate flexible timing
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'hearts_refilled',
@@ -543,7 +543,7 @@ class LocalNotificationManager {
         'Your streak bonus is waiting! Claim it before it\'s gone! 🔥',
         adjustedTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Precise timing for streak preservation
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // Game-appropriate flexible timing
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'daily_streak_reminder',
@@ -715,7 +715,7 @@ class LocalNotificationManager {
         'This is a test notification to validate scheduling',
         testTime,
         platformDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // Game-appropriate flexible timing
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'test_notification',
       );
