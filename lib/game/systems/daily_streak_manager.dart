@@ -187,7 +187,7 @@ class DailyStreakManager extends ChangeNotifier {
   int get currentDayIndex => (_currentStreak - 1).clamp(0, 6);
   
   /// Get today's reward index (0-6)
-  int get todayRewardIndex => _currentStreak.clamp(1, 7) - 1;
+  int get todayRewardIndex => _currentStreak.clamp(0, 6);
   
   /// Get current streak state
   DailyStreakState get currentState {
@@ -237,7 +237,18 @@ class DailyStreakManager extends ChangeNotifier {
   /// Get today's reward
   DailyStreakReward get todayReward {
     final rewards = currentRewards;
-    return rewards[todayRewardIndex];
+    final index = todayRewardIndex;
+    
+    // Debug logging to prevent similar bugs
+    if (kDebugMode) {
+      safePrint('🎯 Daily Streak Reward Debug:');
+      safePrint('  currentStreak: $_currentStreak');
+      safePrint('  todayRewardIndex: $index');
+      safePrint('  reward: ${rewards[index].description}');
+      safePrint('  displayText: ${rewards[index].displayText}');
+    }
+    
+    return rewards[index];
   }
   
   /// Initialize the daily streak manager
