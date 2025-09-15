@@ -156,7 +156,7 @@ class _PersonalStatsScreenState extends State<PersonalStatsScreen> {
             borderRadius: BorderRadius.circular(12),
             color: Color.fromRGBO(255, 255, 255, 0.1),
             border: Border.all(
-              color: Color.fromRGBO(color.red, color.green, color.blue, 0.3),
+              color: Color.fromRGBO((color.r * 255.0).round() & 0xff, (color.g * 255.0).round() & 0xff, (color.b * 255.0).round() & 0xff, 0.3),
               width: 1,
             ),
           ),
@@ -168,9 +168,9 @@ class _PersonalStatsScreenState extends State<PersonalStatsScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
                   color: Color.fromRGBO(
-                    color.red,
-                    color.green,
-                    color.blue,
+                    (color.r * 255.0).round() & 0xff,
+                    (color.g * 255.0).round() & 0xff,
+                    (color.b * 255.0).round() & 0xff,
                     0.2,
                   ),
                 ),
@@ -308,9 +308,9 @@ class _PersonalStatsScreenState extends State<PersonalStatsScreen> {
             color: Color.fromRGBO(255, 255, 255, 0.1),
             border: Border.all(
               color: Color.fromRGBO(
-                rankColor.red,
-                rankColor.green,
-                rankColor.blue,
+                (rankColor.r * 255.0).round() & 0xff,
+                (rankColor.g * 255.0).round() & 0xff,
+                (rankColor.b * 255.0).round() & 0xff,
                 0.3,
               ),
               width: 1,
@@ -325,9 +325,9 @@ class _PersonalStatsScreenState extends State<PersonalStatsScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   color: Color.fromRGBO(
-                    rankColor.red,
-                    rankColor.green,
-                    rankColor.blue,
+                    (rankColor.r * 255.0).round() & 0xff,
+                    (rankColor.g * 255.0).round() & 0xff,
+                    (rankColor.b * 255.0).round() & 0xff,
                     0.2,
                   ),
                 ),

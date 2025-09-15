@@ -12,6 +12,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../core/debug_logger.dart';
 
 class ResponsiveBannerComponent extends StatefulWidget {
   final TextEditingController controller;
@@ -88,7 +89,7 @@ class _ResponsiveBannerComponentState extends State<ResponsiveBannerComponent> {
         final bannerHeight = widget.height ?? (isTablet ? 180.0 : 140.0);
 
         // Debug output to see actual values
-        print(
+        safePrint(
           '🎯 ResponsiveBanner: widget.width=${widget.width}, calculated bannerWidth=$bannerWidth, availableWidth=${constraints.maxWidth}, screenWidth=${screenSize.width}',
         );
 

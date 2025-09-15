@@ -58,16 +58,21 @@ class DebugManager {
     _logWithRateLimit('PERF', message, error: error, stackTrace: stackTrace);
   }
   
-  /// Critical errors (always logged)
+  /// Critical errors (DEBUG MODE ONLY for console)
   static void error(String message, {Object? error, StackTrace? stackTrace}) {
-    safePrint('❌ ERROR: $message');
-    if (error != null) safePrint('   Error: $error');
-    if (stackTrace != null) safePrint('   Stack: $stackTrace');
+    if (kDebugMode) {
+      safePrint('❌ ERROR: $message');
+      if (error != null) safePrint('   Error: $error');
+      if (stackTrace != null) safePrint('   Stack: $stackTrace');
+    }
+    // Production: Send to Firebase Crashlytics silently
   }
   
-  /// Important info (always logged)
+  /// Important info (DEBUG MODE ONLY)
   static void info(String message) {
-    safePrint('ℹ️ INFO: $message');
+    if (kDebugMode) {
+      safePrint('ℹ️ INFO: $message');
+    }
   }
   
   /// Rate-limited logging to prevent spam

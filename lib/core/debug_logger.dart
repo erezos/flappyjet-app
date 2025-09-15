@@ -26,25 +26,31 @@ class Logger {
     // Production: This method does nothing (zero overhead)
   }
 
-  /// ℹ️ Info logging - kept in production for analytics
+  /// ℹ️ Info logging - DEBUG MODE ONLY for performance
   static void i(String message, {Map<String, dynamic>? data}) {
-    _logWithPrefix('ℹ️ INFO', message, data);
-    // TODO: Send to Firebase Analytics in production
-  }
-
-  /// ⚠️ Warning logging - kept for issue tracking
-  static void w(String message, {Map<String, dynamic>? data, Object? error}) {
-    _logWithPrefix('⚠️ WARN', message, data, error: error);
-    // TODO: Send to Firebase Analytics in production
-  }
-
-  /// ❌ Error logging - critical for crash reporting
-  static void e(String message, {Map<String, dynamic>? data, Object? error, StackTrace? stackTrace}) {
-    _logWithPrefix('❌ ERROR', message, data, error: error);
-    if (stackTrace != null) {
-      safePrint('Stack trace: $stackTrace');
+    if (kDebugMode) {
+      _logWithPrefix('ℹ️ INFO', message, data);
     }
-    // TODO: Send to Firebase Crashlytics
+    // Production: Send to Firebase Analytics silently (no console logs)
+  }
+
+  /// ⚠️ Warning logging - DEBUG MODE ONLY for performance
+  static void w(String message, {Map<String, dynamic>? data, Object? error}) {
+    if (kDebugMode) {
+      _logWithPrefix('⚠️ WARN', message, data, error: error);
+    }
+    // Production: Send to Firebase Analytics silently (no console logs)
+  }
+
+  /// ❌ Error logging - ERRORS ONLY (no console spam in production)
+  static void e(String message, {Map<String, dynamic>? data, Object? error, StackTrace? stackTrace}) {
+    if (kDebugMode) {
+      _logWithPrefix('❌ ERROR', message, data, error: error);
+      if (stackTrace != null) {
+        safePrint('Stack trace: $stackTrace');
+      }
+    }
+    // Production: Send to Firebase Crashlytics silently
   }
 
   /// 🚨 Critical error - always logged, triggers immediate action
@@ -149,32 +155,36 @@ void safePrintWithData(String message, {Map<String, dynamic>? data, Object? erro
   // Production: This does nothing (zero overhead)
 }
 
-/// 🚀 SAFE ERROR LOGGING - Always works (for crash reporting)
+/// 🚀 SAFE ERROR LOGGING - DEBUG MODE ONLY
 void safeError(String message, {Object? error, StackTrace? stackTrace}) {
-  debugPrint('❌ ERROR: $message${error != null ? ' | Error: $error' : ''}');
-  if (stackTrace != null) {
-    debugPrint('Stack trace: $stackTrace');
+  if (kDebugMode) {
+    debugPrint('❌ ERROR: $message${error != null ? ' | Error: $error' : ''}');
+    if (stackTrace != null) {
+      debugPrint('Stack trace: $stackTrace');
+    }
   }
-  // TODO: Send to Firebase Crashlytics in production
+  // Production: Send to Firebase Crashlytics silently
 }
 
-/// 🚀 SAFE WARNING LOGGING - Always works
+/// 🚀 SAFE WARNING LOGGING - DEBUG MODE ONLY
 void safeWarn(String message, {Map<String, dynamic>? data, Object? error}) {
-  debugPrint('⚠️ WARN: $message${error != null ? ' | Error: $error' : ''}');
-  if (data != null && data.isNotEmpty) {
-    debugPrint('Data: ${data.toString()}');
+  if (kDebugMode) {
+    debugPrint('⚠️ WARN: $message${error != null ? ' | Error: $error' : ''}');
+    if (data != null && data.isNotEmpty) {
+      debugPrint('Data: ${data.toString()}');
+    }
   }
-  // TODO: Send to Firebase Analytics in production
+  // Production: Send to Firebase Analytics silently
 }
 
-/// 🚀 SAFE CRITICAL ERROR LOGGING - Always works
+/// 🚀 SAFE CRITICAL ERROR LOGGING - CRITICAL ONLY (minimal production logs)
 void safeCritical(String message, {Map<String, dynamic>? data, Object? error, StackTrace? stackTrace}) {
-  debugPrint('🚨 CRITICAL: $message${error != null ? ' | Error: $error' : ''}');
-  if (stackTrace != null) {
-    debugPrint('Stack trace: $stackTrace');
+  // Only log critical errors in production (minimal)
+  debugPrint('🚨 CRITICAL: $message');
+  if (kDebugMode) {
+    if (error != null) debugPrint('Error: $error');
+    if (stackTrace != null) debugPrint('Stack trace: $stackTrace');
+    if (data != null && data.isNotEmpty) debugPrint('Data: ${data.toString()}');
   }
-  if (data != null && data.isNotEmpty) {
-    debugPrint('Data: ${data.toString()}');
-  }
-  // TODO: Send to Firebase Crashlytics + immediate reporting
+  // Production: Send to Firebase Crashlytics + immediate reporting
 }

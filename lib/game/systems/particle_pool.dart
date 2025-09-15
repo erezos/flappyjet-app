@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'package:flame/components.dart';
+import '../../core/debug_logger.dart';
 
 /// Particle types for hardware-accelerated rendering
 enum ParticleType { circle, star, confetti }
@@ -51,7 +52,7 @@ class ParticleInstance {
     if (age >= lifetime) {
       isAlive = false;
       // Debug output for testing
-      print('Particle $id died: age=$age, lifetime=$lifetime');
+      safePrint('Particle $id died: age=$age, lifetime=$lifetime');
     }
   }
 

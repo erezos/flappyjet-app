@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'particle_pool.dart';
+import '../../core/debug_logger.dart';
 
 /// High-performance particle system using hardware-accelerated sprites
 class HardwareParticleSystem extends Component {
@@ -224,7 +225,7 @@ class HardwareParticleSystem extends Component {
 
     // Debug output for testing
     if (beforeCount != afterCount) {
-      print('Particle cleanup: $beforeCount -> $afterCount');
+      safePrint('Particle cleanup: $beforeCount -> $afterCount');
     }
   }
 

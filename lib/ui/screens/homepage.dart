@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async' as async;
+import '../../core/debug_logger.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
@@ -175,7 +176,7 @@ class _HomepageState extends State<Homepage>
         }
       }
     } catch (e) {
-      debugPrint('Failed to initialize daily streak: $e');
+      safePrint('Failed to initialize daily streak: $e');
     }
   }
 
@@ -184,7 +185,7 @@ class _HomepageState extends State<Homepage>
     try {
       await FTUEIntegration.initialize();
     } catch (e) {
-      debugPrint('Failed to initialize FTUE: $e');
+      safePrint('Failed to initialize FTUE: $e');
     }
   }
 
@@ -200,7 +201,7 @@ class _HomepageState extends State<Homepage>
         await FTUEIntegration.showFTUEPopup(context);
       }
     } catch (e) {
-      debugPrint('Error checking FTUE popups: $e');
+      safePrint('Error checking FTUE popups: $e');
     }
   }
 
@@ -629,7 +630,7 @@ class _HomepageState extends State<Homepage>
         ),
       );
     } catch (e) {
-      debugPrint('Error showing daily streak popup: $e');
+      safePrint('Error showing daily streak popup: $e');
     }
   }
 

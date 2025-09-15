@@ -20,7 +20,7 @@ class GameEventsTracker extends ChangeNotifier {
   ServerManager? _serverManager;
 
   bool _isInitialized = false;
-  int _currentGameStartTime = 0;
+  // int _currentGameStartTime = 0; // Unused field - removed for production
   int _consecutiveGamesAboveThreshold = 0;
   int _lastGameScore = 0;
   final List<int> _recentScores = [];
@@ -53,7 +53,7 @@ class GameEventsTracker extends ChangeNotifier {
 
   /// Track game start event
   Future<void> onGameStart() async {
-    _currentGameStartTime = DateTime.now().millisecondsSinceEpoch;
+    // Game start time tracking removed for production optimization
 
     // Analytics tracking is now handled by FirebaseAnalyticsManager directly
     // No need for server-side event reporting

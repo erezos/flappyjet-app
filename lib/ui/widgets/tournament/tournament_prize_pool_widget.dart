@@ -257,28 +257,23 @@ class _TournamentPrizePoolWidgetState extends State<TournamentPrizePoolWidget>
     required double percentage,
   }) {
     Color cardColor;
-    IconData medalIcon;
     String rankEmoji;
 
     switch (rank) {
       case 1:
         cardColor = const Color(0xFFFFD700); // Gold
-        medalIcon = Icons.looks_one;
         rankEmoji = '🥇';
         break;
       case 2:
         cardColor = const Color(0xFFC0C0C0); // Silver
-        medalIcon = Icons.looks_two;
         rankEmoji = '🥈';
         break;
       case 3:
         cardColor = const Color(0xFFCD7F32); // Bronze
-        medalIcon = Icons.looks_3;
         rankEmoji = '🥉';
         break;
       default:
         cardColor = const Color(0xFF95E1D3);
-        medalIcon = Icons.emoji_events;
         rankEmoji = '🏅';
     }
 
@@ -292,9 +287,9 @@ class _TournamentPrizePoolWidgetState extends State<TournamentPrizePoolWidget>
                   color: Color.fromRGBO(255, 255, 255, 0.2),
                   border: Border.all(
                     color: Color.fromRGBO(
-                      cardColor.red,
-                      cardColor.green,
-                      cardColor.blue,
+                      (cardColor.r * 255.0).round() & 0xff,
+                      (cardColor.g * 255.0).round() & 0xff,
+                      (cardColor.b * 255.0).round() & 0xff,
                       0.5,
                     ),
                     width: 2,

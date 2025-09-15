@@ -2,6 +2,24 @@
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 -dontwarn com.dexterous.flutterlocalnotifications.**
 
+# CRITICAL: Fix TypeToken generic signature preservation for notifications
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
+
+# Gson TypeToken fix for flutter_local_notifications
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+-keepclassmembers,allowobfuscation class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Generic signature preservation for notification serialization
+-keepattributes Signature
+-keep class com.google.gson.** { *; }
+-keep class sun.misc.Unsafe { *; }
+
 # AndroidX Work Manager - Required for scheduled notifications
 -keep class androidx.work.** { *; }
 -keep class * extends androidx.work.Worker

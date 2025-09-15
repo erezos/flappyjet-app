@@ -78,51 +78,5 @@ class ProfileNicknameBanner extends StatelessWidget {
     );
   }
 
-  /// Fallback banner design if image fails to load
-  Widget _buildFallbackBanner(
-    BuildContext context,
-    ProfileResponsiveConfig config,
-  ) {
-    return Container(
-      padding: config.getResponsivePadding(
-        const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: 0.25),
-            Colors.white.withValues(alpha: 0.15),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              textAlign: TextAlign.center,
-              maxLength: 16,
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: config.getResponsiveFontSize(20),
-              ),
-              decoration: const InputDecoration(
-                counterText: '',
-                border: InputBorder.none,
-                hintText: 'Enter your name',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Removed unused _buildFallbackBanner method
 }

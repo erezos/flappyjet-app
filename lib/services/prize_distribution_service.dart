@@ -139,7 +139,7 @@ class PrizeDistributionService extends ChangeNotifier {
 
   /// Show notification when tournament is ending soon
   void _showTournamentEndingSoonNotification(Tournament tournament) {
-    final notification = TournamentEndingNotification(
+    TournamentEndingNotification(
       tournamentId: tournament.id,
       tournamentName: tournament.name,
       timeRemaining: tournament.timeRemaining!,

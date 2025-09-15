@@ -28,7 +28,6 @@ class DailyStreakTestWidget extends StatelessWidget {
               listenable: DailyStreakIntegration.streakManager,
               builder: (context, child) {
                 final manager = DailyStreakIntegration.streakManager;
-                final stats = DailyStreakIntegration.streakStats;
                 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

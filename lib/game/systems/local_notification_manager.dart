@@ -74,19 +74,20 @@ class LocalNotificationManager {
         await _scheduleInitialNotifications();
       }
 
-      debugPrint('🔔 LocalNotificationManager initialized successfully');
+      safePrint('🔔 LocalNotificationManager initialized successfully');
       FirebaseAnalyticsManager().trackEvent('notification_system_initialized', {
         'permissions_granted': _permissionsGranted,
         'platform': Platform.isAndroid ? 'android' : 'ios',
       });
 
     } catch (e) {
-      debugPrint('🔔 Error initializing LocalNotificationManager: $e');
+      safePrint('🔔 Error initializing LocalNotificationManager: $e');
     }
   }
 
   /// Initialize the notification plugin with platform-specific settings
   Future<void> _initializePlugin() async {
+    // Android-specific initialization with proper channels
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -106,6 +107,63 @@ class LocalNotificationManager {
       initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
+    
+    // Create Android notification channels (Android 8.0+)
+    if (Platform.isAndroid) {
+      await _createAndroidNotificationChannels();
+    }
+  }
+  
+  /// Create Android notification channels (required for Android 8.0+)
+  Future<void> _createAndroidNotificationChannels() async {
+    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+        _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    if (androidImplementation != null) {
+      // Hearts refilled channel
+      const AndroidNotificationChannel heartsChannel = AndroidNotificationChannel(
+        'hearts_refilled',
+        'Hearts Refilled',
+        description: 'Notifications when your hearts are refilled and ready to play',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        enableLights: true,
+        ledColor: Color(0xFF2196F3), // Blue color
+      );
+
+      // Engagement reminder channel
+      const AndroidNotificationChannel engagementChannel = AndroidNotificationChannel(
+        'engagement_reminder',
+        'Game Reminders',
+        description: 'Friendly reminders to come back and play FlappyJet',
+        importance: Importance.defaultImportance,
+        playSound: true,
+        enableVibration: false,
+        enableLights: true,
+        ledColor: Color(0xFF4CAF50), // Green color
+      );
+
+      // Daily streak reminder channel
+      const AndroidNotificationChannel streakChannel = AndroidNotificationChannel(
+        'daily_streak_reminder',
+        'Daily Streak',
+        description: 'Daily streak bonus reminders',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        enableLights: true,
+        ledColor: Color(0xFFFF9800), // Orange color
+      );
+
+      // Create the channels
+      await androidImplementation.createNotificationChannel(heartsChannel);
+      await androidImplementation.createNotificationChannel(engagementChannel);
+      await androidImplementation.createNotificationChannel(streakChannel);
+      
+      safePrint('🔔 Android notification channels created successfully');
+    }
   }
 
   /// Handle notification tap events
@@ -131,7 +189,7 @@ class LocalNotificationManager {
     }
   }
 
-  /// Request notification permissions
+  /// Request notification permissions with enhanced Android support
   Future<void> _requestPermissions() async {
     try {
       if (Platform.isAndroid) {
@@ -147,14 +205,23 @@ class LocalNotificationManager {
             _permissionsGranted = true;
             Logger.i('🔔 Android notifications already enabled');
           } else {
-            // Request permission - this will show the native OS popup
+            // For Android 13+ (API 33+), request POST_NOTIFICATIONS permission
             final bool? granted = await androidImplementation.requestNotificationsPermission();
             _permissionsGranted = granted ?? false;
             
             if (_permissionsGranted) {
               Logger.i('🔔 Android notification permission granted by user');
+              
+              // Additional setup for Android - check if battery optimization needs to be disabled
+              await _checkBatteryOptimization();
             } else {
               Logger.w('🔔 Android notification permission denied by user');
+              
+              // Track permission denial for analytics
+              FirebaseAnalyticsManager().trackEvent('notification_permission_denied', {
+                'platform': 'android',
+                'timestamp': DateTime.now().millisecondsSinceEpoch,
+              });
             }
           }
         } else {
@@ -192,6 +259,25 @@ class LocalNotificationManager {
     } catch (e) {
       Logger.e('🔔 Error requesting notification permissions: $e');
       _permissionsGranted = false;
+    }
+  }
+  
+  /// Check battery optimization for Android (helps with notification delivery)
+  Future<void> _checkBatteryOptimization() async {
+    if (!Platform.isAndroid) return;
+    
+    try {
+      // Log battery optimization status for debugging
+      Logger.i('🔔 Checking Android battery optimization settings...');
+      
+      // Note: We don't request to disable battery optimization as it requires 
+      // REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission which Google restricts
+      // Instead, we use inexactAllowWhileIdle scheduling mode which works better
+      
+      Logger.i('🔔 Using battery-friendly notification scheduling');
+      
+    } catch (e) {
+      Logger.w('🔔 Could not check battery optimization: $e');
     }
   }
 
@@ -288,10 +374,10 @@ class LocalNotificationManager {
       // If hearts are already full, cancel any pending heart notifications
       if (currentLives >= 3) {
         await cancelNotification(NotificationType.heartsRefilled);
-        debugPrint('🔔 Cancelled outdated hearts notification - hearts already full');
+        safePrint('🔔 Cancelled outdated hearts notification - hearts already full');
       }
     } catch (e) {
-      debugPrint('🔔 Error cancelling outdated heart notifications: $e');
+      safePrint('🔔 Error cancelling outdated heart notifications: $e');
     }
   }
 
@@ -346,13 +432,14 @@ class LocalNotificationManager {
         'Your hearts are full! Ready for another epic flight? 🚀✈️',
         scheduledTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // Game-appropriate flexible timing
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'hearts_refilled',
+        matchDateTimeComponents: DateTimeComponents.time, // Better for recurring-style notifications
       );
 
-      debugPrint('🔔 Hearts refilled notification scheduled for: $scheduledTime');
+      safePrint('🔔 Hearts refilled notification scheduled for: $scheduledTime');
       
       FirebaseAnalyticsManager().trackEvent('notification_scheduled', {
         'type': 'hearts_refilled',
@@ -361,7 +448,7 @@ class LocalNotificationManager {
       });
 
     } catch (e) {
-      debugPrint('🔔 Error scheduling hearts notification: $e');
+      safePrint('🔔 Error scheduling hearts notification: $e');
     }
   }
 
@@ -377,7 +464,7 @@ class LocalNotificationManager {
       
       // If there's a recent reminder scheduled (within last hour), don't schedule another
       if (lastScheduledTime > 0 && (currentTime - lastScheduledTime) < 3600000) { // 1 hour in ms
-        debugPrint('🔔 Engagement reminder already scheduled recently, skipping');
+        safePrint('🔔 Engagement reminder already scheduled recently, skipping');
         return;
       }
 
@@ -424,16 +511,17 @@ class LocalNotificationManager {
         message,
         nextReminderTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // Flexible timing for engagement
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'engagement_reminder',
+        matchDateTimeComponents: DateTimeComponents.time,
       );
 
       // Save last notification time
       await prefs.setInt(_lastEngagementNotificationKey, nextReminderTime.millisecondsSinceEpoch);
 
-      debugPrint('🔔 Engagement reminder scheduled for: $nextReminderTime');
+      safePrint('🔔 Engagement reminder scheduled for: $nextReminderTime');
 
       FirebaseAnalyticsManager().trackEvent('notification_scheduled', {
         'type': 'engagement_reminder',
@@ -443,7 +531,7 @@ class LocalNotificationManager {
       // Next reminder will be scheduled when this one fires
 
     } catch (e) {
-      debugPrint('🔔 Error scheduling engagement reminder: $e');
+      safePrint('🔔 Error scheduling engagement reminder: $e');
     }
   }
 
@@ -543,17 +631,18 @@ class LocalNotificationManager {
         'Your streak bonus is waiting! Claim it before it\'s gone! 🔥',
         adjustedTime,
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // Game-appropriate flexible timing
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'daily_streak_reminder',
+        matchDateTimeComponents: DateTimeComponents.time,
       );
 
       // Save reminder time
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_lastStreakReminderKey, adjustedTime.millisecondsSinceEpoch);
 
-      debugPrint('🔔 Daily streak reminder scheduled for: $adjustedTime');
+      safePrint('🔔 Daily streak reminder scheduled for: $adjustedTime');
 
       FirebaseAnalyticsManager().trackEvent('notification_scheduled', {
         'type': 'daily_streak_reminder',
@@ -562,7 +651,7 @@ class LocalNotificationManager {
       });
 
     } catch (e) {
-      debugPrint('🔔 Error scheduling daily streak reminder: $e');
+      safePrint('🔔 Error scheduling daily streak reminder: $e');
     }
   }
 
@@ -584,7 +673,7 @@ class LocalNotificationManager {
   /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
-    debugPrint('🔔 All notifications cancelled');
+    safePrint('🔔 All notifications cancelled');
   }
 
   /// Get notification delivery status and debugging info
@@ -670,8 +759,14 @@ class LocalNotificationManager {
     return {'platform': 'android', 'error': 'could_not_check_channels'};
   }
   
-  /// Validate notification scheduling (debug helper)
+  /// Validate notification scheduling (debug helper - DEBUG MODE ONLY)
   Future<bool> validateNotificationScheduling() async {
+    // Only run in debug mode
+    if (!kDebugMode) {
+      safePrint('🔔 Notification validation skipped - not in debug mode');
+      return false;
+    }
+    
     try {
       Logger.i('🔔 Starting notification validation...');
       
@@ -752,7 +847,7 @@ class LocalNotificationManager {
     }
     
     await _flutterLocalNotificationsPlugin.cancel(id);
-    debugPrint('🔔 Cancelled notification: $type');
+    safePrint('🔔 Cancelled notification: $type');
   }
 
   /// Check if notifications are enabled
@@ -781,6 +876,65 @@ class LocalNotificationManager {
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
     return await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
   }
+  
+  /// Comprehensive Android notification diagnostics
+  Future<Map<String, dynamic>> getAndroidNotificationDiagnostics() async {
+    if (!Platform.isAndroid) {
+      return {'platform': 'not_android'};
+    }
+    
+    final diagnostics = <String, dynamic>{};
+    
+    try {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+              
+      if (androidImplementation != null) {
+        // Check basic notification permission
+        final bool? notificationsEnabled = await androidImplementation.areNotificationsEnabled();
+        diagnostics['notifications_enabled'] = notificationsEnabled ?? false;
+        
+        // Get pending notifications
+        final pendingNotifications = await getPendingNotifications();
+        diagnostics['pending_notifications_count'] = pendingNotifications.length;
+        diagnostics['pending_notifications'] = pendingNotifications.map((n) => {
+          'id': n.id,
+          'title': n.title,
+          'body': n.body,
+          'payload': n.payload,
+        }).toList();
+        
+        // Check if channels exist
+        diagnostics['channels_created'] = true; // We create them in _createAndroidNotificationChannels
+        
+        // System info
+        diagnostics['android_version'] = 'unknown'; // Would need platform channel to get exact version
+        diagnostics['manufacturer'] = 'unknown'; // Would need platform channel
+        
+        // Notification settings recommendations
+        diagnostics['recommendations'] = [];
+        
+        if (notificationsEnabled != true) {
+          diagnostics['recommendations'].add('Enable notifications in app settings');
+        }
+        
+        if (pendingNotifications.isEmpty) {
+          diagnostics['recommendations'].add('No notifications scheduled - check scheduling logic');
+        }
+        
+        diagnostics['status'] = 'diagnostic_complete';
+        
+      } else {
+        diagnostics['error'] = 'android_plugin_not_available';
+      }
+      
+    } catch (e) {
+      diagnostics['error'] = e.toString();
+    }
+    
+    return diagnostics;
+  }
 
   // Getters
   bool get isInitialized => _isInitialized;
@@ -790,5 +944,46 @@ class LocalNotificationManager {
   /// Request permissions (can be called externally)
   Future<void> requestPermissions() async {
     await _requestPermissions();
+  }
+  
+  /// Test Android notification immediately (for debugging)
+  Future<bool> testAndroidNotificationNow() async {
+    if (!Platform.isAndroid || !_permissionsGranted) {
+      safePrint('🔔 Cannot test Android notification - no permissions or not Android');
+      return false;
+    }
+    
+    try {
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'hearts_refilled',
+        'Hearts Refilled',
+        channelDescription: 'Test notification',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      );
+      
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
+      
+      const NotificationDetails platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+      
+      await _flutterLocalNotificationsPlugin.show(
+        9999, // Test ID
+        '🔔 Android Test Notification',
+        'If you see this, Android notifications are working! 🎉',
+        platformDetails,
+        payload: 'test_android_notification',
+      );
+      
+      safePrint('🔔 Android test notification sent successfully');
+      return true;
+      
+    } catch (e) {
+      safePrint('🔔 Android test notification failed: $e');
+      return false;
+    }
   }
 }

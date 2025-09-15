@@ -294,19 +294,5 @@ class _NicknameEditDialogState extends State<NicknameEditDialog> {
     );
   }
 
-  /// Show the nickname edit dialog
-  static Future<bool?> show(
-    BuildContext context, {
-    required String currentNickname,
-    Function(String newNickname)? onNicknameChanged,
-  }) {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => NicknameEditDialog(
-        currentNickname: currentNickname,
-        onNicknameChanged: onNicknameChanged,
-      ),
-    );
-  }
+  // Removed unused static show method - use showNicknameEditDialog instead
 }

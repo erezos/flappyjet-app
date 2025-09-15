@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../core/debug_logger.dart';
 import '../../game/systems/player_identity_manager.dart';
 import '../../game/systems/profile_manager.dart';
 import '../../game/systems/inventory_manager.dart';
@@ -33,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    print('🏗️ ProfileScreen initState() started');
+    safePrint('🏗️ ProfileScreen initState() started');
     _profile.addListener(_refresh);
     _inventory.addListener(_refresh);
     _playerIdentity.addListener(
@@ -50,24 +51,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// 🚀 PERFORMANCE: Async initialization that doesn't block the main thread
   Future<void> _initializeAsync() async {
-    print('🏗️ ProfileScreen async initialization started');
+    safePrint('🏗️ ProfileScreen async initialization started');
 
     // Run heavy operations in background
     await Future.microtask(() async {
       // Ensure dynamic catalog is loaded the first time Profile opens
       await JetSkinCatalog.initializeFromAssets();
-      print('🏗️ ProfileScreen JetSkinCatalog initialized');
+      safePrint('🏗️ ProfileScreen JetSkinCatalog initialized');
       await _profile.initialize();
-      print('🏗️ ProfileScreen ProfileManager initialized');
+      safePrint('🏗️ ProfileScreen ProfileManager initialized');
       await _inventory.initialize();
-      print('🏗️ ProfileScreen InventoryManager initialized');
+      safePrint('🏗️ ProfileScreen InventoryManager initialized');
     });
 
     if (mounted) {
       _nameCtrl.text = _playerIdentity.playerName.isNotEmpty
           ? _playerIdentity.playerName
           : _profile.nickname;
-      print('🏗️ ProfileScreen initialization complete, calling setState');
+      safePrint('🏗️ ProfileScreen initialization complete, calling setState');
       setState(() {});
     }
   }
@@ -96,11 +97,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('🏗️ ProfileScreen build() called');
+    safePrint('🏗️ ProfileScreen build() called');
     final equippedSkin =
         JetSkinCatalog.getSkinById(_inventory.equippedSkinId) ??
         JetSkinCatalog.starterJet;
-    print('🏗️ ProfileScreen equippedSkin: ${equippedSkin.displayName}');
+    safePrint('🏗️ ProfileScreen equippedSkin: ${equippedSkin.displayName}');
 
     return Scaffold(
       body: Stack(
@@ -301,11 +302,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 },
                                 icon: const Icon(Icons.analytics, size: 16),
                                 label: const Text(
-                                  'Notification Analytics',
+                                  'Notification Analytics (DEBUG)',
                                   style: TextStyle(fontSize: 12),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue.withOpacity(0.2),
+                                  backgroundColor: Colors.blue.withValues(alpha: 0.2),
                                   foregroundColor: Colors.blue,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   minimumSize: const Size(0, 32),

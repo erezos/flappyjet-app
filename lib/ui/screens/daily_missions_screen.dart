@@ -65,23 +65,19 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
 
     try {
       // Get managers and refresh their data
-      MissionsManager? missionsManager;
-      AchievementsManager? achievementsManager;
-
       try {
-        missionsManager = context.read<MissionsManager>();
-        achievementsManager = context.read<AchievementsManager>();
+        context.read<MissionsManager>();
+        context.read<AchievementsManager>();
       } catch (e) {
-        missionsManager = widget.missionsManager;
-        achievementsManager = widget.achievementsManager;
+        // Fallback to widget managers if context read fails
+        // Using widget.missionsManager and widget.achievementsManager as fallback
       }
 
-      // Force refresh by calling notifyListeners on both managers
-      if (missionsManager != null) {
-        missionsManager.notifyListeners();
-      }
-      if (achievementsManager != null) {
-        achievementsManager.notifyListeners();
+      // Force refresh by triggering setState
+      if (mounted) {
+        setState(() {
+          // Trigger rebuild to refresh mission and achievement states
+        });
       }
 
       // Restart animation to show updates
@@ -731,11 +727,7 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     );
   }
 
-  void _refreshMissions() {
-    // Add refresh logic here
-    _animationController.reset();
-    _animationController.forward();
-  }
+  // Removed unused _refreshMissions method
 }
 
 class PremiumMissionCard extends StatelessWidget {

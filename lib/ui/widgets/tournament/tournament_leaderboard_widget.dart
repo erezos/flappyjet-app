@@ -296,9 +296,9 @@ class _TournamentLeaderboardWidgetState
                     colors: [
                       rankColor,
                       Color.fromRGBO(
-                        rankColor.red,
-                        rankColor.green,
-                        rankColor.blue,
+                        (rankColor.r * 255.0).round() & 0xff,
+                        (rankColor.g * 255.0).round() & 0xff,
+                        (rankColor.b * 255.0).round() & 0xff,
                         0.7,
                       ),
                     ],

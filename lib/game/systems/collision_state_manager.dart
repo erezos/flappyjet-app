@@ -335,7 +335,7 @@ extension CollisionManagerExtensions on CollisionStateManager {
     required double playerHeight,
   }) {
     // Register collision
-    final tracker = registerCollision(
+    registerCollision(
       objectId: objectId,
       objectPosition: objectPosition,
       playerPosition: playerPosition,

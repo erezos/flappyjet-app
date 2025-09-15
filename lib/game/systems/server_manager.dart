@@ -335,7 +335,6 @@ class ServerManager extends ChangeNotifier {
 
     try {
       final playerIdentity = PlayerIdentityManager();
-      final missionsManager = MissionsManager();
       final achievementsManager = AchievementsManager();
       
       // Prepare sync data

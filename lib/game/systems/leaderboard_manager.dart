@@ -383,14 +383,7 @@ class LeaderboardManager extends ChangeNotifier {
     }
   }
 
-  Future<void> _initializeSampleData() async {
-    // Create a competitive leaderboard with diverse AI players
-    final competitiveScores = _generateCompetitiveLeaderboard();
-
-    _localScores.addAll(competitiveScores);
-    _sortAndRankScores();
-    await _persistScores();
-  }
+  // Removed unused _initializeSampleData method
 
   /// Generate a competitive leaderboard with realistic AI players
   List<LeaderboardEntry> _generateCompetitiveLeaderboard() {

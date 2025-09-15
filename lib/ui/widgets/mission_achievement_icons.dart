@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../core/debug_logger.dart';
 
 /// 3D Icon widget for missions and achievements
 class Mission3DIcon extends StatelessWidget {
@@ -19,7 +20,7 @@ class Mission3DIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconPath = _getIconPath(iconType);
-    print('🎨 Mission3DIcon: Loading $iconPath for $iconType');
+    safePrint('🎨 Mission3DIcon: Loading $iconPath for $iconType');
 
     return SizedBox(
       width: size,
@@ -32,7 +33,7 @@ class Mission3DIcon extends StatelessWidget {
         color: tintColor,
         colorBlendMode: tintColor != null ? BlendMode.srcATop : null,
         errorBuilder: (context, error, stackTrace) {
-          print('❌ Mission3DIcon: Failed to load $iconPath - Error: $error');
+          safePrint('❌ Mission3DIcon: Failed to load $iconPath - Error: $error');
           // Fallback to material icon if asset fails
           return Icon(
             _getFallbackIcon(iconType),

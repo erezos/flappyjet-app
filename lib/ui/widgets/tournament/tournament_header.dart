@@ -288,18 +288,18 @@ class _TournamentHeaderState extends State<TournamentHeader>
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: Color.fromRGBO(
-                  statusColor.red,
-                  statusColor.green,
-                  statusColor.blue,
+                  (statusColor.r * 255.0).round() & 0xff,
+                  (statusColor.g * 255.0).round() & 0xff,
+                  (statusColor.b * 255.0).round() & 0xff,
                   0.8 + (0.2 * _pulseController.value),
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Color.fromRGBO(
-                      statusColor.red,
-                      statusColor.green,
-                      statusColor.blue,
+                      (statusColor.r * 255.0).round() & 0xff,
+                      (statusColor.g * 255.0).round() & 0xff,
+                      (statusColor.b * 255.0).round() & 0xff,
                       0.4,
                     ),
                     blurRadius: 10,
@@ -342,7 +342,7 @@ class _TournamentHeaderState extends State<TournamentHeader>
             borderRadius: BorderRadius.circular(16),
             color: Color.fromRGBO(255, 255, 255, 0.1),
             border: Border.all(
-              color: Color.fromRGBO(color.red, color.green, color.blue, 0.3),
+              color: Color.fromRGBO((color.r * 255.0).round() & 0xff, (color.g * 255.0).round() & 0xff, (color.b * 255.0).round() & 0xff, 0.3),
               width: 1,
             ),
           ),
@@ -354,9 +354,9 @@ class _TournamentHeaderState extends State<TournamentHeader>
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   color: Color.fromRGBO(
-                    color.red,
-                    color.green,
-                    color.blue,
+                    (color.r * 255.0).round() & 0xff,
+                    (color.g * 255.0).round() & 0xff,
+                    (color.b * 255.0).round() & 0xff,
                     0.2,
                   ),
                 ),
