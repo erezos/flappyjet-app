@@ -10,6 +10,7 @@ import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
+import '../../game/systems/social_sharing_manager.dart';
 import '../../game/core/economy_config.dart';
 import '../widgets/game_over_menu.dart';
 import '../widgets/no_hearts_dialog.dart';
@@ -184,13 +185,34 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   void _shareScore(String platform) {
-    // TODO: Implement social sharing
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Sharing to $platform coming soon!'),
-        backgroundColor: Colors.blue,
-      ),
-    );
+    // Convert string platform to SocialPlatform enum
+    SocialPlatform? socialPlatform;
+    switch (platform.toLowerCase()) {
+      case 'whatsapp':
+        socialPlatform = SocialPlatform.whatsapp;
+        break;
+      case 'instagram':
+        socialPlatform = SocialPlatform.instagram;
+        break;
+      case 'facebook':
+        socialPlatform = SocialPlatform.facebook;
+        break;
+      case 'tiktok':
+        socialPlatform = SocialPlatform.tiktok;
+        break;
+    }
+    
+    if (socialPlatform != null) {
+      // Get current score from game
+      final currentScore = game.currentScore;
+      
+      // Use the new template-based sharing system
+      final sharingManager = SocialSharingManager();
+      sharingManager.shareScore(
+        score: currentScore,
+        platform: socialPlatform,
+      );
+    }
   }
 
   void _handleBuySingleHeart() async {

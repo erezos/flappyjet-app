@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import '../core/debug_logger.dart';
 
 class RealAdMobService {
@@ -36,7 +37,7 @@ class RealAdMobService {
   bool get isInitialized => _isInitialized;
   bool get isLoading => _isLoading;
 
-  /// Initialize AdMob SDK
+  /// Initialize AdMob SDK with App Tracking Transparency
   Future<void> initialize() async {
     if (_isInitialized) {
       safePrint('📺 AdMob already initialized');
@@ -45,6 +46,11 @@ class RealAdMobService {
 
     try {
       safePrint('📺 🚀 Initializing AdMob SDK...');
+      
+      // 🍎 iOS: Request App Tracking Transparency permission first
+      if (Platform.isIOS) {
+        await _requestTrackingPermission();
+      }
       
       // Initialize Mobile Ads SDK
       final initializationStatus = await MobileAds.instance.initialize();
@@ -64,6 +70,40 @@ class RealAdMobService {
     } catch (e) {
       safePrint('📺 ❌ AdMob initialization failed: $e');
       _isInitialized = false;
+    }
+  }
+
+  /// 🍎 Request App Tracking Transparency permission (iOS only)
+  Future<void> _requestTrackingPermission() async {
+    try {
+      safePrint('📺 🍎 Requesting App Tracking Transparency permission...');
+      
+      final status = await AppTrackingTransparency.requestTrackingAuthorization();
+      
+      switch (status) {
+        case TrackingStatus.authorized:
+          safePrint('📺 ✅ ATT: User authorized tracking - personalized ads enabled');
+          break;
+        case TrackingStatus.denied:
+          safePrint('📺 ⚠️ ATT: User denied tracking - non-personalized ads only');
+          break;
+        case TrackingStatus.restricted:
+          safePrint('📺 ⚠️ ATT: Tracking restricted by system - non-personalized ads only');
+          break;
+        case TrackingStatus.notDetermined:
+          safePrint('📺 ⚠️ ATT: Permission not determined - non-personalized ads only');
+          break;
+        case TrackingStatus.notSupported:
+          safePrint('📺 ℹ️ ATT: Not supported on this device - non-personalized ads only');
+          break;
+      }
+      
+      // Note: AdMob automatically handles personalized vs non-personalized ads
+      // based on the ATT status, so no additional configuration needed
+      
+    } catch (e) {
+      safePrint('📺 ❌ ATT permission request failed: $e');
+      // Continue with non-personalized ads if ATT fails
     }
   }
 

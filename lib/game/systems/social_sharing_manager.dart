@@ -1,10 +1,13 @@
-/// 📱 Social Sharing Manager - Comprehensive social sharing system for FlappyJet
+/// 📱 Social Sharing Manager - Template-Based Score Card Sharing for FlappyJet
 library;
 import '../../core/debug_logger.dart';
 
+import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
@@ -20,26 +23,120 @@ enum SocialPlatform {
   tiktok,
 }
 
+/// Template positioning configuration with relative coordinates
+class TemplateConfig {
+  final String assetPath;
+  final Offset relativeScorePosition; // Percentage-based position (0.0 to 1.0)
+  final double relativeFontSize; // Percentage of image height
+  final Color textColor;
+  final List<Shadow> shadows;
+
+  const TemplateConfig({
+    required this.assetPath,
+    required this.relativeScorePosition,
+    required this.relativeFontSize,
+    required this.textColor,
+    required this.shadows,
+  });
+
+  /// Calculate absolute position based on image dimensions
+  Offset getAbsolutePosition(int imageWidth, int imageHeight) {
+    return Offset(
+      imageWidth * relativeScorePosition.dx,
+      imageHeight * relativeScorePosition.dy,
+    );
+  }
+
+  /// Calculate absolute font size based on image dimensions
+  double getAbsoluteFontSize(int imageHeight) {
+    return imageHeight * relativeFontSize;
+  }
+}
+
+/// Available share card templates with precise positioning
+enum ShareTemplate {
+  challengeMe,
+  beatMyScore,
+  scoreBox,
+  tryToBeatMe;
+
+  /// Get template configuration with smart positioning strategy
+  TemplateConfig get config {
+    switch (this) {
+      case ShareTemplate.challengeMe:
+        return const TemplateConfig(
+          assetPath: 'assets/images/share_templates/challange_me.png',
+          relativeScorePosition: Offset(0.5, 0.78), // User-specified precise positioning
+          relativeFontSize: 0.08, // 8% of image height - smaller, cleaner
+          textColor: Colors.white,
+          shadows: [
+            Shadow(offset: Offset(3, 3), blurRadius: 6, color: Color(0xEE000000)),
+            Shadow(offset: Offset(-1, -1), blurRadius: 2, color: Color(0x88000000)),
+          ],
+        );
+      case ShareTemplate.beatMyScore:
+        return const TemplateConfig(
+          assetPath: 'assets/images/share_templates/beat_my_score.png',
+          relativeScorePosition: Offset(0.85, 0.8), // User-specified precise positioning
+          relativeFontSize: 0.08, // 8% of image height - smaller, cleaner
+          textColor: Colors.white,
+          shadows: [
+            Shadow(offset: Offset(3, 3), blurRadius: 6, color: Color(0xEE000000)),
+            Shadow(offset: Offset(-1, -1), blurRadius: 2, color: Color(0x88000000)),
+          ],
+        );
+      case ShareTemplate.scoreBox:
+        return const TemplateConfig(
+          assetPath: 'assets/images/share_templates/score_box.png',
+          relativeScorePosition: Offset(0.35, 0.61), // Fine-tuned positioning
+          relativeFontSize: 0.10, // 10% of image height - better fit for the box
+          textColor: Color(0xFF2B5AA0), // Darker blue for better contrast
+          shadows: [
+            Shadow(offset: Offset(2, 2), blurRadius: 4, color: Color(0x66000000)),
+            Shadow(offset: Offset(-1, -1), blurRadius: 2, color: Color(0x33000000)),
+          ],
+        );
+      case ShareTemplate.tryToBeatMe:
+        return const TemplateConfig(
+          assetPath: 'assets/images/share_templates/try_to_beat_me.png',
+          relativeScorePosition: Offset(0.5, 0.565), // Fine-tuned positioning
+          relativeFontSize: 0.10, // 10% of image height
+          textColor: Colors.white,
+          shadows: [
+            Shadow(offset: Offset(3, 3), blurRadius: 6, color: Color(0xDD000000)),
+            Shadow(offset: Offset(-1, -1), blurRadius: 2, color: Color(0x88000000)),
+          ],
+        );
+    }
+  }
+}
+
 /// Result of a sharing operation
 class ShareResult {
   final bool isSuccess;
   final String? error;
   final String? platform;
+  final String? imagePath;
+  final String? message;
   
   const ShareResult({
     required this.isSuccess,
     this.error,
     this.platform,
+    this.imagePath,
+    this.message,
   });
   
-  factory ShareResult.success(String platform) => ShareResult(
+  factory ShareResult.success(String platform, {String? imagePath}) => ShareResult(
     isSuccess: true,
     platform: platform,
+    imagePath: imagePath,
   );
   
   factory ShareResult.failure(String error) => ShareResult(
     isSuccess: false,
     error: error,
+    message: error,
   );
 }
 
@@ -102,12 +199,11 @@ class SocialSharingManager extends ChangeNotifier {
     }
   }
 
-  /// Share score with platform-specific content and optional screenshot
+  /// Share score with randomized template-based score card
   Future<ShareResult> shareScore({
     required int score,
     required SocialPlatform platform,
     String? customMessage,
-    ScreenshotController? screenshotController,
   }) async {
     if (!_isInitialized) {
       await initialize();
@@ -121,14 +217,11 @@ class SocialSharingManager extends ChangeNotifier {
         customMessage: customMessage,
       );
 
-      // Capture screenshot if controller provided
-      String? screenshotPath;
-      if (screenshotController != null) {
-        screenshotPath = await _captureScreenshot(screenshotController);
-      }
+      // Generate score card with random template
+      final scoreCardPath = await _generateScoreCard(score);
 
       // Perform the actual sharing
-      final shareResult = await _performShare(content, platform, screenshotPath);
+      final shareResult = await _performShare(content, platform, scoreCardPath);
       
       if (shareResult.isSuccess) {
         // Track the sharing event
@@ -175,6 +268,30 @@ class SocialSharingManager extends ChangeNotifier {
     );
   }
 
+  /// App store links for download promotion
+  static const String _androidStoreLink = 'https://play.google.com/store/apps/details?id=com.flappyjet.pro.flappy_jet_pro';
+  static const String _iosStoreLink = 'https://apps.apple.com/app/flappy-jet/id6752501703';
+  
+  /// Universal smart link that detects platform
+  static const String _universalLink = 'https://flappyjet.page.link/download'; // Firebase Dynamic Link (recommended)
+  
+  /// Fallback smart link using a simple redirect service
+  static const String _smartLink = 'https://linktr.ee/flappyjet'; // Alternative: Linktree
+  
+  /// Get platform-appropriate download link
+  String _getDownloadLink() {
+    // For now, use Android link as primary (since iOS is pending approval)
+    // TODO: Update to use _iosStoreLink once iOS app is approved
+    // TODO: Implement Firebase Dynamic Links for true universal linking
+    return _androidStoreLink;
+  }
+  
+  /// Update to use iOS link once approved (call this method after iOS approval)
+  static void enableIOSLink() {
+    // This will be used to switch to iOS link or universal link
+    // For now, just a placeholder for future implementation
+  }
+
   /// Get score-based motivational message
   String _getScoreBasedMessage(int score) {
     if (score < 10) {
@@ -194,54 +311,110 @@ class SocialSharingManager extends ChangeNotifier {
 
   /// Format message for specific platform with enhanced viral mechanics
   String _formatForPlatform(String baseMessage, SocialPlatform platform, int score) {
-    const appStoreLink = "https://play.google.com/store/apps/details?id=com.flappyjet.pro";
+    final downloadLink = _getDownloadLink();
     
     switch (platform) {
       case SocialPlatform.whatsapp:
         // WhatsApp: Personal challenge with direct link
-        return "$baseMessage\n\n🎮 Think you can beat my score? Download FlappyJet and prove it!\n$appStoreLink\n\n#FlappyJetChallenge";
+        return "$baseMessage\n\n🎮 Think you can beat my score? Download FlappyJet and prove it!\n\n📱 Get it here: $downloadLink\n\n#FlappyJetChallenge";
         
       case SocialPlatform.instagram:
         // Instagram: Visual-focused with trending hashtags
-        return "$baseMessage\n\n🚁 Can you fly higher? Challenge accepted!\n\n#FlappyJet #MobileGaming #HighScore #Challenge #Gaming #FlappyJetPro #AviationGame #ScoreChallenge";
+        return "$baseMessage\n\n🚁 Can you fly higher? Challenge accepted!\n\n📱 Download FlappyJet: $downloadLink\n\n#FlappyJet #MobileGaming #HighScore #Challenge #Gaming #FlappyJetPro #AviationGame #ScoreChallenge";
         
       case SocialPlatform.facebook:
         // Facebook: Community-focused with call-to-action
-        return "$baseMessage\n\n🏆 Think you can do better? Download FlappyJet and show me your skills! Who's up for the challenge?\n\n$appStoreLink\n\n#FlappyJet #Challenge #MobileGaming";
+        return "$baseMessage\n\n🏆 Think you can do better? Download FlappyJet and show me your skills! Who's up for the challenge?\n\n📱 Download now: $downloadLink\n\n#FlappyJet #Challenge #MobileGaming";
         
       case SocialPlatform.tiktok:
         // TikTok: Trending hashtags and viral language
-        return "$baseMessage\n\n🔥 This game is addictive! Who can beat this score?\n\n#FlappyJet #Gaming #HighScore #Challenge #MobileGame #Viral #GameChallenge #FYP";
+        return "$baseMessage\n\n🔥 This game is addictive! Who can beat this score?\n\n📱 Download FlappyJet: $downloadLink\n\n#FlappyJet #Gaming #HighScore #Challenge #MobileGame #Viral #GameChallenge #FYP";
     }
   }
 
-  /// Capture screenshot from the game
-  Future<String?> _captureScreenshot(ScreenshotController controller) async {
+  /// Generate score card with random template and precise positioning
+  Future<String?> _generateScoreCard(int score) async {
     try {
-      final image = await controller.capture();
-      if (image == null) return null;
-
-      // Get temporary directory
-      final directory = await getTemporaryDirectory();
-      final imagePath = '${directory.path}/flappyjet_score_${DateTime.now().millisecondsSinceEpoch}.png';
-
-      // Save screenshot
-      final imageFile = File(imagePath);
-      await imageFile.writeAsBytes(image);
+      // Select random template
+      final templates = ShareTemplate.values;
+      final randomTemplate = templates[Random().nextInt(templates.length)];
+      final templateConfig = randomTemplate.config;
       
-      safePrint('📸 Screenshot captured: $imagePath');
+      safePrint('🎨 Selected template: ${randomTemplate.name} for score: $score');
+
+      // Load template image
+      final ByteData templateData = await rootBundle.load(templateConfig.assetPath);
+      final ui.Codec codec = await ui.instantiateImageCodec(templateData.buffer.asUint8List());
+      final ui.FrameInfo frameInfo = await codec.getNextFrame();
+      final ui.Image templateImage = frameInfo.image;
+
+      // Create canvas for drawing
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      
+      // Draw template image
+      canvas.drawImage(templateImage, Offset.zero, Paint());
+      
+      // Add score text overlay with template-specific positioning
+      await _drawScoreTextWithConfig(canvas, score, templateConfig, templateImage.width, templateImage.height);
+      
+      // Convert to image
+      final picture = recorder.endRecording();
+      final finalImage = await picture.toImage(templateImage.width, templateImage.height);
+      final byteData = await finalImage.toByteData(format: ui.ImageByteFormat.png);
+      
+      if (byteData == null) return null;
+
+      // Save to temporary file
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/flappyjet_scorecard_${DateTime.now().millisecondsSinceEpoch}.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(byteData.buffer.asUint8List());
+      
+      safePrint('🎨 Score card generated: $imagePath (${randomTemplate.name})');
       return imagePath;
     } catch (e) {
-      safePrint('❌ Failed to capture screenshot: $e');
+      safePrint('❌ Failed to generate score card: $e');
       return null;
     }
   }
 
+  /// Draw score text using template-specific configuration with dynamic sizing
+  Future<void> _drawScoreTextWithConfig(Canvas canvas, int score, TemplateConfig config, int imageWidth, int imageHeight) async {
+    // Calculate absolute position and font size based on actual image dimensions
+    final absolutePosition = config.getAbsolutePosition(imageWidth, imageHeight);
+    final absoluteFontSize = config.getAbsoluteFontSize(imageHeight);
+    
+    final textStyle = TextStyle(
+      color: config.textColor,
+      fontSize: absoluteFontSize,
+      fontWeight: FontWeight.w900, // Extra bold for visibility
+      shadows: config.shadows,
+    );
+
+    final textSpan = TextSpan(text: score.toString(), style: textStyle);
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    );
+    
+    textPainter.layout();
+    
+    // Center the text on the calculated position
+    final xPosition = absolutePosition.dx - (textPainter.width / 2);
+    final yPosition = absolutePosition.dy - (textPainter.height / 2);
+    
+    textPainter.paint(canvas, Offset(xPosition, yPosition));
+    
+    safePrint('🎯 Score positioned at: (${xPosition.toStringAsFixed(1)}, ${yPosition.toStringAsFixed(1)}) with font size ${absoluteFontSize.toStringAsFixed(1)} (${imageWidth}x${imageHeight})');
+  }
+
   /// Perform the actual sharing operation with optional screenshot and direct app opening
-  Future<ShareResult> _performShare(ShareContent content, SocialPlatform platform, [String? screenshotPath]) async {
+  Future<ShareResult> _performShare(ShareContent content, SocialPlatform platform, [String? scoreCardPath]) async {
     try {
       // First, try direct app opening for supported platforms
-      final directShareSuccess = await _tryDirectAppSharing(content, platform, screenshotPath);
+      final directShareSuccess = await _tryDirectAppSharing(content, platform, scoreCardPath);
       
       if (directShareSuccess) {
         safePrint('📱 Direct app sharing successful for ${platform.name}');
@@ -250,10 +423,10 @@ class SocialSharingManager extends ChangeNotifier {
       
       // Fallback to system share sheet
       safePrint('📱 Using fallback share sheet for ${platform.name}');
-      if (screenshotPath != null) {
-        // Share with screenshot
+      if (scoreCardPath != null) {
+        // Share with score card template
         await Share.shareXFiles(
-          [XFile(screenshotPath)],
+          [XFile(scoreCardPath)],
           text: content.text,
           subject: 'Check out my FlappyJet score! 🚁',
         );
@@ -272,7 +445,7 @@ class SocialSharingManager extends ChangeNotifier {
   }
 
   /// Try direct app opening for supported platforms
-  Future<bool> _tryDirectAppSharing(ShareContent content, SocialPlatform platform, String? screenshotPath) async {
+  Future<bool> _tryDirectAppSharing(ShareContent content, SocialPlatform platform, String? scoreCardPath) async {
     try {
       final urlScheme = _getPlatformUrlScheme(platform, content);
       if (urlScheme == null) return false;
@@ -420,6 +593,7 @@ class SocialSharingManager extends ChangeNotifier {
         return true; // Opens to creation flow
     }
   }
+
 }
 
 // Note: shareScore mission type is now part of the MissionType enum in missions_manager.dart

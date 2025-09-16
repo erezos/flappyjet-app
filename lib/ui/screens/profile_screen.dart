@@ -698,6 +698,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
 }
 
 class _OwnedJetCell extends StatelessWidget {

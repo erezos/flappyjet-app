@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 1.4.4+14
+version: 1.4.5+15
 
 environment:
   sdk: ^3.8.0
@@ -28,6 +28,7 @@ dependencies:
   
   # Ads & Monetization
   google_mobile_ads: ^5.3.1
+  app_tracking_transparency: ^2.0.4
   
   # Firebase Analytics & Services
   firebase_analytics: ^11.3.3
@@ -67,7 +68,6 @@ dependencies:
   
   # Social Sharing
   share_plus: ^7.2.2
-  screenshot: ^3.0.0
   url_launcher: ^6.2.5
   
 
@@ -107,6 +107,7 @@ flutter:
     - assets/images/homepage/      # Stunning homepage assets
     - assets/images/buttons/       # Button graphics  
     - assets/images/icons/         # Homepage button icons
+    - assets/images/share_templates/  # Social sharing score card templates
     # - assets/images/ui/ # Removed - using pure Flutter UI instead            # Daily streak and UI assets
     - assets/images/icons/missions/   # Mission 3D icons
     - assets/images/backgrounds/   # Background elements

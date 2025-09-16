@@ -25,11 +25,11 @@ class RateUsManager {
   static const String _keyPromptCount = 'rate_us_prompt_count';
   static const String _keyFirstLaunchDate = 'rate_us_first_launch_date';
 
-  // Configuration
-  static const int _minSessionsBeforePrompt = 15; // Wait for user engagement
-  static const int _maxPromptsPerUser = 2; // Don't annoy users
-  static const int _daysBetweenPrompts = 14; // Wait two weeks between prompts
-  static const double _showProbability = 0.3; // 30% chance
+  // Configuration - Optimized for higher rating conversion
+  static const int _minSessionsBeforePrompt = 10; // Faster engagement threshold
+  static const int _maxPromptsPerUser = 4; // More opportunities to rate
+  static const int _daysBetweenPrompts = 5; // More frequent prompts
+  static const double _showProbability = 0.4; // 40% chance for better conversion
 
   bool _isInitialized = false;
   int _currentSessionCount = 0;
@@ -98,7 +98,7 @@ class RateUsManager {
       if (daysSinceLastPrompt < _daysBetweenPrompts) return false;
     }
     
-    // 50% probability
+    // 40% probability - optimized for conversion
     final shouldShow = _random.nextDouble() < _showProbability;
     
     debugPrint('⭐ Rate us check - Session: $_currentSessionCount, Probability: $shouldShow');

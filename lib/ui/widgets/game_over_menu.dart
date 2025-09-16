@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'gem_3d_icon.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
-import 'package:screenshot/screenshot.dart';
 import '../../game/systems/social_sharing_manager.dart';
 
 class GameOverMenu extends StatefulWidget {
@@ -55,7 +54,6 @@ class _GameOverMenuState extends State<GameOverMenu>
   late Animation<double> _rotateAnimation;
 
   bool _isNewRecord = false;
-  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   void initState() {
@@ -131,9 +129,7 @@ class _GameOverMenuState extends State<GameOverMenu>
       child: Center(
         child: SlideTransition(
           position: _slideAnimation,
-          child: Screenshot(
-            controller: _screenshotController,
-            child: Container(
+        child: Container(
             margin: EdgeInsets.symmetric(
               horizontal: isNarrowScreen ? 12 : 20,
               vertical: isVerySmallScreen ? 8 : (isSmallScreen ? 16 : 20),
@@ -234,7 +230,6 @@ class _GameOverMenuState extends State<GameOverMenu>
               ],
             ),
           ),
-        ),
         ),
       ),
     );
@@ -637,14 +632,13 @@ class _GameOverMenuState extends State<GameOverMenu>
     );
   }
 
-  /// Handle social sharing with the new system including screenshot
+  /// Handle social sharing with randomized template-based score cards
   Future<void> _handleSocialShare(SocialPlatform platform) async {
     try {
       final sharingManager = SocialSharingManager();
       final result = await sharingManager.shareScore(
         score: widget.score,
         platform: platform,
-        screenshotController: _screenshotController,
       );
 
       if (result.isSuccess) {
