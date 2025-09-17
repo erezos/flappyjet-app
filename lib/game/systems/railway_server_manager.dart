@@ -353,6 +353,63 @@ class RailwayServerManager extends ChangeNotifier {
     }
   }
 
+  /// Public method for FCM service to make authenticated requests
+  Future<Map<String, dynamic>> makeAuthenticatedRequest(
+    String method,
+    String endpoint,
+    Map<String, dynamic>? data,
+  ) async {
+    try {
+      final url = '${RailwayConfig.baseUrl}$endpoint';
+      final headers = _getHeaders(includeAuth: true);
+      
+      http.Response? response;
+      
+      switch (method.toUpperCase()) {
+        case 'GET':
+          response = await _makeAuthenticatedRequest(() => 
+            http.get(Uri.parse(url), headers: headers).timeout(RailwayConfig.requestTimeout)
+          );
+          break;
+        case 'POST':
+          response = await _makeAuthenticatedRequest(() => 
+            http.post(
+              Uri.parse(url), 
+              headers: headers, 
+              body: data != null ? jsonEncode(data) : null
+            ).timeout(RailwayConfig.requestTimeout)
+          );
+          break;
+        case 'PUT':
+          response = await _makeAuthenticatedRequest(() => 
+            http.put(
+              Uri.parse(url), 
+              headers: headers, 
+              body: data != null ? jsonEncode(data) : null
+            ).timeout(RailwayConfig.requestTimeout)
+          );
+          break;
+        case 'DELETE':
+          response = await _makeAuthenticatedRequest(() => 
+            http.delete(Uri.parse(url), headers: headers).timeout(RailwayConfig.requestTimeout)
+          );
+          break;
+        default:
+          return {'success': false, 'error': 'Unsupported HTTP method: $method'};
+      }
+      
+      if (response != null) {
+        final responseData = jsonDecode(response.body);
+        return responseData;
+      } else {
+        return {'success': false, 'error': 'No response received'};
+      }
+    } catch (e) {
+      safePrint('🚂 FCM API request failed: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   /// Make authenticated API call with automatic token refresh
   Future<http.Response?> _makeAuthenticatedRequest(
     Future<http.Response> Function() requestFunction,

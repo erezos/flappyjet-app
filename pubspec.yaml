@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 1.4.5+15
+version: 1.4.6+16
 
 environment:
   sdk: ^3.8.0
@@ -65,6 +65,9 @@ dependencies:
   # Local Notifications
   flutter_local_notifications: ^17.2.3
   timezone: ^0.9.4
+  
+  # Push Notifications (Android only)
+  firebase_messaging: ^14.7.10
   
   # Social Sharing
   share_plus: ^7.2.2

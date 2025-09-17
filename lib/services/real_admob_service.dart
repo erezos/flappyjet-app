@@ -17,7 +17,7 @@ class RealAdMobService {
   RealAdMobService._internal();
 
   // 🎯 Production Ad Unit IDs from AdMob Console
-  static const String _rewardedAdUnitIdAndroid = 'ca-app-pub-9307424222926115/8249350364';
+  static const String _rewardedAdUnitIdAndroid = 'ca-app-pub-9307424222926115/6438263608';
   static const String _rewardedAdUnitIdIOS = 'ca-app-pub-9307424222926115/3324326745';
   
   // 🧪 Test Ad Unit IDs for development
@@ -190,6 +190,14 @@ class RealAdMobService {
       // Check if ad is ready
       if (!_isInitialized || !_isAdLoaded || _rewardedAd == null) {
         safePrint('📺 ⚡ BULLETPROOF: No ad ready - immediate fallback (3s delay for UX)');
+        
+        // Try to reload ad for next attempt (don't wait for it)
+        if (!_isLoading && _loadAttempts < _maxLoadAttempts) {
+          _loadRewardedAd().catchError((e) {
+            safePrint('📺 Background ad reload failed: $e');
+          });
+        }
+        
         // Add small delay so user doesn't feel cheated
         await Future.delayed(const Duration(milliseconds: 1500));
         return AdRewardResult.timeoutFallback('No ad available - reward granted');

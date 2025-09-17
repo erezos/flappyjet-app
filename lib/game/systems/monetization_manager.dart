@@ -6,6 +6,7 @@ import '../../services/enhanced_iap_manager.dart';
 import '../core/iap_products.dart';
 import 'inventory_manager.dart';
 import 'lives_manager.dart';
+import 'firebase_analytics_manager.dart';
 
 /// 🚀 PRODUCTION MONETIZATION SYSTEM - Real AdMob + IAP for Blockbuster Games
 /// 
@@ -25,14 +26,12 @@ class MonetizationManager extends ChangeNotifier {
 
   // Production mode settings
   bool _developmentMode = true;
-  bool _firebaseAvailable = false;
   bool _adMobAvailable = true;
 
   // Getters
   bool get isAvailable => _enhancedIAP.isAvailable;
   bool get isPurchasing => _enhancedIAP.isPurchasing;
   bool get developmentMode => _developmentMode;
-  bool get firebaseAvailable => _firebaseAvailable;
   bool get adMobAvailable => _adMobAvailable;
   bool get isRewardedAdLoaded => _adMobService.isAdLoaded;
 
@@ -56,7 +55,6 @@ class MonetizationManager extends ChangeNotifier {
 
       // Set production mode based on build type
       _developmentMode = kDebugMode;
-      _firebaseAvailable = false; // Keep Firebase disabled for now
 
       safePrint('💰 ✅ MonetizationManager initialized successfully!');
       safePrint('💰 📊 Service Status: Dev Mode: $_developmentMode, Enhanced IAP: ${_enhancedIAP.isAvailable}, AdMob: $_adMobAvailable');
@@ -71,7 +69,6 @@ class MonetizationManager extends ChangeNotifier {
       safePrint('💰 ❌ MonetizationManager initialization error: $e');
       // Set safe defaults
       _developmentMode = true;
-      _firebaseAvailable = false;
       _adMobAvailable = false;
     }
     notifyListeners();
@@ -147,12 +144,22 @@ class MonetizationManager extends ChangeNotifier {
     }
   }
 
-  /// Simulate analytics tracking in development mode
+  /// Track player engagement events to Firebase Analytics
   void trackPlayerEngagement(Map<String, dynamic> parameters) {
-    safePrint(
-      '📊 🧪 Development mode: Analytics event simulated (Firebase disabled)',
-    );
-    safePrint('📊 🧪 Event data: $parameters');
+    try {
+      // Extract event name from parameters
+      final eventName = parameters['event'] as String? ?? 'unknown_event';
+      final eventParameters = Map<String, dynamic>.from(parameters);
+      eventParameters.remove('event'); // Remove event key from parameters
+      
+      // Send to Firebase Analytics
+      FirebaseAnalyticsManager().trackEvent(eventName, eventParameters);
+      
+      safePrint('📊 ✅ Analytics event tracked: $eventName');
+      safePrint('📊 📋 Event data: $eventParameters');
+    } catch (e) {
+      safePrint('📊 ❌ Failed to track analytics event: $e');
+    }
   }
 
   // === ENHANCED IAP METHODS ===

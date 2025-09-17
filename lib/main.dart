@@ -35,6 +35,7 @@ import 'game/systems/railway_server_manager.dart';
 import 'ui/widgets/daily_streak/daily_streak_integration.dart';
 
 import 'services/player_auth_service.dart';
+import 'services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +53,15 @@ void main() async {
 
     // Initialize Firebase Analytics
     await FirebaseAnalyticsManager().initialize();
+
+    // Initialize FCM for Android push notifications
+    safePrint('🔥 MAIN: About to initialize FCM service...');
+    try {
+      await FCMService().initialize();
+      safePrint('🔥 MAIN: FCM service initialization completed successfully');
+    } catch (fcmError) {
+      safePrint('🔥 MAIN: FCM initialization failed: $fcmError');
+    }
 
     isFirebaseEnabled = true;
     safePrint('🔥 Firebase initialized successfully - Production ready!');
