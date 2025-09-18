@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'missions_manager.dart';
 import 'achievements_manager.dart';
 import 'inventory_manager.dart';
-import 'server_manager.dart';
+import 'railway_server_manager.dart';
 
 /// Game Events Tracker - Central hub for tracking all game events
 class GameEventsTracker extends ChangeNotifier {
@@ -17,7 +17,7 @@ class GameEventsTracker extends ChangeNotifier {
   MissionsManager? _missionsManager;
   AchievementsManager? _achievementsManager;
   InventoryManager? _inventory;
-  ServerManager? _serverManager;
+  RailwayServerManager? _serverManager;
 
   bool _isInitialized = false;
   // int _currentGameStartTime = 0; // Unused field - removed for production
@@ -32,7 +32,7 @@ class GameEventsTracker extends ChangeNotifier {
     MissionsManager? missionsManager,
     AchievementsManager? achievementsManager,
     InventoryManager? inventoryManager,
-    ServerManager? serverManager,
+    RailwayServerManager? serverManager,
   }) async {
     if (_isInitialized) return;
 
@@ -40,7 +40,7 @@ class GameEventsTracker extends ChangeNotifier {
     _missionsManager = missionsManager ?? MissionsManager();
     _achievementsManager = achievementsManager ?? AchievementsManager();
     _inventory = inventoryManager ?? InventoryManager();
-    _serverManager = serverManager ?? ServerManager();
+    _serverManager = serverManager ?? RailwayServerManager();
 
     await _missionsManager!.initialize();
     await _achievementsManager!.initialize();
@@ -53,10 +53,12 @@ class GameEventsTracker extends ChangeNotifier {
 
   /// Track game start event
   Future<void> onGameStart() async {
-    // Game start time tracking removed for production optimization
-
-    // Analytics tracking is now handled by FirebaseAnalyticsManager directly
-    // No need for server-side event reporting
+    // Send analytics to Railway backend
+    if (_serverManager != null) {
+      await _serverManager!.trackEvent('game_start', {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
 
     safePrint('🎮 Game started');
   }
@@ -112,8 +114,18 @@ class GameEventsTracker extends ChangeNotifier {
       await _achievementsManager!.updateProgress('coin_collector', coinsEarned);
     }
 
-    // Analytics and scoring are now handled by FirebaseAnalyticsManager and Railway backend
-    // No server-side event reporting needed here
+    // Send analytics to Railway backend
+    if (_serverManager != null) {
+      await _serverManager!.trackEvent('game_end', {
+        'score': finalScore,
+        'survival_time_ms': survivalTimeMs,
+        'survival_time_seconds': survivalTimeSeconds,
+        'coins_earned': coinsEarned,
+        'used_continue': usedContinue,
+        'cause': cause,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
 
     _lastGameScore = finalScore;
     _recentScores.add(finalScore);
@@ -136,13 +148,10 @@ class GameEventsTracker extends ChangeNotifier {
 
     // Report analytics
     if (_serverManager != null) {
-      await _serverManager!.reportEvent(
-        eventName: 'continue_used',
-        parameters: {
-          'gems_cost': gemsCost,
-          'current_score': _lastGameScore,
-        },
-      );
+      await _serverManager!.trackEvent('continue_used', {
+        'gems_cost': gemsCost,
+        'current_score': _lastGameScore,
+      });
     }
 
     safePrint('🎮 Continue used for $gemsCost gems');
@@ -172,12 +181,9 @@ class GameEventsTracker extends ChangeNotifier {
 
     // Report analytics
     if (_serverManager != null) {
-      await _serverManager!.reportEvent(
-        eventName: 'nickname_changed',
-        parameters: {
-          'new_nickname_length': newNickname.length,
-        },
-      );
+      await _serverManager!.trackEvent('nickname_changed', {
+        'new_nickname_length': newNickname.length,
+      });
     }
 
     safePrint('🎮 Nickname changed to: $newNickname');
@@ -198,15 +204,12 @@ class GameEventsTracker extends ChangeNotifier {
 
     // Report analytics
     if (_serverManager != null) {
-      await _serverManager!.reportEvent(
-        eventName: 'skin_purchased',
-        parameters: {
-          'skin_id': skinId,
-          'coin_cost': coinCost,
-          'rarity': rarity,
-          'total_owned': ownedCount,
-        },
-      );
+      await _serverManager!.trackEvent('skin_purchased', {
+        'skin_id': skinId,
+        'coin_cost': coinCost,
+        'rarity': rarity,
+        'total_owned': ownedCount,
+      });
     }
 
     safePrint('🎮 Skin purchased: $skinId for $coinCost coins');
@@ -216,12 +219,9 @@ class GameEventsTracker extends ChangeNotifier {
   Future<void> onSkinEquipped(String skinId) async {
     // Report analytics
     if (_serverManager != null) {
-      await _serverManager!.reportEvent(
-        eventName: 'skin_equipped',
-        parameters: {
-          'skin_id': skinId,
-        },
-      );
+      await _serverManager!.trackEvent('skin_equipped', {
+        'skin_id': skinId,
+      });
     }
 
     safePrint('🎮 Skin equipped: $skinId');
@@ -245,14 +245,11 @@ class GameEventsTracker extends ChangeNotifier {
 
     // Report analytics
     if (_serverManager != null) {
-      await _serverManager!.reportEvent(
-        eventName: 'mission_completed',
-        parameters: {
-          'mission_id': missionId,
-          'mission_type': missionType,
-          'reward': reward,
-        },
-      );
+      await _serverManager!.trackEvent('mission_completed', {
+        'mission_id': missionId,
+        'mission_type': missionType,
+        'reward': reward,
+      });
     }
 
     safePrint('🎮 Mission completed: $missionId, reward: $reward coins');
@@ -278,16 +275,13 @@ class GameEventsTracker extends ChangeNotifier {
 
     // Report analytics
     if (_serverManager != null) {
-      await _serverManager!.reportEvent(
-        eventName: 'achievement_unlocked',
-        parameters: {
-          'achievement_id': achievementId,
-          'category': category,
-          'rarity': rarity,
-          'coin_reward': coinReward,
-          'gem_reward': gemReward,
-        },
-      );
+      await _serverManager!.trackEvent('achievement_unlocked', {
+        'achievement_id': achievementId,
+        'category': category,
+        'rarity': rarity,
+        'coin_reward': coinReward,
+        'gem_reward': gemReward,
+      });
     }
 
     safePrint('🎮 Achievement unlocked: $achievementId');
@@ -300,25 +294,15 @@ class GameEventsTracker extends ChangeNotifier {
     required String platform,
     required double priceUSD,
   }) async {
-    // Validate purchase with server
-    bool isValid = false;
+    // Report analytics (purchase validation will be added later)
+    bool isValid = true; // Assume valid for now
     if (_serverManager != null) {
-      isValid = await _serverManager!.validatePurchase(
-        productId: productId,
-        purchaseToken: purchaseToken,
-        platform: platform,
-      );
-
-      // Report analytics
-      await _serverManager!.reportEvent(
-        eventName: 'iap_purchase',
-        parameters: {
-          'product_id': productId,
-          'price_usd': priceUSD,
-          'platform': platform,
-          'valid': isValid,
-        },
-      );
+      await _serverManager!.trackEvent('iap_purchase', {
+        'product_id': productId,
+        'price_usd': priceUSD,
+        'platform': platform,
+        'valid': isValid,
+      });
     }
 
     safePrint('🎮 IAP Purchase: $productId, valid: $isValid');

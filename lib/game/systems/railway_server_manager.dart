@@ -758,6 +758,7 @@ class RailwayServerManager extends ChangeNotifier {
     try {
       final requestData = {
         'eventName': eventName,
+        'eventCategory': 'gameplay', // Default category for all events
         'parameters': parameters,
       };
 

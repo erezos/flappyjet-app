@@ -67,7 +67,7 @@ dependencies:
   timezone: ^0.9.4
   
   # Push Notifications (Android only)
-  firebase_messaging: ^14.7.10
+  firebase_messaging: ^15.2.10
   
   # Social Sharing
   share_plus: ^7.2.2
