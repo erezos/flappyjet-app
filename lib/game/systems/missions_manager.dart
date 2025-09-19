@@ -679,7 +679,7 @@ class MissionsManager extends ChangeNotifier {
     return 3; // Default fallback
   }
 
-  /// Claim mission reward and remove from list
+  /// Claim mission reward and remove from list (optimized with batching)
   Future<bool> claimMissionReward(String missionId) async {
     try {
       final missionIndex = _dailyMissions.indexWhere((m) => m.id == missionId);
@@ -699,26 +699,40 @@ class MissionsManager extends ChangeNotifier {
         return false;
       }
       
-      // Grant reward
+      // Batch all operations for better performance
+      final batchOperations = <Future>[];
+      
+      // 1. Grant reward (async but don't wait)
       final inventory = InventoryManager();
-      await inventory.grantSoftCurrency(mission.reward);
-      safePrint('🎯 💰 Mission reward claimed: ${mission.reward} coins for "${mission.title}"');
-      
-      // 🏆 CRITICAL FIX: Track mission completion for Perfectionist achievement
-      final gameEventsTracker = GameEventsTracker();
-      await gameEventsTracker.onMissionCompleted(
-        missionId: mission.id,
-        missionType: mission.type.toString(),
-        reward: mission.reward,
+      batchOperations.add(
+        inventory.grantSoftCurrency(mission.reward).then((_) {
+          safePrint('🎯 💰 Mission reward claimed: ${mission.reward} coins for "${mission.title}"');
+        })
       );
-      safePrint('🎯 🏆 Mission completion tracked for achievements: ${mission.title}');
       
-      // Mark as claimed and remove from list
+      // 2. Track mission completion for achievements (async but don't wait)
+      final gameEventsTracker = GameEventsTracker();
+      batchOperations.add(
+        gameEventsTracker.onMissionCompleted(
+          missionId: mission.id,
+          missionType: mission.type.toString(),
+          reward: mission.reward,
+        ).then((_) {
+          safePrint('🎯 🏆 Mission completion tracked for achievements: ${mission.title}');
+        })
+      );
+      
+      // 3. Update local state immediately (synchronous)
       _dailyMissions.removeAt(missionIndex);
       
-      // Save updated missions
-      await _saveDailyMissions();
+      // 4. Save missions to storage (async but don't wait)
+      batchOperations.add(_saveDailyMissions());
+      
+      // 5. Update UI immediately (synchronous)
       notifyListeners();
+      
+      // Wait for all batch operations to complete in parallel
+      await Future.wait(batchOperations, eagerError: false);
       
       return true;
     } catch (e) {

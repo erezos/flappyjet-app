@@ -42,6 +42,7 @@ class CoinsStore extends StatelessWidget {
           final optimalAspectRatio = (cardWidth / cardHeight).clamp(0.7, 1.2);
 
           return GridView.builder(
+            shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,

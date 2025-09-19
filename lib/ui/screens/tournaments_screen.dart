@@ -22,7 +22,7 @@ class _TournamentsScreenState extends State<TournamentsScreen>
   late final TabController _tabController;
   late final AnimationController _backgroundController;
 
-  final List<String> _tabs = ['Leaderboard', 'Weekly Contest', 'Personal'];
+  final List<String> _tabs = ['Leaderboard', 'Weekly', 'Personal'];
 
   @override
   void initState() {
@@ -243,11 +243,13 @@ class _TournamentsScreenState extends State<TournamentsScreen>
                 .map(
                   (tab) => Tab(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
                         tab,
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                   ),

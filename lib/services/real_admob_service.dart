@@ -18,7 +18,7 @@ class RealAdMobService {
 
   // 🎯 Production Ad Unit IDs from AdMob Console
   static const String _rewardedAdUnitIdAndroid = 'ca-app-pub-9307424222926115/6438263608';
-  static const String _rewardedAdUnitIdIOS = 'ca-app-pub-9307424222926115/3324326745';
+  static const String _rewardedAdUnitIdIOS = 'ca-app-pub-9307424222926115/8013454758';
   
   // 🧪 Test Ad Unit IDs for development
   static const String _testRewardedAdUnitIdAndroid = 'ca-app-pub-3940256099942544/5224354917';

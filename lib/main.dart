@@ -8,9 +8,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'ui/screens/homepage.dart';
 
-// Platform optimization system
-import 'core/platform_optimizer.dart';
-import 'core/platform_performance_profiles.dart';
+// Platform optimization system - Now using AAA adaptive quality system
 import 'core/debug_manager.dart';
 import 'core/debug_logger.dart';
 
@@ -31,10 +29,12 @@ import 'game/systems/social_sharing_manager.dart';
 import 'game/systems/local_notification_manager.dart';
 import 'game/systems/rate_us_manager.dart';
 import 'game/systems/notification_permission_manager.dart';
-import 'game/systems/railway_server_manager.dart';
+import 'core/network/network_manager.dart';
 import 'ui/widgets/daily_streak/daily_streak_integration.dart';
 
-import 'services/player_auth_service.dart';
+// AuthManager removed - functionality moved to PlayerIdentityManager
+import 'core/data/game_data_manager.dart';
+import 'core/analytics/user_analytics_manager.dart';
 import 'services/fcm_service.dart';
 
 void main() async {
@@ -78,9 +78,7 @@ void main() async {
     isFirebaseEnabled = false;
   }
 
-  // Initialize platform optimization system
-  PlatformMetrics.logPlatformInfo();
-  PlatformPerformanceProfiles.applyToGameSystems();
+  // AAA Performance system now handled in-game via AdaptiveQualityManager
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -135,7 +133,10 @@ class _GameLauncherState extends State<GameLauncher> with TickerProviderStateMix
   late InventoryManager _inventory;
   late LivesManager _lives;
   late PlayerIdentityManager _playerIdentity;
-  late PlayerAuthService _playerAuth;
+  // AuthManager functionality moved to PlayerIdentityManager
+  late NetworkManager _networkManager;
+  late GameDataManager _gameDataManager;
+  late UserAnalyticsManager _userAnalytics;
   late LeaderboardManager _leaderboard;
   late GlobalLeaderboardService _globalLeaderboard;
   late RemoteConfigManager _remoteConfig;
@@ -200,9 +201,10 @@ class _GameLauncherState extends State<GameLauncher> with TickerProviderStateMix
     _lives = LivesManager();
     _monetization = MonetizationManager();
     _playerIdentity = PlayerIdentityManager();
-    _playerAuth = PlayerAuthService(
-      baseUrl: 'https://flappyjet-backend-production.up.railway.app',
-    );
+    // Initialize new unified network systems (auth moved to PlayerIdentityManager)
+    _networkManager = NetworkManager();
+    _gameDataManager = GameDataManager();
+    _userAnalytics = UserAnalyticsManager();
     _leaderboard = LeaderboardManager();
     _globalLeaderboard = GlobalLeaderboardService();
     _remoteConfig = RemoteConfigManager();
@@ -290,32 +292,18 @@ class _GameLauncherState extends State<GameLauncher> with TickerProviderStateMix
           _loadingProgress = 0.15;
         });
 
-        // Register player with backend
-        final registrationResult = await _playerAuth.registerPlayer(
-          PlayerRegistrationData(
-            deviceId: _playerIdentity.deviceId,
-            nickname: _playerIdentity.playerName,
-            platform: _getPlatformString(),
-            appVersion: '1.3.3', // Updated version
-            countryCode: 'US', // Default to US, could be detected from locale
-            timezone: DateTime.now().timeZoneName,
-          ),
-        );
-
-        if (registrationResult.isSuccess) {
-          safePrint('🎯 Backend registration successful');
-          // PlayerIdentityManager should now be updated with backend player ID
+        // Initialize unified systems
+        await _networkManager.initialize();
+        await _gameDataManager.initialize();
+        await _userAnalytics.initialize();
+        
+        // Authenticate player with backend (using PlayerIdentityManager)
+        final authResult = await _playerIdentity.authenticatePlayer(_playerIdentity.playerName);
+        
+        if (authResult) {
+          safePrint('🎯 ✅ Unified authentication successful');
         } else {
-          safePrint(
-            '🎯 Backend registration failed: ${registrationResult.error}',
-          );
-          // Try login instead (in case player already exists)
-          final loginResult = await _playerAuth.loginPlayer(
-            _playerIdentity.deviceId,
-          );
-          if (loginResult.isSuccess) {
-            safePrint('🎯 Backend login successful after failed registration');
-          }
+          safePrint('🎯 ⚠️ Authentication failed - will retry later');
         }
       } else {
         safePrint(
@@ -326,41 +314,24 @@ class _GameLauncherState extends State<GameLauncher> with TickerProviderStateMix
         if (_playerIdentity.authToken.isEmpty) {
           safePrint('🎯 No auth token found - attempting login');
 
-          setState(() {
-            _loadingText = 'Authenticating with game servers...';
-            _loadingProgress = 0.15;
-          });
+        setState(() {
+          _loadingText = 'Authenticating with game servers...';
+          _loadingProgress = 0.15;
+        });
 
-          // Try to login with existing device ID
-          final loginResult = await _playerAuth.loginPlayer(
-            _playerIdentity.deviceId,
-          );
-          if (loginResult.isSuccess) {
-            safePrint('🎯 Backend login successful for returning user');
-          } else {
-            safePrint('🎯 Backend login failed: ${loginResult.error}');
-            // If login fails, try registration (device might not be in backend)
-            final registrationResult = await _playerAuth.registerPlayer(
-              PlayerRegistrationData(
-                deviceId: _playerIdentity.deviceId,
-                nickname: _playerIdentity.playerName,
-                platform: _getPlatformString(),
-                appVersion: '1.3.3', // Updated version
-                countryCode: 'US',
-                timezone: DateTime.now().timeZoneName,
-              ),
-            );
-
-            if (registrationResult.isSuccess) {
-              safePrint(
-                '🎯 Backend registration successful for returning user',
-              );
-            } else {
-              safePrint(
-                '🎯 Backend registration also failed: ${registrationResult.error}',
-              );
-            }
-          }
+        // Initialize unified systems for returning user
+        await _networkManager.initialize();
+        await _gameDataManager.initialize();
+        await _userAnalytics.initialize();
+        
+        // Authenticate returning player (using PlayerIdentityManager)
+        final authResult = await _playerIdentity.authenticatePlayer(_playerIdentity.playerName);
+        
+        if (authResult) {
+          safePrint('🎯 ✅ Returning user authentication successful');
+        } else {
+          safePrint('🎯 ⚠️ Returning user authentication failed - will retry later');
+        }
         } else {
           safePrint(
             '🎯 Auth token exists: ${_playerIdentity.authToken.substring(0, math.min(20, _playerIdentity.authToken.length))}...',
@@ -368,14 +339,7 @@ class _GameLauncherState extends State<GameLauncher> with TickerProviderStateMix
         }
       }
 
-      // 🚂 CRITICAL: Initialize RailwayServerManager after authentication
-      try {
-        final railwayManager = RailwayServerManager();
-        await railwayManager.initialize();
-        safePrint('🚂 RailwayServerManager initialized successfully');
-      } catch (e) {
-        safePrint('🚂 ⚠️ RailwayServerManager initialization failed: $e');
-      }
+      // Network and auth systems already initialized above
 
       setState(() => _loadingProgress = 0.2);
 

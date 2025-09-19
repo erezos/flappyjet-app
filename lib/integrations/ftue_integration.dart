@@ -4,6 +4,8 @@ library;
 
 import 'package:flutter/material.dart';
 import '../game/systems/ftue_manager.dart';
+import '../game/systems/inventory_manager.dart';
+import '../game/systems/auto_refill_manager.dart';
 import '../ui/widgets/ftue/ftue_popup.dart';
 import '../core/debug_logger.dart';
 
@@ -25,63 +27,70 @@ class FTUEIntegration {
   
   /// Check if we should show popup after returning to menu
   static bool shouldShowPopup() {
-    return _ftueManager.shouldShowPopup1 || _ftueManager.shouldShowPopup2;
+    final shouldShow = _ftueManager.shouldShowGiftPopup;
+    safePrint('🎮 FTUE shouldShowPopup check: isFirstSession=${_ftueManager.isFirstSession}, gamesPlayed=${_ftueManager.gamesPlayed}, giftPopupShown=${_ftueManager.giftPopupShown}, result=$shouldShow');
+    return shouldShow;
   }
+  
+  /// Internal flag to prevent duplicate popup checks
+  static bool _popupCheckInProgress = false;
   
   /// Show appropriate FTUE popup based on game count
   static Future<void> showFTUEPopup(BuildContext context) async {
     if (!_ftueManager.isInitialized) return;
     
+    // Prevent duplicate popup checks
+    if (_popupCheckInProgress) {
+      safePrint('🎮 FTUE popup check already in progress, skipping duplicate');
+      return;
+    }
+    
     try {
-      if (_ftueManager.shouldShowPopup1) {
-        await _showPopup1(context);
-      } else if (_ftueManager.shouldShowPopup2) {
-        await _showPopup2(context);
+      _popupCheckInProgress = true;
+      
+      if (_ftueManager.shouldShowGiftPopup) {
+        await _showGiftPopup(context);
       }
     } catch (e) {
       safePrint('❌ Error showing FTUE popup: $e');
+    } finally {
+      _popupCheckInProgress = false;
     }
   }
   
-  /// Show first encouragement popup
-  static Future<void> _showPopup1(BuildContext context) async {
-    safePrint('🎮 Showing FTUE popup 1 - First game encouragement');
+  /// Show gift popup with 3-day auto-refill booster
+  static Future<void> _showGiftPopup(BuildContext context) async {
+    safePrint('🎮 Showing FTUE gift popup - 3-day auto-refill booster');
+    
+    // Mark popup as shown IMMEDIATELY to prevent duplicates
+    _ftueManager.markGiftPopupShown();
+    safePrint('🎮 FTUE gift popup marked as shown');
     
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => FTUEPopup(
-        title: 'Great Start, Champ!',
-        message: _ftueManager.getPopup1Message(),
-        isSecondPopup: false,
-        onClose: () {
-          Navigator.of(context).pop();
-          _ftueManager.markPopup1Shown();
+        title: _ftueManager.getGiftPopupTitle(),
+        message: _ftueManager.getGiftPopupMessage(),
+        isGiftPopup: true,
+        onClose: () async {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+          
+          // Grant 3-day auto-refill booster
+          try {
+            final inventory = InventoryManager();
+            await inventory.activateAutoRefill(AutoRefillDuration.threeDays);
+            safePrint('🎁 3-day auto-refill booster granted to new player!');
+          } catch (e) {
+            safePrint('❌ Error granting auto-refill booster: $e');
+          }
         },
       ),
     );
   }
   
-  /// Show second graduation popup
-  static Future<void> _showPopup2(BuildContext context) async {
-    safePrint('🎮 Showing FTUE popup 2 - Graduation message');
-    
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => FTUEPopup(
-        title: 'Ace Pilot!',
-        message: _ftueManager.getPopup2Message(),
-        isSecondPopup: true,
-        onClose: () {
-          Navigator.of(context).pop();
-          _ftueManager.markPopup2Shown();
-          // Complete first session after second popup
-          _ftueManager.completeFirstSession();
-        },
-      ),
-    );
-  }
   
   /// Reset FTUE for testing (debug only)
   static Future<void> resetForTesting() async {

@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 1.4.6+16
+version: 1.4.7+17
 
 environment:
   sdk: ^3.8.0
@@ -38,10 +38,12 @@ dependencies:
   cloud_firestore: ^5.6.3
   firebase_auth: ^5.4.2
   firebase_performance: ^0.10.0+8
+  firebase_app_installations: ^0.3.1+1
   google_sign_in: ^6.2.2
   http: ^1.3.0
   intl: ^0.20.2
   json_annotation: ^4.9.0
+  uuid: ^4.5.1
   
   # UI & Animations
   flutter_animate: ^4.5.2
@@ -84,10 +86,10 @@ dev_dependencies:
   hive_generator: ^2.0.1
   flutter_launcher_icons: ^0.14.4
   test: ^1.25.15
+  mockito: ^5.4.4
   integration_test:
     sdk: flutter
   # Enhanced testing framework for leaderboard TDD
-  mockito: ^5.4.4
   json_serializable: ^6.8.0
   # WebSocket and HTTP testing
   web_socket_channel: ^3.0.3

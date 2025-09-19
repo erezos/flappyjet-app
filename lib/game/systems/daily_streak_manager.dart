@@ -305,7 +305,16 @@ class DailyStreakManager extends ChangeNotifier {
     }
   }
   
-  /// Claim today's reward
+  /// 🔄 Restore streak from backend (for user restoration after reinstall)
+  Future<void> restoreStreak(int streak) async {
+    _currentStreak = streak;
+    _streakStartDate = DateTime.now().subtract(Duration(days: streak));
+    await _persistData();
+    notifyListeners();
+    safePrint('🔥 Daily streak restored: $streak days');
+  }
+
+  /// Claim today's reward (optimized with batching)
   Future<bool> claimTodayReward() async {
     safePrint('🎯 Daily Streak Claim Debug: streak=$_currentStreak, claimedToday=$_claimedToday, state=${currentState.name}');
     
@@ -316,14 +325,14 @@ class DailyStreakManager extends ChangeNotifier {
     
     final reward = todayReward;
     
-    // Apply the reward
+    // Apply the reward first (this is the critical operation)
     final success = await _applyReward(reward);
     if (!success) {
       safePrint('❌ Failed to apply reward: ${reward.description}');
       return false;
     }
     
-    // Update streak
+    // Update local state immediately (synchronous operations)
     _currentStreak++;
     _claimedToday = true;
     _lastClaimDate = DateTime.now();
@@ -339,11 +348,20 @@ class DailyStreakManager extends ChangeNotifier {
       _streakStartDate = DateTime.now();
     }
     
-    await _persistData();
+    // Update UI immediately
     notifyListeners();
     
-    // Cancel any existing daily streak reminder since it was claimed
-    LocalNotificationManager().cancelNotification(NotificationType.dailyStreakReminder);
+    // Batch background operations (don't wait for these)
+    final backgroundOperations = <Future>[
+      _persistData(),
+      LocalNotificationManager().cancelNotification(NotificationType.dailyStreakReminder),
+    ];
+    
+    // Execute background operations in parallel without blocking UI
+    Future.wait(backgroundOperations, eagerError: false).catchError((e) {
+      safePrint('⚠️ Daily streak background operations error: $e');
+      return <dynamic>[]; // Return empty list for error handling
+    });
     
     safePrint('✅ Daily streak reward claimed: ${reward.description} (streak: $_currentStreak)');
     return true;

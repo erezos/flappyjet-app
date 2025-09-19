@@ -89,6 +89,8 @@ class _HomepageState extends State<Homepage>
       case AppLifecycleState.resumed:
         // App came back to foreground - resume audio
         _audioManager.handleAppLifecycleChange(true);
+        // Check auto-refill when app resumes
+        _checkAutoRefill();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -112,6 +114,9 @@ class _HomepageState extends State<Homepage>
       // CRITICAL FIX: Mark returned FIRST, then handle route change
       _audioManager.markReturnedToHomepage();
       _audioManager.handleRouteChange(true);
+      
+      // 🔄 Check auto-refill first (immediate hearts refill)
+      _checkAutoRefill();
       
       // 🎮 Check for FTUE popups when returning from game
       _checkFTUEPopups();
@@ -205,6 +210,24 @@ class _HomepageState extends State<Homepage>
     }
   }
 
+  /// Check and trigger auto-refill when returning to homepage
+  Future<void> _checkAutoRefill() async {
+    if (!mounted) return;
+    
+    try {
+      final inventory = InventoryManager();
+      final wasTriggered = await inventory.checkAndTriggerAutoRefill();
+      
+      if (wasTriggered && mounted) {
+        // Show subtle animation or notification that hearts were refilled
+        safePrint('🔄 Auto-refill triggered - hearts refilled!');
+        // Could add a subtle UI animation here in the future
+      }
+    } catch (e) {
+      safePrint('Error checking auto-refill: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -216,50 +239,65 @@ class _HomepageState extends State<Homepage>
             // === BACKGROUND LAYER ===
             _buildSkyBackground(),
             // Clouds now part of background image - no need for extra layer
-            // === OVERLAY STATUS (top-left coins, top-right hearts) ===
+            // === OVERLAY STATUS (top-left coins, top-right hearts) - RESPONSIVE ===
             SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Left side: Coins + Daily Streak (progression indicators)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenWidth = constraints.maxWidth;
+                  final isTablet = screenWidth > 600;
+                  final isLargeTablet = screenWidth > 900;
+                  
+                  return Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isLargeTablet ? 24 : isTablet ? 18 : 12,
+                      vertical: isTablet ? 12 : 6,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildCoinsChipTopLeft(),
-                        const SizedBox(width: 8),
-                        _buildDailyStreakNotification(),
+                        // Left side: Coins + Daily Streak (progression indicators)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildCoinsChipTopLeft(isTablet, isLargeTablet),
+                            SizedBox(width: isTablet ? 12 : 8),
+                            _buildDailyStreakNotification(isTablet, isLargeTablet),
+                          ],
+                        ),
+                        // Right side: Hearts (lives)
+                        _buildHeartsTopRight(isTablet, isLargeTablet)
                       ],
                     ),
-                    // Right side: Hearts (lives)
-                    _buildHeartsTopRight()
-                  ],
-                ),
+                  );
+                },
               ),
             ),
 
-            // === CONTENT LAYER ===
+            // === CONTENT LAYER - RESPONSIVE ===
             SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenWidth = constraints.maxWidth;
+                  final isTablet = screenWidth > 600;
+                  final isLargeTablet = screenWidth > 900;
+                  
+                  return Column(
+                    children: [
+                      SizedBox(height: isLargeTablet ? 60 : isTablet ? 50 : 40),
 
-                  // === FLAPPY JET TITLE ===
-                  _buildGameTitle(),
+                      // === FLAPPY JET TITLE - RESPONSIVE ===
+                      _buildGameTitle(isTablet, isLargeTablet),
 
-                  const SizedBox(height: 40),
+                      SizedBox(height: isLargeTablet ? 60 : isTablet ? 50 : 40),
 
-                  // === CUTE JET CHARACTER === (slightly reduced flex to guarantee buttons fit)
-                  Expanded(flex: 2, child: _buildJetCharacter()),
+                      // === CUTE JET CHARACTER - RESPONSIVE ===
+                      Expanded(flex: 2, child: _buildJetCharacter(isTablet, isLargeTablet)),
 
-                  // === BUTTON SECTION ===
-                  // Fill remaining space; internally we size buttons to always fit without scroll
-                  Expanded(flex: 5, child: _buildButtonSection()),
-                ],
+                      // === BUTTON SECTION - RESPONSIVE ===
+                      Expanded(flex: 5, child: _buildButtonSection()),
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -284,35 +322,44 @@ class _HomepageState extends State<Homepage>
 
   // Cloud layer removed - clouds now part of background image
 
-  Widget _buildGameTitle() {
+  Widget _buildGameTitle(bool isTablet, bool isLargeTablet) {
+    final titleWidth = isLargeTablet ? 600.0 : isTablet ? 550.0 : 450.0;
+    final titleHeight = isLargeTablet ? 170.0 : isTablet ? 150.0 : 130.0;
+    final containerHeight = isLargeTablet ? 200.0 : isTablet ? 180.0 : 140.0;
+    
     return SizedBox(
       width: double.infinity,
-      height: 140,
+      height: containerHeight,
       child: Center(
         child: Image.asset(
           'assets/images/homepage/flappy_jet_title.png',
-          width: 450,
-          height: 130,
+          width: titleWidth,
+          height: titleHeight,
           fit: BoxFit.contain,
         ),
       ),
     );
   }
 
-  Widget _buildJetCharacter() {
+  Widget _buildJetCharacter(bool isTablet, bool isLargeTablet) {
+    final jetWidth = isLargeTablet ? 350.0 : isTablet ? 320.0 : 250.0;
+    final jetHeight = isLargeTablet ? 250.0 : isTablet ? 220.0 : 180.0;
+    final containerWidth = isLargeTablet ? 400.0 : isTablet ? 360.0 : 280.0;
+    final containerHeight = isLargeTablet ? 280.0 : isTablet ? 250.0 : 200.0;
+    
     return AnimatedBuilder(
       animation: _jetFloat,
       builder: (context, child) {
         return Transform.translate(
           offset: Offset(0, _jetFloat.value),
           child: SizedBox(
-            width: 280,
-            height: 200,
+            width: containerWidth,
+            height: containerHeight,
             child: Center(
               child: Image.asset(
                 'assets/images/homepage/cute_jet_character.png',
-                width: 250,
-                height: 180,
+                width: jetWidth,
+                height: jetHeight,
                 fit: BoxFit.contain,
               ),
             ),
@@ -409,12 +456,22 @@ class _HomepageState extends State<Homepage>
   }
 
   /// Build daily streak notification with badge
-  Widget _buildDailyStreakNotification() {
+  Widget _buildDailyStreakNotification(bool isTablet, bool isLargeTablet) {
+    final iconSize = isLargeTablet ? 24.0 : isTablet ? 22.0 : 18.0;
+    final fontSize = isLargeTablet ? 16.0 : isTablet ? 14.0 : 12.0;
+    final padding = isLargeTablet ? 14.0 : isTablet ? 12.0 : 10.0;
+    final verticalPadding = isLargeTablet ? 10.0 : isTablet ? 8.0 : 6.0;
+    final borderRadius = isLargeTablet ? 20.0 : isTablet ? 18.0 : 16.0;
+    final spacing = isLargeTablet ? 6.0 : isTablet ? 5.0 : 4.0;
+    final notificationDotSize = isLargeTablet ? 8.0 : isTablet ? 7.0 : 6.0;
+    // borderWidth will be calculated inside the builder where hasNotification is available
+    
     return ListenableBuilder(
       listenable: DailyStreakIntegration.streakManager,
       builder: (context, child) {
         final hasNotification = DailyStreakIntegration.hasNotification;
         final currentStreak = DailyStreakIntegration.streakManager.currentStreak;
+        final borderWidth = hasNotification ? (isTablet ? 2.5 : 2.0) : 1.0;
         
         if (!hasNotification && currentStreak == 0) {
           return const SizedBox.shrink();
@@ -423,10 +480,10 @@ class _HomepageState extends State<Homepage>
         return Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(borderRadius),
             onTap: () => _showDailyStreakPopupAlways(context),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: padding, vertical: verticalPadding),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: hasNotification
@@ -439,19 +496,19 @@ class _HomepageState extends State<Homepage>
                           Colors.blue.withValues(alpha: 0.1),
                         ],
                 ),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(borderRadius),
                 border: Border.all(
                   color: hasNotification
                       ? Colors.amber.withValues(alpha: 0.8)
                       : Colors.blue.withValues(alpha: 0.5),
-                  width: hasNotification ? 2 : 1,
+                  width: borderWidth,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: hasNotification
                         ? Colors.amber.withValues(alpha: 0.4)
                         : Colors.blue.withValues(alpha: 0.2),
-                    blurRadius: hasNotification ? 8 : 4,
+                    blurRadius: hasNotification ? (isTablet ? 10 : 8) : 4,
                     spreadRadius: hasNotification ? 1 : 0,
                   ),
                 ],
@@ -463,16 +520,16 @@ class _HomepageState extends State<Homepage>
                     children: [
                       Image.asset(
                         'assets/images/icons/calendar.png',
-                        width: 18,
-                        height: 18,
+                        width: iconSize,
+                        height: iconSize,
                       ),
                       if (hasNotification)
                         Positioned(
                           top: -2,
                           right: -2,
                           child: Container(
-                            width: 6,
-                            height: 6,
+                            width: notificationDotSize,
+                            height: notificationDotSize,
                             decoration: const BoxDecoration(
                               color: Colors.red,
                               shape: BoxShape.circle,
@@ -482,12 +539,12 @@ class _HomepageState extends State<Homepage>
                     ],
                   ),
                   if (currentStreak > 0) ...[
-                    const SizedBox(width: 4),
+                    SizedBox(width: spacing),
                     Text(
                       '$currentStreak',
                       style: TextStyle(
                         color: hasNotification ? Colors.amber : Colors.white70,
-                        fontSize: 12,
+                        fontSize: fontSize,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -502,7 +559,11 @@ class _HomepageState extends State<Homepage>
   }
 
   // Bottom coin counter removed (replaced with top status bar)
-  Widget _buildHeartsTopRight() {
+  Widget _buildHeartsTopRight(bool isTablet, bool isLargeTablet) {
+    final heartSize = isLargeTablet ? 26.0 : isTablet ? 22.0 : 18.0;
+    final heartSpacing = isLargeTablet ? 10.0 : isTablet ? 8.0 : 6.0;
+    final timerSpacing = isLargeTablet ? 6.0 : isTablet ? 4.0 : 2.0;
+    
     return ValueListenableBuilder<int>(
       valueListenable: LivesManager().livesListenable,
       builder: (context, count, _) {
@@ -519,10 +580,10 @@ class _HomepageState extends State<Homepage>
               children: List.generate(maxLives, (i) {
                 final filled = i < count;
                 return Padding(
-                  padding: const EdgeInsets.only(left: 6),
+                  padding: EdgeInsets.only(left: heartSpacing),
                   child: Icon(
                     Icons.favorite,
-                    size: 18,
+                    size: heartSize,
                     color: filled
                         ? Colors.redAccent
                         : Colors.redAccent.withValues(alpha: 0.25),
@@ -533,7 +594,7 @@ class _HomepageState extends State<Homepage>
 
             // Regeneration timer (only show if not at max hearts)
             if (count < maxLives) ...[
-              const SizedBox(height: 2),
+              SizedBox(height: timerSpacing),
               _HeartRegenTimer(),
             ],
           ],
@@ -542,57 +603,66 @@ class _HomepageState extends State<Homepage>
     );
   }
 
-  Widget _buildCoinsChipTopLeft() {
+  Widget _buildCoinsChipTopLeft(bool isTablet, bool isLargeTablet) {
+    final iconSize = isLargeTablet ? 22.0 : isTablet ? 20.0 : 16.0;
+    final fontSize = isLargeTablet ? 18.0 : isTablet ? 16.0 : 13.0;
+    final padding = isLargeTablet ? 16.0 : isTablet ? 14.0 : 10.0;
+    final verticalPadding = isLargeTablet ? 10.0 : isTablet ? 8.0 : 6.0;
+    final borderRadius = isLargeTablet ? 24.0 : isTablet ? 22.0 : 18.0;
+    final spacing = isLargeTablet ? 10.0 : isTablet ? 8.0 : 6.0;
+    final dividerSpacing = isLargeTablet ? 16.0 : isTablet ? 14.0 : 12.0;
+    final dividerHeight = isLargeTablet ? 20.0 : isTablet ? 18.0 : 16.0;
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: padding, vertical: verticalPadding),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Coins
-          const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-          const SizedBox(width: 6),
+          Icon(Icons.monetization_on, color: Colors.amber, size: iconSize),
+          SizedBox(width: spacing),
           ValueListenableBuilder<int>(
             valueListenable: _inventory.softCurrencyNotifier,
             builder: (context, _, __) {
               return Text(
                 _numFmt.format(_inventory.softCurrency),
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
-                  fontSize: 13,
+                  fontSize: fontSize,
                 ),
               );
             },
           ),
 
           // Divider
-          const SizedBox(width: 12),
+          SizedBox(width: dividerSpacing),
           Container(
             width: 1,
-            height: 16,
+            height: dividerHeight,
             color: Colors.white.withValues(alpha: 0.3),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: dividerSpacing),
 
           // Gems - Beautiful asset gem icon
-          const Gem3DIcon(
-            size: 16,
+          Gem3DIcon(
+            size: iconSize,
             // Using beautiful asset image
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: spacing),
           ValueListenableBuilder<int>(
             valueListenable: _inventory.gemsNotifier,
             builder: (context, _, __) {
               return Text(
                 _numFmt.format(_inventory.gems),
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
-                  fontSize: 13,
+                  fontSize: fontSize,
                 ),
               );
             },

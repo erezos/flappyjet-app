@@ -84,8 +84,8 @@ class IAPReceiptValidator {
   /// Validate Apple App Store receipt
   Future<ValidationResult> _validateAppleReceipt(PurchaseDetails purchaseDetails) async {
     if (_appleSharedSecret == null) {
-      safePrint('🔐 ⚠️ Apple shared secret not configured, skipping validation');
-      return ValidationResult.success({'status': 'skipped'}, 'config_missing');
+      safePrint('🔐 ❌ Apple shared secret not configured - validation required for App Store');
+      return ValidationResult.failure('Apple shared secret not configured', 'config_missing');
     }
 
     try {

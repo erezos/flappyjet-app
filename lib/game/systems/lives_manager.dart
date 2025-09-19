@@ -268,4 +268,23 @@ class LivesManager extends ChangeNotifier {
     final remaining = nextRegenMs - nowMs;
     return remaining > 0 ? (remaining / 1000).ceil() : 0;
   }
+
+  /// 🔄 Restore hearts from backend (for user restoration after reinstall)
+  Future<void> restoreHearts(int hearts) async {
+    final currentMaxLives = maxLives;
+    _livesNotifier.value = hearts.clamp(0, currentMaxLives);
+    
+    int? nextRegenMs;
+    if (hearts >= currentMaxLives) {
+      nextRegenMs = null;
+    } else {
+      // Start regeneration timer
+      nextRegenMs = DateTime.now().millisecondsSinceEpoch + regenIntervalSeconds * 1000;
+    }
+    
+    await _persist(lives: _livesNotifier.value, nextRegenAtMs: nextRegenMs);
+    _startTicker();
+    notifyListeners();
+    safePrint('💖 Hearts restored: ${_livesNotifier.value}');
+  }
 }

@@ -17,14 +17,17 @@ class FTUEManager extends ChangeNotifier {
   // SharedPreferences keys
   static const String _isFirstSessionKey = 'ftue_is_first_session';
   static const String _gamesPlayedKey = 'ftue_games_played';
+  static const String _giftPopupShownKey = 'ftue_gift_popup_shown';
+  
+  // Legacy keys for migration
   static const String _popup1ShownKey = 'ftue_popup1_shown';
   static const String _popup2ShownKey = 'ftue_popup2_shown';
 
   bool _isFirstSession = true;
   int _gamesPlayed = 0;
-  bool _popup1Shown = false;
-  bool _popup2Shown = false;
+  bool _giftPopupShown = false;
   bool _isInitialized = false;
+  
 
   // Debug override flag
   static bool _debugForceNewPlayer = false;
@@ -32,9 +35,10 @@ class FTUEManager extends ChangeNotifier {
   // Getters
   bool get isFirstSession => _isFirstSession || _debugForceNewPlayer;
   int get gamesPlayed => _gamesPlayed;
-  bool get shouldShowPopup1 => (_isFirstSession || _debugForceNewPlayer) && _gamesPlayed >= 1 && !_popup1Shown;
-  bool get shouldShowPopup2 => (_isFirstSession || _debugForceNewPlayer) && _gamesPlayed >= 2 && !_popup2Shown;
+  bool get giftPopupShown => _giftPopupShown;
+  bool get shouldShowGiftPopup => (_isFirstSession || _debugForceNewPlayer) && _gamesPlayed >= 1 && !_giftPopupShown;
   bool get isInitialized => _isInitialized;
+  
   
   /// Force FTUE for testing (debug only)
   static void setDebugForceNewPlayer(bool force) {
@@ -52,8 +56,18 @@ class FTUEManager extends ChangeNotifier {
       
       _isFirstSession = prefs.getBool(_isFirstSessionKey) ?? true;
       _gamesPlayed = prefs.getInt(_gamesPlayedKey) ?? 0;
-      _popup1Shown = prefs.getBool(_popup1ShownKey) ?? false;
-      _popup2Shown = prefs.getBool(_popup2ShownKey) ?? false;
+      _giftPopupShown = prefs.getBool(_giftPopupShownKey) ?? false;
+      
+      // Legacy migration: if old popups were shown, mark gift popup as shown
+      final popup1Shown = prefs.getBool(_popup1ShownKey) ?? false;
+      final popup2Shown = prefs.getBool(_popup2ShownKey) ?? false;
+      if (popup1Shown || popup2Shown) {
+        _giftPopupShown = true;
+        await prefs.setBool(_giftPopupShownKey, true);
+        // Clean up old keys
+        await prefs.remove(_popup1ShownKey);
+        await prefs.remove(_popup2ShownKey);
+      }
 
       _isInitialized = true;
       
@@ -81,39 +95,23 @@ class FTUEManager extends ChangeNotifier {
     }
   }
 
-  /// Mark popup 1 as shown
-  Future<void> markPopup1Shown() async {
+  /// Mark gift popup as shown
+  Future<void> markGiftPopupShown() async {
     if (!_isInitialized) return;
 
     try {
-      _popup1Shown = true;
+      _giftPopupShown = true;
       
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_popup1ShownKey, true);
+      await prefs.setBool(_giftPopupShownKey, true);
       
-      safePrint('🎮 FTUE popup 1 marked as shown');
+      safePrint('🎮 FTUE gift popup marked as shown');
       notifyListeners();
     } catch (e) {
-      safePrint('❌ FTUE mark popup 1 error: $e');
+      safePrint('❌ FTUE mark gift popup error: $e');
     }
   }
 
-  /// Mark popup 2 as shown
-  Future<void> markPopup2Shown() async {
-    if (!_isInitialized) return;
-
-    try {
-      _popup2Shown = true;
-      
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_popup2ShownKey, true);
-      
-      safePrint('🎮 FTUE popup 2 marked as shown');
-      notifyListeners();
-    } catch (e) {
-      safePrint('❌ FTUE mark popup 2 error: $e');
-    }
-  }
 
   /// Complete first session (user is no longer new)
   Future<void> completeFirstSession() async {
@@ -139,13 +137,13 @@ class FTUEManager extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(_isFirstSessionKey);
         await prefs.remove(_gamesPlayedKey);
+        await prefs.remove(_giftPopupShownKey);
         await prefs.remove(_popup1ShownKey);
         await prefs.remove(_popup2ShownKey);
         
         _isFirstSession = true;
         _gamesPlayed = 0;
-        _popup1Shown = false;
-        _popup2Shown = false;
+        _giftPopupShown = false;
         
         safePrint('🎮 FTUE reset for testing');
         notifyListeners();
@@ -155,13 +153,14 @@ class FTUEManager extends ChangeNotifier {
     }
   }
 
-  /// Get encouraging message for popup 1
-  String getPopup1Message() {
-    return "Great start, champ!\nYou're getting the hang of it. Ready for another flight?";
+  /// Get gift popup message
+  String getGiftPopupMessage() {
+    return "Amazing first flight, pilot!\n\nHere's a special gift to help you master the skies:\n\n✨ 3-Day Auto-Refill Booster ✨\n\nYour hearts will automatically refill every time you return to the menu. No waiting!";
   }
 
-  /// Get encouraging message for popup 2
-  String getPopup2Message() {
-    return "Ace pilot!\nYou've got the skills. From now on, you're flying solo. Make us proud!";
+  /// Get gift popup title
+  String getGiftPopupTitle() {
+    return "🎁 Welcome Gift!";
   }
+
 }

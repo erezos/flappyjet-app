@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'missions_manager.dart';
 import 'achievements_manager.dart';
 import 'inventory_manager.dart';
-import 'railway_server_manager.dart';
+import '../../core/network/network_manager.dart';
 
 /// Game Events Tracker - Central hub for tracking all game events
 class GameEventsTracker extends ChangeNotifier {
@@ -17,7 +17,7 @@ class GameEventsTracker extends ChangeNotifier {
   MissionsManager? _missionsManager;
   AchievementsManager? _achievementsManager;
   InventoryManager? _inventory;
-  RailwayServerManager? _serverManager;
+  NetworkManager? _networkManager;
 
   bool _isInitialized = false;
   // int _currentGameStartTime = 0; // Unused field - removed for production
@@ -32,7 +32,7 @@ class GameEventsTracker extends ChangeNotifier {
     MissionsManager? missionsManager,
     AchievementsManager? achievementsManager,
     InventoryManager? inventoryManager,
-    RailwayServerManager? serverManager,
+    NetworkManager? networkManager,
   }) async {
     if (_isInitialized) return;
 
@@ -40,12 +40,12 @@ class GameEventsTracker extends ChangeNotifier {
     _missionsManager = missionsManager ?? MissionsManager();
     _achievementsManager = achievementsManager ?? AchievementsManager();
     _inventory = inventoryManager ?? InventoryManager();
-    _serverManager = serverManager ?? RailwayServerManager();
+    _networkManager = networkManager ?? NetworkManager();
 
     await _missionsManager!.initialize();
     await _achievementsManager!.initialize();
     await _inventory!.initialize();
-    await _serverManager!.initialize();
+    await _networkManager!.initialize();
 
     _isInitialized = true;
     safePrint('🎮 Game Events Tracker initialized with shared instances');
@@ -54,8 +54,10 @@ class GameEventsTracker extends ChangeNotifier {
   /// Track game start event
   Future<void> onGameStart() async {
     // Send analytics to Railway backend
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('game_start', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'game_start',
+        eventData: {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     }
@@ -115,8 +117,10 @@ class GameEventsTracker extends ChangeNotifier {
     }
 
     // Send analytics to Railway backend
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('game_end', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'game_end',
+        eventData: {
         'score': finalScore,
         'survival_time_ms': survivalTimeMs,
         'survival_time_seconds': survivalTimeSeconds,
@@ -147,8 +151,10 @@ class GameEventsTracker extends ChangeNotifier {
     }
 
     // Report analytics
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('continue_used', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'continue_used',
+        eventData: {
         'gems_cost': gemsCost,
         'current_score': _lastGameScore,
       });
@@ -180,8 +186,10 @@ class GameEventsTracker extends ChangeNotifier {
     }
 
     // Report analytics
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('nickname_changed', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'nickname_changed',
+        eventData: {
         'new_nickname_length': newNickname.length,
       });
     }
@@ -203,8 +211,10 @@ class GameEventsTracker extends ChangeNotifier {
     }
 
     // Report analytics
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('skin_purchased', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'skin_purchased',
+        eventData: {
         'skin_id': skinId,
         'coin_cost': coinCost,
         'rarity': rarity,
@@ -218,8 +228,10 @@ class GameEventsTracker extends ChangeNotifier {
   /// Track skin equipped
   Future<void> onSkinEquipped(String skinId) async {
     // Report analytics
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('skin_equipped', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'skin_equipped',
+        eventData: {
         'skin_id': skinId,
       });
     }
@@ -244,8 +256,10 @@ class GameEventsTracker extends ChangeNotifier {
     }
 
     // Report analytics
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('mission_completed', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'mission_completed',
+        eventData: {
         'mission_id': missionId,
         'mission_type': missionType,
         'reward': reward,
@@ -274,8 +288,10 @@ class GameEventsTracker extends ChangeNotifier {
     }
 
     // Report analytics
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('achievement_unlocked', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'achievement_unlocked',
+        eventData: {
         'achievement_id': achievementId,
         'category': category,
         'rarity': rarity,
@@ -296,8 +312,10 @@ class GameEventsTracker extends ChangeNotifier {
   }) async {
     // Report analytics (purchase validation will be added later)
     bool isValid = true; // Assume valid for now
-    if (_serverManager != null) {
-      await _serverManager!.trackEvent('iap_purchase', {
+    if (_networkManager != null) {
+      await _networkManager!.submitAnalyticsEvent(
+        eventName: 'iap_purchase',
+        eventData: {
         'product_id': productId,
         'price_usd': priceUSD,
         'platform': platform,

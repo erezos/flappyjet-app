@@ -4,8 +4,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../game/systems/global_leaderboard_service.dart';
-import '../../../game/systems/leaderboard_manager.dart';
+import '../../../services/railway_leaderboard_service.dart';
+import '../../../game/systems/player_identity_manager.dart';
 
 class GlobalLeaderboardTab extends StatefulWidget {
   const GlobalLeaderboardTab({super.key});
@@ -15,15 +15,20 @@ class GlobalLeaderboardTab extends StatefulWidget {
 }
 
 class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
-  final GlobalLeaderboardService _globalService = GlobalLeaderboardService();
-  final LeaderboardManager _leaderboardManager = LeaderboardManager();
+  late final RailwayLeaderboardService _leaderboardService;
+  late final PlayerIdentityManager _playerIdentityManager;
   bool _isLoading = true;
-  List<Map<String, dynamic>> _globalScores = [];
+  List<LeaderboardEntry> _leaderboard = [];
+  LeaderboardEntry? _userPosition;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _playerIdentityManager = PlayerIdentityManager();
+    _leaderboardService = RailwayLeaderboardService(
+      playerIdentityManager: _playerIdentityManager,
+    );
     _loadGlobalLeaderboard();
   }
 
@@ -43,45 +48,37 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
   }
 
   Future<void> _loadGlobalLeaderboard() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
     try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-
-      // Initialize services if needed
-      if (!_globalService.isInitialized) {
-        await _globalService.initialize();
-      }
-      if (!_leaderboardManager.isInitialized) {
-        await _leaderboardManager.initialize();
-      }
-
-      // Load global scores
-      final entries = _globalService.globalScores;
-      final scores = entries
-          .take(50)
-          .map(
-            (entry) => {
-              'playerName': entry.playerName,
-              'score': entry.score,
-              'theme': entry.theme,
-              'jetSkin': entry.jetSkin,
-              'timeAgo': _formatTimeAgo(entry.achievedAt),
-            },
-          )
-          .toList();
+      final result = await _leaderboardService.getGlobalLeaderboard(
+        limit: 15,
+        includeUserPosition: true,
+      );
 
       if (mounted) {
-        setState(() {
-          _globalScores = scores;
-          _isLoading = false;
-        });
+        if (result.success) {
+          debugPrint('🏆 Global Leaderboard: Loaded ${result.leaderboard.length} entries');
+          debugPrint('🏆 Global Leaderboard: User position = ${result.userPosition?.rank ?? "null"}');
+          setState(() {
+            _leaderboard = result.leaderboard;
+            _userPosition = result.userPosition;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _error = result.error ?? 'Failed to load leaderboard';
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load global leaderboard: $e';
+          _error = 'Network error: $e';
           _isLoading = false;
         });
       }
@@ -123,7 +120,7 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text(
-            '🌍 Global Rankings',
+            '🏆 Leaderboard',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -184,7 +181,7 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
   }
 
   Widget _buildLeaderboardContent() {
-    if (_globalScores.isEmpty) {
+    if (_leaderboard.isEmpty && _userPosition == null) {
       return const Center(
         child: Text(
           'No global scores yet.\nBe the first to set a record!',
@@ -194,43 +191,99 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
       );
     }
 
+    // Combine top 15 + user position (if not in top 15)
+    final displayItems = <LeaderboardEntry>[];
+    displayItems.addAll(_leaderboard);
+    
+    // Add user position if they're not in the top 15
+    if (_userPosition != null && 
+        !_leaderboard.any((entry) => entry.playerId == _userPosition!.playerId)) {
+      debugPrint('🏆 Global Leaderboard: Adding user position card - Rank ${_userPosition!.rank}');
+      displayItems.add(_userPosition!);
+    } else if (_userPosition != null) {
+      debugPrint('🏆 Global Leaderboard: User is in top 15 - Rank ${_userPosition!.rank}');
+    } else {
+      debugPrint('🏆 Global Leaderboard: No user position data');
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _globalScores.length,
+      itemCount: displayItems.length,
       itemBuilder: (context, index) {
-        final score = _globalScores[index];
-        return _buildLeaderboardItem(score, index + 1);
+        final entry = displayItems[index];
+        final isUserEntry = _userPosition != null && 
+                           entry.playerId == _userPosition!.playerId;
+        final isUserNotInTop15 = isUserEntry && entry.rank > 15;
+        
+        return Column(
+          children: [
+            // Add separator before user's position if they're not in top 15
+            if (isUserNotInTop15 && index > 0) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    const Expanded(child: Divider(color: Colors.white30)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Your Position',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Expanded(child: Divider(color: Colors.white30)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            _buildLeaderboardItem(entry, isUserEntry),
+          ],
+        );
       },
     );
   }
 
-  Widget _buildLeaderboardItem(Map<String, dynamic> score, int rank) {
-    final playerName = score['playerName'] ?? 'Anonymous';
-    final playerScore = score['score'] ?? 0;
-    final theme = score['theme'] ?? 'Unknown';
-    final jetSkin = score['jetSkin'] ?? 'jets/green_lightning.png';
-    final timeAgo = score['timeAgo'] ?? 'Unknown';
+  Widget _buildLeaderboardItem(LeaderboardEntry entry, bool isUserEntry) {
+    final rank = entry.rank;
+    final playerName = entry.playerName;
+    final playerScore = entry.score;
+    final theme = entry.theme;
+    final jetSkin = entry.jetSkin;
+    final timeAgo = _formatTimeAgo(entry.achievedAt);
 
     // Determine rank styling
     Color rankColor;
     Color backgroundColor;
     IconData? rankIcon;
+    Color? borderColor;
 
-    if (rank == 1) {
+    if (isUserEntry) {
+      // Highlight user's entry
+      borderColor = const Color(0xFF4ECDC4);
+      backgroundColor = const Color(0xFF1A2332);
+    }
+
+    if (entry.rank == 1) {
       rankColor = const Color(0xFFFFD700); // Gold
-      backgroundColor = const Color(0xFF2D1B69);
+      backgroundColor = isUserEntry ? const Color(0xFF3D2B69) : const Color(0xFF2D1B69);
       rankIcon = Icons.emoji_events;
-    } else if (rank == 2) {
+    } else if (entry.rank == 2) {
       rankColor = const Color(0xFFC0C0C0); // Silver
-      backgroundColor = const Color(0xFF1A1A2E);
+      backgroundColor = isUserEntry ? const Color(0xFF2A2A3E) : const Color(0xFF1A1A2E);
       rankIcon = Icons.workspace_premium;
-    } else if (rank == 3) {
+    } else if (entry.rank == 3) {
       rankColor = const Color(0xFFCD7F32); // Bronze
-      backgroundColor = const Color(0xFF16213E);
+      backgroundColor = isUserEntry ? const Color(0xFF26314E) : const Color(0xFF16213E);
       rankIcon = Icons.military_tech;
     } else {
       rankColor = Colors.white70;
-      backgroundColor = const Color(0xFF0F3460);
+      backgroundColor = isUserEntry ? const Color(0xFF1F3470) : const Color(0xFF0F3460);
     }
 
     return Container(
@@ -239,13 +292,21 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: rank <= 3 ? Border.all(color: rankColor, width: 2) : null,
+        border: borderColor != null 
+            ? Border.all(color: borderColor, width: 2)
+            : (entry.rank <= 3 ? Border.all(color: rankColor, width: 2) : null),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
+          if (isUserEntry)
+            BoxShadow(
+              color: const Color(0xFF4ECDC4).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 0),
+            ),
         ],
       ),
       child: Row(
@@ -262,7 +323,7 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
               child: rankIcon != null
                   ? Icon(rankIcon, color: rankColor, size: 20)
                   : Text(
-                      '$rank',
+                      '${entry.rank}',
                       style: TextStyle(
                         color: rankColor,
                         fontWeight: FontWeight.bold,
@@ -340,6 +401,6 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: (rank * 100).ms).slideX(begin: 0.3);
+            ).animate().fadeIn(delay: (entry.rank * 100).ms).slideX(begin: 0.3);
   }
 }

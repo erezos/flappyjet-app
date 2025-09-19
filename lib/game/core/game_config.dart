@@ -12,7 +12,7 @@ class GameConfig {
   // === CORE GAME DIMENSIONS ===
   static const double gameWidth = 400.0;
   static const double gameHeight = 800.0;
-  static const double targetFPS = 60.0;
+  static const double targetFPS = 30.0; // REDUCED: Prevent VSync crashes on low-end devices
 
   // === JET PHYSICS === (ULTRA-CASUAL: Extremely beginner friendly)
   static const double jetSize = 84.0; // Slightly larger for better readability

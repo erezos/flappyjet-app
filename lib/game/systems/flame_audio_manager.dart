@@ -124,7 +124,7 @@ class FlameAudioManager {
     );
   }
 
-  /// Play background music with proper AudioFocus
+  /// Play background music with proper AudioFocus and OPPO device crash protection
   Future<void> playMusic(String musicFile, {double volume = 1.0}) async {
     if (!_isInitialized || _musicPlayer == null) return;
     
@@ -133,30 +133,44 @@ class FlameAudioManager {
     if (!audioSettings.shouldPlayMusic()) return;
 
     try {
-      // Stop any current music
-      await _musicPlayer!.stop();
+      // OPPO CRASH PROTECTION: Wrap all music operations
+      try {
+        // Stop any current music
+        await _musicPlayer!.stop();
 
-      // Set source and play with loop
-      await _musicPlayer!.setSource(AssetSource('audio/$musicFile'));
-      await _musicPlayer!.setVolume(volume);
-      await _musicPlayer!.setReleaseMode(ReleaseMode.loop);
-      await _musicPlayer!.resume();
+        // Set source and play with loop
+        await _musicPlayer!.setSource(AssetSource('audio/$musicFile'));
+        await _musicPlayer!.setVolume(volume);
+        await _musicPlayer!.setReleaseMode(ReleaseMode.loop);
+        await _musicPlayer!.resume();
 
-      safePrint('🎵 Music started: $musicFile (volume: $volume)');
+        safePrint('🎵 Music started: $musicFile (volume: $volume)');
+      } catch (oppoError) {
+        safePrint('⚠️ OPPO music error (ignoring): $oppoError');
+        // Silently fail on OPPO devices to prevent crash
+      }
     } catch (e) {
       safePrint('❌ Failed to play music $musicFile: $e');
+      // Don't rethrow - prevent crashes
     }
   }
 
-  /// Stop background music
+  /// Stop background music with OPPO device crash protection
   Future<void> stopMusic() async {
     if (!_isInitialized || _musicPlayer == null) return;
 
     try {
-      await _musicPlayer!.stop();
-      safePrint('🎵 Music stopped');
+      // OPPO CRASH PROTECTION: Wrap stop operation
+      try {
+        await _musicPlayer!.stop();
+        safePrint('🎵 Music stopped');
+      } catch (oppoError) {
+        safePrint('⚠️ OPPO music stop error (ignoring): $oppoError');
+        // Silently fail on OPPO devices to prevent crash
+      }
     } catch (e) {
       safePrint('❌ Failed to stop music: $e');
+      // Don't rethrow - prevent crashes
     }
   }
 
@@ -184,7 +198,7 @@ class FlameAudioManager {
     }
   }
 
-  /// Play sound effect with proper AudioFocus
+  /// Play sound effect with proper AudioFocus and OPPO device crash protection
   Future<void> playSFX(String sfxFile, {double volume = 1.0}) async {
     if (!_isInitialized) return;
     
@@ -205,37 +219,52 @@ class FlameAudioManager {
         // Clean up completed players to prevent resource leaks
         _activeSfxPlayers.removeWhere((p) => p.state == PlayerState.stopped);
 
-        await player.stop();
-        await player.setSource(AssetSource('audio/$playerKey'));
-        await player.setVolume(volume);
-        await player.resume();
+        // OPPO CRASH PROTECTION: Wrap all audio operations in try-catch
+        try {
+          await player.stop();
+          await player.setSource(AssetSource('audio/$playerKey'));
+          await player.setVolume(volume);
+          await player.resume();
 
-        _activeSfxPlayers.add(player);
-        safePrint('🔊 SFX played: $playerKey (volume: $volume)');
-        return;
+          _activeSfxPlayers.add(player);
+          safePrint('🔊 SFX played: $playerKey (volume: $volume)');
+          return;
+        } catch (oppoError) {
+          safePrint('⚠️ OPPO audio error (ignoring): $oppoError');
+          return; // Silently fail on OPPO devices to prevent crash
+        }
       }
 
       // Fallback to direct play for non-pooled sounds
       final fallbackPlayer = AudioPlayer();
-      if (Platform.isAndroid) {
-        await fallbackPlayer.setAudioContext(
-          AudioContext(
-            android: AudioContextAndroid(
-              contentType: AndroidContentType.sonification,
-              usageType: AndroidUsageType.game,
-              audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+      
+      // OPPO CRASH PROTECTION: Wrap audio context setup
+      try {
+        if (Platform.isAndroid) {
+          await fallbackPlayer.setAudioContext(
+            AudioContext(
+              android: AudioContextAndroid(
+                contentType: AndroidContentType.sonification,
+                usageType: AndroidUsageType.game,
+                audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+              ),
             ),
-          ),
-        );
+          );
+        }
+
+        await fallbackPlayer.setSource(AssetSource('audio/$sfxFile'));
+        await fallbackPlayer.setVolume(volume);
+        await fallbackPlayer.resume();
+
+        safePrint('🔊 SFX played (fallback): $sfxFile (volume: $volume)');
+      } catch (oppoError) {
+        safePrint('⚠️ OPPO audio fallback error (ignoring): $oppoError');
+        // Silently fail on OPPO devices to prevent crash
       }
-
-      await fallbackPlayer.setSource(AssetSource('audio/$sfxFile'));
-      await fallbackPlayer.setVolume(volume);
-      await fallbackPlayer.resume();
-
-      safePrint('🔊 SFX played (fallback): $sfxFile (volume: $volume)');
+      
     } catch (e) {
       safePrint('❌ Failed to play SFX $sfxFile: $e');
+      // Don't rethrow - prevent crashes
     }
   }
 

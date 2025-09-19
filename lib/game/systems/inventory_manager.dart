@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/jet_skins.dart';
 import '../../core/debug_logger.dart';
+import 'auto_refill_manager.dart';
 
 /// Enhanced inventory for jet skins, soft currency (coins), gems, and boosters
 class InventoryManager extends ChangeNotifier {
@@ -31,6 +32,9 @@ class InventoryManager extends ChangeNotifier {
   final ValueNotifier<bool> _heartBoosterActiveNotifier = ValueNotifier<bool>(
     false,
   );
+  
+  // Auto-refill manager instance
+  final AutoRefillManager _autoRefillManager = AutoRefillManager();
 
   Set<String> get ownedSkinIds => _ownedSkinIds;
   String get equippedSkinId => _equippedSkinId;
@@ -40,6 +44,10 @@ class InventoryManager extends ChangeNotifier {
       _heartBoosterExpiry != null &&
       DateTime.now().isBefore(_heartBoosterExpiry!);
   DateTime? get heartBoosterExpiry => _heartBoosterExpiry;
+  
+  // Auto-refill booster properties
+  bool get isAutoRefillActive => _autoRefillManager.isAutoRefillActive;
+  DateTime? get autoRefillExpiry => _autoRefillManager.autoRefillExpiry;
 
   // 🎁 Prize distribution properties
   String? get playerId => _playerId;
@@ -57,6 +65,8 @@ class InventoryManager extends ChangeNotifier {
   ValueListenable<int> get gemsNotifier => _gemsNotifier;
   ValueListenable<bool> get heartBoosterActiveNotifier =>
       _heartBoosterActiveNotifier;
+  ValueListenable<bool> get autoRefillActiveNotifier =>
+      _autoRefillManager.autoRefillActiveNotifier;
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -90,6 +100,10 @@ class InventoryManager extends ChangeNotifier {
     _softCurrencyNotifier.value = _softCurrency;
     _gemsNotifier.value = _gems;
     _heartBoosterActiveNotifier.value = isHeartBoosterActive;
+    
+    // Initialize auto-refill manager
+    await _autoRefillManager.initialize();
+    
     notifyListeners();
   }
 
@@ -98,6 +112,26 @@ class InventoryManager extends ChangeNotifier {
     await _persistCurrency();
     _softCurrencyNotifier.value = _softCurrency;
     notifyListeners();
+  }
+
+  /// 🔄 Restore currency from backend (for user restoration after reinstall)
+  Future<void> setCurrency(int coins, int gems) async {
+    _softCurrency = coins;
+    _gems = gems;
+    await _persistCurrency();
+    await _persistGems();
+    _softCurrencyNotifier.value = _softCurrency;
+    _gemsNotifier.value = _gems;
+    notifyListeners();
+    safePrint('💰 Currency restored: $coins coins, $gems gems');
+  }
+
+  /// 🔄 Restore owned skins from backend
+  Future<void> restoreOwnedSkins(Set<String> ownedSkins) async {
+    _ownedSkinIds = ownedSkins;
+    await _persistOwned();
+    notifyListeners();
+    safePrint('✈️ Owned skins restored: ${ownedSkins.length} skins');
   }
 
   /// 🎁 Add coins with animation support (for prize distribution)
@@ -206,6 +240,20 @@ class InventoryManager extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Activate Auto-Refill booster for the specified duration
+  Future<void> activateAutoRefill(AutoRefillDuration duration) async {
+    await _autoRefillManager.activateAutoRefill(duration);
+    notifyListeners();
+  }
+
+  /// Check and trigger auto-refill (call when returning to homepage)
+  Future<bool> checkAndTriggerAutoRefill() async {
+    return await _autoRefillManager.checkAndTriggerAutoRefill();
+  }
+
+  /// Get remaining time for Auto-Refill (null if not active)
+  Duration? get autoRefillTimeRemaining => _autoRefillManager.autoRefillTimeRemaining;
 
   Future<void> unlockSkin(String skinId) async {
     _ownedSkinIds.add(skinId);

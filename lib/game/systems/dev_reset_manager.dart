@@ -6,6 +6,7 @@ import 'lives_manager.dart';
 import 'player_identity_manager.dart';
 import 'ftue_manager.dart';
 import 'daily_streak_manager.dart';
+import 'auto_refill_manager.dart';
 import '../../core/debug_logger.dart';
 
 class DevResetManager {
@@ -112,6 +113,10 @@ class DevResetManager {
       // Reset Daily Streak Manager
       final dailyStreakManager = DailyStreakManager();
       await dailyStreakManager.resetAllData();
+      
+      // Reset Auto-Refill Manager
+      final autoRefillManager = AutoRefillManager();
+      await autoRefillManager.forceResetToNewPlayer();
       
       safePrint('🔧 ✅ Reset complete - All systems reset to new player state');
       safePrint('🔧 🎮 FTUE will trigger after first two games');

@@ -11,6 +11,7 @@ import '../game/core/iap_products.dart';
 import '../game/systems/inventory_manager.dart';
 import '../game/systems/lives_manager.dart';
 import '../game/systems/firebase_analytics_manager.dart';
+import '../config/iap_config.dart';
 import 'iap_receipt_validator.dart';
 
 /// Purchase result enumeration
@@ -118,6 +119,16 @@ class EnhancedIAPManager extends ChangeNotifier {
     LivesManager? lives,
   }) async {
     if (_isInitialized) return;
+
+    // Initialize receipt validator with configuration
+    _validator.initialize(
+      appleSharedSecret: IAPConfig.appleSharedSecret,
+      androidPackageName: IAPConfig.androidPackageName,
+    );
+    
+    // Log configuration status
+    safePrint('🔐 Apple IAP configured: ${IAPConfig.isAppleConfigured}');
+    safePrint('🔐 Android IAP configured: ${IAPConfig.isAndroidConfigured}');
 
     try {
       safePrint('💳 🚀 Initializing Enhanced IAP Manager...');

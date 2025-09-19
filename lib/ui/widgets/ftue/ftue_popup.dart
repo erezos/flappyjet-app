@@ -13,6 +13,7 @@ class FTUEPopup extends StatefulWidget {
   final String message;
   final VoidCallback onClose;
   final bool isSecondPopup;
+  final bool isGiftPopup;
 
   const FTUEPopup({
     super.key,
@@ -20,6 +21,7 @@ class FTUEPopup extends StatefulWidget {
     required this.message,
     required this.onClose,
     this.isSecondPopup = false,
+    this.isGiftPopup = false,
   });
 
   @override
@@ -111,7 +113,7 @@ class _FTUEPopupState extends State<FTUEPopup>
       
       // Auto close after heart animation
       Future.delayed(const Duration(milliseconds: 2000), () {
-        if (mounted) {
+        if (mounted && context.mounted) {
           widget.onClose();
         }
       });
@@ -187,9 +189,11 @@ class _FTUEPopupState extends State<FTUEPopup>
                                 offset: const Offset(0, 15),
                               ),
                               BoxShadow(
-                                color: widget.isSecondPopup 
-                                    ? const Color(0xFF9C27B0).withValues(alpha: 0.3)
-                                    : const Color(0xFF2196F3).withValues(alpha: 0.3),
+                                color: widget.isGiftPopup
+                                    ? const Color(0xFFFFD700).withValues(alpha: 0.4)
+                                    : widget.isSecondPopup 
+                                        ? const Color(0xFF9C27B0).withValues(alpha: 0.3)
+                                        : const Color(0xFF2196F3).withValues(alpha: 0.3),
                                 blurRadius: 50,
                                 offset: const Offset(0, 0),
                               ),
@@ -300,15 +304,20 @@ class _FTUEPopupState extends State<FTUEPopup>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: widget.isSecondPopup 
+          colors: widget.isGiftPopup
               ? [
-                  const Color(0xFF9C27B0),
-                  const Color(0xFF673AB7),
+                  const Color(0xFFFFD700),
+                  const Color(0xFFFF8F00),
                 ]
-              : [
-                  const Color(0xFF2196F3),
-                  const Color(0xFF03DAC6),
-                ],
+              : widget.isSecondPopup 
+                  ? [
+                      const Color(0xFF9C27B0),
+                      const Color(0xFF673AB7),
+                    ]
+                  : [
+                      const Color(0xFF2196F3),
+                      const Color(0xFF03DAC6),
+                    ],
         ),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(30),
@@ -342,21 +351,27 @@ class _FTUEPopupState extends State<FTUEPopup>
               ],
             ),
             child: ClipOval(
-              child: Image.asset(
-                widget.isSecondPopup 
-                    ? 'assets/images/jets/flames.png'  // Graduation jet
-                    : 'assets/images/jets/sky_jet.png', // Starter jet
-                width: isVerySmallScreen ? 50 : isSmallScreen ? 60 : 70,
-                height: isVerySmallScreen ? 50 : isSmallScreen ? 60 : 70,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    widget.isSecondPopup ? Icons.military_tech : Icons.flight_takeoff,
-                    size: isVerySmallScreen ? 30 : isSmallScreen ? 35 : 40,
-                    color: Colors.white,
-                  );
-                },
-              ),
+              child: widget.isGiftPopup
+                  ? Icon(
+                      Icons.card_giftcard,
+                      size: isVerySmallScreen ? 40 : isSmallScreen ? 50 : 60,
+                      color: Colors.white,
+                    )
+                  : Image.asset(
+                      widget.isSecondPopup 
+                          ? 'assets/images/jets/flames.png'  // Graduation jet
+                          : 'assets/images/jets/sky_jet.png', // Starter jet
+                      width: isVerySmallScreen ? 50 : isSmallScreen ? 60 : 70,
+                      height: isVerySmallScreen ? 50 : isSmallScreen ? 60 : 70,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          widget.isSecondPopup ? Icons.military_tech : Icons.flight_takeoff,
+                          size: isVerySmallScreen ? 30 : isSmallScreen ? 35 : 40,
+                          color: Colors.white,
+                        );
+                      },
+                    ),
             ),
           ),
           
@@ -382,7 +397,11 @@ class _FTUEPopupState extends State<FTUEPopup>
               ),
             ),
             child: Text(
-              widget.isSecondPopup ? 'ACE PILOT' : 'ROOKIE PILOT',
+              widget.isGiftPopup 
+                  ? 'WELCOME GIFT'
+                  : widget.isSecondPopup 
+                      ? 'ACE PILOT' 
+                      : 'ROOKIE PILOT',
               style: TextStyle(
                 fontSize: isVerySmallScreen ? 10 : 12,
                 fontWeight: FontWeight.bold,
@@ -433,6 +452,63 @@ class _FTUEPopupState extends State<FTUEPopup>
   }
 
   Widget _buildHeartSection(bool isSmallScreen, bool isVerySmallScreen) {
+    // For gift popup, show auto-refill booster info instead of hearts
+    if (widget.isGiftPopup) {
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: isVerySmallScreen ? 16 : isSmallScreen ? 20 : 24,
+          vertical: isVerySmallScreen ? 14 : isSmallScreen ? 16 : 20,
+        ),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF4CAF50),
+              Color(0xFF2E7D32),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.4),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.autorenew,
+              color: Colors.white,
+              size: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
+            ),
+            SizedBox(width: isVerySmallScreen ? 8 : 12),
+            Expanded(
+              child: Text(
+                '3-Day Auto-Refill Booster',
+                style: TextStyle(
+                  fontSize: isVerySmallScreen ? 14 : isSmallScreen ? 16 : 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
     if (_heartsRefilled) {
       return ScaleTransition(
         scale: _heartAnimation,
@@ -539,6 +615,68 @@ class _FTUEPopupState extends State<FTUEPopup>
   }
 
   Widget _buildActionButton(BuildContext context, bool isSmallScreen, bool isVerySmallScreen) {
+    // For gift popup, show claim gift button
+    if (widget.isGiftPopup) {
+      return SizedBox(
+        width: double.infinity,
+        height: isVerySmallScreen ? 48 : isSmallScreen ? 52 : 56,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFD700),
+                Color(0xFFFF8F00),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: () {
+              if (context.mounted) {
+                widget.onClose();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.card_giftcard,
+                  size: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 22,
+                ),
+                SizedBox(width: isVerySmallScreen ? 8 : 10),
+                Text(
+                  'Claim Gift',
+                  style: TextStyle(
+                    fontSize: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    
     if (_heartsRefilled) {
       return SizedBox(
         width: double.infinity,
@@ -562,8 +700,12 @@ class _FTUEPopupState extends State<FTUEPopup>
               ),
             ],
           ),
-          child: ElevatedButton(
-            onPressed: widget.onClose,
+            child: ElevatedButton(
+              onPressed: () {
+                if (context.mounted) {
+                  widget.onClose();
+                }
+              },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               foregroundColor: Colors.white,

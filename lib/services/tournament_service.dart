@@ -8,7 +8,7 @@ import '../models/tournament_leaderboard_entry.dart';
 import '../models/tournament_session_result.dart';
 import '../game/systems/player_identity_manager.dart';
 import '../game/core/error_handler.dart';
-import 'player_auth_service.dart';
+// Removed network_manager import - not used directly
 
 /// Service for interacting with the tournament API
 class TournamentService {
@@ -374,51 +374,28 @@ class TournamentService {
   /// Refresh token and retry authentication
   Future<bool> _refreshTokenAndRetry() async {
     try {
-      final playerIdentity = PlayerIdentityManager();
-      final playerAuthService = PlayerAuthService(baseUrl: baseUrl);
-      
       safePrint('🔄 Attempting JWT token refresh...');
       
       // First try proper JWT refresh endpoint
-      final refreshResult = await playerAuthService.refreshToken(playerIdentity.authToken);
-      
-      if (refreshResult.isSuccess) {
-        // Update token in PlayerIdentityManager
-        await playerIdentity.updateAuthToken(refreshResult.data!);
+      final playerIdentity = PlayerIdentityManager();
+      try {
+        await playerIdentity.ensureValidToken();
+        // Token refreshed successfully
         safePrint('🔄 ✅ JWT token refreshed successfully');
         return true;
-      } else {
-        safePrint('🔄 JWT refresh failed: ${refreshResult.error}');
+      } catch (e) {
+        safePrint('🔄 JWT refresh failed: $e');
         
         // If JWT refresh fails, try full login as fallback
         safePrint('🔄 Attempting full re-authentication...');
-        final loginResult = await playerAuthService.loginPlayer(playerIdentity.deviceId);
+        final loginResult = await playerIdentity.authenticatePlayer(playerIdentity.playerName);
         
-        if (loginResult.isSuccess) {
+        if (loginResult) {
           safePrint('🔄 ✅ Re-authentication successful via login');
           return true;
         } else {
-          safePrint('🔄 Login failed during refresh: ${loginResult.error}');
-          
-          // Last resort: try registration (in case device not in backend)
-          final registrationResult = await playerAuthService.registerPlayer(
-            PlayerRegistrationData(
-              deviceId: playerIdentity.deviceId,
-              nickname: playerIdentity.playerName,
-              platform: _getPlatformString(),
-              appVersion: '1.3.3',
-              countryCode: 'US',
-              timezone: DateTime.now().timeZoneName,
-            ),
-          );
-          
-          if (registrationResult.isSuccess) {
-            safePrint('🔄 ✅ Re-authentication successful via registration');
-            return true;
-          } else {
-            safePrint('🔄 ❌ All authentication methods failed: ${registrationResult.error}');
-            return false;
-          }
+          safePrint('🔄 ❌ All authentication methods failed');
+          return false;
         }
       }
     } catch (e) {

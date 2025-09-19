@@ -104,11 +104,12 @@ class _StoreScreenState extends State<StoreScreen> {
 
               const SizedBox(height: 12),
 
-              // Store Content
+              // Store Content - Dynamic scrolling without IntrinsicHeight
               Expanded(
-                child: _shouldUseScrollView(selectedCategory)
-                    ? SingleChildScrollView(child: _buildStoreContent())
-                    : _buildStoreContent(), // No scroll for sections that fit on screen
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: _buildStoreContent(),
+                ),
               ),
             ],
           ),
@@ -117,21 +118,7 @@ class _StoreScreenState extends State<StoreScreen> {
     );
   }
 
-  /// Determine if a section needs scroll view (only Jets section needs scrolling due to many items)
-  bool _shouldUseScrollView(String category) {
-    switch (category) {
-      case 'Jets':
-        return true; // Many jets, needs scrolling
-      case 'Heart Booster':
-        return true; // Has explanation card + purchase options, might need scroll
-      case 'Gems':
-      case 'Coins':
-      case 'Hearts':
-        return false; // Fixed number of items, should fit on screen
-      default:
-        return true; // Default to scrollable for safety
-    }
-  }
+  // Removed rigid scrolling logic - now using dynamic LayoutBuilder approach
 
   Widget _buildStoreContent() {
     switch (selectedCategory) {

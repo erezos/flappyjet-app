@@ -6,7 +6,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import '../core/debug_logger.dart';
 import '../game/systems/firebase_analytics_manager.dart';
-import '../game/systems/railway_server_manager.dart';
+import '../core/network/network_manager.dart';
+import '../game/systems/player_identity_manager.dart';
 
 class FCMService {
   static final FCMService _instance = FCMService._internal();
@@ -123,35 +124,28 @@ class FCMService {
   /// Send FCM token to Railway backend
   Future<void> _sendTokenToBackend(String token, String timezone) async {
     try {
-      final railwayManager = RailwayServerManager();
+      final networkManager = NetworkManager();
       
       // Wait for authentication if not already authenticated
       int retryCount = 0;
       const maxRetries = 5;
       const retryDelay = Duration(seconds: 2);
       
-      while (!railwayManager.isAuthenticated && retryCount < maxRetries) {
+      final playerIdentity = PlayerIdentityManager();
+      while (!playerIdentity.isAuthenticated && retryCount < maxRetries) {
         safePrint('🔥 FCM: Waiting for Railway authentication... (attempt ${retryCount + 1}/$maxRetries)');
         await Future.delayed(retryDelay);
         retryCount++;
       }
       
-      if (!railwayManager.isAuthenticated) {
+      if (!playerIdentity.isAuthenticated) {
         safePrint('🔥 FCM: Railway not authenticated after $maxRetries attempts, skipping token registration');
         return;
       }
       
-      final response = await railwayManager.makeAuthenticatedRequest(
-        'POST',
-        '/api/fcm/register-token',
-        {
-          'fcmToken': token,
-          'platform': 'android',
-          'timezone': timezone,
-        },
-      );
+      final response = await networkManager.registerFCMToken(token);
 
-      if (response['success'] == true) {
+      if (response.success) {
         safePrint('🔥 FCM: Token registered with backend successfully');
         
         FirebaseAnalyticsManager().trackEvent('fcm_token_registered', {
@@ -159,7 +153,7 @@ class FCMService {
           'timezone': timezone,
         });
       } else {
-        safePrint('🔥 FCM: Backend token registration failed: ${response['error']}');
+        safePrint('🔥 FCM: Backend token registration failed: ${response.error}');
       }
 
     } catch (e) {
@@ -336,7 +330,7 @@ class FCMService {
     bool? achievements,
   }) async {
     try {
-      final railwayManager = RailwayServerManager();
+      final networkManager = NetworkManager();
       final preferences = <String, bool>{};
       
       if (hearts != null) preferences['hearts'] = hearts;
@@ -347,19 +341,19 @@ class FCMService {
 
       if (preferences.isEmpty) return false;
 
-      final response = await railwayManager.makeAuthenticatedRequest(
-        'PUT',
-        '/api/fcm/preferences',
-        preferences,
-      );
+      final response = await networkManager.request(NetworkRequest(
+        endpoint: '/api/fcm/preferences',
+        method: 'PUT',
+        body: preferences,
+      ));
 
-      if (response['success'] == true) {
+      if (response.success) {
         safePrint('🔥 FCM: Notification preferences updated');
         
         FirebaseAnalyticsManager().trackEvent('fcm_preferences_updated', preferences);
         return true;
       } else {
-        safePrint('🔥 FCM: Failed to update preferences: ${response['error']}');
+        safePrint('🔥 FCM: Failed to update preferences: ${response.error}');
         return false;
       }
 
@@ -372,18 +366,17 @@ class FCMService {
   /// Get current notification preferences
   Future<Map<String, dynamic>?> getNotificationPreferences() async {
     try {
-      final railwayManager = RailwayServerManager();
+      final networkManager = NetworkManager();
       
-      final response = await railwayManager.makeAuthenticatedRequest(
-        'GET',
-        '/api/fcm/preferences',
-        null,
-      );
+      final response = await networkManager.request(NetworkRequest(
+        endpoint: '/api/fcm/preferences',
+        method: 'GET',
+      ));
 
-      if (response['success'] == true) {
-        return response['preferences'];
+      if (response.success) {
+        return response.data?['preferences'];
       } else {
-        safePrint('🔥 FCM: Failed to get preferences: ${response['error']}');
+        safePrint('🔥 FCM: Failed to get preferences: ${response.error}');
         return null;
       }
 
@@ -398,19 +391,18 @@ class FCMService {
     if (!Platform.isAndroid || !_isInitialized) return;
 
     try {
-      final railwayManager = RailwayServerManager();
+      final networkManager = NetworkManager();
       
-      final response = await railwayManager.makeAuthenticatedRequest(
-        'DELETE',
-        '/api/fcm/token',
-        null,
-      );
+      final response = await networkManager.request(NetworkRequest(
+        endpoint: '/api/fcm/token',
+        method: 'DELETE',
+      ));
 
-      if (response['success'] == true) {
+      if (response.success) {
         safePrint('🔥 FCM: Token unregistered successfully');
         _currentToken = null;
       } else {
-        safePrint('🔥 FCM: Failed to unregister token: ${response['error']}');
+        safePrint('🔥 FCM: Failed to unregister token: ${response.error}');
       }
 
     } catch (e) {
@@ -426,18 +418,18 @@ class FCMService {
     }
 
     try {
-      final railwayManager = RailwayServerManager();
+      final networkManager = NetworkManager();
       
-      final response = await railwayManager.makeAuthenticatedRequest(
-        'POST',
-        '/api/fcm/test-notification',
-        {
+      final response = await networkManager.request(NetworkRequest(
+        endpoint: '/api/fcm/test-notification',
+        method: 'POST',
+        body: {
           'title': title,
           'body': body,
         },
-      );
+      ));
 
-      return response['success'] == true;
+      return response.success;
 
     } catch (e) {
       safePrint('🔥 FCM: Error sending test notification: $e');

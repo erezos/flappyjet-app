@@ -3,17 +3,19 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/effects.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
+import 'systems/adaptive_quality.dart';
 
 import 'core/game_config.dart';
 import 'core/game_themes.dart';
 import 'systems/flappy_jet_audio_manager.dart';
-import '../core/platform_performance_profiles.dart';
 
 import 'systems/difficulty_system.dart';
 import 'systems/leaderboard_manager.dart';
 import 'systems/global_leaderboard_service.dart';
+import '../services/railway_leaderboard_service.dart';
 import 'systems/lightweight_performance_timer.dart';
 import 'components/parallax_background.dart';
 import 'components/dynamic_obstacle.dart';
@@ -187,7 +189,8 @@ class FlappyGame extends FlameGame {
     // Production: collision debug rectangles disabled
 
     // PRODUCTION: Optimized particle rendering (only when particles exist)
-    if (_directParticles.isNotEmpty) {
+    // PERFORMANCE: Limit particle rendering to prevent VSync crashes
+    if (_directParticles.isNotEmpty && _directParticles.length < 20) {
       for (final particle in _directParticles) {
         particle.render(canvas);
       }
@@ -378,11 +381,15 @@ class FlappyGame extends FlameGame {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Apply platform-specific optimizations
-    final profile = PlatformPerformanceProfiles.current;
-    safePrint('🎯 Game using performance profile: ${profile.name}');
+    // Initialize AAA performance systems first
+    _qualityManager = AdaptiveQualityManager.instance;
+    await _qualityManager.initialize();
+
+    // Apply AAA adaptive quality optimizations
+    final profile = _qualityManager.currentProfile;
+    safePrint('🎯 Game using AAA adaptive quality: $profile');
     safePrint(
-      '🎮 Target FPS: ${profile.targetFPS}, Max Particles: ${profile.maxParticles}',
+      '🎮 Target FPS: ${_qualityManager.targetFPS}, Max Particles: ${_qualityManager.maxParticles}',
     );
 
     // Initialize MCP-guided systems
@@ -542,7 +549,7 @@ class FlappyGame extends FlameGame {
     safePrint('🎵 GAME: Theme music started with Flame Audio');
 
     safePrint(
-      '🚀 Enhanced Flappy Game with MCP systems initialized - ${_currentTheme.displayName} theme ready!',
+      '🚀 Enhanced Flappy Game with AAA performance systems initialized - ${_currentTheme.displayName} theme ready!',
     );
   }
 
@@ -632,8 +639,14 @@ class FlappyGame extends FlameGame {
     safePrint('🚀 Game is now in playing state - tap to make the jet jump!');
   }
 
+  // AAA Performance: Adaptive quality system instead of frame limiting
+  late AdaptiveQualityManager _qualityManager;
+
   @override
   void update(double dt) {
+    // AAA Performance: Monitor and adapt quality instead of limiting frames
+    _qualityManager.updatePerformanceMetrics(dt);
+
     super.update(dt);
 
     // ✅ Position synchronization confirmed - visual and collision jets aligned
@@ -649,8 +662,18 @@ class FlappyGame extends FlameGame {
       );
     }
 
-    // EMERGENCY: Update direct particles
+    // EMERGENCY: Update direct particles with VSync crash protection
     _directParticles.removeWhere((p) => !p.isAlive);
+    
+    // AAA Performance: Use adaptive particle management based on device capability
+    final maxParticles = _qualityManager.maxParticles;
+    if (_directParticles.length > maxParticles) {
+      if (kDebugMode) {
+        safePrint('🎯 ADAPTIVE: Particle limit hit - reducing from ${_directParticles.length} to $maxParticles (Quality: ${_qualityManager.currentProfile})');
+      }
+      _directParticles.removeRange(0, _directParticles.length - maxParticles);
+    }
+    
     for (final particle in _directParticles) {
       particle.update(dt);
     }
@@ -972,31 +995,26 @@ class FlappyGame extends FlameGame {
       }
     }();
 
-    // 🏆 Add score to leaderboards (both local and global)
+    // 🏆 Add score to local leaderboard (for offline functionality)
     () async {
       try {
-        // Add to local leaderboard
+        safePrint('🏆 DEBUG: About to add score to local leaderboard: $_score, theme: ${_currentTheme.displayName}');
+        
+        // Add to local leaderboard only
         final leaderboardManager = LeaderboardManager();
+        
+        // Ensure leaderboard manager is initialized
+        if (!leaderboardManager.isInitialized) {
+          safePrint('🏆 DEBUG: LeaderboardManager not initialized, initializing now...');
+          await leaderboardManager.initialize();
+        }
+        
         final isNotable = await leaderboardManager.addScore(
           score: _score,
           theme: _currentTheme.displayName,
         );
 
-        // Add to global leaderboard
-        final globalService = GlobalLeaderboardService();
-        if (globalService.isInitialized &&
-            globalService.playerName.isNotEmpty) {
-          // Get current equipped jet skin for avatar
-          final currentJetSkin = _jet.currentSkin.assetPath;
-          await globalService.submitScore(
-            score: _score,
-            theme: _currentTheme.displayName,
-            jetSkin: currentJetSkin,
-          );
-          safePrint(
-            '🌍 Score submitted to global leaderboard: $_score with jet: $currentJetSkin',
-          );
-        }
+        safePrint('🏆 DEBUG: Score added to local leaderboard successfully. Notable: $isNotable');
 
         if (isNotable) {
           safePrint(
@@ -1004,7 +1022,8 @@ class FlappyGame extends FlameGame {
           );
         }
       } catch (e) {
-        safePrint('⚠️ Failed to add score to leaderboards: $e');
+        safePrint('⚠️ Failed to add score to local leaderboard: $e');
+        safePrint('⚠️ Stack trace: ${StackTrace.current}');
       }
     }();
 
@@ -1034,7 +1053,7 @@ class FlappyGame extends FlameGame {
 
           // Check if tournament is active and accepting scores
           if (tournament.isActive) {
-            // Prepare comprehensive game data for tournament submission
+            // Prepare comprehensive game data for unified submission (tournament + global leaderboard)
             final gameData = {
               'survivalTime':
                   (DateTime.now().millisecondsSinceEpoch - _gameStartTime) ~/
@@ -1050,6 +1069,7 @@ class FlappyGame extends FlameGame {
               'platform': 'mobile',
               'livesUsed': _continuesUsedThisRun,
               'scoreMultiplier': 1.0, // No multiplier for now
+              'deviceId': playerIdentity.deviceId, // Add device ID for global leaderboard
             };
 
             // Use real JWT token from PlayerIdentityManager - NO TEMP TOKENS
@@ -1067,10 +1087,10 @@ class FlappyGame extends FlameGame {
             inventoryManager.setPlayerId(playerIdentity.playerId);
 
             safePrint(
-              '🏆 Tournament submission using real JWT token for player: ${playerIdentity.playerId}',
+              '🏆 Unified score submission using real JWT token for player: ${playerIdentity.playerId}',
             );
 
-            // Submit score using unified tournament session endpoint
+            // Submit score using unified tournament session endpoint (updates both tournament AND global leaderboard)
             final sessionResult = await tournamentService
                 .handleTournamentSession(
                   tournamentId: tournament.id,
@@ -1089,7 +1109,8 @@ class FlappyGame extends FlameGame {
               );
 
               if (data.scoreSubmission?.accepted == true) {
-                safePrint('✅ Score $_score accepted');
+                safePrint('✅ Score $_score accepted in tournament');
+                safePrint('🌍 ✅ Global leaderboard also updated via unified submission');
                 if (data.scoreSubmission?.newBest == true) {
                   safePrint(
                     '🎉 New tournament personal best! Previous: ${data.scoreSubmission?.previousBest}',
@@ -1147,7 +1168,7 @@ class FlappyGame extends FlameGame {
         // Could implement error reporting here
         // For example, sending error logs to analytics service
       }
-    }();
+    }(); // 🚀 NOTE: This single tournament submission also updates the global leaderboard!
 
     // Best score persistence
     if (_score > _bestScore) {

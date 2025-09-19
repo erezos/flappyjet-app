@@ -8,6 +8,7 @@ import '../../../services/tournament_service.dart';
 import '../../../models/tournament.dart';
 import '../../../models/tournament_leaderboard_entry.dart';
 import '../../../core/debug_logger.dart';
+import '../../../game/systems/player_identity_manager.dart';
 
 class WeeklyContestTab extends StatefulWidget {
   const WeeklyContestTab({super.key});
@@ -21,9 +22,11 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
   final TournamentService _tournamentService = TournamentService(
     baseUrl: 'https://flappyjet-backend-production.up.railway.app',
   );
+  late final PlayerIdentityManager _playerIdentityManager;
   bool _isLoading = true;
   Tournament? _currentTournament;
   List<TournamentLeaderboardEntry> _tournamentLeaderboard = [];
+  TournamentLeaderboardEntry? _userPosition;
   String? _error;
 
   @override
@@ -32,6 +35,7 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
   @override
   void initState() {
     super.initState();
+    _playerIdentityManager = PlayerIdentityManager();
     _loadTournamentData();
   }
 
@@ -64,17 +68,38 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
         
         // Load tournament leaderboard if tournament exists
         if (tournament != null) {
+          // Load top 15 entries
           final leaderboardResult = await _tournamentService.getTournamentLeaderboard(
             tournamentId: tournament.id,
+            limit: 15,
           );
           safePrint('🏆 WeeklyContestTab: Leaderboard result - success: ${leaderboardResult.isSuccess}, entries: ${leaderboardResult.data?.entries.length ?? 0}');
           
           if (leaderboardResult.isSuccess && leaderboardResult.data != null) {
             leaderboard = leaderboardResult.data!.entries;
-            safePrint('🏆 WeeklyContestTab: Leaderboard entries:');
-            for (int i = 0; i < leaderboard.length; i++) {
-              final entry = leaderboard[i];
-              safePrint('  ${i + 1}. ${entry.playerName}: ${entry.score} (rank: ${entry.rank})');
+            safePrint('🏆 WeeklyContestTab: Top 15 leaderboard entries loaded');
+            
+            // Check if current user is in top 15
+            final currentPlayerId = _playerIdentityManager.playerId;
+            final userInTop15 = leaderboard.any((entry) => entry.playerId == currentPlayerId);
+            
+            // If user is not in top 15, try to get their position
+            if (!userInTop15 && currentPlayerId.isNotEmpty) {
+              // Load all entries to find user position (this could be optimized with a separate API call)
+              final fullLeaderboardResult = await _tournamentService.getTournamentLeaderboard(
+                tournamentId: tournament.id,
+                limit: 100, // Get more entries to find user
+              );
+              
+              if (fullLeaderboardResult.isSuccess && fullLeaderboardResult.data != null) {
+                final allEntries = fullLeaderboardResult.data!.entries;
+                final userEntry = allEntries.where((entry) => entry.playerId == currentPlayerId).firstOrNull;
+                
+                if (userEntry != null) {
+                  _userPosition = userEntry;
+                  safePrint('🏆 WeeklyContestTab: User position found - rank ${userEntry.rank}');
+                }
+              }
             }
           } else {
             safePrint('🏆 WeeklyContestTab: Failed to load leaderboard - ${leaderboardResult.error}');
@@ -294,7 +319,7 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
     final status = tournament.status;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -393,48 +418,83 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
 
   Widget _buildPrizePoolCard() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF4ECDC4), Color(0xFF44A08D)],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: const Color(0xFF4ECDC4).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 0),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(
-                Icons.monetization_on,
-                color: Colors.white,
-                size: 24,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Prize Pool',
-                style: TextStyle(
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.emoji_events,
                   color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PRIZE POOL',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    Text(
+                      'Compete for amazing rewards!',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPrizeItem('🥇', '1st Place', '1000 Coins'),
-              _buildPrizeItem('🥈', '2nd Place', '500 Coins'),
-              _buildPrizeItem('🥉', '3rd Place', '250 Coins'),
+              Expanded(
+                child: _buildPrizeItem('🥇', '1st Place', '1000 Coins'),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildPrizeItem('🥈', '2nd Place', '500 Coins'),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildPrizeItem('🥉', '3rd Place', '250 Coins'),
+              ),
             ],
           ),
         ],
@@ -443,29 +503,51 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
   }
 
   Widget _buildPrizeItem(String emoji, String place, String prize) {
-    return Column(
-      children: [
-        Text(
-          emoji,
-          style: const TextStyle(fontSize: 24),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.3),
+          width: 1,
         ),
-        const SizedBox(height: 4),
-        Text(
-          place,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            emoji,
+            style: const TextStyle(fontSize: 28),
           ),
-        ),
-        Text(
-          prize,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 11,
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              place,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              prize,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -504,26 +586,86 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
         const SizedBox(height: 12),
         ...List.generate(_tournamentLeaderboard.length, (index) {
           final entry = _tournamentLeaderboard[index];
-          return _buildTournamentLeaderboardItem(entry, index + 1);
+          final isUserEntry = entry.playerId == _playerIdentityManager.playerId;
+          return _buildTournamentLeaderboardItem(entry, index + 1, isUserEntry);
         }),
+        // Add user position if they're not in top 15
+        if (_userPosition != null && 
+            !_tournamentLeaderboard.any((entry) => entry.playerId == _userPosition!.playerId)) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                const Expanded(child: Divider(color: Colors.white30)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Your Position',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Expanded(child: Divider(color: Colors.white30)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildTournamentLeaderboardItem(_userPosition!, _userPosition!.rank, true),
+        ],
       ],
     );
   }
 
-  Widget _buildTournamentLeaderboardItem(TournamentLeaderboardEntry entry, int rank) {
+  Widget _buildTournamentLeaderboardItem(TournamentLeaderboardEntry entry, int rank, bool isUserEntry) {
     final playerName = entry.playerName;
     final score = entry.score;
     final submittedAt = 'Rank ${entry.rank}';
 
-    Color rankColor = rank <= 3 ? const Color(0xFFFFD700) : Colors.white70;
+    Color rankColor;
+    Color backgroundColor;
+    Color? borderColor;
+
+    if (isUserEntry) {
+      // Highlight user's entry
+      borderColor = const Color(0xFF4ECDC4);
+      backgroundColor = const Color(0xFF1A2332);
+    }
+
+    if (rank == 1) {
+      rankColor = const Color(0xFFFFD700); // Gold
+      backgroundColor = isUserEntry ? const Color(0xFF3D2B69) : const Color(0xFF2D1B69);
+    } else if (rank == 2) {
+      rankColor = const Color(0xFFC0C0C0); // Silver
+      backgroundColor = isUserEntry ? const Color(0xFF2A2A3E) : const Color(0xFF1A1A2E);
+    } else if (rank == 3) {
+      rankColor = const Color(0xFFCD7F32); // Bronze
+      backgroundColor = isUserEntry ? const Color(0xFF26314E) : const Color(0xFF16213E);
+    } else {
+      rankColor = Colors.white70;
+      backgroundColor = isUserEntry ? const Color(0xFF1F3470) : Colors.white.withValues(alpha: 0.1);
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: rank <= 3 ? Border.all(color: rankColor, width: 1) : null,
+        border: borderColor != null 
+            ? Border.all(color: borderColor, width: 2)
+            : (rank <= 3 ? Border.all(color: rankColor, width: 1) : null),
+        boxShadow: [
+          if (isUserEntry)
+            BoxShadow(
+              color: const Color(0xFF4ECDC4).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 0),
+            ),
+        ],
       ),
       child: Row(
         children: [
@@ -536,13 +678,15 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
-              child: Text(
-                '$rank',
-                style: TextStyle(
-                  color: rankColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: (isUserEntry && rank > 15)
+                  ? Icon(Icons.person, color: rankColor, size: 18)
+                  : Text(
+                      '$rank',
+                      style: TextStyle(
+                        color: rankColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 12),

@@ -1,11 +1,12 @@
-/// 📱 Personal Scores Tab - Shows locally stored player scores
-/// Replaces the old "Local" section from lower navigation
+/// 📱 Personal Scores Tab - Shows recent tournament scores from backend
+/// Displays player's recent game sessions and tournament scores
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../game/systems/leaderboard_manager.dart';
 import '../../../game/systems/player_identity_manager.dart';
+import '../../../core/network/network_manager.dart';
 
 class PersonalScoresTab extends StatefulWidget {
   const PersonalScoresTab({super.key});
@@ -15,15 +16,17 @@ class PersonalScoresTab extends StatefulWidget {
 }
 
 class _PersonalScoresTabState extends State<PersonalScoresTab> {
-  final LeaderboardManager _leaderboardManager = LeaderboardManager();
-  final PlayerIdentityManager _playerIdentity = PlayerIdentityManager();
+  late final LeaderboardManager _leaderboardManager;
+  late final PlayerIdentityManager _playerIdentityManager;
   bool _isLoading = true;
-  List<Map<String, dynamic>> _personalScores = [];
+  List<LeaderboardEntry> _personalScores = [];
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _playerIdentityManager = PlayerIdentityManager();
+    _leaderboardManager = LeaderboardManager();
     _loadPersonalScores();
   }
 
@@ -43,49 +46,35 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
   }
 
   Future<void> _loadPersonalScores() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-      // Initialize services if needed
+    try {
+      // Initialize player identity manager if needed
+      if (!_playerIdentityManager.isInitialized) {
+        await _playerIdentityManager.initialize();
+      }
+
+      // Initialize leaderboard manager if needed
       if (!_leaderboardManager.isInitialized) {
         await _leaderboardManager.initialize();
       }
-      if (!_playerIdentity.isInitialized) {
-        await _playerIdentity.initialize();
-      }
 
-      // Load local scores
-      final entries = _leaderboardManager.localScores;
-
-      // Check if this is a new user (no scores and not backend registered)
-      if (entries.isEmpty && !_playerIdentity.isBackendRegistered) {
-        if (mounted) {
-          setState(() {
-            _personalScores = [];
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      final scores = entries
-          .map(
-            (entry) => {
-              'score': entry.score,
-              'theme': entry.theme,
-              'timestamp': _formatTimeAgo(entry.achievedAt),
-              'jetSkin': 'jets/green_lightning.png', // Default jet skin
-              'isPersonalBest': false, // Will be calculated
-            },
-          )
+      // Get local scores and filter to current player's scores only
+      final currentPlayerName = _playerIdentityManager.playerName;
+      final allLocalScores = _leaderboardManager.localScores;
+      
+      // Filter to current player's scores and limit to top 10
+      final playerScores = allLocalScores
+          .where((entry) => entry.playerName == currentPlayerName)
+          .take(10)
           .toList();
 
       if (mounted) {
         setState(() {
-          _personalScores = scores;
+          _personalScores = playerScores;
           _isLoading = false;
         });
       }
@@ -243,7 +232,7 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Your Recent Games',
+          'Your Top 10 Scores',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -259,12 +248,12 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
     );
   }
 
-  Widget _buildScoreItem(Map<String, dynamic> score, int index) {
-    final playerScore = score['score'] ?? 0;
-    final theme = score['theme'] ?? 'Unknown';
-    final timestamp = score['timestamp'] ?? '';
-    final jetSkin = score['jetSkin'] ?? 'jets/green_lightning.png';
-    final isPersonalBest = score['isPersonalBest'] ?? false;
+  Widget _buildScoreItem(LeaderboardEntry score, int index) {
+    final playerScore = score.score;
+    final theme = score.theme;
+    final timestamp = _formatTimeAgo(score.achievedAt);
+    final jetSkin = 'jets/sky_jet.png'; // Default jet skin for local scores
+    final isPersonalBest = index == 0; // First score is the personal best
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -285,6 +274,31 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
       ),
       child: Row(
         children: [
+          // Rank indicator
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: isPersonalBest 
+                  ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                  : Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  color: isPersonalBest 
+                      ? const Color(0xFFFFD700)
+                      : Colors.white70,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          
           // Jet skin avatar
           Container(
             width: 40,
