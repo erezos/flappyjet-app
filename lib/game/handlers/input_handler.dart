@@ -53,7 +53,7 @@ class InputHandler {
     required GameStateManager gameState,
     // TODO: Add other parameters when needed
   }) : _gameState = gameState {
-    _audioManager = _audioManager;
+    _audioManager = FlappyJetAudioManager.instance;
   }
 
   /// Set callback functions

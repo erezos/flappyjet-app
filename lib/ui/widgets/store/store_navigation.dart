@@ -30,6 +30,13 @@ class StoreNavigation extends StatelessWidget {
     final horizontalPadding = isLargeTablet ? 12.0 : isTablet ? 10.0 : 8.0;
     final iconSpacing = isLargeTablet ? 4.0 : isTablet ? 3.0 : 2.0;
     
+    // Calculate available width per tab to prevent text wrapping
+    final availableWidth = screenWidth - (containerMargin * 2) - (containerPadding * 2);
+    final tabWidth = availableWidth / categories.length;
+    final textSize = tabWidth > 80 ? (isLargeTablet ? 14.0 : isTablet ? 13.0 : 11.0) : 
+                     tabWidth > 60 ? (isLargeTablet ? 12.0 : isTablet ? 11.0 : 10.0) : 
+                     (isLargeTablet ? 10.0 : isTablet ? 9.0 : 8.0);
+    
     return Container(
       margin: EdgeInsets.fromLTRB(containerMargin, 8, containerMargin, 0),
       padding: EdgeInsets.all(containerPadding),
@@ -58,11 +65,10 @@ class StoreNavigation extends StatelessWidget {
           final isSelected = selectedCategory == category;
           final categoryIcon = _getCategoryIcon(category);
           
-          // Responsive icon and text sizing
+          // Responsive icon sizing
           final iconSize = isSelected 
               ? (isLargeTablet ? 28.0 : isTablet ? 24.0 : 20.0)
               : (isLargeTablet ? 22.0 : isTablet ? 20.0 : 16.0);
-          final textSize = isLargeTablet ? 16.0 : isTablet ? 14.0 : 13.0;
           
           return Expanded(
             child: AnimatedContainer(
@@ -116,6 +122,8 @@ class StoreNavigation extends StatelessWidget {
                             ? 'BOOST'
                             : category.toUpperCase(),
                         textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: isSelected ? Colors.white : Colors.white70,
                           fontWeight: FontWeight.bold,

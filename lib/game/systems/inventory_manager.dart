@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import 'auto_refill_manager.dart';
+import '../../services/inventory_sync_service.dart';
+import 'player_identity_manager.dart';
 
 /// Enhanced inventory for jet skins, soft currency (coins), gems, and boosters
 class InventoryManager extends ChangeNotifier {
@@ -126,12 +129,22 @@ class InventoryManager extends ChangeNotifier {
     safePrint('💰 Currency restored: $coins coins, $gems gems');
   }
 
-  /// 🔄 Restore owned skins from backend
+  /// 🔄 Restore owned skins from backend (MERGE with local skins)
   Future<void> restoreOwnedSkins(Set<String> ownedSkins) async {
-    _ownedSkinIds = ownedSkins;
+    final previousSkins = Set<String>.from(_ownedSkinIds);
+    
+    // 🔥 CRITICAL FIX: Merge backend skins with local skins instead of replacing
+    _ownedSkinIds = _ownedSkinIds.union(ownedSkins);
+    
     await _persistOwned();
     notifyListeners();
-    safePrint('✈️ Owned skins restored: ${ownedSkins.length} skins');
+    
+    safePrint('✈️ Skin restoration details:');
+    safePrint('   Previous skins: ${previousSkins.toList()}');
+    safePrint('   Backend skins: ${ownedSkins.toList()}');
+    safePrint('   Added skins: ${ownedSkins.difference(previousSkins).toList()}');
+    safePrint('   Final skins: ${_ownedSkinIds.toList()}');
+    safePrint('✈️ Owned skins restored: ${_ownedSkinIds.length} skins (merged)');
   }
 
   /// 🎁 Add coins with animation support (for prize distribution)
@@ -174,6 +187,10 @@ class InventoryManager extends ChangeNotifier {
     await _persistCurrency();
     _softCurrencyNotifier.value = _softCurrency;
     notifyListeners();
+    
+    // 🚨 CRITICAL FIX: Immediately sync coin spending to backend to prevent restoration issues
+    await _syncCoinsToBackend();
+    
     return true;
   }
 
@@ -201,6 +218,10 @@ class InventoryManager extends ChangeNotifier {
     await _persistGems();
     _gemsNotifier.value = _gems;
     notifyListeners();
+    
+    // 🚨 CRITICAL FIX: Immediately sync gem spending to backend to prevent restoration issues
+    await _syncGemsToBackend();
+    
     return true;
   }
 
@@ -258,13 +279,47 @@ class InventoryManager extends ChangeNotifier {
   Future<void> unlockSkin(String skinId) async {
     _ownedSkinIds.add(skinId);
     await _persistOwned();
+    
+    // 🔥 NEW: Sync to backend if authenticated
+    if (_playerId != null) {
+      try {
+        final inventorySyncService = InventorySyncService();
+        await inventorySyncService.syncSkin(skinId, acquiredMethod: 'coin_purchase');
+        safePrint('✈️ 🔄 Skin synced to backend: $skinId');
+      } catch (syncError) {
+        safePrint('✈️ ⚠️ Failed to sync skin to backend: $syncError');
+        // Don't fail the unlock if sync fails - skin is still unlocked locally
+      }
+    }
+    
     notifyListeners();
   }
 
   Future<bool> equipSkin(String skinId) async {
     if (!_ownedSkinIds.contains(skinId)) return false;
+    
+    // 🔥 OPTIMIZATION: Skip if already equipped
+    if (_equippedSkinId == skinId) {
+      safePrint('✈️ ⚡ Skin $skinId already equipped - skipping');
+      return true;
+    }
+    
     _equippedSkinId = skinId;
     await _persistEquipped();
+    
+    // 🔥 NEW: Sync equipped status to backend (async, non-blocking)
+    if (_playerId != null) {
+      try {
+        final inventorySyncService = InventorySyncService();
+        // Don't await - let it sync in background for better performance
+        inventorySyncService.syncSkin(skinId, equipped: true);
+        safePrint('✈️ 🔄 Equipped skin synced to backend: $skinId');
+      } catch (syncError) {
+        safePrint('✈️ ⚠️ Failed to sync equipped skin to backend: $syncError');
+        // Don't fail the equip if sync fails - skin is still equipped locally
+      }
+    }
+    
     notifyListeners();
     return true;
   }
@@ -313,5 +368,76 @@ class InventoryManager extends ChangeNotifier {
   void setAuthToken(String authToken) {
     _authToken = authToken;
     safePrint('🎁 Auth token set for prize distribution');
+  }
+
+  /// 🚨 CRITICAL: Sync gems to backend immediately after spending to prevent restoration issues
+  Future<void> _syncGemsToBackend() async {
+    try {
+      final playerIdentityManager = PlayerIdentityManager();
+      if (!playerIdentityManager.isAuthenticated) {
+        safePrint('🔄 ⚠️ Cannot sync gems to backend - not authenticated');
+        return;
+      }
+
+      final token = playerIdentityManager.authToken;
+      if (token.isEmpty) return;
+
+      final response = await http.put(
+        Uri.parse('https://flappyjet-backend-production.up.railway.app/api/player/sync-currency'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'coins': _softCurrency,
+          'gems': _gems,
+          'syncReason': 'gem_spending',
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        safePrint('🔄 ✅ Gems synced to backend after spending: $_gems gems');
+      } else {
+        safePrint('🔄 ⚠️ Failed to sync gems to backend: ${response.statusCode}');
+      }
+    } catch (e) {
+      safePrint('🔄 ❌ Error syncing gems to backend: $e');
+      // Don't throw - local functionality should work even if backend sync fails
+    }
+  }
+  /// 🚨 CRITICAL: Sync coins to backend immediately after spending to prevent restoration issues
+  Future<void> _syncCoinsToBackend() async {
+    try {
+      final playerIdentityManager = PlayerIdentityManager();
+      if (!playerIdentityManager.isAuthenticated) {
+        safePrint('🔄 ⚠️ Cannot sync coins to backend - not authenticated');
+        return;
+      }
+
+      final token = playerIdentityManager.authToken;
+      if (token.isEmpty) return;
+
+      final response = await http.put(
+        Uri.parse('https://flappyjet-backend-production.up.railway.app/api/player/sync-currency'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'coins': _softCurrency,
+          'gems': _gems,
+          'syncReason': 'coin_spending',
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        safePrint('🔄 ✅ Coins synced to backend after spending: $_softCurrency coins');
+      } else {
+        safePrint('🔄 ⚠️ Failed to sync coins to backend: ${response.statusCode}');
+      }
+    } catch (e) {
+      safePrint('🔄 ❌ Error syncing coins to backend: $e');
+      // Don't throw - local functionality should work even if backend sync fails
+    }
   }
 }

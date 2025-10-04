@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../game/systems/leaderboard_manager.dart';
 import '../../../game/systems/player_identity_manager.dart';
+import '../../../game/core/jet_skins.dart';
 import '../../../core/network/network_manager.dart';
 
 class PersonalScoresTab extends StatefulWidget {
@@ -64,13 +65,30 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
 
       // Get local scores and filter to current player's scores only
       final currentPlayerName = _playerIdentityManager.playerName;
+      final leaderboardPlayerName = _leaderboardManager.playerName;
       final allLocalScores = _leaderboardManager.localScores;
       
-      // Filter to current player's scores and limit to top 10
+      print('🏆 PersonalScoresTab DEBUG:');
+      print('   PlayerIdentity playerName: $currentPlayerName');
+      print('   Leaderboard playerName: $leaderboardPlayerName');
+      print('   Total local scores: ${allLocalScores.length}');
+      print('   All player names: ${allLocalScores.map((e) => e.playerName).toSet().toList()}');
+      
+      // 🔥 CRITICAL FIX: Use the leaderboard manager's player name, which matches the stored scores
+      // The PlayerIdentityManager might have a different name (e.g., backend nickname)
+      // while LeaderboardManager uses the name that was used when scores were saved
       final playerScores = allLocalScores
-          .where((entry) => entry.playerName == currentPlayerName)
+          .where((entry) => 
+              entry.playerName == leaderboardPlayerName || 
+              entry.playerName == currentPlayerName ||
+              entry.playerName == 'You') // Legacy support
           .take(10)
           .toList();
+      
+      print('   Filtered personal scores: ${playerScores.length}');
+      if (playerScores.isNotEmpty) {
+        print('   Top score: ${playerScores.first.score} by ${playerScores.first.playerName}');
+      }
 
       if (mounted) {
         setState(() {
@@ -79,6 +97,7 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
         });
       }
     } catch (e) {
+      print('❌ PersonalScoresTab error: $e');
       if (mounted) {
         setState(() {
           _error = 'Failed to load personal scores: $e';
@@ -252,7 +271,11 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
     final playerScore = score.score;
     final theme = score.theme;
     final timestamp = _formatTimeAgo(score.achievedAt);
-    final jetSkin = 'jets/sky_jet.png'; // Default jet skin for local scores
+    
+    // Get the jet skin for this score
+    final jetSkinData = JetSkinCatalog.getSkinById(score.jetSkinId);
+    final jetSkinPath = jetSkinData?.assetPath ?? 'jets/green_lightning.png'; // Fallback to starter jet
+    
     final isPersonalBest = index == 0; // First score is the personal best
 
     return Container(
@@ -315,7 +338,7 @@ class _PersonalScoresTabState extends State<PersonalScoresTab> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(18),
               child: Image.asset(
-                'assets/images/$jetSkin',
+                'assets/images/$jetSkinPath',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(

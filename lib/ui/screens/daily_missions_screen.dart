@@ -4,6 +4,7 @@ import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
 import '../widgets/gem_3d_icon.dart';
 import '../widgets/mission_achievement_icons.dart';
+import '../widgets/rewards/reward_claim_popup.dart';
 
 class DailyMissionsScreen extends StatefulWidget {
   final MissionsManager? missionsManager;
@@ -121,37 +122,46 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
       return;
     }
 
+    // Get mission details before claiming
+    final mission = missionsManager.dailyMissions.firstWhere(
+      (m) => m.id == missionId,
+      orElse: () => throw Exception('Mission not found'),
+    );
+    
     final success = await missionsManager.claimMissionReward(missionId);
-    if (success) {
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              const Text('Mission reward claimed!'),
-            ],
-          ),
-          backgroundColor: const Color(0xFF4caf50),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-
-      // Force UI refresh to ensure mission is removed
+    if (success && mounted) {
       setState(() {
         _claimingMissions.remove(missionId);
       });
+      
+      // Show beautiful reward claim popup
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => RewardClaimPopup(
+          title: 'Mission Complete!',
+          rewardName: mission.title,
+          description: mission.description,
+          coinReward: mission.reward,
+          gemReward: 0, // Missions don't give gems currently
+          themeColor: const Color(0xFF4caf50), // Green for missions
+          onClose: () {
+            // Nothing special to do on close
+          },
+        ),
+      );
     } else {
       setState(() {
         _claimingMissions.remove(missionId);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to claim reward'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to claim reward'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -181,64 +191,38 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     final success = await achievementsManager.claimAchievementReward(
       achievementId,
     );
-    if (success && achievement != null) {
-      // Show animated reward message with actual reward amounts
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.emoji_events, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Achievement claimed! +${achievement.coinReward} coins${achievement.gemReward > 0 ? ' +${achievement.gemReward} gems' : ''}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              if (achievement.coinReward > 0) ...[
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.monetization_on,
-                  color: Colors.yellow,
-                  size: 20,
-                ),
-                Text(
-                  '${achievement.coinReward}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-              if (achievement.gemReward > 0) ...[
-                const SizedBox(width: 8),
-                const Icon(Icons.diamond, color: Colors.cyan, size: 20),
-                Text(
-                  '${achievement.gemReward}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ],
-          ),
-          backgroundColor: const Color(0xFF4caf50),
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+    if (success && achievement != null && mounted) {
+      // Show beautiful reward claim popup
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => RewardClaimPopup(
+          title: 'Achievement Unlocked!',
+          rewardName: achievement.title,
+          description: achievement.description,
+          coinReward: achievement.coinReward,
+          gemReward: achievement.gemReward,
+          themeColor: const Color(0xFFFFB74D), // Orange/gold for achievements
+          onClose: () {
+            // Force a complete UI refresh to ensure the claim button disappears
+            if (mounted) {
+              setState(() {});
+              // Trigger a rebuild animation to show the achievement moving to the bottom
+              _animationController.reset();
+              _animationController.forward();
+            }
+          },
         ),
       );
-
-      // Force a complete UI refresh to ensure the claim button disappears
-      setState(() {});
-
-      // Trigger a rebuild animation to show the achievement moving to the bottom
-      _animationController.reset();
-      _animationController.forward();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to claim achievement reward'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to claim achievement reward'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

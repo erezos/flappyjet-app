@@ -30,11 +30,19 @@ class _NicknameEditDialogState extends State<NicknameEditDialog> {
   String _currentNickname = '';
   bool _isValid = false;
   bool _isSaving = false;
+  final TextEditingController _textController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _currentNickname = widget.currentNickname;
+    _textController.text = widget.currentNickname;
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   void _onNicknameChanged(String nickname) {
@@ -51,6 +59,9 @@ class _NicknameEditDialogState extends State<NicknameEditDialog> {
 
   Future<void> _saveNickname() async {
     if (!_isValid || _isSaving) return;
+
+    // Store original name for rollback
+    final originalName = widget.currentNickname;
 
     setState(() {
       _isSaving = true;
@@ -89,6 +100,14 @@ class _NicknameEditDialogState extends State<NicknameEditDialog> {
 
     } catch (e) {
       safePrint('🛡️ ❌ Failed to update nickname: $e');
+
+      // Rollback UI state to original name
+      setState(() {
+        _currentNickname = originalName;
+      });
+      
+      // Update text field to show original name
+      _textController.text = originalName;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -188,7 +207,7 @@ class _NicknameEditDialogState extends State<NicknameEditDialog> {
 
             // Nickname input with validation
             NicknameInputWidget(
-              initialValue: widget.currentNickname,
+              controller: _textController,
               onNicknameChanged: _onNicknameChanged,
               onValidationChanged: _onValidationChanged,
               hintText: 'Enter your pilot name',

@@ -9,6 +9,7 @@ import 'lives_manager.dart';
 import 'inventory_manager.dart';
 import 'game_events_tracker.dart';
 import '../../core/debug_logger.dart';
+import '../../core/analytics/comprehensive_analytics_manager.dart';
 
 /// Mission types that adapt to player skill level
 enum MissionType {
@@ -537,6 +538,9 @@ class MissionsManager extends ChangeNotifier {
     
     // Track completion for analytics
     await _trackMissionCompletion(mission);
+    
+    // Check if all daily missions are now completed
+    await _checkAllMissionsCompleted();
   }
 
   /// Show mission completed notification (can be overridden by UI)
@@ -557,6 +561,32 @@ class MissionsManager extends ChangeNotifier {
     final completedMissions = prefs.getStringList(_keyCompletedMissions) ?? [];
     completedMissions.add('${mission.id}:${mission.reward}:${DateTime.now().millisecondsSinceEpoch}');
     await prefs.setStringList(_keyCompletedMissions, completedMissions);
+    
+    // 📊 Track mission completion in ComprehensiveAnalyticsManager
+    await ComprehensiveAnalyticsManager().trackMissionComplete(
+      missionType: mission.type.toString(),
+      missionId: mission.id,
+      progress: mission.target, // Use target as progress (mission is completed)
+      isDailyMission: true,
+    );
+  }
+
+  /// Check if all daily missions are completed and track the event
+  Future<void> _checkAllMissionsCompleted() async {
+    final completedMissions = _dailyMissions.where((m) => m.completed).length;
+    final totalMissions = _dailyMissions.length;
+    final allCompleted = completedMissions == totalMissions && totalMissions > 0;
+    
+    if (allCompleted) {
+      safePrint('🎯 🏆 ALL DAILY MISSIONS COMPLETED! $completedMissions/$totalMissions');
+      
+      // Track daily mission cycle completion
+      await ComprehensiveAnalyticsManager().trackDailyMissionCycleComplete(
+        missionsCompleted: completedMissions,
+        totalMissions: totalMissions,
+        allMissionsCompleted: true,
+      );
+    }
   }
 
   /// Save daily missions to storage

@@ -136,7 +136,7 @@ class IAPProductCatalog {
       id: 'heart_booster_24h',
       storeId: 'com.flappyjet.booster.24h',
       priceUSD: 0.99,
-      displayName: '24H Booster',
+      displayName: 'Booster 24H',
       description: '6 Max Hearts + Faster Regen for 24 Hours',
       type: IAPProductType.heartBooster,
       heartBoosterHours: 24,
@@ -149,7 +149,7 @@ class IAPProductCatalog {
       id: 'heart_booster_48h',
       storeId: 'com.flappyjet.booster.48h',
       priceUSD: 1.79,
-      displayName: '48H Booster',
+      displayName: 'Booster 48H',
       description: '6 Max Hearts + Faster Regen for 48 Hours',
       type: IAPProductType.heartBooster,
       heartBoosterHours: 48,
@@ -162,7 +162,7 @@ class IAPProductCatalog {
       id: 'heart_booster_72h',
       storeId: 'com.flappyjet.booster.72h',
       priceUSD: 2.39,
-      displayName: '72H Booster',
+      displayName: 'Booster 72H',
       description: '6 Max Hearts + Faster Regen for 72 Hours',
       type: IAPProductType.heartBooster,
       heartBoosterHours: 72,
@@ -172,75 +172,19 @@ class IAPProductCatalog {
     ),
   };
 
-  /// 🚁 PREMIUM JET SKINS - Direct Purchase
-  static const Map<String, IAPProduct> premiumJets = {
-    'jet_golden_falcon': IAPProduct(
-      id: 'jet_golden_falcon',
-      storeId: 'com.flappyjet.jet.golden_falcon',
-      priceUSD: 2.99,
-      displayName: 'Golden Falcon',
-      description: 'Exclusive premium jet with golden finish',
-      type: IAPProductType.jetSkin,
-      jetSkinId: 'golden_falcon',
-    ),
-    
-    'jet_stealth_dragon': IAPProduct(
-      id: 'jet_stealth_dragon',
-      storeId: 'com.flappyjet.jet.stealth_dragon',
-      priceUSD: 4.99,
-      displayName: 'Stealth Dragon',
-      description: 'Ultimate stealth technology jet',
-      type: IAPProductType.jetSkin,
-      jetSkinId: 'stealth_dragon',
-      isPopular: true,
-    ),
-    
-    'jet_phoenix_flame': IAPProduct(
-      id: 'jet_phoenix_flame',
-      storeId: 'com.flappyjet.jet.phoenix_flame',
-      priceUSD: 3.99,
-      displayName: 'Phoenix Flame',
-      description: 'Rise from the ashes with this legendary jet',
-      type: IAPProductType.jetSkin,
-      jetSkinId: 'phoenix_flame',
-    ),
-  };
+  /// 🚁 PREMIUM JET SKINS - NOT CURRENTLY SOLD (commented out to prevent missing product errors)
+  // static const Map<String, IAPProduct> premiumJets = {};
 
-  /// 🎁 CONVENIENCE PACKS - Future Expansion
-  static const Map<String, IAPProduct> conveniencePacks = {
-    'hearts_instant_refill': IAPProduct(
-      id: 'hearts_instant_refill',
-      storeId: 'com.flappyjet.hearts.instant',
-      priceUSD: 0.99,
-      displayName: 'Instant Hearts',
-      description: 'Immediate full heart refill',
-      type: IAPProductType.convenience,
-      hearts: 3,
-      isImpulse: true,
-    ),
-    
-    'starter_bundle': IAPProduct(
-      id: 'starter_bundle',
-      storeId: 'com.flappyjet.bundle.starter',
-      priceUSD: 2.99,
-      displayName: 'Starter Bundle',
-      description: 'Perfect for new pilots - gems, coins, hearts & booster',
-      type: IAPProductType.bundle,
-      gems: 200,
-      coins: 1000,
-      hearts: 5,
-      heartBoosterHours: 24,
-      isBestValue: true,
-    ),
-  };
+  /// 🎁 CONVENIENCE PACKS - NOT CURRENTLY SOLD (commented out to prevent missing product errors)
+  // static const Map<String, IAPProduct> conveniencePacks = {};
 
-  /// Get all products as a single map
+  /// Get all products as a single map - Only includes products actually being sold
   static Map<String, IAPProduct> getAllProducts() {
     return {
       ...gemPacks,
       ...heartBoosterPacks,
-      ...premiumJets,
-      ...conveniencePacks,
+      // ...premiumJets,        // Commented out - not currently sold
+      // ...conveniencePacks,    // Commented out - not currently sold
     };
   }
 

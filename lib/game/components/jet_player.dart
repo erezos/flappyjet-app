@@ -312,6 +312,45 @@ class JetPlayer extends SpriteComponent with HasGameReference {
   
   /// Render universal damage overlay that works with ANY jet skin
   void _renderDamageOverlay(Canvas canvas) {
+    // CRITICAL FIX: Always show damage flash immediately, even during invulnerability
+    if (_damageFlashTime > 0) {
+      // Determine damage color based on pending damage state or current state
+      Color damageColor = Colors.red;
+      
+      if (_pendingDamageState != null) {
+        switch (_pendingDamageState!) {
+          case JetDamageState.damaged:
+            damageColor = Colors.orange;
+            break;
+          case JetDamageState.critical:
+            damageColor = Colors.red;
+            break;
+          default:
+            break;
+        }
+      } else {
+        switch (_damageState) {
+          case JetDamageState.damaged:
+            damageColor = Colors.orange;
+            break;
+          case JetDamageState.critical:
+            damageColor = Colors.red;
+            break;
+          default:
+            break;
+        }
+      }
+      
+      // Show damage flash with high priority (renders over everything)
+      final flashAlpha = (math.sin(_damageFlashTime * 30) + 1) / 2; // Faster flashing
+      canvas.saveLayer(
+        size.toRect(),
+        Paint()..color = damageColor.withValues(alpha: flashAlpha * 0.8), // Much more visible damage flash
+      );
+      canvas.restore();
+    }
+    
+    // Then render the normal state overlay
     switch (_damageState) {
       case JetDamageState.healthy:
         // No overlay needed
@@ -440,17 +479,7 @@ class JetPlayer extends SpriteComponent with HasGameReference {
   
   /// Render damage effect with cracks and smoke
   void _renderDamageEffect(Canvas canvas, double intensity, Color damageColor) {
-    // Damage flash effect
-    if (_damageFlashTime > 0) {
-      final flashAlpha = (math.sin(_damageFlashTime * 20) + 1) / 2;
-      canvas.saveLayer(
-        size.toRect(),
-        Paint()..color = damageColor.withValues(alpha: flashAlpha * 0.3),
-      );
-      canvas.restore();
-    }
-    
-    // Damage overlay tint
+    // Damage overlay tint (static damage appearance)
     canvas.saveLayer(
       size.toRect(),
       Paint()..color = damageColor.withValues(alpha: intensity * 0.2),
@@ -603,15 +632,21 @@ class JetPlayer extends SpriteComponent with HasGameReference {
   
   /// Set damage state based on remaining lives (GAME INTEGRATION POINT)
   void setDamageStateFromLives(int remainingLives) {
-    // CRITICAL: Never override invulnerability state - shield must stay synchronized
+    final newDamageState = _getDamageStateForLives(remainingLives);
+    
+    // CRITICAL: Always show damage flash immediately, even during invulnerability
+    if (newDamageState == JetDamageState.damaged || newDamageState == JetDamageState.critical) {
+      _triggerDamageFlash(); // Show immediate visual feedback
+    }
+    
     if (_isInvulnerable) {
       // Store the target damage state for when invulnerability ends
-      _pendingDamageState = _getDamageStateForLives(remainingLives);
+      _pendingDamageState = newDamageState;
       safePrint('💥 Damage state deferred during invulnerability: ${_pendingDamageState?.name} ($remainingLives lives remaining)');
       return;
     }
     
-    _damageState = _getDamageStateForLives(remainingLives);
+    _damageState = newDamageState;
     safePrint('💥 Jet damage state: ${_damageState.name} ($remainingLives lives remaining)');
   }
   
@@ -621,10 +656,8 @@ class JetPlayer extends SpriteComponent with HasGameReference {
       case 3:
         return JetDamageState.healthy;
       case 2:
-        _triggerDamageFlash();
         return JetDamageState.damaged;
       case 1:
-        _triggerDamageFlash();
         return JetDamageState.critical;
       default:
         return JetDamageState.critical; // Game over state
@@ -633,7 +666,7 @@ class JetPlayer extends SpriteComponent with HasGameReference {
   
   /// Trigger damage flash effect
   void _triggerDamageFlash() {
-    _damageFlashTime = 0.5; // Flash for half a second
+    _damageFlashTime = 0.8; // Flash for longer to be more noticeable
   }
   
   /// Heal the jet (when lives are restored)

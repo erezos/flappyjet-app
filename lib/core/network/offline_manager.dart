@@ -94,6 +94,7 @@ class OfflineManager extends ChangeNotifier {
   /// Initialize offline manager
   Future<void> initialize() async {
     await _loadQueue();
+    await clearOldEndpointRequests(); // Clear old endpoint requests
     _startPeriodicProcessing();
     safePrint('📱 Offline Manager initialized - Queue size: ${_queue.length}');
   }
@@ -217,6 +218,26 @@ class OfflineManager extends ChangeNotifier {
     await _saveQueue();
     notifyListeners();
     safePrint('📱 🗑️ Offline queue cleared');
+  }
+
+  /// Clear old endpoint requests that no longer exist
+  Future<void> clearOldEndpointRequests() async {
+    final oldEndpoints = [
+      '/api/fcm/register', // Old FCM endpoint
+      '/api/leaderboard/player/', // Old leaderboard nickname endpoint
+    ];
+    
+    final initialSize = _queue.length;
+    _queue.removeWhere((request) {
+      return oldEndpoints.any((oldEndpoint) => 
+        request.request.endpoint.contains(oldEndpoint));
+    });
+    
+    if (_queue.length < initialSize) {
+      await _saveQueue();
+      notifyListeners();
+      safePrint('📱 🗑️ Cleared ${initialSize - _queue.length} old endpoint requests');
+    }
   }
 
   /// Remove specific request from queue

@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'inventory_manager.dart';
 import 'local_notification_manager.dart';
 import 'lives_manager.dart';
 import '../../core/debug_logger.dart';
+import '../../core/analytics/unified_analytics_manager.dart';
 
 /// Daily streak reward types
 enum DailyStreakRewardType {
@@ -54,10 +54,10 @@ class DailyStreakReward {
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.heartBooster,
-        amount: 1, // 1 hour
+        amount: 15, // 15 minutes
         iconFrame: 'icon/boost',
-        displayText: '1h',
-        description: '1 Hour Heart Booster',
+        displayText: '15m',
+        description: '15 Minutes Heart Booster',
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.coins,
@@ -67,11 +67,11 @@ class DailyStreakReward {
         description: '250 Coins',
       ),
       const DailyStreakReward(
-        type: DailyStreakRewardType.heart,
-        amount: 1,
-        iconFrame: 'icon/heart',
-        displayText: '1',
-        description: '1 Heart',
+        type: DailyStreakRewardType.heartBooster,
+        amount: 30, // 30 minutes
+        iconFrame: 'icon/boost',
+        displayText: '30m',
+        description: '30 Minutes Heart Booster',
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.mysteryBox,
@@ -109,10 +109,10 @@ class DailyStreakReward {
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.heartBooster,
-        amount: 1, // 1 hour
+        amount: 15, // 15 minutes
         iconFrame: 'icon/boost',
-        displayText: '1h',
-        description: '1 Hour Heart Booster',
+        displayText: '15m',
+        description: '15 Minutes Heart Booster',
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.coins,
@@ -122,11 +122,11 @@ class DailyStreakReward {
         description: '250 Coins',
       ),
       const DailyStreakReward(
-        type: DailyStreakRewardType.heart,
-        amount: 1,
-        iconFrame: 'icon/heart',
-        displayText: '1',
-        description: '1 Heart',
+        type: DailyStreakRewardType.heartBooster,
+        amount: 30, // 30 minutes
+        iconFrame: 'icon/boost',
+        displayText: '30m',
+        description: '30 Minutes Heart Booster',
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.mysteryBox,
@@ -165,6 +165,9 @@ class DailyStreakManager extends ChangeNotifier {
   static const String _keyClaimedToday = 'daily_streak_claimed_today';
   static const String _keyStreakStartDate = 'daily_streak_start_date';
   static const String _keyTotalStreaksCompleted = 'daily_streak_total_completed';
+  static const String _keyCurrentCycle = 'daily_streak_current_cycle';
+  static const String _keyCycleStartDate = 'daily_streak_cycle_start';
+  static const String _keyCurrentCycleRewardSet = 'daily_streak_cycle_reward_set';
   
   // State
   int _currentStreak = 0;
@@ -172,6 +175,9 @@ class DailyStreakManager extends ChangeNotifier {
   bool _claimedToday = false;
   DateTime? _streakStartDate;
   int _totalStreaksCompleted = 0;
+  int _currentCycle = 0;
+  DateTime? _cycleStartDate;
+  String? _currentCycleRewardSet; // 'new_player' or 'experienced'
   
   // Dependencies
   final InventoryManager _inventory = InventoryManager();
@@ -182,12 +188,24 @@ class DailyStreakManager extends ChangeNotifier {
   bool get claimedToday => _claimedToday;
   DateTime? get lastClaimDate => _lastClaimDate;
   int get totalStreaksCompleted => _totalStreaksCompleted;
+  int get currentCycle => _currentCycle;
+  DateTime? get cycleStartDate => _cycleStartDate;
+  String? get currentCycleRewardSet => _currentCycleRewardSet;
   
   /// Get current day index (0-6) for UI display
   int get currentDayIndex => (_currentStreak - 1).clamp(0, 6);
   
-  /// Get today's reward index (0-6)
-  int get todayRewardIndex => _currentStreak.clamp(0, 6);
+  /// Get today's reward index (0-6) - FIXED: Proper cycle management
+  int get todayRewardIndex {
+    // The reward index should be based on what day we're ABOUT TO claim
+    // _currentStreak represents completed days, so the next day is _currentStreak + 1
+    final nextDay = _currentStreak + 1;
+    final dayInCycle = (nextDay - 1) % 7;
+    return dayInCycle; // 0-6, maps days 1-7 to indices 0-6
+  }
+  
+  /// Check if current cycle is complete
+  bool get isCycleComplete => _currentStreak > 0 && _currentStreak % 7 == 0;
   
   /// Get current streak state
   DailyStreakState get currentState {
@@ -222,11 +240,18 @@ class DailyStreakManager extends ChangeNotifier {
     return state == DailyStreakState.available;
   }
   
-  /// Get appropriate rewards based on player's skin collection
+  /// Get appropriate rewards based on current cycle's reward set
+  /// FIXED: Maintains consistency throughout the cycle
   List<DailyStreakReward> get currentRewards {
-    final ownedSkins = _inventory.ownedSkinIds;
+    // If we're in the middle of a cycle, use the cycle's reward set
+    if (_currentCycleRewardSet != null) {
+      return _currentCycleRewardSet == 'new_player' 
+          ? DailyStreakReward.getNewPlayerRewards()
+          : DailyStreakReward.getExperiencedPlayerRewards();
+    }
     
-    // If player only has the starter skin, give them Flash Strike on day 2
+    // For new cycles, determine based on current skin count
+    final ownedSkins = _inventory.ownedSkinIds;
     if (ownedSkins.length <= 1) {
       return DailyStreakReward.getNewPlayerRewards();
     } else {
@@ -239,10 +264,18 @@ class DailyStreakManager extends ChangeNotifier {
     final rewards = currentRewards;
     final index = todayRewardIndex;
     
+    // Validate index bounds
+    if (index < 0 || index >= rewards.length) {
+      safePrint('⚠️ Invalid reward index: $index (max: ${rewards.length - 1})');
+      return rewards[0]; // Fallback to first reward
+    }
+    
     // Debug logging to prevent similar bugs
     if (kDebugMode) {
       safePrint('🎯 Daily Streak Reward Debug:');
       safePrint('  currentStreak: $_currentStreak');
+      safePrint('  currentCycle: $_currentCycle');
+      safePrint('  cycleRewardSet: $_currentCycleRewardSet');
       safePrint('  todayRewardIndex: $index');
       safePrint('  reward: ${rewards[index].description}');
       safePrint('  displayText: ${rewards[index].displayText}');
@@ -258,6 +291,8 @@ class DailyStreakManager extends ChangeNotifier {
     _currentStreak = prefs.getInt(_keyCurrentStreak) ?? 0;
     _claimedToday = prefs.getBool(_keyClaimedToday) ?? false;
     _totalStreaksCompleted = prefs.getInt(_keyTotalStreaksCompleted) ?? 0;
+    _currentCycle = prefs.getInt(_keyCurrentCycle) ?? 0;
+    _currentCycleRewardSet = prefs.getString(_keyCurrentCycleRewardSet);
     
     final lastClaimMs = prefs.getInt(_keyLastClaimDate);
     if (lastClaimMs != null) {
@@ -269,10 +304,18 @@ class DailyStreakManager extends ChangeNotifier {
       _streakStartDate = DateTime.fromMillisecondsSinceEpoch(streakStartMs);
     }
     
+    final cycleStartMs = prefs.getInt(_keyCycleStartDate);
+    if (cycleStartMs != null) {
+      _cycleStartDate = DateTime.fromMillisecondsSinceEpoch(cycleStartMs);
+    }
+    
+    // Validate and recover state
+    await _validateAndRecoverState();
+    
     // Check if we need to reset daily claim status
     await _checkDailyReset();
     
-    safePrint('📅 Daily Streak initialized: streak=$_currentStreak, claimed=$_claimedToday, state=${currentState.name}');
+    safePrint('📅 Daily Streak initialized: streak=$_currentStreak, cycle=$_currentCycle, rewardSet=$_currentCycleRewardSet, claimed=$_claimedToday, state=${currentState.name}');
     notifyListeners();
   }
   
@@ -300,7 +343,7 @@ class DailyStreakManager extends ChangeNotifier {
       if (daysSinceLastClaim > 1) {
         // Streak broken - reset to 0 (no grace period)
         await _resetStreak();
-        safePrint('📅 Daily streak broken and reset (missed ${daysSinceLastClaim} days)');
+        safePrint('📅 Daily streak broken and reset (missed $daysSinceLastClaim days)');
       }
     }
   }
@@ -313,10 +356,87 @@ class DailyStreakManager extends ChangeNotifier {
     notifyListeners();
     safePrint('🔥 Daily streak restored: $streak days');
   }
+  
+  /// 🔄 Restore complete cycle data from backend
+  Future<void> restoreCycleData({
+    required int currentCycle,
+    required String cycleRewardSet,
+    required int totalCyclesCompleted,
+    DateTime? cycleStartDate,
+  }) async {
+    _currentCycle = currentCycle;
+    _currentCycleRewardSet = cycleRewardSet;
+    _totalStreaksCompleted = totalCyclesCompleted;
+    _cycleStartDate = cycleStartDate;
+    
+    await _persistData();
+    notifyListeners();
+    safePrint('🔥 Cycle data restored: cycle=$currentCycle, rewardSet=$cycleRewardSet, totalCycles=$totalCyclesCompleted');
+  }
+  
+  /// Validate and recover state from impossible conditions
+  Future<void> _validateAndRecoverState() async {
+    // Check for impossible states
+    if (_currentStreak < 0) {
+      safePrint('⚠️ Invalid streak: $_currentStreak, resetting to 0');
+      _currentStreak = 0;
+    }
+    
+    if (_currentCycle < 0) {
+      safePrint('⚠️ Invalid cycle: $_currentCycle, resetting to 0');
+      _currentCycle = 0;
+    }
+    
+    // Check for missing cycle start date
+    if (_currentCycle > 0 && _cycleStartDate == null) {
+      safePrint('⚠️ Missing cycle start date, setting to now');
+      _cycleStartDate = DateTime.now();
+    }
+    
+    // Determine reward set if missing
+    if (_currentCycleRewardSet == null && _currentStreak > 0) {
+      final ownedSkins = _inventory.ownedSkinIds;
+      _currentCycleRewardSet = ownedSkins.length <= 1 ? 'new_player' : 'experienced';
+      safePrint('⚠️ Missing cycle reward set, determined: $_currentCycleRewardSet');
+    }
+    
+    await _persistData();
+  }
+  
+  /// Complete current cycle and start new one
+  Future<void> _completeCycle() async {
+    _totalStreaksCompleted++;
+    _currentCycle++;
+    
+    // Determine reward set for new cycle
+    final ownedSkins = _inventory.ownedSkinIds;
+    _currentCycleRewardSet = ownedSkins.length <= 1 ? 'new_player' : 'experienced';
+    
+    // Reset streak for new cycle (Day 1 of new cycle)
+    _currentStreak = 0;
+    _cycleStartDate = DateTime.now();
+    
+    // CRITICAL FIX: Reset claimed status for new cycle
+    // The user just completed Day 7, but now we're starting a new cycle
+    // so they should be able to claim Day 1 of the new cycle
+    _claimedToday = false;
+    
+    safePrint('🎉 Completed cycle $_currentCycle! Starting new cycle with $_currentCycleRewardSet rewards');
+    
+    // Trigger cycle completion analytics
+    UnifiedAnalyticsManager().trackEvent('daily_streak_cycle_completed', {
+      'cycle_number': _currentCycle,
+      'total_cycles': _totalStreaksCompleted,
+      'reward_set': _currentCycleRewardSet,
+    });
+    
+    await _persistData();
+    notifyListeners();
+  }
 
   /// Claim today's reward (optimized with batching)
   Future<bool> claimTodayReward() async {
-    safePrint('🎯 Daily Streak Claim Debug: streak=$_currentStreak, claimedToday=$_claimedToday, state=${currentState.name}');
+    safePrint('🎯 Daily Streak Claim Debug: streak=$_currentStreak, cycle=$_currentCycle, claimedToday=$_claimedToday, state=${currentState.name}');
     
     if (currentState != DailyStreakState.available) {
       safePrint('❌ Cannot claim reward - state: ${currentState.name}');
@@ -337,16 +457,15 @@ class DailyStreakManager extends ChangeNotifier {
     _claimedToday = true;
     _lastClaimDate = DateTime.now();
     
-    // Check if completed a full 7-day cycle
-    if (_currentStreak % 7 == 0) {
-      _totalStreaksCompleted++;
-      safePrint('🎉 Completed 7-day streak cycle! Total: $_totalStreaksCompleted');
+    // CRITICAL FIX: Handle cycle completion
+    if (isCycleComplete) {
+      safePrint('🎯 Cycle completion triggered: streak=$_currentStreak, completing cycle $_currentCycle');
+      await _completeCycle();
+      safePrint('🎯 After cycle completion: streak=$_currentStreak, cycle=$_currentCycle');
     }
     
     // Start streak tracking on first claim
-    if (_streakStartDate == null) {
-      _streakStartDate = DateTime.now();
-    }
+    _streakStartDate ??= DateTime.now();
     
     // Update UI immediately
     notifyListeners();
@@ -363,7 +482,7 @@ class DailyStreakManager extends ChangeNotifier {
       return <dynamic>[]; // Return empty list for error handling
     });
     
-    safePrint('✅ Daily streak reward claimed: ${reward.description} (streak: $_currentStreak)');
+    safePrint('✅ Daily streak reward claimed: ${reward.description} (streak: $_currentStreak, cycle: $_currentCycle)');
     return true;
   }
   
@@ -381,7 +500,11 @@ class DailyStreakManager extends ChangeNotifier {
           break;
           
         case DailyStreakRewardType.heartBooster:
-          await _inventory.activateHeartBooster(Duration(hours: reward.amount));
+          // Activate the booster timer
+          await _inventory.activateHeartBooster(Duration(minutes: reward.amount));
+          // 🔥 CRITICAL: Refill hearts to max (6 with booster active)
+          await _lives.refillToMax();
+          safePrint('💖 Heart Booster activated and hearts refilled to 6!');
           break;
           
         case DailyStreakRewardType.heart:
@@ -437,8 +560,8 @@ class DailyStreakManager extends ChangeNotifier {
 
   /// Open mystery box and give random reward
   Future<void> _openMysteryBox() async {
-    // Random rewards from mystery box
-    final random = DateTime.now().millisecondsSinceEpoch % 4;
+    // Random rewards from mystery box (3 options)
+    final random = DateTime.now().millisecondsSinceEpoch % 3;
     
     switch (random) {
       case 0:
@@ -450,12 +573,10 @@ class DailyStreakManager extends ChangeNotifier {
         safePrint('🎁 Mystery box: 8 gems');
         break;
       case 2:
-        await _inventory.activateHeartBooster(const Duration(minutes: 30));
-        safePrint('🎁 Mystery box: 30min heart booster');
-        break;
-      case 3:
-        await _lives.addLife();
-        safePrint('🎁 Mystery box: 1 heart');
+        await _inventory.activateHeartBooster(const Duration(minutes: 60));
+        // 🔥 CRITICAL: Refill hearts to max (6 with booster active)
+        await _lives.refillToMax();
+        safePrint('🎁 Mystery box: 1 hour heart booster + hearts refilled to 6!');
         break;
     }
   }
@@ -477,6 +598,7 @@ class DailyStreakManager extends ChangeNotifier {
     await prefs.setInt(_keyCurrentStreak, _currentStreak);
     await prefs.setBool(_keyClaimedToday, _claimedToday);
     await prefs.setInt(_keyTotalStreaksCompleted, _totalStreaksCompleted);
+    await prefs.setInt(_keyCurrentCycle, _currentCycle);
     
     if (_lastClaimDate != null) {
       await prefs.setInt(_keyLastClaimDate, _lastClaimDate!.millisecondsSinceEpoch);
@@ -489,21 +611,45 @@ class DailyStreakManager extends ChangeNotifier {
     } else {
       await prefs.remove(_keyStreakStartDate);
     }
+    
+    if (_cycleStartDate != null) {
+      await prefs.setInt(_keyCycleStartDate, _cycleStartDate!.millisecondsSinceEpoch);
+    } else {
+      await prefs.remove(_keyCycleStartDate);
+    }
+    
+    if (_currentCycleRewardSet != null) {
+      await prefs.setString(_keyCurrentCycleRewardSet, _currentCycleRewardSet!);
+    } else {
+      await prefs.remove(_keyCurrentCycleRewardSet);
+    }
   }
   
   /// Get streak statistics for analytics
   Map<String, dynamic> getStreakStats() {
     return {
       'current_streak': _currentStreak,
+      'current_cycle': _currentCycle,
+      'cycle_reward_set': _currentCycleRewardSet,
       'total_completed': _totalStreaksCompleted,
       'claimed_today': _claimedToday,
       'state': currentState.name,
       'days_since_start': _streakStartDate != null 
           ? DateTime.now().difference(_streakStartDate!).inDays 
           : 0,
+      'days_since_cycle_start': _cycleStartDate != null 
+          ? DateTime.now().difference(_cycleStartDate!).inDays 
+          : 0,
     };
   }
   
+  /// Reset daily claim status (for testing new day simulation)
+  Future<void> resetDailyClaimStatus() async {
+    _claimedToday = false;
+    await _persistData();
+    safePrint('📅 Daily claim status reset for new day simulation');
+  }
+
   /// Reset all data (for testing/debugging)
   Future<void> resetAllData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -512,12 +658,18 @@ class DailyStreakManager extends ChangeNotifier {
     await prefs.remove(_keyClaimedToday);
     await prefs.remove(_keyStreakStartDate);
     await prefs.remove(_keyTotalStreaksCompleted);
+    await prefs.remove(_keyCurrentCycle);
+    await prefs.remove(_keyCycleStartDate);
+    await prefs.remove(_keyCurrentCycleRewardSet);
     
     _currentStreak = 0;
     _claimedToday = false;
     _lastClaimDate = null;
     _streakStartDate = null;
     _totalStreaksCompleted = 0;
+    _currentCycle = 0;
+    _cycleStartDate = null;
+    _currentCycleRewardSet = null;
     
     notifyListeners();
     safePrint('🔄 Daily streak data reset');

@@ -14,6 +14,8 @@ import 'dart:io';
 import 'firebase_analytics_manager.dart';
 import 'missions_manager.dart';
 import 'achievements_manager.dart';
+import '../../core/analytics/unified_analytics_manager.dart';
+import '../../core/analytics/comprehensive_analytics_manager.dart';
 
 /// Supported social platforms
 enum SocialPlatform {
@@ -169,6 +171,7 @@ class SocialSharingManager extends ChangeNotifier {
   SocialSharingManager._internal();
 
   FirebaseAnalyticsManager? _analytics;
+  UnifiedAnalyticsManager? _unifiedAnalytics;
   MissionsManager? _missions;
   AchievementsManager? _achievements;
   
@@ -186,6 +189,7 @@ class SocialSharingManager extends ChangeNotifier {
     try {
       // Initialize dependencies if not provided
       _analytics ??= FirebaseAnalyticsManager();
+      _unifiedAnalytics ??= UnifiedAnalyticsManager();
       _missions ??= MissionsManager();
       _achievements ??= AchievementsManager();
       
@@ -224,8 +228,19 @@ class SocialSharingManager extends ChangeNotifier {
       final shareResult = await _performShare(content, platform, scoreCardPath);
       
       if (shareResult.isSuccess) {
-        // Track the sharing event
+        // Track the actual sharing completion
         await _trackSharingEvent(score, platform);
+        
+        // Track comprehensive analytics for successful share
+        try {
+          await ComprehensiveAnalyticsManager().trackEvent('share_done', {
+            'platform': platform.name,
+            'score': score,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          });
+        } catch (e) {
+          safePrint('⚠️ Failed to track share completion: $e');
+        }
         
         // Update missions and achievements
         await _updateSharingProgress(platform);
@@ -510,12 +525,15 @@ class SocialSharingManager extends ChangeNotifier {
   /// Track sharing event in analytics
   Future<void> _trackSharingEvent(int score, SocialPlatform platform) async {
     try {
-      await _analytics?.trackEvent('social_share', {
-        'platform': platform.name,
-        'score': score,
-        'content_type': 'score_share',
-        'total_shares': _totalShares + 1,
-      });
+      // 📊 Track to both Firebase and Railway Analytics
+      _unifiedAnalytics?.trackSocialShare(
+        shareType: 'score_share',
+        contentType: 'score_card',
+        platform: platform.name,
+        score: score,
+      );
+      
+      safePrint('📊 ✅ Social share tracked: ${platform.name} - score: $score');
     } catch (e) {
       safePrint('❌ Failed to track sharing event: $e');
     }

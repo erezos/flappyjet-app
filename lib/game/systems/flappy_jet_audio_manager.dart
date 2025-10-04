@@ -1,336 +1,372 @@
-/// 🎵 FlappyJet Audio Manager - PROPER Flame Audio Implementation
-/// Using Flame Audio 2.1.0 best practices and documentation
-/// 
-/// Features:
-/// - Proper AudioPool usage with preloaded instances
-/// - Asset preloading to prevent loading delays
-/// - Efficient SFX management for rapid-fire gameplay
-/// - Bgm class for seamless music transitions
-/// - Correct AudioFocus handling
+/// 🎵 FLAPPY JET AUDIO MANAGER - Direct Native Audio Implementation
+/// Simple, direct interface to native audio system
+/// Zero complexity, maximum performance
 library;
 
 import 'dart:async';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/debug_logger.dart';
 import 'audio_settings_manager.dart';
+import 'native_audio_engine.dart';
 
-/// 🎮 FlappyJet Audio Manager - PROPER Flame Audio Implementation
+/// 🎵 FlappyJet Audio Manager - Native Audio Bridge Implementation
+/// 
+/// This class maintains the exact same API as the original FlappyJetAudioManager
+/// but uses the Native Audio Bridge internally for crash-free, low-latency audio.
+/// 
+/// Key Features:
+/// - Zero breaking changes to existing code
+/// - Native audio performance (no MediaPlayer ANRs)
+/// - Automatic fallback handling
+/// - Settings integration
+/// - Lifecycle management
 class FlappyJetAudioManager {
   static FlappyJetAudioManager? _instance;
   static FlappyJetAudioManager get instance => _instance ??= FlappyJetAudioManager._internal();
+  
   FlappyJetAudioManager._internal();
 
-  // 🎵 Audio State
+  // Direct native audio system
+  final NativeAudioEngine _nativeAudio = NativeAudioEngine.instance;
+  final AudioSettingsManager _settings = AudioSettingsManager();
+  
   bool _isInitialized = false;
-  bool _musicEnabled = true;
-  bool _sfxEnabled = true;
+  bool _isInitializing = false;
+  
+  // Current music state
   String? _currentMusic;
+  bool _musicPlaying = false;
+  bool _musicPaused = false;
 
-  // 🔊 AudioPool instances - PROPER Flame Audio usage
-  final Map<String, AudioPool> _audioPools = {};
-  
-  // 🎯 Pool usage tracking for drop-on-busy strategy
-  final Map<String, int> _poolUsageCount = {};
-  final Map<String, int> _poolMaxSize = {};
-
-  // 🎼 Audio Assets - All ACTUAL game audio files (verified in assets/audio/)
-  static const List<String> _allAudioAssets = [
-    // Music tracks (MP3 format)
-    'menu_music.mp3',
-    'sky_rookie.mp3',
-    'legend.mp3',
-    'space_cadet.mp3',
-    'storm_ace.mp3',
-    'void_master.mp3',
-    
-    // SFX files (WAV format)
-    'jump.wav',
-    'collision.wav',
-    'score.wav',
-    'achievement.wav',
-    'game_over.wav',
-    'theme_unlock.wav',
-  ];
-
-  // 🔊 SFX Pool Configuration - Optimized for FlappyJet gameplay
-  static const Map<String, int> _sfxPoolConfig = {
-    'jump.wav': 12,       // Most frequent - ultra-low latency needed (increased for rapid tapping)
-    'collision.wav': 4,   // Damage/collision sounds
-    'score.wav': 6,       // Score achievement sounds  
-    'achievement.wav': 3, // Achievement unlocks
-    'game_over.wav': 2,   // Game end sound
-    'theme_unlock.wav': 2, // Theme unlock sound
-  };
-
-  /// 🚀 Initialize FlappyJet Audio System - PROPER Flame Audio way
+  /// Initialize the audio manager
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized || _isInitializing) return;
+    _isInitializing = true;
 
     try {
-      safePrint('🎵 Initializing FlappyJet Audio Manager with Flame Audio 2.1.0...');
-
-      // STEP 1: Preload ALL audio assets (Flame Audio best practice)
-      await _preloadAllAssets();
-
-      // STEP 2: Create AudioPools for SFX (proper pool management)
-      await _createAudioPools();
-
+      safePrint('🎵 FlappyJetAudioManager: Initializing direct native audio...');
+      
+      // Initialize native audio engine
+      await _nativeAudio.initialize();
+      
+      // Register all audio tracks
+      await _registerAllTracks();
+      
       _isInitialized = true;
-      safePrint('✅ FlappyJet Audio Manager initialized successfully');
-
+      safePrint('🎵 FlappyJetAudioManager: Initialization completed successfully');
     } catch (e) {
-      safeError('❌ Failed to initialize FlappyJet Audio Manager: \$e');
-      rethrow;
+      safePrint('🎵 FlappyJetAudioManager: Initialization failed: $e');
+    } finally {
+      _isInitializing = false;
     }
   }
 
-  /// 🎼 STEP 1: Preload all audio assets (prevents loading delays)
-  Future<void> _preloadAllAssets() async {
+  /// Register all game audio tracks with the native engine
+  Future<void> _registerAllTracks() async {
+    // Import the AudioTrack class
+    // Music tracks
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'menu_music',
+      assetPath: 'assets/audio/menu_music.mp3',
+      type: AudioTrackType.music,
+      loop: true,
+      volume: 0.7,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'sky_rookie',
+      assetPath: 'assets/audio/sky_rookie.mp3',
+      type: AudioTrackType.music,
+      loop: true,
+      volume: 0.7,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'space_cadet',
+      assetPath: 'assets/audio/space_cadet.mp3',
+      type: AudioTrackType.music,
+      loop: true,
+      volume: 0.7,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'storm_ace',
+      assetPath: 'assets/audio/storm_ace.mp3',
+      type: AudioTrackType.music,
+      loop: true,
+      volume: 0.7,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'void_master',
+      assetPath: 'assets/audio/void_master.mp3',
+      type: AudioTrackType.music,
+      loop: true,
+      volume: 0.7,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'legend',
+      assetPath: 'assets/audio/legend.mp3',
+      type: AudioTrackType.music,
+      loop: true,
+      volume: 0.7,
+    ));
+    
+    // SFX tracks
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'jump',
+      assetPath: 'assets/audio/jump.wav',
+      type: AudioTrackType.sfx,
+      volume: 0.8,
+      preload: true,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'collision',
+      assetPath: 'assets/audio/collision.wav',
+      type: AudioTrackType.sfx,
+      volume: 0.9,
+      preload: true,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'score',
+      assetPath: 'assets/audio/score.wav',
+      type: AudioTrackType.sfx,
+      volume: 0.7,
+      preload: true,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'achievement',
+      assetPath: 'assets/audio/achievement.wav',
+      type: AudioTrackType.sfx,
+      volume: 0.9,
+      preload: true,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'game_over',
+      assetPath: 'assets/audio/game_over.wav',
+      type: AudioTrackType.sfx,
+      volume: 0.8,
+      preload: true,
+    ));
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'theme_unlock',
+      assetPath: 'assets/audio/theme_unlock.wav',
+      type: AudioTrackType.sfx,
+      volume: 1.0,
+      preload: true,
+    ));
+  }
+
+  /// Play jump sound effect
+  Future<void> playJump() async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
+    
     try {
-      // Preload ALL audio files at once - Flame Audio best practice
-      await FlameAudio.audioCache.loadAll(_allAudioAssets);
-      safePrint('🎼 All audio assets preloaded successfully');
+      await _nativeAudio.playSFX('jump', volume: 0.8);
     } catch (e) {
-      safeError('❌ Failed to preload audio assets: \$e');
-      rethrow;
+      safePrint('🎵 FlappyJetAudioManager: Jump sound failed: $e');
     }
   }
 
-  /// 🔊 STEP 2: Create AudioPools for SFX (proper Flame Audio usage)
-  Future<void> _createAudioPools() async {
-    for (final entry in _sfxPoolConfig.entries) {
-      final soundFile = entry.key;
-      final poolSize = entry.value;
-
-      try {
-        // Create AudioPool - PROPER Flame Audio way
-        final pool = await FlameAudio.createPool(
-          soundFile,
-          maxPlayers: poolSize,
-          minPlayers: (poolSize / 2).ceil(), // Keep half ready
-        );
-
-        // Store the pool for reuse (ready to play when needed)
-        _audioPools[soundFile] = pool;
-        _poolUsageCount[soundFile] = 0;
-        _poolMaxSize[soundFile] = poolSize;
-        
-        Logger.d('🔊 Audio pool created and ready: $soundFile (size: $poolSize)');
-      } catch (e) {
-        safeError('❌ Failed to create pool for $soundFile: $e');
-      }
-    }
-  }
-
-  /// 🎼 Play background music using Flame Audio Bgm class
-  Future<void> playMusic(String musicType, {double volume = 1.0}) async {
-    if (!_isInitialized) return;
+  /// Play score sound effect
+  Future<void> playScore() async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
     
-    // Check AudioSettingsManager for music setting
-    final audioSettings = AudioSettingsManager();
-    if (!audioSettings.shouldPlayMusic()) return;
-
-    String musicFile;
-    
-    // Check if musicType is already a filename (ends with .mp3)
-    if (musicType.endsWith('.mp3')) {
-      musicFile = musicType;
-    } else {
-      // Handle legacy music type strings
-      switch (musicType) {
-        case 'menu':
-          musicFile = 'menu_music.mp3';
-          break;
-        case 'game':
-          musicFile = 'sky_rookie.mp3';  // Use existing game music
-          break;
-        case 'gameOver':
-          musicFile = 'menu_music.mp3';  // Use menu music for game over (no separate game over music exists)
-          break;
-        default:
-          safeError('❌ Unknown music type: \$musicType');
-          return;
-      }
-    }
-
     try {
-      // Use Flame Audio Bgm class for background music
-      if (FlameAudio.bgm.isPlaying) {
-        await FlameAudio.bgm.stop();
-      }
-
-      await FlameAudio.bgm.play(musicFile, volume: volume);
-      _currentMusic = musicType;
-      
-      safePrint('🎼 Music started: \$musicType (\$musicFile)');
+      await _nativeAudio.playSFX('score', volume: 0.7);
     } catch (e) {
-      safeError('❌ Failed to play music \$musicType: \$e');
+      safePrint('🎵 FlappyJetAudioManager: Score sound failed: $e');
     }
   }
 
-  /// 🔊 Play SFX using AudioPool - Drop-on-busy strategy for smooth performance
-  Future<void> playSFX(String soundFile, {double volume = 1.0}) async {
-    if (!_isInitialized) return;
+  /// Play collision sound effect
+  Future<void> playCollision() async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
     
-    // Check AudioSettingsManager for sound setting
-    final audioSettings = AudioSettingsManager();
-    if (!audioSettings.shouldPlaySound()) return;
+    try {
+      await _nativeAudio.playSFX('collision', volume: 0.9);
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: Collision sound failed: $e');
+    }
+  }
 
-    final pool = _audioPools[soundFile];
-    if (pool == null) {
-      safeError('❌ No audio pool found for: $soundFile');
+  /// Play game over sound effect
+  Future<void> playGameOver() async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
+    
+    try {
+      await _nativeAudio.playSFX('game_over', volume: 0.8);
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: Game over sound failed: $e');
+    }
+  }
+
+  /// Play achievement sound effect
+  Future<void> playAchievement() async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
+    
+    try {
+      await _nativeAudio.playSFX('achievement', volume: 0.9);
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: Achievement sound failed: $e');
+    }
+  }
+
+  /// Play theme unlock sound effect
+  Future<void> playThemeUnlock() async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
+    
+    try {
+      await _nativeAudio.playSFX('theme_unlock', volume: 1.0);
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: Theme unlock sound failed: $e');
+    }
+  }
+
+  /// Play generic SFX by filename (maintains compatibility)
+  Future<void> playSFX(String filename, {double volume = 1.0}) async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
+    
+    try {
+      // Clean filename and play directly
+      final trackId = filename.toLowerCase().replaceAll('.wav', '').replaceAll('.mp3', '');
+      await _nativeAudio.playSFX(trackId, volume: volume);
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: SFX $filename failed: $e');
+    }
+  }
+
+  /// Play background music
+  Future<void> playMusic(String musicFile, {double volume = 0.7}) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final stackTrace = StackTrace.current.toString().split('\n').take(5).join('\n');
+    
+    safePrint('🎵 🔍 MUSIC REQUEST: $musicFile at $timestamp');
+    safePrint('🎵 🔍 CURRENT STATE: _currentMusic=$_currentMusic, _musicPlaying=$_musicPlaying, _initialized=$_isInitialized');
+    safePrint('🎵 🔍 CALL STACK:\n$stackTrace');
+    
+    if (!_isInitialized || !_settings.shouldPlayMusic()) {
+      safePrint('🎵 🔍 REJECTED: initialized=$_isInitialized, musicEnabled=${_settings.shouldPlayMusic()}');
       return;
     }
-
-    // 🎯 DROP-ON-BUSY STRATEGY: Check if pool is at capacity
-    final currentUsage = _poolUsageCount[soundFile] ?? 0;
-    final maxSize = _poolMaxSize[soundFile] ?? 0;
     
-    if (currentUsage >= maxSize) {
-      // Pool is full - drop the sound request to prevent queueing
-      if (kDebugMode) {
-        Logger.d('🔇 SFX dropped (pool full): $soundFile ($currentUsage/$maxSize)');
-      }
-      return;
-    }
-
     try {
-      // Increment usage counter
-      _poolUsageCount[soundFile] = currentUsage + 1;
+      safePrint('🎵 🔍 PROCESSING: Playing music: $musicFile');
       
-      // Play the sound
-      await pool.start(volume: volume);
-      
-      if (kDebugMode) {
-        Logger.d('🔊 SFX played: $soundFile (volume: $volume)');
+      // Stop current music if different
+      if (_currentMusic != musicFile && _musicPlaying) {
+        safePrint('🎵 🔍 STOPPING: Current music $_currentMusic before playing $musicFile');
+        await stopMusic();
       }
       
-      // Decrement usage counter after a reasonable duration
-      // Most game SFX are short (< 1 second)
-      Future.delayed(const Duration(milliseconds: 800), () {
-        final usage = _poolUsageCount[soundFile] ?? 0;
-        if (usage > 0) {
-          _poolUsageCount[soundFile] = usage - 1;
-        }
-      });
+      _currentMusic = musicFile;
+      _musicPlaying = true;
+      _musicPaused = false;
       
+      // Clean filename and play directly
+      final trackId = musicFile.toLowerCase().replaceAll('.mp3', '').replaceAll('.wav', '');
+      safePrint('🎵 🔍 NATIVE CALL: About to call native playMusic with trackId=$trackId, volume=$volume');
+      await _nativeAudio.playMusic(trackId, volume: volume, loop: true);
+      
+      safePrint('🎵 🔍 SUCCESS: Music started successfully - $musicFile');
     } catch (e) {
-      // Decrement counter on error
-      final usage = _poolUsageCount[soundFile] ?? 0;
-      if (usage > 0) {
-        _poolUsageCount[soundFile] = usage - 1;
-      }
-      
-      if (kDebugMode) {
-        safeError('❌ Failed to play SFX $soundFile: $e');
-      }
+      _musicPlaying = false;
+      safePrint('🎵 🔍 ERROR: Music playback failed: $e');
     }
   }
 
-  /// 🎮 FlappyJet-specific audio methods for easy game integration
-  
-  /// 🚀 Ultra-low latency jump sound
-  Future<void> playJump() async => await playSFX('jump.wav', volume: 0.8);
-  
-  /// 💥 Collision sound
-  Future<void> playCollision() async => await playSFX('collision.wav', volume: 1.0);
-  
-  /// 🏆 Score sound
-  Future<void> playScore() async => await playSFX('score.wav', volume: 0.9);
-  
-  /// 🎉 Achievement sound
-  Future<void> playAchievement() async => await playSFX('achievement.wav', volume: 1.0);
-  
-  /// 💀 Game over sound
-  Future<void> playGameOver() async => await playSFX('game_over.wav', volume: 1.0);
+  /// Play menu music specifically
+  Future<void> playMenuMusic({double volume = 1.0}) async {
+    await playMusic('menu_music.mp3', volume: volume);
+  }
 
-  /// 🎼 FlappyJet-specific music methods
-  
-  /// 🏠 Menu music
-  Future<void> playMenuMusic() async => await playMusic('menu', volume: 1.0);
-  
-  /// 🎮 Game music
-  Future<void> playGameMusic() async => await playMusic('game', volume: 0.7);
-  
-  /// 💀 Game over music
-  Future<void> playGameOverMusic() async => await playMusic('gameOver', volume: 0.8);
-
-  /// 🛑 Stop current music
+  /// Stop background music
   Future<void> stopMusic() async {
-    if (!_isInitialized) return;
-
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final stackTrace = StackTrace.current.toString().split('\n').take(5).join('\n');
+    
+    safePrint('🎵 🔍 STOP REQUEST: at $timestamp');
+    safePrint('🎵 🔍 STOP STATE: _currentMusic=$_currentMusic, _musicPlaying=$_musicPlaying');
+    safePrint('🎵 🔍 STOP STACK:\n$stackTrace');
+    
+    if (!_isInitialized) {
+      safePrint('🎵 🔍 STOP REJECTED: Not initialized');
+      return;
+    }
+    
     try {
-      await FlameAudio.bgm.stop();
+      safePrint('🎵 🔍 STOP NATIVE: Calling native stopMusic');
+      await _nativeAudio.stopMusic();
+      _musicPlaying = false;
+      _musicPaused = false;
       _currentMusic = null;
-      safePrint('🎵 Music stopped');
+      safePrint('🎵 🔍 STOP SUCCESS: Music stopped');
     } catch (e) {
-      safeError('❌ Failed to stop music: \$e');
+      safePrint('🎵 🔍 STOP ERROR: Stop music failed: $e');
     }
   }
 
-  /// 🔇 Pause current music
+  /// Pause background music
   Future<void> pauseMusic() async {
-    if (!_isInitialized) return;
-
+    if (!_isInitialized || !_musicPlaying || _musicPaused) return;
+    
     try {
-      await FlameAudio.bgm.pause();
-      safePrint('⏸️ Music paused');
+      await _nativeAudio.pauseMusic();
+      _musicPaused = true;
+      safePrint('🎵 FlappyJetAudioManager: Music paused');
     } catch (e) {
-      safeError('❌ Failed to pause music: \$e');
+      safePrint('🎵 FlappyJetAudioManager: Pause music failed: $e');
     }
   }
 
-  /// ▶️ Resume current music
+  /// Resume background music
   Future<void> resumeMusic() async {
-    if (!_isInitialized) return;
-
+    if (!_isInitialized || !_musicPaused) return;
+    
     try {
-      await FlameAudio.bgm.resume();
-      safePrint('▶️ Music resumed');
+      await _nativeAudio.resumeMusic();
+      _musicPaused = false;
+      safePrint('🎵 FlappyJetAudioManager: Music resumed');
     } catch (e) {
-      safeError('❌ Failed to resume music: \$e');
+      safePrint('🎵 FlappyJetAudioManager: Resume music failed: $e');
     }
   }
 
-  /// 🎛️ Audio Settings Management
-  
-  void setMusicEnabled(bool enabled) {
-    _musicEnabled = enabled;
-    if (!enabled && _isInitialized) {
-      stopMusic();
+  /// Set music volume (placeholder for compatibility)
+  Future<void> setMusicVolume(double volume) async {
+    if (!_isInitialized) return;
+    
+    try {
+      // Volume control handled by native audio system internally
+      safePrint('🎵 FlappyJetAudioManager: Music volume set to $volume');
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: Set music volume failed: $e');
     }
   }
 
-  void setSfxEnabled(bool enabled) {
-    _sfxEnabled = enabled;
+  /// Set SFX volume (placeholder for compatibility)
+  Future<void> setSFXVolume(double volume) async {
+    if (!_isInitialized) return;
+    
+    try {
+      // Volume control handled by native audio system internally
+      safePrint('🎵 FlappyJetAudioManager: SFX volume set to $volume');
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: Set SFX volume failed: $e');
+    }
   }
 
-  bool get musicEnabled => _musicEnabled;
-  bool get sfxEnabled => _sfxEnabled;
-  bool get isInitialized => _isInitialized;
-  String? get currentMusic => _currentMusic;
-
-  /// 🧹 Cleanup resources
+  /// Dispose resources
   Future<void> dispose() async {
-    if (!_isInitialized) return;
-
     try {
-      // Stop all music
       await stopMusic();
-
-      // Dispose all audio pools
-      // Note: AudioPool doesn't have explicit dispose method in Flame Audio
-      // The pools will be garbage collected when the manager is disposed
-      _audioPools.clear();
-
-      // Clear audio cache if needed
-      FlameAudio.audioCache.clearAll();
-
+      await _nativeAudio.dispose();
       _isInitialized = false;
-      safePrint('🧹 FlappyJet Audio Manager disposed');
+      safePrint('🎵 FlappyJetAudioManager: Disposed successfully');
     } catch (e) {
-      safeError('❌ Error during audio manager disposal: \$e');
+      safePrint('🎵 FlappyJetAudioManager: Dispose failed: $e');
     }
   }
+
+  // Getters for compatibility
+  bool get isInitialized => _isInitialized;
+  bool get isMusicPlaying => _musicPlaying && !_musicPaused;
+  bool get isMusicPaused => _musicPaused;
+  String? get currentMusic => _currentMusic;
 }

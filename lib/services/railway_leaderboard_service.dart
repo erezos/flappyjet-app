@@ -230,7 +230,7 @@ class RailwayLeaderboardService {
         );
       }
 
-      final uri = Uri.parse('$_baseUrl/api/leaderboard/player/$playerId/nickname');
+      final uri = Uri.parse('$_baseUrl/api/player/profile');
 
       debugPrint('🏆 Updating nickname to: $newNickname');
 

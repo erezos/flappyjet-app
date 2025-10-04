@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
@@ -7,11 +7,15 @@ import 'particle_pool.dart';
 import '../../core/debug_logger.dart';
 
 /// High-performance particle system using hardware-accelerated sprites
+/// Enhanced with realistic smoke effects and vibrant celebration animations
 class HardwareParticleSystem extends Component {
   final ParticlePool _pool = ParticlePool(maxParticles: 500);
   final List<Sprite> _particleSprites = [];
   final List<ParticleInstance> _activeParticles = [];
   bool _isInitialized = false;
+
+  /// Check if the hardware particle system is ready
+  bool get isInitialized => _isInitialized;
 
   /// Pre-render particle sprites for hardware acceleration
   Future<void> preRenderParticles() async {
@@ -20,6 +24,8 @@ class HardwareParticleSystem extends Component {
     // Create pre-rendered sprites for each particle type
     await _createParticleSprites();
     _isInitialized = true;
+    
+    safePrint('🚀 HardwareParticleSystem: Initialization complete - _isInitialized = $_isInitialized');
   }
 
   Future<void> _createParticleSprites() async {
@@ -28,8 +34,10 @@ class HardwareParticleSystem extends Component {
       for (int size = 1; size <= 5; size++) {
         final sprite = await _renderParticleToSprite(type, size * 4.0);
         _particleSprites.add(sprite);
+        safePrint('🚀 HardwareParticleSystem: Created sprite for ${type.name} size ${size * 4.0}');
       }
     }
+    safePrint('🚀 HardwareParticleSystem: Pre-rendered ${_particleSprites.length} particle sprites');
   }
 
   Future<Sprite> _renderParticleToSprite(ParticleType type, double size) async {
@@ -37,19 +45,38 @@ class HardwareParticleSystem extends Component {
     final canvas = Canvas(recorder);
     final paint = Paint()..style = PaintingStyle.fill;
 
-    // Render particle shape
+    // Create a transparent background
+    canvas.drawRect(Rect.fromLTWH(0, 0, size, size), Paint()..color = Colors.transparent);
+
+    // Render particle shape with proper colors
     switch (type) {
       case ParticleType.circle:
-        paint.color = Colors.white;
+        // Create a gradient circle for better visual appeal
+        final gradient = RadialGradient(
+          colors: [Colors.white, Colors.white.withValues(alpha: 0.3)],
+          stops: const [0.0, 1.0],
+        );
+        paint.shader = gradient.createShader(Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2));
         canvas.drawCircle(Offset(size / 2, size / 2), size / 2, paint);
         break;
 
       case ParticleType.star:
+        // Create a golden star with gradient
+        final gradient = RadialGradient(
+          colors: [Colors.amber, Colors.amber.withValues(alpha: 0.3)],
+          stops: const [0.0, 1.0],
+        );
+        paint.shader = gradient.createShader(Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2));
         _drawStar(canvas, Offset(size / 2, size / 2), size / 2, paint);
         break;
 
       case ParticleType.confetti:
-        paint.color = Colors.white;
+        // Create colorful confetti with gradient
+        final gradient = LinearGradient(
+          colors: [Colors.red, Colors.blue, Colors.green],
+          stops: const [0.0, 0.5, 1.0],
+        );
+        paint.shader = gradient.createShader(Rect.fromLTWH(0, 0, size, size));
         final rect = Rect.fromCenter(
           center: Offset(size / 2, size / 2),
           width: size * 0.8,
@@ -74,9 +101,9 @@ class HardwareParticleSystem extends Component {
     for (int i = 0; i < points * 2; i++) {
       final isOuter = i % 2 == 0;
       final r = isOuter ? radius : radius * 0.5;
-      final angle = (i * 3.14159 / points) + 3.14159; // Start from top
-      final x = center.dx + r * sin(angle);
-      final y = center.dy + r * cos(angle);
+      final angle = (i * math.pi / points) + math.pi; // Start from top
+      final x = center.dx + r * math.sin(angle);
+      final y = center.dy + r * math.cos(angle);
 
       if (i == 0) {
         path.moveTo(x, y);
@@ -96,7 +123,7 @@ class HardwareParticleSystem extends Component {
     required Color color,
     double lifetime = 1.0,
     double speed = 200.0,
-    double spread = 3.14159 * 2, // Full circle
+    double spread = math.pi * 2, // Full circle
   }) {
     for (int i = 0; i < count; i++) {
       final particle = _pool.acquire();
@@ -104,17 +131,17 @@ class HardwareParticleSystem extends Component {
 
       // Randomize particle properties
       final angle = (i / count) * spread;
-      final velocity = Vector2(cos(angle) * speed, sin(angle) * speed);
+      final velocity = Vector2(math.cos(angle) * speed, math.sin(angle) * speed);
 
       particle.position = position.clone();
       particle.velocity = velocity;
       particle.lifetime =
-          lifetime + (Random().nextDouble() - 0.5) * 0.2; // ±10% variation
-      particle.size = 8.0 + Random().nextDouble() * 8.0; // 8-16px
+          lifetime + (math.Random().nextDouble() - 0.5) * 0.2; // ±10% variation
+      particle.size = 8.0 + math.Random().nextDouble() * 8.0; // 8-16px
       particle.type = type;
-      particle.rotation = Random().nextDouble() * 3.14159 * 2;
+      particle.rotation = math.Random().nextDouble() * math.pi * 2;
       particle.angularVelocity =
-          (Random().nextDouble() - 0.5) * 10.0; // ±5 rad/s
+          (math.Random().nextDouble() - 0.5) * 10.0; // ±5 rad/s
       particle.sizeGrowthPerSecond =
           -particle.size * 0.5; // Shrink over lifetime
 
@@ -122,85 +149,122 @@ class HardwareParticleSystem extends Component {
     }
   }
 
-  /// Create celebration burst (replaces _createCelebrationBurst)
-  void createCelebrationBurst(Vector2 position, int score) {
-    final random = Random();
-
-    // Base count increases with score
-    int baseCount = 8;
-    if (score % 5 == 0) baseCount += 6;
-    if (score % 10 == 0) baseCount += 10;
-
-    // Create burst with hardware acceleration
-    createBurst(
-      position: position,
-      count: baseCount,
-      type: ParticleType.circle,
-      color: _getCelebrationColor(random),
-      lifetime: 0.8 + random.nextDouble() * 0.4,
-      speed: 200.0 + random.nextDouble() * 100.0,
-    );
-  }
-
-  /// Create crash burst (replaces _createCrashBurst)
+  /// Create casual crash burst for collision effects with realistic smoke and fire
   void createCrashBurst(Vector2 position) {
-    final random = Random();
-    final smokeCount = 12 + random.nextInt(6);
+    // Creating casual crash burst
+    final random = math.Random();
+    
+    // Create subtle smoke with realistic physics
+    final smokeCount = 8 + random.nextInt(6); // Fewer, more subtle smoke particles
+    // Creating subtle smoke particles
 
-    // Smoke particles
     for (int i = 0; i < smokeCount; i++) {
       final particle = _pool.acquire();
       if (particle == null) continue;
 
-      final angle = random.nextDouble() * 2 * 3.14159;
-      final speed = 80 + random.nextDouble() * 90;
+      // Realistic smoke physics - gentle upward movement with slight drift
+      final angle = (random.nextDouble() - 0.5) * math.pi * 0.2; // Very narrow upward cone
+      final speed = 30 + random.nextDouble() * 40; // Slower, more casual
+      final drift = (random.nextDouble() - 0.5) * 20; // Gentle side-to-side drift
 
       particle.position = position.clone();
       particle.velocity = Vector2(
-        cos(angle) * speed * 0.6,
-        sin(angle) * speed * 0.2 - 200, // Rise upward
+        math.sin(angle) * speed + drift, // Gentle horizontal drift
+        math.cos(angle) * speed - 80, // Upward movement (slower)
       );
-      particle.lifetime = 0.9 + random.nextDouble() * 0.8;
-      particle.size = 10.0 + random.nextDouble() * 18.0;
+      
+      // Smoke properties for casual realism
+      particle.lifetime = 1.5 + random.nextDouble() * 1.0; // Shorter, more subtle
+      particle.size = 8.0 + random.nextDouble() * 12.0; // Smaller smoke particles
       particle.type = ParticleType.circle;
-      particle.sizeGrowthPerSecond = 12.0; // Expand as smoke
-      particle.alpha = 0.9;
+      particle.sizeGrowthPerSecond = 8.0; // Gentle expansion
+      particle.alpha = 0.3 + random.nextDouble() * 0.2; // More transparent
+      particle.rotation = random.nextDouble() * math.pi * 2;
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 1.0; // Very slow rotation
 
       _activeParticles.add(particle);
     }
 
-    // Spark particles
-    final sparkCount = 10 + random.nextInt(8);
-    for (int i = 0; i < sparkCount; i++) {
+    // Create small fire sparks
+    final fireCount = 4 + random.nextInt(4); // Fewer, smaller fire particles
+    // Creating small fire particles
+    
+    for (int i = 0; i < fireCount; i++) {
       final particle = _pool.acquire();
       if (particle == null) continue;
 
-      final angle = random.nextDouble() * 2 * 3.14159;
-      final speed = 220 + random.nextDouble() * 180;
+      final angle = random.nextDouble() * 2 * math.pi;
+      final speed = 80 + random.nextDouble() * 120; // Moderate speed
 
       particle.position = position.clone();
-      particle.velocity = Vector2(cos(angle) * speed, sin(angle) * speed - 60);
-      particle.lifetime = 0.35 + random.nextDouble() * 0.35;
-      particle.size = 3.0 + random.nextDouble() * 3.0;
+      particle.velocity = Vector2(
+        math.cos(angle) * speed,
+        math.sin(angle) * speed - 50, // Slight upward bias
+      );
+      
+      particle.lifetime = 0.4 + random.nextDouble() * 0.3; // Short-lived fire
+      particle.size = 3.0 + random.nextDouble() * 4.0; // Small fire particles
       particle.type = ParticleType.confetti;
-      particle.rotation = random.nextDouble() * 3.14159;
-      particle.angularVelocity = (random.nextDouble() - 0.5) * 14.0;
-      particle.sizeGrowthPerSecond = -1.5;
+      particle.rotation = random.nextDouble() * math.pi * 2;
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 8.0;
+      particle.sizeGrowthPerSecond = -1.5; // Gentle fade
+      particle.alpha = 0.7 + random.nextDouble() * 0.3; // Bright but not overwhelming
 
       _activeParticles.add(particle);
     }
+    
+    // Casual crash burst complete
   }
 
-  Color _getCelebrationColor(Random random) {
-    final colors = [
-      Colors.amber,
-      Colors.orange,
-      Colors.cyanAccent,
-      Colors.pinkAccent,
-      Colors.lightGreenAccent,
-      Colors.purpleAccent,
-    ];
-    return colors[random.nextInt(colors.length)];
+  /// Create celebration burst for score milestones with vibrant effects
+  void createCelebrationBurst(Vector2 position, int score) {
+    // Creating vibrant celebration burst
+    final random = math.Random();
+    
+    // Calculate particle count based on score milestones
+    final int baseCount = 12;
+    final int bonus5 = (score % 5 == 0) ? 8 : 0; // Extra for every 5th
+    final int bonus10 = (score % 10 == 0) ? 15 : 0; // Extra for every 10th
+    final int count = baseCount + bonus5 + bonus10;
+    
+    // Creating celebration particles
+
+    for (int i = 0; i < count; i++) {
+      final particle = _pool.acquire();
+      if (particle == null) continue;
+
+      final angle = random.nextDouble() * 2 * math.pi;
+      final bool isMilestone = score % 10 == 0;
+      final speed = (isMilestone ? 300 : 250) + random.nextDouble() * (isMilestone ? 200 : 150);
+      
+      particle.position = position.clone();
+      particle.velocity = Vector2(
+        math.cos(angle) * speed,
+        math.sin(angle) * speed,
+      );
+      
+      // Enhanced particle properties
+      particle.lifetime = 1.2 + random.nextDouble() * 0.8; // Longer celebration
+      particle.size = 10.0 + random.nextDouble() * 15.0; // Larger particles
+      
+      // Choose particle type based on score and position
+      if (isMilestone) {
+        // Special effects for milestones
+        particle.type = i % 3 == 0 ? ParticleType.star : ParticleType.confetti;
+      } else {
+        // Regular celebration mix
+        particle.type = ParticleType.values[i % ParticleType.values.length];
+      }
+      
+      particle.rotation = random.nextDouble() * 2 * math.pi;
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 8.0; // Moderate rotation
+      particle.alpha = 0.9 + random.nextDouble() * 0.1; // Bright and vibrant
+      particle.sizeGrowthPerSecond = -1.5; // Gentle fade
+
+      _activeParticles.add(particle);
+    }
+    
+    // Celebration burst complete
   }
 
   @override
@@ -223,47 +287,180 @@ class HardwareParticleSystem extends Component {
     });
     final afterCount = _activeParticles.length;
 
-    // Debug output for testing
-    if (beforeCount != afterCount) {
-      safePrint('Particle cleanup: $beforeCount -> $afterCount');
-    }
+    // Debug output removed to reduce log spam
   }
 
   @override
   void render(Canvas canvas) {
     if (!_isInitialized) return;
 
-    // Hardware-accelerated rendering using pre-rendered sprites
+    // Enhanced rendering with proper color application
+    int renderedCount = 0;
     for (final particle in _activeParticles) {
       if (!particle.isAlive) continue;
 
-      final spriteIndex = _getSpriteIndex(particle.type, particle.size);
-      if (spriteIndex >= 0 && spriteIndex < _particleSprites.length) {
-        final sprite = _particleSprites[spriteIndex];
+      // Get appropriate color based on particle type and context
+      Color particleColor = _getParticleColor(particle);
+      
+      // Create paint with proper blending
+      final paint = Paint()
+        ..color = particleColor.withValues(alpha: particle.alpha)
+        ..blendMode = BlendMode.srcOver; // Use proper blending mode
 
-        // Apply color tint and alpha
-        final paint = Paint()
-          ..color = Colors.white.withValues(alpha: particle.alpha)
-          ..blendMode = BlendMode.modulate;
+      canvas.save();
+      canvas.translate(particle.position.x, particle.position.y);
+      canvas.rotate(particle.rotation);
 
-        canvas.save();
-        canvas.translate(particle.position.x, particle.position.y);
-        canvas.rotate(particle.rotation);
-        canvas.scale(particle.size / 16.0); // Normalize to sprite size
+      // Render particle shape directly for better control
+      _renderParticleShape(canvas, particle, paint);
+      
+      canvas.restore();
+      renderedCount++;
+    }
+    
+    // Render count log removed to reduce spam
+  }
 
-        // Render the pre-computed sprite
-        sprite.render(canvas, position: Vector2.zero(), overridePaint: paint);
-
-        canvas.restore();
-      }
+  /// Get appropriate color for particle based on type and context
+  Color _getParticleColor(ParticleInstance particle) {
+    final random = math.Random(particle.position.x.toInt() + particle.position.y.toInt());
+    
+    switch (particle.type) {
+      case ParticleType.circle:
+        // Check if this is smoke (low alpha) or celebration (high alpha)
+        if (particle.alpha < 0.8) {
+          // Smoke particles - realistic casual smoke colors
+          final smokeColors = [
+            Colors.grey.shade300,
+            Colors.grey.shade400, 
+            Colors.grey.shade500,
+            Colors.white,
+            Colors.grey.shade200,
+            Colors.grey.shade600,
+            Colors.grey.shade700,
+            Colors.brown.shade300, // Slight brown tint for realism
+          ];
+          return smokeColors[random.nextInt(smokeColors.length)];
+        } else {
+          // Celebration circles - bright rainbow colors
+          final celebrationColors = [
+            Colors.yellow,
+            Colors.orange,
+            Colors.pink,
+            Colors.cyan,
+            Colors.lime,
+            Colors.purple,
+            Colors.red,
+            Colors.blue,
+          ];
+          return celebrationColors[random.nextInt(celebrationColors.length)];
+        }
+        
+      case ParticleType.star:
+        // Stars - golden and bright colors
+        final starColors = [
+          Colors.amber,
+          Colors.yellow,
+          Colors.orange,
+          Colors.deepOrange,
+          Colors.amber.shade700,
+          Colors.yellowAccent,
+        ];
+        return starColors[random.nextInt(starColors.length)];
+        
+      case ParticleType.confetti:
+        // Check if this is fire (small size, short lifetime) or celebration confetti
+        if (particle.size < 8.0 && particle.lifetime < 1.0) {
+          // Fire particles - realistic fire colors
+          final fireColors = [
+            Colors.orange,
+            Colors.deepOrange,
+            Colors.red,
+            Colors.orange.shade700,
+            Colors.red.shade600,
+            Colors.amber,
+            Colors.yellow.shade600,
+          ];
+          return fireColors[random.nextInt(fireColors.length)];
+        } else {
+          // Celebration confetti - varied bright colors
+          final confettiColors = [
+            Colors.red,
+            Colors.blue,
+            Colors.green,
+            Colors.purple,
+            Colors.pink,
+            Colors.teal,
+            Colors.indigo,
+            Colors.deepPurple,
+          ];
+          return confettiColors[random.nextInt(confettiColors.length)];
+        }
     }
   }
 
-  int _getSpriteIndex(ParticleType type, double size) {
-    final sizeIndex = (size / 4.0).clamp(1, 5).toInt() - 1;
-    final typeIndex = type.index;
-    return typeIndex * 5 + sizeIndex;
+  /// Render particle shape with enhanced visuals
+  void _renderParticleShape(Canvas canvas, ParticleInstance particle, Paint paint) {
+    switch (particle.type) {
+      case ParticleType.circle:
+        if (particle.alpha < 0.8) {
+          // Smoke - render with realistic gradient for casual effect
+          final gradient = RadialGradient(
+            colors: [
+              paint.color.withValues(alpha: particle.alpha * 0.8),
+              paint.color.withValues(alpha: particle.alpha * 0.3),
+              paint.color.withValues(alpha: particle.alpha * 0.1),
+            ],
+            stops: const [0.0, 0.6, 1.0],
+          );
+          final gradientPaint = Paint()
+            ..shader = gradient.createShader(Rect.fromCircle(
+              center: Offset.zero, 
+              radius: particle.size / 2,
+            ));
+          canvas.drawCircle(Offset.zero, particle.size / 2, gradientPaint);
+        } else {
+          // Celebration circles - solid bright colors
+          canvas.drawCircle(Offset.zero, particle.size / 2, paint);
+        }
+        break;
+        
+      case ParticleType.star:
+        _drawStar(canvas, Offset.zero, particle.size / 2, paint);
+        break;
+        
+      case ParticleType.confetti:
+        // Check if this is fire or celebration confetti
+        if (particle.size < 8.0 && particle.lifetime < 1.0) {
+          // Fire particles - render as small circles with glow effect
+          final gradient = RadialGradient(
+            colors: [
+              paint.color.withValues(alpha: particle.alpha),
+              paint.color.withValues(alpha: particle.alpha * 0.4),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.7, 1.0],
+          );
+          final gradientPaint = Paint()
+            ..shader = gradient.createShader(Rect.fromCircle(
+              center: Offset.zero, 
+              radius: particle.size / 2,
+            ));
+          canvas.drawCircle(Offset.zero, particle.size / 2, gradientPaint);
+        } else {
+          // Celebration confetti - draw diamond shape
+          final path = Path();
+          path.moveTo(0, -particle.size / 2);
+          path.lineTo(particle.size / 2, 0);
+          path.lineTo(0, particle.size / 2);
+          path.lineTo(-particle.size / 2, 0);
+          path.close();
+          canvas.drawPath(path, paint);
+        }
+        break;
+    }
   }
+
 
   /// Get access to particle sprites for testing
   List<Sprite> get particleSprites => _particleSprites;

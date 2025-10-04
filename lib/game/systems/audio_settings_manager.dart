@@ -4,7 +4,6 @@ import '../../core/debug_logger.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'flame_audio_manager.dart';
 import 'flappy_jet_audio_manager.dart';
 
 /// Audio Settings Manager - Controls sound effects and music on/off states
@@ -49,8 +48,6 @@ class AudioSettingsManager extends ChangeNotifier {
     // Apply the setting immediately to both audio managers
     if (!_musicEnabled) {
       // Stop music in both audio managers
-      final flameAudioManager = FlameAudioManager.instance;
-      await flameAudioManager.stopMusic();
       
       final flappyJetAudioManager = FlappyJetAudioManager.instance;
       await flappyJetAudioManager.stopMusic();
@@ -79,8 +76,6 @@ class AudioSettingsManager extends ChangeNotifier {
     // Apply the setting immediately to both audio managers
     if (!_musicEnabled) {
       // Stop music in both audio managers
-      final flameAudioManager = FlameAudioManager.instance;
-      await flameAudioManager.stopMusic();
       
       final flappyJetAudioManager = FlappyJetAudioManager.instance;
       await flappyJetAudioManager.stopMusic();

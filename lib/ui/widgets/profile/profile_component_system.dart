@@ -22,6 +22,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../game/core/jet_skins.dart';
+import '../../../game/systems/game_state_manager.dart';
 import 'responsive_banner_component.dart';
 
 /// Configuration for component positioning and sizing
@@ -168,8 +169,8 @@ class ProfileNicknameBannerComponent extends StatelessWidget {
   }
 }
 
-/// 4. High Score Widget Component (image+text)
-class ProfileHighScoreComponent extends StatelessWidget {
+/// 4. High Score Widget Component (image+text) - Now listens to GameStateManager
+class ProfileHighScoreComponent extends StatefulWidget {
   final Alignment alignment;
   final double? width;
   final double? height;
@@ -182,6 +183,55 @@ class ProfileHighScoreComponent extends StatelessWidget {
   });
 
   @override
+  State<ProfileHighScoreComponent> createState() => _ProfileHighScoreComponentState();
+}
+
+class _ProfileHighScoreComponentState extends State<ProfileHighScoreComponent> {
+  final GameStateManager _gameStateManager = GameStateManager();
+  int _bestScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialScore();
+    // Listen to GameStateManager changes
+    _gameStateManager.addListener(_onGameStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _gameStateManager.removeListener(_onGameStateChanged);
+    super.dispose();
+  }
+
+  void _onGameStateChanged() {
+    if (mounted) {
+      setState(() {
+        _bestScore = _gameStateManager.bestScore;
+      });
+    }
+  }
+
+  Future<void> _loadInitialScore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final score = prefs.getInt('best_score') ?? 0;
+      if (mounted) {
+        setState(() {
+          _bestScore = score;
+        });
+      }
+    } catch (e) {
+      // Fallback to GameStateManager value
+      if (mounted) {
+        setState(() {
+          _bestScore = _gameStateManager.bestScore;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final config = ProfileComponentConfig(
       screenSize: MediaQuery.of(context).size,
@@ -189,13 +239,13 @@ class ProfileHighScoreComponent extends StatelessWidget {
     );
 
     return Align(
-      alignment: alignment,
+      alignment: widget.alignment,
       child: SizedBox(
         width:
-            width ??
+            widget.width ??
             config.responsive(95), // SMALLER: 25% reduction for more space
         height:
-            height ??
+            widget.height ??
             config.responsive(95), // SMALLER: 25% reduction for more space
         child: Stack(
           alignment: Alignment.center,
@@ -214,28 +264,23 @@ class ProfileHighScoreComponent extends StatelessWidget {
               ), // ADJUSTED: Smaller component needs higher positioning
               left: 0,
               right: 0,
-              child: FutureBuilder<int>(
-                future: _getBestScore(),
-                builder: (context, snapshot) {
-                  return Text(
-                    snapshot.data?.toString() ?? '0',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: config.responsive(
-                        20,
-                      ), // SMALLER: Fits better in reduced component size
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      shadows: const [
-                        Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 2,
-                          color: Colors.black,
-                        ),
-                      ],
+              child: Text(
+                '$_bestScore',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: config.responsive(
+                    20,
+                  ), // SMALLER: Fits better in reduced component size
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  shadows: const [
+                    Shadow(
+                      offset: Offset(1, 1),
+                      blurRadius: 2,
+                      color: Colors.black,
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
           ],
@@ -243,15 +288,10 @@ class ProfileHighScoreComponent extends StatelessWidget {
       ),
     );
   }
-
-  Future<int> _getBestScore() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('best_score') ?? 0;
-  }
 }
 
-/// 5. Hottest Streak Widget Component (image+text)
-class ProfileHottestStreakComponent extends StatelessWidget {
+/// 5. Hottest Streak Widget Component (image+text) - Now listens to GameStateManager
+class ProfileHottestStreakComponent extends StatefulWidget {
   final Alignment alignment;
   final double? width;
   final double? height;
@@ -264,6 +304,55 @@ class ProfileHottestStreakComponent extends StatelessWidget {
   });
 
   @override
+  State<ProfileHottestStreakComponent> createState() => _ProfileHottestStreakComponentState();
+}
+
+class _ProfileHottestStreakComponentState extends State<ProfileHottestStreakComponent> {
+  final GameStateManager _gameStateManager = GameStateManager();
+  int _bestStreak = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialStreak();
+    // Listen to GameStateManager changes
+    _gameStateManager.addListener(_onGameStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _gameStateManager.removeListener(_onGameStateChanged);
+    super.dispose();
+  }
+
+  void _onGameStateChanged() {
+    if (mounted) {
+      setState(() {
+        _bestStreak = _gameStateManager.bestStreak;
+      });
+    }
+  }
+
+  Future<void> _loadInitialStreak() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final streak = prefs.getInt('best_streak') ?? 0;
+      if (mounted) {
+        setState(() {
+          _bestStreak = streak;
+        });
+      }
+    } catch (e) {
+      // Fallback to GameStateManager value
+      if (mounted) {
+        setState(() {
+          _bestStreak = _gameStateManager.bestStreak;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final config = ProfileComponentConfig(
       screenSize: MediaQuery.of(context).size,
@@ -271,13 +360,13 @@ class ProfileHottestStreakComponent extends StatelessWidget {
     );
 
     return Align(
-      alignment: alignment,
+      alignment: widget.alignment,
       child: SizedBox(
         width:
-            width ??
+            widget.width ??
             config.responsive(95), // SMALLER: 25% reduction for more space
         height:
-            height ??
+            widget.height ??
             config.responsive(95), // SMALLER: 25% reduction for more space
         child: Stack(
           alignment: Alignment.center,
@@ -296,39 +385,29 @@ class ProfileHottestStreakComponent extends StatelessWidget {
               ), // ADJUSTED: Smaller component needs higher positioning
               left: 0,
               right: 0,
-              child: FutureBuilder<int>(
-                future: _getBestStreak(),
-                builder: (context, snapshot) {
-                  return Text(
-                    snapshot.data?.toString() ?? '0',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: config.responsive(
-                        20,
-                      ), // SMALLER: Fits better in reduced component size
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      shadows: const [
-                        Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 2,
-                          color: Colors.black,
-                        ),
-                      ],
+              child: Text(
+                '$_bestStreak',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: config.responsive(
+                    20,
+                  ), // SMALLER: Fits better in reduced component size
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  shadows: const [
+                    Shadow(
+                      offset: Offset(1, 1),
+                      blurRadius: 2,
+                      color: Colors.black,
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<int> _getBestStreak() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('best_streak') ?? 0;
   }
 }
 

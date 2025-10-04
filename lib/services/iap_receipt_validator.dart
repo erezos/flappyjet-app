@@ -241,22 +241,30 @@ class IAPReceiptValidator {
       }
 
       // Check if purchase is too old (basic fraud prevention)
-      final purchaseDate = DateTime.fromMillisecondsSinceEpoch(
-        int.tryParse(purchaseDetails.transactionDate ?? '0') ?? 0
-      );
-      
-      final now = DateTime.now();
-      final daysSincePurchase = now.difference(purchaseDate).inDays;
-      
-      if (daysSincePurchase > 30) {
-        return ValidationResult.failure('Purchase too old: $daysSincePurchase days', 'offline');
+      final transactionDate = purchaseDetails.transactionDate;
+      if (transactionDate != null && transactionDate.isNotEmpty) {
+        final purchaseDate = DateTime.fromMillisecondsSinceEpoch(
+          int.tryParse(transactionDate) ?? 0
+        );
+        
+        // Only validate if the date is reasonable (after 2000 and before 2030)
+        if (purchaseDate.year > 2000 && purchaseDate.year < 2030) {
+          final now = DateTime.now();
+          final daysSincePurchase = now.difference(purchaseDate).inDays;
+          
+          if (daysSincePurchase > 30) {
+            return ValidationResult.failure('Purchase too old: $daysSincePurchase days', 'offline');
+          }
+        } else {
+          safePrint('🔐 ⚠️ Invalid transaction date: $transactionDate, skipping age check');
+        }
       }
 
       safePrint('🔐 ✅ Offline validation passed');
       return ValidationResult.success({
         'purchase_id': purchaseDetails.purchaseID,
         'product_id': purchaseDetails.productID,
-        'purchase_date': purchaseDate.toIso8601String(),
+        'purchase_date': transactionDate ?? 'unknown',
       }, 'offline');
 
     } catch (e) {

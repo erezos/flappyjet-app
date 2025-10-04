@@ -7,6 +7,8 @@ import 'gem_3d_icon.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import '../../game/systems/social_sharing_manager.dart';
+import '../../core/analytics/comprehensive_analytics_manager.dart';
+import '../../core/debug_logger.dart';
 
 class GameOverMenu extends StatefulWidget {
   final int score;
@@ -22,6 +24,7 @@ class GameOverMenu extends StatefulWidget {
   final int continuesRemaining;
   final int? playerGems;
   final int? singleHeartPrice;
+  final bool isAdLoading; // NEW: Track ad loading state
 
   const GameOverMenu({
     super.key,
@@ -38,6 +41,7 @@ class GameOverMenu extends StatefulWidget {
     required this.continuesRemaining,
     this.playerGems,
     this.singleHeartPrice,
+    this.isAdLoading = false, // NEW: Default to false
   });
 
   @override
@@ -47,6 +51,7 @@ class GameOverMenu extends StatefulWidget {
 class _GameOverMenuState extends State<GameOverMenu>
     with TickerProviderStateMixin {
   late AnimationController _slideController;
+  bool _isAdButtonPressed = false; // Prevent multiple clicks
   late AnimationController _pulseController;
   late AnimationController _rotateController;
   late Animation<Offset> _slideAnimation;
@@ -115,21 +120,62 @@ class _GameOverMenuState extends State<GameOverMenu>
     final isSmallScreen = screenHeight < 700;
     final isNarrowScreen = screenWidth < 400;
     
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.blue.shade300.withValues(alpha: 0.9),
-            Colors.blue.shade600.withValues(alpha: 0.95),
-          ],
-        ),
-      ),
-      child: Center(
-        child: SlideTransition(
-          position: _slideAnimation,
-        child: Container(
+    // Create loading overlay widget if needed
+    final loadingOverlay = widget.isAdLoading 
+        ? Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.7),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading Ad...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isVerySmallScreen ? 16 : (isSmallScreen ? 18 : 20),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please wait while we prepare your reward',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
+    
+    return Stack(
+      children: [
+        // Main game over content
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.blue.shade300.withValues(alpha: 0.9),
+                Colors.blue.shade600.withValues(alpha: 0.95),
+              ],
+            ),
+          ),
+          child: Center(
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Container(
             margin: EdgeInsets.symmetric(
               horizontal: isNarrowScreen ? 12 : 20,
               vertical: isVerySmallScreen ? 8 : (isSmallScreen ? 16 : 20),
@@ -232,6 +278,11 @@ class _GameOverMenuState extends State<GameOverMenu>
           ),
         ),
       ),
+      ),
+      
+      // Loading overlay when ad is loading
+      loadingOverlay,
+    ],
     );
   }
 
@@ -400,7 +451,7 @@ class _GameOverMenuState extends State<GameOverMenu>
         // Continue options row
         Row(
           children: [
-            // Watch Ad button (yellow/gold with video icon)
+            // Watch Ad button (yellow/gold with video icon and AD text)
             Expanded(
               child: AnimatedBuilder(
                 animation: _pulseAnimation,
@@ -426,15 +477,48 @@ class _GameOverMenuState extends State<GameOverMenu>
                         color: Colors.transparent,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(26),
-                          onTap: () {
+                          onTap: _isAdButtonPressed ? null : () {
+                            if (_isAdButtonPressed) return; // Double-check
+                            
+                            setState(() {
+                              _isAdButtonPressed = true;
+                            });
+                            
                             HapticFeedback.mediumImpact();
+                            
+                            // 🎯 CRITICAL: Set loading state immediately to prevent navigation
+                            // This prevents user from clicking menu while ad is loading
                             widget.onContinueWithAd();
+                            
+                            // Reset button state after 3 seconds
+                            Future.delayed(const Duration(seconds: 3), () {
+                              if (mounted) {
+                                setState(() {
+                                  _isAdButtonPressed = false;
+                                });
+                              }
+                            });
                           },
                           child: Center(
-                            child: Icon(
-                              Icons.play_circle_filled,
-                              color: Colors.white,
-                              size: isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.play_circle_filled,
+                                  color: Colors.white,
+                                  size: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 28),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'AD',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -605,6 +689,18 @@ class _GameOverMenuState extends State<GameOverMenu>
         return GestureDetector(
           onTap: () async {
             HapticFeedback.selectionClick();
+            
+            // 📊 Track share button click
+            try {
+              await ComprehensiveAnalyticsManager().trackEvent('click_share', {
+                'platform': (social['platform'] as SocialPlatform).name,
+                'score': widget.score,
+                'timestamp': DateTime.now().millisecondsSinceEpoch,
+              });
+            } catch (e) {
+              safePrint('⚠️ Failed to track share click: $e');
+            }
+            
             await _handleSocialShare(social['platform'] as SocialPlatform);
           },
           child: Container(

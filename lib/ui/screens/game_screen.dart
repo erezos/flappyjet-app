@@ -45,6 +45,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Set context for MonetizationManager dialogs
+    widget.monetization.setContext(context);
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -90,63 +97,72 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             valueListenable: game.gameOverNotifier,
             builder: (context, isGameOver, child) {
               return isGameOver
-                  ? GameOverMenu(
-                      score: game.currentScore,
-                      bestScore: game.bestScore,
-                      onRestart: () => _handleRestart(),
-                      onMainMenu: () async {
-                        // 🎮 Record game completion for FTUE tracking
-                        await FTUEIntegration.recordGameCompleted();
-                        
-                        // Check for rate us after game completion
-                        await RateUsIntegration.showAfterGameCompletion(
-                          context,
+                  ? ListenableBuilder(
+                      listenable: widget.monetization,
+                      builder: (context, child) {
+                        return GameOverMenu(
                           score: game.currentScore,
-                          isHighScore: game.currentScore >= game.bestScore,
+                          bestScore: game.bestScore,
+                          onRestart: () => _handleRestart(),
+                          onMainMenu: () async {
+                            // 🎮 Record game completion for FTUE tracking
+                            await FTUEIntegration.recordGameCompleted();
+                            
+                            // Check for rate us after game completion
+                            await RateUsIntegration.showAfterGameCompletion(
+                              context,
+                              score: game.currentScore,
+                              isHighScore: game.currentScore >= game.bestScore,
+                            );
+                            Navigator.pop(context);
+                          },
+                          onContinueWithAd: () async {
+                            // 🎯 CRITICAL: Set loading state immediately to prevent navigation
+                            widget.monetization.setAdLoading(true);
+                            
+                            // 🛡️ BULLETPROOF: This ALWAYS succeeds within 3 seconds
+                            await widget.monetization.showRewardedAdForExtraLife(
+                              onAdStart: () {
+                                // 🎯 CRITICAL: Pause game when ad starts
+                                game.pauseForAd();
+                              },
+                              onAdEnd: () {
+                                // 🎯 CRITICAL: Resume game when ad ends
+                                game.resumeFromAd();
+                              },
+                              onReward: () {
+                                game.continueGame();
+                                // Always show success - user always gets reward
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Icon(Icons.check_circle, color: Colors.white),
+                                          SizedBox(width: 8),
+                                          Text('Extra life granted! Keep flying! 🚀'),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                              // onAdFailure removed - bulletproof system never fails
+                            );
+                          },
+                          onBuySingleHeart: () => _handleBuySingleHeart(),
+                          onGoToStore: () => _handleGoToStore(),
+                          secondsUntilHeart: null,
+                          onShare: (platform) => _shareScore(platform),
+                          canContinue: game.canContinueWithAd,
+                          continuesRemaining: game.continuesRemaining,
+                          playerGems: InventoryManager().gems,
+                          singleHeartPrice: _getSingleHeartPrice(),
+                          isAdLoading: widget.monetization.isAdLoading,
                         );
-                        Navigator.pop(context);
                       },
-                      onContinueWithAd: () async {
-                        // 🛡️ BULLETPROOF: This ALWAYS succeeds within 3 seconds
-                        await widget.monetization.showRewardedAdForExtraLife(
-                          onAdStart: () {
-                            // 🎯 CRITICAL: Pause game when ad starts
-                            game.pauseForAd();
-                          },
-                          onAdEnd: () {
-                            // 🎯 CRITICAL: Resume game when ad ends
-                            game.resumeFromAd();
-                          },
-                          onReward: () {
-                            game.continueGame();
-                            // Always show success - user always gets reward
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Row(
-                                    children: [
-                                      Icon(Icons.check_circle, color: Colors.white),
-                                      SizedBox(width: 8),
-                                      Text('Extra life granted! Keep flying! 🚀'),
-                                    ],
-                                  ),
-                                  backgroundColor: Colors.green,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
-                          // onAdFailure removed - bulletproof system never fails
-                        );
-                      },
-                      onBuySingleHeart: () => _handleBuySingleHeart(),
-                      onGoToStore: () => _handleGoToStore(),
-                      secondsUntilHeart: null,
-                      onShare: (platform) => _shareScore(platform),
-                      canContinue: game.canContinueWithAd,
-                      continuesRemaining: game.continuesRemaining,
-                      playerGems: InventoryManager().gems,
-                      singleHeartPrice: _getSingleHeartPrice(),
                     )
                   : const SizedBox.shrink();
             },

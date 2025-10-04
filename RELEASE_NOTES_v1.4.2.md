@@ -1,5 +1,5 @@
 <en-US>
-🚀 FLAPPYJET PRO v1.4.2
+🚀 FLAPPYJET PRO v1.5.3
 
 🎯 NEW: DAILY MISSIONS!
 Complete challenges, earn massive coin rewards!
@@ -19,7 +19,7 @@ Join millions of pilots! Download NOW! ✈️🔥
 </en-US>
 
 <es-ES>
-🚀 FLAPPYJET PRO v1.4.2
+🚀 FLAPPYJET PRO v1.5.3
 
 🎯 ¡NUEVO: MISIONES DIARIAS!
 ¡Completa desafíos, gana monedas masivas!
@@ -39,7 +39,7 @@ Join millions of pilots! Download NOW! ✈️🔥
 </es-ES>
 
 <fr-FR>
-🚀 FLAPPYJET PRO v1.4.2
+🚀 FLAPPYJET PRO v1.5.3
 
 🎯 NOUVEAU: MISSIONS QUOTIDIENNES!
 Complétez des défis, gagnez des pièces massives!
@@ -59,7 +59,7 @@ Rejoignez des millions de pilotes! Téléchargez MAINTENANT! ✈️🔥
 </fr-FR>
 
 <de-DE>
-🚀 FLAPPYJET PRO v1.4.2
+🚀 FLAPPYJET PRO v1.5.3
 
 🎯 NEU: TÄGLICHE MISSIONEN!
 Erfülle Herausforderungen, verdiene massive Münzen!
@@ -79,7 +79,7 @@ Schließe dich Millionen Piloten an! Lade JETZT herunter! ✈️🔥
 </de-DE>
 
 <ja-JP>
-🚀 FLAPPYJET PRO v1.4.2
+🚀 FLAPPYJET PRO v1.5.3
 
 🎯 新機能：デイリーミッション！
 チャレンジをクリア、大量コイン獲得！
@@ -99,7 +99,7 @@ Schließe dich Millionen Piloten an! Lade JETZT herunter! ✈️🔥
 </ja-JP>
 
 <ko-KR>
-🚀 FLAPPYJET PRO v1.4.2
+🚀 FLAPPYJET PRO v1.5.3
 
 🎯 신규: 데일리 미션!
 도전을 완료하고 엄청난 코인을 획득하세요!
@@ -119,7 +119,7 @@ Schließe dich Millionen Piloten an! Lade JETZT herunter! ✈️🔥
 </ko-KR>
 
 <zh-CN>
-🚀 FLAPPYJET PRO v1.4.2 - 终极飞行员体验！
+🚀 FLAPPYJET PRO v1.5.3 - 终极飞行员体验！
 
 🎯 每日任务震撼来袭！
 每天完成刺激挑战，赢取海量金币奖励！从精准飞行到障碍掌控 - 证明你是终极王牌飞行员！

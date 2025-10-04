@@ -51,8 +51,7 @@ class ParticleInstance {
 
     if (age >= lifetime) {
       isAlive = false;
-      // Debug output for testing
-      safePrint('Particle $id died: age=$age, lifetime=$lifetime');
+      // Debug output removed to reduce log spam
     }
   }
 

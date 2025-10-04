@@ -16,6 +16,7 @@ import '../../core/debug_logger.dart';
 
 class NicknameInputWidget extends StatefulWidget {
   final String initialValue;
+  final TextEditingController? controller;
   final Function(String nickname) onNicknameChanged;
   final Function(bool isValid) onValidationChanged;
   final bool enabled;
@@ -24,6 +25,7 @@ class NicknameInputWidget extends StatefulWidget {
   const NicknameInputWidget({
     super.key,
     this.initialValue = '',
+    this.controller,
     required this.onNicknameChanged,
     required this.onValidationChanged,
     this.enabled = true,
@@ -52,7 +54,8 @@ class _NicknameInputWidgetState extends State<NicknameInputWidget>
   void initState() {
     super.initState();
     
-    _controller = TextEditingController(text: widget.initialValue);
+    // Use provided controller or create new one
+    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
     
     // Animation controllers
     _shakeController = AnimationController(
@@ -82,14 +85,18 @@ class _NicknameInputWidgetState extends State<NicknameInputWidget>
     ));
 
     // Initial validation
-    if (widget.initialValue.isNotEmpty) {
-      _validateNickname(widget.initialValue);
+    final initialText = widget.controller?.text ?? widget.initialValue;
+    if (initialText.isNotEmpty) {
+      _validateNickname(initialText);
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    // Only dispose controller if we created it
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
     _shakeController.dispose();
     _fadeController.dispose();
     _validationTimer?.cancel();

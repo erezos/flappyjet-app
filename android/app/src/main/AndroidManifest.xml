@@ -61,6 +61,18 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-9307424222926115~5619528650" />
+        
+        <!-- ✨ AdMob Crash Protection: Optimize ad loading on background thread -->
+        <!-- Official Google recommendation to prevent ANR crashes and native memory errors -->
+        <!-- https://ads-developers.googleblog.com/2024/07/reduce-anrs-when-implementing-mobile-ads.html -->
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
+            android:value="true" />
+        
+        <!-- Unity Ads Game ID -->
+        <meta-data
+            android:name="com.unity3d.ads.game_id"
+            android:value="5958877" />
             
         <!-- Local notifications receiver -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />

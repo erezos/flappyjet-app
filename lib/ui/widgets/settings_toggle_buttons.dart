@@ -4,7 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../game/systems/audio_settings_manager.dart';
-import '../../game/systems/flame_audio_manager.dart';
+import '../../game/systems/flappy_jet_audio_manager.dart';
 import 'privacy_terms_popup.dart';
 
 /// Settings toggle buttons row widget with music, sound, and privacy/terms
@@ -154,7 +154,7 @@ class _SettingsToggleButtonState extends State<SettingsToggleButton>
 
     // Play button press sound if sound is enabled
     if (_audioSettings.shouldPlaySound()) {
-      FlameAudioManager.instance.playSFX('jump.wav', volume: 0.3);
+      FlappyJetAudioManager.instance.playSFX('jump.wav', volume: 0.3);
     }
 
     // Animate button press

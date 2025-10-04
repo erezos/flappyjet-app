@@ -83,7 +83,7 @@ class AchievementProgress {
 /// 🏆 Achievement Handler - Centralized achievement management
 class AchievementHandler extends ChangeNotifier {
   final GameStateManager _gameState;
-  final FlappyJetAudioManager _audioManager; // Modern FlappyJet audio
+  final FlappyJetAudioManager _audioManager; // Native audio system
 
   // Achievement definitions
   late final List<Achievement> _achievements;

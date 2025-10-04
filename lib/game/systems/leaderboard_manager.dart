@@ -14,6 +14,7 @@ class LeaderboardEntry {
   final DateTime achievedAt;
   final String theme;
   final int rank;
+  final String jetSkinId; // The jet skin used for this score
 
   LeaderboardEntry({
     required this.playerName,
@@ -21,6 +22,7 @@ class LeaderboardEntry {
     required this.achievedAt,
     required this.theme,
     this.rank = 0,
+    this.jetSkinId = 'sky_rookie', // Default to starter jet
   });
 
   Map<String, dynamic> toJson() => {
@@ -29,6 +31,7 @@ class LeaderboardEntry {
     'achievedAt': achievedAt.millisecondsSinceEpoch,
     'theme': theme,
     'rank': rank,
+    'jetSkinId': jetSkinId,
   };
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) =>
@@ -40,6 +43,7 @@ class LeaderboardEntry {
         ),
         theme: json['theme'] ?? 'Sky Rookie',
         rank: json['rank'] ?? 0,
+        jetSkinId: json['jetSkinId'] ?? 'sky_rookie',
       );
 }
 
@@ -197,6 +201,7 @@ class LeaderboardManager extends ChangeNotifier {
     required int score,
     required String theme,
     String? customPlayerName,
+    String? jetSkinId,
   }) async {
     try {
       final playerName = customPlayerName ?? _playerName;
@@ -205,6 +210,7 @@ class LeaderboardManager extends ChangeNotifier {
         score: score,
         achievedAt: DateTime.now(),
         theme: theme,
+        jetSkinId: jetSkinId ?? 'sky_rookie', // Use provided jet or default
       );
 
       _localScores.add(entry);
@@ -251,6 +257,7 @@ class LeaderboardManager extends ChangeNotifier {
           achievedAt: _localScores[i].achievedAt,
           theme: _localScores[i].theme,
           rank: _localScores[i].rank,
+          jetSkinId: _localScores[i].jetSkinId,
         );
         hasChanges = true;
       }

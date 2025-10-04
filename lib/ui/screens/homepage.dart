@@ -215,6 +215,11 @@ class _HomepageState extends State<Homepage>
     if (!mounted) return;
     
     try {
+      // Small delay to ensure user restoration has completed
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      if (!mounted) return;
+      
       final inventory = InventoryManager();
       final wasTriggered = await inventory.checkAndTriggerAutoRefill();
       

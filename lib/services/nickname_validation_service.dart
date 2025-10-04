@@ -252,6 +252,7 @@ class NicknameValidationService {
         obscureSymbol: '*',
       );
 
+
       // Check if text was modified (contains profanity)
       if (filteredText != nickname) {
         safePrint('🛡️ Profanity detected: $nickname -> $filteredText');
@@ -322,6 +323,7 @@ class NicknameValidationService {
       return true;
     }
   }
+
 
   /// Parse server error type from response
   static NicknameValidationError _parseServerErrorType(String? errorType) {

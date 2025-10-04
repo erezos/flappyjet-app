@@ -44,6 +44,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true  // Required for Unity Ads + multiple ad SDKs
     }
 
     signingConfigs {
@@ -67,6 +68,9 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    
+    // Unity Ads SDK
+    implementation("com.unity3d.ads:unity-ads:4.12.5")
 }
 
 flutter {

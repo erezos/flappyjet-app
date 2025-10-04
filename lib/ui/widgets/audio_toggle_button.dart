@@ -4,7 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../game/systems/audio_settings_manager.dart';
-import '../../game/systems/flame_audio_manager.dart';
+import '../../game/systems/flappy_jet_audio_manager.dart';
 
 /// Modern audio toggle button with smooth animations and haptic feedback
 class AudioToggleButton extends StatefulWidget {
@@ -97,8 +97,8 @@ class _AudioToggleButtonState extends State<AudioToggleButton>
 
     // Play button press sound if sound is enabled
     if (_audioSettings.shouldPlaySound()) {
-      // UNIFIED AUDIO: Use FlameAudioManager for consistency
-      FlameAudioManager.instance.playSFX('jump.wav', volume: 0.3);
+      // UNIFIED AUDIO: Use FlappyJetAudioManager for consistency
+      FlappyJetAudioManager.instance.playSFX('jump.wav', volume: 0.3);
     }
 
     // Animate button press

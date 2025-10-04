@@ -4,7 +4,7 @@ library;
 
 import 'dart:async' as async;
 import 'package:flutter/foundation.dart';
-// Use FlameAudioManager for consistent audio across the app
+// Use FlappyJetAudioManager for consistent audio across the app
 import '../../../game/systems/flappy_jet_audio_manager.dart';
 import '../../../game/systems/audio_settings_manager.dart';
 import '../../../core/debug_logger.dart';
@@ -20,7 +20,7 @@ class HomepageAudioManager extends ChangeNotifier {
   bool _isNavigatedAway =
       false; // Track if user has navigated away from homepage
 
-  // UNIFIED AUDIO: Use single FlameAudioManager instance
+  // UNIFIED AUDIO: Use single FlappyJetAudioManager instance
   late FlappyJetAudioManager _audioManager;
 
   HomepageAudioManager() {
@@ -177,9 +177,11 @@ class HomepageAudioManager extends ChangeNotifier {
       return;
     }
 
-    // CRITICAL FIX: Always reset state when navigated away and back
-    // This prevents race conditions with the flag
-    if (_isNavigatedAway) {
+    // CRITICAL FIX: Reset navigation flag immediately to prevent restart loops
+    final wasNavigatedAway = _isNavigatedAway;
+    _isNavigatedAway = false;
+    
+    if (wasNavigatedAway) {
       safePrint(
         '🎵 CRITICAL: Just returned from navigation - forcing music restart',
       );
@@ -203,9 +205,6 @@ class HomepageAudioManager extends ChangeNotifier {
       // Start menu music directly with higher volume for better audibility
       await _audioManager.playMenuMusic(); // FlappyJet menu music
       _musicIsPlaying = true;
-
-      // Reset navigation flag after successful start
-      _isNavigatedAway = false;
       safePrint('🎵 Menu music successfully started with volume 1.0');
 
       safePrint('🎵 Menu music started successfully');

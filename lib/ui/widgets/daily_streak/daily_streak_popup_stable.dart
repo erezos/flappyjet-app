@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../game/systems/daily_streak_manager.dart';
 import '../../../game/core/jet_skins.dart';
 import '../gem_3d_icon.dart';
+import 'daily_streak_reward_claim_popup.dart';
 
 /// Stable Daily Streak Popup - Pure Flutter UI without complex animations
 class DailyStreakPopupStable extends StatefulWidget {
@@ -224,9 +225,12 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
   Widget _buildRewardSlot(int dayIndex, double slotSize) {
     final rewards = widget.streakManager.currentRewards;
     final reward = rewards[dayIndex];
-    final isToday = dayIndex == widget.streakManager.currentStreak;
-    final isClaimed = dayIndex < widget.streakManager.currentStreak;
-    final isLocked = dayIndex > widget.streakManager.currentStreak;
+    
+    // FIXED: Use proper day calculation with cycle management
+    final currentDay = widget.streakManager.todayRewardIndex;
+    final isToday = dayIndex == currentDay;
+    final isClaimed = dayIndex < currentDay;
+    final isLocked = dayIndex > currentDay;
     
     return Container(
       width: slotSize,
@@ -704,26 +708,20 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
                     });
                     
                     if (success) {
-                      // Show success feedback immediately
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(Icons.check_circle, color: Colors.white),
-                              const SizedBox(width: 8),
-                              Text('🎉 Claimed: ${_currentReward.displayText}'),
-                            ],
+                      // Show beautiful reward claim popup
+                      if (mounted) {
+                        await showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (dialogContext) => DailyStreakRewardClaimPopup(
+                            reward: _currentReward,
+                            onClose: () {
+                              // Let the parent handle navigation
+                              widget.onClaim?.call();
+                            },
                           ),
-                          backgroundColor: Colors.green,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                      
-                      // Wait a moment then close
-                      await Future.delayed(const Duration(milliseconds: 1500));
-                      
-                      // Let the parent handle navigation (but don't claim again)
-                      widget.onClaim?.call();
+                        );
+                      }
                     } else {
                       // Show error feedback
                       ScaffoldMessenger.of(context).showSnackBar(

@@ -132,19 +132,9 @@ class Logger {
 /// 🚀 PRODUCTION-SAFE DEBUG PRINT
 /// Completely disabled in production for maximum performance
 void safePrint(String message) {
-  // 🔍 TEMPORARY: Enable ALL monetization logs in production for debugging
-  if (kDebugMode || 
-      message.contains('📺') ||  // AdMob logs
-      message.contains('💰') ||  // MonetizationManager logs
-      message.contains('🔍') ||  // Production debug logs
-      message.contains('PRODUCTION DEBUG') ||
-      message.contains('🚀') ||  // Initialization logs
-      message.contains('⚠️') ||  // Warning logs
-      message.contains('❌') ||  // Error logs
-      message.contains('✅') ||  // Success logs
-      message.contains('Background monetization') ||
-      message.contains('AdMob') ||
-      message.contains('Monetization')) {
+  // 🚫 PRODUCTION OPTIMIZATION: All debug logging disabled
+  // This provides ZERO performance overhead in production builds
+  if (kDebugMode) {
     debugPrint(message);
   }
 }

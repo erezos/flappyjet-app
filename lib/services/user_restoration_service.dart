@@ -3,11 +3,14 @@ library;
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../game/systems/player_identity_manager.dart';
 import '../game/systems/inventory_manager.dart';
 import '../game/systems/daily_streak_manager.dart';
 import '../game/systems/lives_manager.dart';
+import '../game/systems/game_state_manager.dart';
 import '../core/debug_logger.dart';
+import 'enhanced_iap_manager.dart';
 
 class UserRestorationService {
   static final UserRestorationService _instance = UserRestorationService._internal();
@@ -37,9 +40,17 @@ class UserRestorationService {
         return false;
       }
 
-      // Restore all user systems
+      // Restore all user systems in correct order
+      // 1. Game state (best score & streak) - CRITICAL for profile display
+      await _restoreGameStateManager(profileData);
+      
+      // 2. Inventory (needed for heart booster status)
       await _restoreInventoryManager(profileData);
+      
+      // 3. Daily streak manager
       await _restoreDailyStreakManager(profileData);
+      
+      // 4. Lives manager last (depends on inventory for heart booster status)
       await _restoreLivesManager(profileData);
 
       safePrint('🔄 ✅ User state restoration completed successfully');
@@ -92,10 +103,66 @@ class UserRestorationService {
     }
   }
 
+  /// Restore GameStateManager state (best score & streak) from backend data
+  Future<void> _restoreGameStateManager(Map<String, dynamic> profileData) async {
+    try {
+      final gameStateManager = GameStateManager();
+      
+      // Get player data from backend
+      final playerData = profileData['player'] as Map<String, dynamic>?;
+      
+      if (playerData != null) {
+        final backendBestScore = playerData['best_score'] as int? ?? 0;
+        final backendBestStreak = playerData['best_streak'] as int? ?? 0;
+        
+        // Get local values
+        final prefs = await SharedPreferences.getInstance();
+        final localBestScore = prefs.getInt('best_score') ?? 0;
+        final localBestStreak = prefs.getInt('best_streak') ?? 0;
+        
+        // Smart conflict resolution: Take the HIGHER value (player's achievement)
+        final finalBestScore = backendBestScore > localBestScore ? backendBestScore : localBestScore;
+        final finalBestStreak = backendBestStreak > localBestStreak ? backendBestStreak : localBestStreak;
+        
+        safePrint('🔄 🏆 Smart score sync: Local($localBestScore score, $localBestStreak streak) + Backend($backendBestScore score, $backendBestStreak streak) = Final($finalBestScore score, $finalBestStreak streak)');
+        
+        // Restore to GameStateManager (in-memory)
+        gameStateManager.setBestScore(finalBestScore);
+        gameStateManager.setBestStreak(finalBestStreak);
+        
+        // Persist to SharedPreferences
+        await prefs.setInt('best_score', finalBestScore);
+        await prefs.setInt('best_streak', finalBestStreak);
+        
+        safePrint('🔄 🏆 Best score and streak restored: $finalBestScore score, $finalBestStreak streak');
+        
+        // Sync back to backend if local was higher
+        if (finalBestScore > backendBestScore || finalBestStreak > backendBestStreak) {
+          safePrint('🔄 🏆 Local scores higher - syncing to backend');
+          // The GameStateManager will sync automatically via its async methods
+        }
+      } else {
+        safePrint('🔄 🏆 No player data found in profile, using local state');
+      }
+
+      safePrint('🔄 ✅ GameStateManager state restored successfully');
+    } catch (e) {
+      safePrint('🔄 ❌ Error restoring GameStateManager: $e');
+    }
+  }
+
   /// Restore InventoryManager state from backend data with smart conflict resolution
   Future<void> _restoreInventoryManager(Map<String, dynamic> profileData) async {
     try {
       final inventoryManager = InventoryManager();
+      
+      // 🔥 CRITICAL: Check if IAP purchase is in progress or recently completed
+      final enhancedIAP = EnhancedIAPManager();
+      if (enhancedIAP.isProcessingPurchase || enhancedIAP.isRecentlyPurchased) {
+        safePrint('🔄 🔒 Skipping currency restoration - IAP purchase in progress or recently completed');
+        safePrint('🔄 🔒 Processing: ${enhancedIAP.isProcessingPurchase}, Recent: ${enhancedIAP.isRecentlyPurchased}');
+        return;
+      }
       
       // Get current local currency before restoration
       final localCoins = inventoryManager.softCurrency;
@@ -105,9 +172,12 @@ class UserRestorationService {
       final backendCoins = profileData['current_coins'] ?? 500;
       final backendGems = profileData['current_gems'] ?? 25;
       
-      // Smart conflict resolution: take the higher value to prevent loss
+      // Smart conflict resolution: 
+      // - For coins: take the higher value to prevent loss
+      // - For gems: trust local value if it's lower (user spent gems), otherwise take higher
+      // Note: IAP purchases are protected by the isProcessingPurchase/isRecentlyPurchased checks above
       final finalCoins = localCoins > backendCoins ? localCoins : backendCoins;
-      final finalGems = localGems > backendGems ? localGems : backendGems;
+      final finalGems = localGems <= backendGems ? localGems : backendGems;
       
       // Only update if there's a difference to avoid unnecessary operations
       if (localCoins != finalCoins || localGems != finalGems) {
@@ -136,17 +206,36 @@ class UserRestorationService {
       final inventory = profileData['inventory'] as List<dynamic>? ?? [];
       final ownedSkins = <String>{};
       String? equippedSkin;
+      DateTime? latestEquippedTime;
 
+      safePrint('🔄 ✈️ Inventory restoration analysis:');
+      safePrint('   Backend inventory items: ${inventory.length}');
+      
       for (final item in inventory) {
+        safePrint('   Item: ${item['item_type']} - ${item['item_id']} (equipped: ${item['equipped']})');
+        
         if (item['item_type'] == 'skin') {
           final skinId = item['item_id'] as String;
           ownedSkins.add(skinId);
           
           if (item['equipped'] == true) {
-            equippedSkin = skinId;
+            // 🔥 CRITICAL FIX: Use the most recently updated equipped skin
+            final updatedAt = item['updated_at'] != null 
+                ? DateTime.parse(item['updated_at']) 
+                : DateTime.now();
+            
+            if (latestEquippedTime == null || updatedAt.isAfter(latestEquippedTime)) {
+              equippedSkin = skinId;
+              latestEquippedTime = updatedAt;
+              safePrint('   🎯 New equipped skin candidate: $skinId (updated: $updatedAt)');
+            }
           }
         }
       }
+
+      safePrint('🔄 ✈️ Skin restoration summary:');
+      safePrint('   Owned skins: ${ownedSkins.toList()}');
+      safePrint('   Equipped skin: $equippedSkin');
 
       if (ownedSkins.isNotEmpty) {
         safePrint('🔄 ✈️ Restoring ${ownedSkins.length} owned skins');
@@ -154,8 +243,16 @@ class UserRestorationService {
         
         if (equippedSkin != null) {
           safePrint('🔄 ✈️ Restoring equipped skin: $equippedSkin');
-          await inventoryManager.equipSkin(equippedSkin);
+          // 🔥 CRITICAL FIX: Ensure skin is owned before equipping
+          if (inventoryManager.ownedSkinIds.contains(equippedSkin)) {
+            await inventoryManager.equipSkin(equippedSkin);
+            safePrint('🔄 ✈️ ✅ Equipped skin restored: $equippedSkin');
+          } else {
+            safePrint('🔄 ✈️ ⚠️ Cannot equip $equippedSkin - not owned after merge');
+          }
         }
+      } else {
+        safePrint('🔄 ✈️ No skins found in backend inventory - using local state');
       }
 
       safePrint('🔄 ✅ InventoryManager state restored successfully');
@@ -169,12 +266,34 @@ class UserRestorationService {
     try {
       final dailyStreakManager = DailyStreakManager();
       
-      // Use best_streak as current streak (we should add current_streak to backend later)
-      final currentStreak = profileData['best_streak'] ?? 0;
+      // Get daily streak data from backend
+      final dailyStreakData = profileData['daily_streak'] as Map<String, dynamic>?;
       
-      if (currentStreak > 0) {
-        safePrint('🔄 🔥 Restoring daily streak: $currentStreak days');
-        await dailyStreakManager.restoreStreak(currentStreak);
+      if (dailyStreakData != null) {
+        final currentStreak = dailyStreakData['current_streak'] ?? 0;
+        final currentCycle = dailyStreakData['current_cycle'] ?? 0;
+        final cycleRewardSet = dailyStreakData['cycle_reward_set'] ?? 'new_player';
+        final totalCyclesCompleted = dailyStreakData['total_cycles_completed'] ?? 0;
+        
+        safePrint('🔄 🔥 Restoring daily streak: $currentStreak days, cycle $currentCycle, reward set: $cycleRewardSet');
+        
+        if (currentStreak > 0) {
+          await dailyStreakManager.restoreStreak(currentStreak);
+        }
+        
+        // Restore cycle data
+        await dailyStreakManager.restoreCycleData(
+          currentCycle: currentCycle,
+          cycleRewardSet: cycleRewardSet,
+          totalCyclesCompleted: totalCyclesCompleted,
+          cycleStartDate: dailyStreakData['cycle_start_date'] != null 
+              ? DateTime.parse(dailyStreakData['cycle_start_date']) 
+              : null,
+        );
+        
+        safePrint('🔄 🔥 Daily streak data: cycle=$currentCycle, rewardSet=$cycleRewardSet, totalCycles=$totalCyclesCompleted');
+      } else {
+        safePrint('🔄 🔥 No daily streak data found in profile, using local state');
       }
 
       safePrint('🔄 ✅ DailyStreakManager state restored successfully');
@@ -183,16 +302,42 @@ class UserRestorationService {
     }
   }
 
-  /// Restore LivesManager state from backend data
+  /// Restore LivesManager state from backend data with heart booster awareness
   Future<void> _restoreLivesManager(Map<String, dynamic> profileData) async {
     try {
       final livesManager = LivesManager();
+      final inventoryManager = InventoryManager();
       
-      final currentHearts = profileData['current_hearts'] ?? 3;
-      safePrint('🔄 💖 Restoring hearts: $currentHearts');
+      final backendHearts = profileData['current_hearts'] ?? 3;
+      final localHearts = livesManager.currentLives;
+      final maxHearts = livesManager.maxLives; // This accounts for heart booster (3 or 6)
       
-      // Set hearts directly (LivesManager should have a restore method)
-      await livesManager.restoreHearts(currentHearts);
+      safePrint('🔄 💖 Heart restoration analysis:');
+      safePrint('   Backend hearts: $backendHearts');
+      safePrint('   Local hearts: $localHearts');
+      safePrint('   Max hearts (with booster): $maxHearts');
+      
+      // Smart heart restoration logic
+      int heartsToRestore = backendHearts;
+      
+      // If heart booster is active, ensure we don't go below the boosted maximum
+      if (inventoryManager.isHeartBoosterActive) {
+        safePrint('🔄 💖 Heart booster is active - ensuring minimum of $maxHearts hearts');
+        
+        // If backend has fewer hearts than the boosted maximum, use the boosted maximum
+        if (backendHearts < maxHearts) {
+          heartsToRestore = maxHearts;
+          safePrint('🔄 💖 Backend hearts ($backendHearts) < boosted max ($maxHearts) - using boosted max');
+        }
+      }
+      
+      // Only restore if there's a meaningful difference
+      if (heartsToRestore != localHearts) {
+        safePrint('🔄 💖 Restoring hearts: $localHearts → $heartsToRestore');
+        await livesManager.restoreHearts(heartsToRestore);
+      } else {
+        safePrint('🔄 💖 Hearts already correct: $localHearts (no restoration needed)');
+      }
 
       safePrint('🔄 ✅ LivesManager state restored successfully');
     } catch (e) {

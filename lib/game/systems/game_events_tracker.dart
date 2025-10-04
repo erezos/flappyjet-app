@@ -7,6 +7,7 @@ import 'missions_manager.dart';
 import 'achievements_manager.dart';
 import 'inventory_manager.dart';
 import '../../core/network/network_manager.dart';
+import '../../core/analytics/unified_analytics_manager.dart';
 
 /// Game Events Tracker - Central hub for tracking all game events
 class GameEventsTracker extends ChangeNotifier {
@@ -18,6 +19,7 @@ class GameEventsTracker extends ChangeNotifier {
   AchievementsManager? _achievementsManager;
   InventoryManager? _inventory;
   NetworkManager? _networkManager;
+  UnifiedAnalyticsManager? _analytics;
 
   bool _isInitialized = false;
   // int _currentGameStartTime = 0; // Unused field - removed for production
@@ -41,11 +43,13 @@ class GameEventsTracker extends ChangeNotifier {
     _achievementsManager = achievementsManager ?? AchievementsManager();
     _inventory = inventoryManager ?? InventoryManager();
     _networkManager = networkManager ?? NetworkManager();
+    _analytics = UnifiedAnalyticsManager();
 
     await _missionsManager!.initialize();
     await _achievementsManager!.initialize();
     await _inventory!.initialize();
     await _networkManager!.initialize();
+    // Analytics already initialized in main.dart
 
     _isInitialized = true;
     safePrint('🎮 Game Events Tracker initialized with shared instances');
@@ -53,14 +57,10 @@ class GameEventsTracker extends ChangeNotifier {
 
   /// Track game start event
   Future<void> onGameStart() async {
-    // Send analytics to Railway backend
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'game_start',
-        eventData: {
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      });
-    }
+    // 📊 Send analytics to both Firebase and Railway backend
+    _analytics?.trackEvent('game_start', {
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
 
     safePrint('🎮 Game started');
   }
@@ -116,20 +116,16 @@ class GameEventsTracker extends ChangeNotifier {
       await _achievementsManager!.updateProgress('coin_collector', coinsEarned);
     }
 
-    // Send analytics to Railway backend
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'game_end',
-        eventData: {
-        'score': finalScore,
-        'survival_time_ms': survivalTimeMs,
-        'survival_time_seconds': survivalTimeSeconds,
-        'coins_earned': coinsEarned,
-        'used_continue': usedContinue,
-        'cause': cause,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      });
-    }
+    // 📊 Send analytics to both Firebase and Railway backend
+    _analytics?.trackGameEnd(
+      finalScore: finalScore,
+      survivalTimeSeconds: survivalTimeSeconds,
+      causeOfDeath: cause,
+      theme: 'current_theme', // TODO: Get actual theme
+      selectedJet: 'current_jet', // TODO: Get actual jet
+      coinsEarned: coinsEarned,
+      usedContinue: usedContinue,
+    );
 
     _lastGameScore = finalScore;
     _recentScores.add(finalScore);
@@ -150,15 +146,12 @@ class GameEventsTracker extends ChangeNotifier {
       await _achievementsManager!.updateProgress('never_give_up', 1);
     }
 
-    // Report analytics
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'continue_used',
-        eventData: {
-        'gems_cost': gemsCost,
-        'current_score': _lastGameScore,
-      });
-    }
+    // 📊 Report analytics
+    _analytics?.trackEvent('continue_used', {
+      'gems_cost': gemsCost,
+      'current_score': _lastGameScore,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
 
     safePrint('🎮 Continue used for $gemsCost gems');
   }
@@ -185,14 +178,11 @@ class GameEventsTracker extends ChangeNotifier {
       safePrint('🎮 ❌ Failed to update achievements manager: $e');
     }
 
-    // Report analytics
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'nickname_changed',
-        eventData: {
-        'new_nickname_length': newNickname.length,
-      });
-    }
+    // 📊 Report analytics
+    _analytics?.trackEvent('nickname_changed', {
+      'new_nickname_length': newNickname.length,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
 
     safePrint('🎮 Nickname changed to: $newNickname');
   }
@@ -210,31 +200,25 @@ class GameEventsTracker extends ChangeNotifier {
       await _achievementsManager!.checkCollectionAchievements(ownedCount);
     }
 
-    // Report analytics
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'skin_purchased',
-        eventData: {
-        'skin_id': skinId,
-        'coin_cost': coinCost,
-        'rarity': rarity,
-        'total_owned': ownedCount,
-      });
-    }
+    // 📊 Report analytics
+    _analytics?.trackPurchase(
+      itemId: skinId,
+      itemName: 'jet_skin_$skinId',
+      price: coinCost.toDouble(),
+      currency: 'coins',
+      purchaseType: 'coins',
+    );
 
     safePrint('🎮 Skin purchased: $skinId for $coinCost coins');
   }
 
   /// Track skin equipped
   Future<void> onSkinEquipped(String skinId) async {
-    // Report analytics
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'skin_equipped',
-        eventData: {
-        'skin_id': skinId,
-      });
-    }
+    // 📊 Report analytics
+    _analytics?.trackEvent('skin_equipped', {
+      'skin_id': skinId,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
 
     safePrint('🎮 Skin equipped: $skinId');
   }
@@ -255,16 +239,14 @@ class GameEventsTracker extends ChangeNotifier {
       await _achievementsManager!.updateProgress('perfectionist', 1);
     }
 
-    // Report analytics
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'mission_completed',
-        eventData: {
-        'mission_id': missionId,
-        'mission_type': missionType,
-        'reward': reward,
-      });
-    }
+    // 📊 Report analytics
+    _analytics?.trackMissionComplete(
+      missionId: missionId,
+      missionType: missionType,
+      rewardCoins: reward,
+      rewardGems: 0, // TODO: Add gem rewards
+      completionTimeSeconds: 0, // TODO: Track completion time
+    );
 
     safePrint('🎮 Mission completed: $missionId, reward: $reward coins');
   }
@@ -287,18 +269,15 @@ class GameEventsTracker extends ChangeNotifier {
       }
     }
 
-    // Report analytics
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'achievement_unlocked',
-        eventData: {
-        'achievement_id': achievementId,
-        'category': category,
-        'rarity': rarity,
-        'coin_reward': coinReward,
-        'gem_reward': gemReward,
-      });
-    }
+    // 📊 Report analytics
+    _analytics?.trackAchievementUnlock(
+      achievementId: achievementId,
+      achievementName: achievementId, // TODO: Get actual achievement name
+      category: category,
+      rarity: rarity,
+      rewardCoins: coinReward,
+      rewardGems: gemReward,
+    );
 
     safePrint('🎮 Achievement unlocked: $achievementId');
   }
@@ -310,20 +289,16 @@ class GameEventsTracker extends ChangeNotifier {
     required String platform,
     required double priceUSD,
   }) async {
-    // Report analytics (purchase validation will be added later)
-    bool isValid = true; // Assume valid for now
-    if (_networkManager != null) {
-      await _networkManager!.submitAnalyticsEvent(
-        eventName: 'iap_purchase',
-        eventData: {
-        'product_id': productId,
-        'price_usd': priceUSD,
-        'platform': platform,
-        'valid': isValid,
-      });
-    }
+    // 📊 Report analytics (purchase validation will be added later)
+    _analytics?.trackPurchase(
+      itemId: productId,
+      itemName: productId,
+      price: priceUSD,
+      currency: 'USD',
+      purchaseType: 'real_money',
+    );
 
-    safePrint('🎮 IAP Purchase: $productId, valid: $isValid');
+    safePrint('🎮 IAP Purchase: $productId for \$${priceUSD.toStringAsFixed(2)}');
   }
 
 

@@ -10,7 +10,7 @@ class IAPConfig {
   static const String _appleSharedSecretProd = '34c180c01e864a0e8ff69e0f0e6c7c18';
   
   // Google Play Store Configuration
-  static const String _androidPackageName = 'com.erezos.flappyjet';
+  static const String _androidPackageName = 'com.flappyjet.pro.flappy_jet_pro';
   
   /// Get Apple shared secret based on build mode
   static String get appleSharedSecret {

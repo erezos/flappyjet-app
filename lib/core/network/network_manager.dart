@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import '../debug_logger.dart';
 import '../../game/systems/player_identity_manager.dart';
 import 'offline_manager.dart';
@@ -194,7 +195,7 @@ class NetworkManager extends ChangeNotifier {
   /// Make HTTP request with proper headers and timeout
   Future<http.Response?> _makeHttpRequest(NetworkRequest request) async {
     final uri = Uri.parse('$baseUrl${request.endpoint}');
-    final headers = _buildHeaders(request);
+    final headers = await _buildHeaders(request);
     
     try {
       switch (request.method.toUpperCase()) {
@@ -224,12 +225,21 @@ class NetworkManager extends ChangeNotifier {
   }
 
   /// Build request headers
-  Map<String, String> _buildHeaders(NetworkRequest request) {
+  Future<Map<String, String>> _buildHeaders(NetworkRequest request) async {
+    // Get real app version
+    String appVersion = '1.5.5'; // Fallback
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      appVersion = packageInfo.version;
+    } catch (e) {
+      safePrint('🌐 Failed to get app version: $e');
+    }
+    
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'User-Agent': 'FlappyJet/1.4.6',
+      'User-Agent': 'FlappyJet/$appVersion',
       'X-Platform': Platform.isAndroid ? 'android' : 'ios',
-      'X-App-Version': '1.4.6',
+      'X-App-Version': appVersion,
     };
 
     // Add custom headers
@@ -305,8 +315,8 @@ class NetworkManager extends ChangeNotifier {
   /// Sync player data
   Future<NetworkResult<Map<String, dynamic>>> syncPlayerData(Map<String, dynamic> playerData) async {
     return await request(NetworkRequest(
-      endpoint: '/api/player/sync',
-      method: 'POST',
+      endpoint: '/api/player/sync-currency',
+      method: 'PUT',
       body: playerData,
     ));
   }
@@ -359,13 +369,27 @@ class NetworkManager extends ChangeNotifier {
     ));
   }
 
+  /// Submit batch analytics events (Smart Analytics)
+  Future<NetworkResult<Map<String, dynamic>>> submitAnalyticsBatch({
+    required List<Map<String, dynamic>> events,
+  }) async {
+    return await request(NetworkRequest(
+      endpoint: '/api/analytics/batch',
+      method: 'POST',
+      body: {
+        'events': events,
+      },
+      requiresAuth: false, // Analytics can be anonymous
+    ));
+  }
+
   /// Register FCM token
   Future<NetworkResult<Map<String, dynamic>>> registerFCMToken(String token) async {
     return await request(NetworkRequest(
-      endpoint: '/api/fcm/register',
+      endpoint: '/api/fcm/register-token',
       method: 'POST',
       body: {
-        'fcm_token': token,
+        'fcmToken': token,
         'platform': Platform.isAndroid ? 'android' : 'ios',
       },
     ));
@@ -381,23 +405,7 @@ class NetworkManager extends ChangeNotifier {
 
   /// Update player profile
   Future<NetworkResult<Map<String, dynamic>>> updatePlayerProfile(Map<String, dynamic> profileData) async {
-    // For nickname updates, use the leaderboard endpoint
-    if (profileData.containsKey('nickname')) {
-      final playerIdentity = PlayerIdentityManager();
-      final playerId = playerIdentity.playerId;
-      
-      if (playerId.isEmpty) {
-        return NetworkResult.error('Player not authenticated');
-      }
-      
-      return await request(NetworkRequest(
-        endpoint: '/api/leaderboard/player/$playerId/nickname',
-        method: 'PUT',
-        body: {'nickname': profileData['nickname']},
-      ));
-    }
-    
-    // For other profile updates, use the general profile endpoint (if it exists)
+    // Use the correct player profile endpoint for all updates including nickname
     return await request(NetworkRequest(
       endpoint: '/api/player/profile',
       method: 'PUT',

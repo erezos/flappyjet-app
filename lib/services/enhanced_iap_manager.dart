@@ -3,16 +3,21 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:http/http.dart' as http;
 import '../core/debug_logger.dart';
 import '../game/core/iap_products.dart';
 import '../game/systems/inventory_manager.dart';
 import '../game/systems/lives_manager.dart';
 import '../game/systems/firebase_analytics_manager.dart';
+import '../game/systems/player_identity_manager.dart';
+import '../core/analytics/comprehensive_analytics_manager.dart';
 import '../config/iap_config.dart';
 import 'iap_receipt_validator.dart';
+import 'inventory_sync_service.dart';
 
 /// Purchase result enumeration
 enum PurchaseResultStatus {
@@ -100,6 +105,14 @@ class EnhancedIAPManager extends ChangeNotifier {
   Map<String, ProductDetails> _products = {};
   Map<String, PurchaseDetails> _pendingPurchases = {};
   StreamSubscription<List<PurchaseDetails>>? _subscription;
+  
+  // Caching to prevent repeated checks
+  bool? _availabilityCache;
+  DateTime? _lastAvailabilityCheck;
+  
+  // 🔥 CRITICAL: Purchase state management to prevent backend overwrite
+  bool _isProcessingPurchase = false;
+  DateTime? _lastPurchaseTime;
 
   // Purchase tracking
   final Map<String, DateTime> _purchaseAttempts = {};
@@ -112,6 +125,16 @@ class EnhancedIAPManager extends ChangeNotifier {
   bool get isPurchasing => _isPurchasing;
   Map<String, ProductDetails> get products => Map.unmodifiable(_products);
   List<IAPProduct> get availableProducts => _getAvailableIAPProducts();
+  
+  /// 🔥 CRITICAL: Check if we're currently processing a purchase (prevents backend overwrite)
+  bool get isProcessingPurchase => _isProcessingPurchase;
+  
+  /// 🔥 CRITICAL: Check if we recently completed a purchase (prevents backend overwrite for 30 seconds)
+  bool get isRecentlyPurchased {
+    if (_lastPurchaseTime == null) return false;
+    final timeSincePurchase = DateTime.now().difference(_lastPurchaseTime!);
+    return timeSincePurchase.inSeconds < 30; // 30 second grace period
+  }
 
   /// Initialize the IAP system
   Future<void> initialize({
@@ -131,19 +154,12 @@ class EnhancedIAPManager extends ChangeNotifier {
     safePrint('🔐 Android IAP configured: ${IAPConfig.isAndroidConfigured}');
 
     try {
-      safePrint('💳 🚀 Initializing Enhanced IAP Manager...');
-
       // Set dependencies
       _inventory = inventory;
       _lives = lives;
 
       // Check IAP availability with enhanced detection
       _isAvailable = await _checkIAPAvailability();
-      safePrint('💳 📊 IAP Available: $_isAvailable');
-      
-      if (kDebugMode) {
-        safePrint('💳 🧪 Debug Mode: Platform=${Platform.isAndroid ? 'Android' : 'iOS'}, Emulator=${await _isRunningOnEmulator()}');
-      }
 
       if (!_isAvailable) {
         safePrint('💳 ⚠️ IAP not available - ${await _getIAPUnavailableReason()}');
@@ -193,7 +209,7 @@ class EnhancedIAPManager extends ChangeNotifier {
   Future<void> _loadProducts() async {
     try {
       final storeIds = IAPProductCatalog.getAllStoreIds();
-      safePrint('💳 🛒 Loading ${storeIds.length} products...');
+      // Load products silently
 
       final response = await _iap.queryProductDetails(storeIds);
       
@@ -210,7 +226,6 @@ class EnhancedIAPManager extends ChangeNotifier {
       _products.clear();
       for (final product in response.productDetails) {
         _products[product.id] = product;
-        safePrint('💳 ✅ Loaded: ${product.title} - ${product.price}');
       }
 
       // Check for missing products
@@ -321,27 +336,37 @@ class EnhancedIAPManager extends ChangeNotifier {
   Future<void> _processPurchaseUpdate(PurchaseDetails purchaseDetails) async {
     safePrint('💳 📦 Processing purchase: ${purchaseDetails.productID} - ${purchaseDetails.status}');
 
+    // Use the original product ID directly - no mapping needed
+    // The product IDs in the purchase stream should match our storeId values
+    final mappedPurchaseDetails = PurchaseDetails(
+      productID: purchaseDetails.productID,
+      transactionDate: purchaseDetails.transactionDate,
+      status: purchaseDetails.status,
+      verificationData: purchaseDetails.verificationData,
+      purchaseID: purchaseDetails.purchaseID,
+    );
+
     switch (purchaseDetails.status) {
       case PurchaseStatus.pending:
-        await _handlePendingPurchase(purchaseDetails);
+        await _handlePendingPurchase(mappedPurchaseDetails);
         break;
       case PurchaseStatus.purchased:
-        await _handleSuccessfulPurchase(purchaseDetails);
+        await _handleSuccessfulPurchase(mappedPurchaseDetails);
         break;
       case PurchaseStatus.error:
-        await _handleFailedPurchase(purchaseDetails);
+        await _handleFailedPurchase(mappedPurchaseDetails);
         break;
       case PurchaseStatus.restored:
-        await _handleRestoredPurchase(purchaseDetails);
+        await _handleRestoredPurchase(mappedPurchaseDetails);
         break;
       case PurchaseStatus.canceled:
-        await _handleCancelledPurchase(purchaseDetails);
+        await _handleCancelledPurchase(mappedPurchaseDetails);
         break;
     }
 
     // Complete the purchase if needed
-    if (purchaseDetails.pendingCompletePurchase) {
-      await _iap.completePurchase(purchaseDetails);
+    if (mappedPurchaseDetails.pendingCompletePurchase) {
+      await _iap.completePurchase(mappedPurchaseDetails);
     }
 
     _isPurchasing = false;
@@ -363,27 +388,54 @@ class EnhancedIAPManager extends ChangeNotifier {
   /// Handle successful purchase
   Future<void> _handleSuccessfulPurchase(PurchaseDetails purchaseDetails) async {
     try {
+      // 🔥 CRITICAL: Set processing flag to prevent backend overwrite
+      _isProcessingPurchase = true;
+      
       // Find the IAP product
       final iapProduct = IAPProductCatalog.getProductByStoreId(purchaseDetails.productID);
       if (iapProduct == null) {
         safePrint('💳 ❌ Unknown product purchased: ${purchaseDetails.productID}');
+        _isProcessingPurchase = false; // Reset flag on error
         return;
       }
 
       // Validate receipt with server
+      safePrint('💳 🔐 Starting receipt validation for: ${purchaseDetails.productID}');
       final validationResult = await _validator.validatePurchase(
         purchaseDetails: purchaseDetails,
         platform: Platform.isIOS ? 'ios' : 'android',
       );
 
+      safePrint('💳 🔐 Validation result: valid=${validationResult.isValid}, method=${validationResult.validationMethod}, error=${validationResult.error}');
+
       if (!validationResult.isValid) {
         safePrint('💳 ❌ Purchase validation failed: ${validationResult.error}');
-        await _trackPurchaseEvent('purchase_validation_failed', {
-          'product_id': iapProduct.id,
-          'error': validationResult.error,
-          'transaction_id': purchaseDetails.purchaseID,
-        });
-        return;
+        
+        // For sandbox testing, allow offline validation as fallback
+        if (kDebugMode) {
+          safePrint('💳 🧪 Debug mode: Trying offline validation as fallback...');
+          final offlineResult = _validator.validateOffline(purchaseDetails);
+          if (offlineResult.isValid) {
+            safePrint('💳 ✅ Offline validation passed - proceeding with purchase');
+          } else {
+            safePrint('💳 ❌ Offline validation also failed: ${offlineResult.error}');
+            await _trackPurchaseEvent('purchase_validation_failed', {
+              'product_id': iapProduct.id,
+              'error': validationResult.error,
+              'transaction_id': purchaseDetails.purchaseID,
+            });
+            _isProcessingPurchase = false; // Reset flag on error
+            return;
+          }
+        } else {
+          await _trackPurchaseEvent('purchase_validation_failed', {
+            'product_id': iapProduct.id,
+            'error': validationResult.error,
+            'transaction_id': purchaseDetails.purchaseID,
+          });
+          _isProcessingPurchase = false; // Reset flag on error
+          return;
+        }
       }
 
       // Grant the purchased items
@@ -402,7 +454,25 @@ class EnhancedIAPManager extends ChangeNotifier {
         'validation_method': validationResult.validationMethod,
       });
 
+      // Track comprehensive analytics for IAP purchase
+      try {
+        await ComprehensiveAnalyticsManager().trackIAPPurchase(
+          productId: iapProduct.id,
+          productType: iapProduct.type.name,
+          priceUsd: iapProduct.priceUSD,
+          currency: 'USD',
+          success: true,
+        );
+      } catch (e) {
+        safePrint('⚠️ Failed to track comprehensive IAP analytics: $e');
+      }
+
       safePrint('💳 ✅ Purchase completed: ${iapProduct.displayName}');
+      
+      // 🔥 CRITICAL: Set completion flags to prevent backend overwrite
+      _isProcessingPurchase = false;
+      _lastPurchaseTime = DateTime.now();
+      safePrint('💳 🔒 Purchase processing completed - backend protection active for 30 seconds');
 
     } catch (e) {
       safePrint('💳 ❌ Error processing successful purchase: $e');
@@ -410,16 +480,32 @@ class EnhancedIAPManager extends ChangeNotifier {
         'product_id': purchaseDetails.productID,
         'error': e.toString(),
       });
+      
+      // 🔥 CRITICAL: Reset processing flag on error
+      _isProcessingPurchase = false;
     }
   }
 
   /// Grant rewards for purchased product
   Future<void> _grantPurchaseRewards(IAPProduct product, PurchaseDetails? purchaseDetails) async {
     try {
+      safePrint('💳 🎁 Starting reward granting for: ${product.displayName}');
+      safePrint('💳 🎁 Product details: gems=${product.totalGems}, coins=${product.totalCoins}, hearts=${product.hearts}, booster=${product.heartBoosterHours}h, skin=${product.jetSkinId}');
+      
       // Grant gems
       if (product.totalGems > 0 && _inventory != null) {
+        safePrint('💳 💎 Granting ${product.totalGems} gems...');
         await _inventory!.grantGems(product.totalGems);
         safePrint('💳 💎 Granted ${product.totalGems} gems');
+        
+        // 🔥 CRITICAL: Sync gems to backend after IAP purchase
+        try {
+          await _syncGemsToBackend();
+          safePrint('💳 🔄 Gems synced to backend after IAP purchase: ${product.totalGems} gems');
+        } catch (syncError) {
+          safePrint('💳 ⚠️ Failed to sync gems to backend after purchase: $syncError');
+          // Don't fail the purchase if sync fails - gems are still granted locally
+        }
       }
 
       // Grant coins
@@ -450,6 +536,20 @@ class EnhancedIAPManager extends ChangeNotifier {
       if (product.jetSkinId != null && _inventory != null) {
         await _inventory!.unlockSkin(product.jetSkinId!);
         safePrint('💳 🚁 Unlocked jet skin: ${product.jetSkinId}');
+        
+        // 🔥 NEW: Sync skin to backend
+        try {
+          final inventorySyncService = InventorySyncService();
+          await inventorySyncService.syncSkin(
+            product.jetSkinId!,
+            equipped: false,
+            acquiredMethod: 'iap_purchase',
+          );
+          safePrint('💳 🔄 Jet skin synced to backend: ${product.jetSkinId}');
+        } catch (syncError) {
+          safePrint('💳 ⚠️ Failed to sync jet skin to backend: $syncError');
+          // Don't fail the purchase if sync fails - skin is still unlocked locally
+        }
       }
 
     } catch (e) {
@@ -543,26 +643,49 @@ class EnhancedIAPManager extends ChangeNotifier {
   /// Enhanced IAP availability check with better emulator/device detection
   Future<bool> _checkIAPAvailability() async {
     try {
+      // Use cache if available and recent (within 30 seconds)
+      if (_availabilityCache != null && 
+          _lastAvailabilityCheck != null && 
+          DateTime.now().difference(_lastAvailabilityCheck!).inSeconds < 30) {
+        return _availabilityCache!;
+      }
+      
       // First check the basic IAP availability
       final basicAvailability = await _iap.isAvailable();
       
       if (basicAvailability) {
+        _availabilityCache = true;
+        _lastAvailabilityCheck = DateTime.now();
         return true; // Real device with IAP support
       }
       
-      // Enhanced checks for emulators and development
-      if (kDebugMode) {
-        final isEmulator = await _isRunningOnEmulator();
-        if (isEmulator) {
-          safePrint('💳 🧪 Running on emulator - enabling IAP simulation mode');
-          return true; // Enable IAP simulation on emulators in debug mode
+      // Check if we're on an emulator
+      final isEmulator = await _isRunningOnEmulator();
+      
+      if (isEmulator) {
+        // On emulator, only enable IAP simulation in debug mode
+        if (kDebugMode) {
+          _availabilityCache = true;
+          _lastAvailabilityCheck = DateTime.now();
+          safePrint('💳 🧪 IAP simulation enabled for emulator (debug mode)');
+          return true;
+        } else {
+          _availabilityCache = false;
+          _lastAvailabilityCheck = DateTime.now();
+          safePrint('💳 ⚠️ IAP not available on emulator (release mode)');
+          return false;
         }
       }
       
-      return false; // Real device without IAP support
+      // Real device without IAP support
+      _availabilityCache = false;
+      _lastAvailabilityCheck = DateTime.now();
+      return false;
       
     } catch (e) {
       safePrint('💳 ❌ Error checking IAP availability: $e');
+      _availabilityCache = false;
+      _lastAvailabilityCheck = DateTime.now();
       return false;
     }
   }
@@ -575,11 +698,28 @@ class EnhancedIAPManager extends ChangeNotifier {
         final brand = Platform.environment['ro.product.brand'] ?? '';
         final model = Platform.environment['ro.product.model'] ?? '';
         final device = Platform.environment['ro.product.device'] ?? '';
+        final manufacturer = Platform.environment['ro.product.manufacturer'] ?? '';
         
-        return brand.toLowerCase().contains('generic') ||
-               model.toLowerCase().contains('emulator') ||
-               device.toLowerCase().contains('emulator') ||
-               model.toLowerCase().contains('sdk');
+        // More comprehensive emulator detection
+        final emulatorIndicators = [
+          'generic', 'emulator', 'sdk', 'google_sdk', 'droid4x',
+          'genymotion', 'vbox', 'virtualbox', 'andy', 'nox'
+        ];
+        
+        final deviceInfo = '${brand}_${model}_${device}_${manufacturer}'.toLowerCase();
+        
+        for (final indicator in emulatorIndicators) {
+          if (deviceInfo.contains(indicator)) {
+            return true;
+          }
+        }
+        
+        // Check for specific emulator patterns
+        if (model.toLowerCase().contains('sdk') || 
+            device.toLowerCase().contains('generic') ||
+            brand.toLowerCase().contains('generic')) {
+          return true;
+        }
       } else if (Platform.isIOS) {
         // iOS Simulator detection
         return Platform.environment['SIMULATOR_DEVICE_NAME'] != null;
@@ -645,6 +785,42 @@ class EnhancedIAPManager extends ChangeNotifier {
       
       safePrint('💳 ❌ Emulator purchase simulation failed: $e');
       return PurchaseResult.failed('Simulation failed: $e');
+    }
+  }
+
+  /// 🔥 CRITICAL: Sync gems to backend after IAP purchase
+  Future<void> _syncGemsToBackend() async {
+    try {
+      final playerIdentityManager = PlayerIdentityManager();
+      if (!playerIdentityManager.isAuthenticated) {
+        safePrint('💳 ⚠️ Cannot sync gems to backend - not authenticated');
+        return;
+      }
+
+      final token = playerIdentityManager.authToken;
+      if (token.isEmpty) return;
+
+      final response = await http.put(
+        Uri.parse('https://flappyjet-backend-production.up.railway.app/api/player/sync-currency'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'coins': _inventory?.softCurrency ?? 0,
+          'gems': _inventory?.gems ?? 0,
+          'syncReason': 'iap_purchase',
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        safePrint('💳 ✅ Gems synced to backend after IAP purchase: ${_inventory?.gems ?? 0} gems');
+      } else {
+        safePrint('💳 ⚠️ Failed to sync gems to backend: ${response.statusCode}');
+      }
+    } catch (e) {
+      safePrint('💳 ❌ Error syncing gems to backend: $e');
+      // Don't throw - local functionality should work even if backend sync fails
     }
   }
 

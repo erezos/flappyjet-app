@@ -5,12 +5,9 @@ import '../../core/debug_logger.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:io' show Platform;
-import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/user_restoration_service.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:http/http.dart' as http;
 import 'profile_manager.dart';
 import 'leaderboard_manager.dart';
@@ -19,6 +16,10 @@ import 'game_events_tracker.dart';
 // Removed auth_manager import - functionality moved here
 import '../../core/network/network_manager.dart';
 import '../../services/nickname_validation_service.dart';
+import '../../core/analytics/unified_analytics_manager.dart';
+import '../../services/inventory_sync_service.dart';
+import 'inventory_manager.dart';
+import '../../core/identity/unified_id_manager.dart';
 // Removed railway_leaderboard_service import - consumers will initialize as needed
 
 /// Authentication states for reactive UI updates
@@ -98,6 +99,9 @@ class PlayerIdentityManager extends ChangeNotifier {
   bool _isFirstTimeUser = true;
   bool _isBackendRegistered = false;
   
+  // Dependencies
+  final UnifiedIdManager _idManager = UnifiedIdManager();
+  
   // HTTP client
   final http.Client _httpClient = http.Client();
 
@@ -121,69 +125,9 @@ class PlayerIdentityManager extends ChangeNotifier {
   bool get isTokenExpired => _tokenExpiry != null && DateTime.now().isAfter(_tokenExpiry!);
   bool get needsTokenRefresh => _tokenExpiry != null && DateTime.now().isAfter(_tokenExpiry!.subtract(tokenRefreshBuffer));
 
-  /// Get device ID for backend registration with backward compatibility
+  /// Get device ID using unified ID manager
   Future<String> _getDeviceId() async {
-    // STEP 0: Check if we already have a stored device ID from previous session
-    final prefs = await SharedPreferences.getInstance();
-    final storedDeviceId = prefs.getString(_keyDeviceId);
-    
-    if (storedDeviceId != null && storedDeviceId.isNotEmpty) {
-      safePrint('🔐 ✅ Using previously stored device ID: ${storedDeviceId.substring(0, 10)}...');
-      return storedDeviceId;
-    }
-    
-    // STEP 1: Try original method first (for first-time existing players)
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        final androidId = androidInfo.id;
-        if (androidId.isNotEmpty) {
-          safePrint('🔐 ✅ Using original Android ID for existing player');
-          // Store it for future use
-          await prefs.setString(_keyDeviceId, androidId);
-          return androidId;
-        }
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        final idfv = iosInfo.identifierForVendor;
-        if (idfv != null && idfv.isNotEmpty) {
-          safePrint('🔐 ✅ Using original iOS IDFV for existing player');
-          // Store it for future use
-          await prefs.setString(_keyDeviceId, idfv);
-          return idfv;
-        }
-      }
-    } catch (e) {
-      safePrint('🔐 ⚠️ Original device ID method failed: $e');
-    }
-    
-    // STEP 2: Firebase Installation ID (for new players)
-    try {
-      final installationId = await FirebaseInstallations.instance.getId();
-      if (installationId.isNotEmpty) {
-        final deviceId = 'fid_$installationId';
-        safePrint('🔐 ✅ Using Firebase Installation ID for new player');
-        // Store it for future use
-        await prefs.setString(_keyDeviceId, deviceId);
-        return deviceId;
-      }
-    } catch (e) {
-      safePrint('🔐 ⚠️ Firebase Installation ID failed: $e');
-    }
-    
-    // STEP 3: Enhanced fallback
-    final fallbackId = _generateEnhancedFallbackDeviceId();
-    await prefs.setString(_keyDeviceId, fallbackId);
-    return fallbackId;
-  }
-
-
-  String _generateEnhancedFallbackDeviceId() {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final random = math.Random().nextInt(999999).toString().padLeft(6, '0');
-    safePrint('🔐 ⚠️ Using enhanced fallback device ID');
-    return 'uuid_${timestamp}_$random';
+    return await _idManager.getDeviceId();
   }
 
   /// Set authentication state and notify listeners
@@ -196,7 +140,11 @@ class PlayerIdentityManager extends ChangeNotifier {
 
   /// Register new player or login existing player
   Future<bool> authenticatePlayer(String nickname) async {
-    // Device ID is now ALWAYS available with our enhanced system
+    if (_deviceId.isEmpty) {
+      safePrint('🔐 ❌ Device ID not available');
+      return false;
+    }
+
     _setAuthState(AuthState.authenticating);
 
     try {
@@ -532,8 +480,9 @@ class PlayerIdentityManager extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Get device ID with enhanced backward compatibility
-      _deviceId = await _getDeviceId(); // This now handles storage internally
+      // Get device ID first
+      _deviceId = prefs.getString(_keyDeviceId) ?? await _getDeviceId();
+      await prefs.setString(_keyDeviceId, _deviceId);
 
       // Load authentication data
       await _loadAuthData();
@@ -578,6 +527,9 @@ class PlayerIdentityManager extends ChangeNotifier {
             if (isValid) {
               _setAuthState(AuthState.authenticated);
               safePrint('🔐 ✅ Authentication restored from storage');
+              
+              // Notify analytics system about player ID
+              UnifiedAnalyticsManager().updatePlayerId(_playerId);
               
               // Trigger user state restoration after successful authentication
               _triggerUserStateRestoration();
@@ -637,6 +589,24 @@ class PlayerIdentityManager extends ChangeNotifier {
       _isBackendRegistered = true;
       _playerId = backendPlayerId;
       _playerName = _playerName;
+
+      // Notify analytics system about player ID change
+      UnifiedAnalyticsManager().updatePlayerId(_playerId);
+
+      // 🔥 NEW: Sync all local skins to backend after authentication
+      try {
+        final inventorySyncService = InventorySyncService();
+        // Get inventory manager instance
+        final inventoryManager = InventoryManager();
+        await inventorySyncService.syncAllSkins(
+          inventoryManager.ownedSkinIds, 
+          inventoryManager.equippedSkinId
+        );
+        safePrint('🔐 🔄 All skins synced to backend after authentication');
+      } catch (syncError) {
+        safePrint('🔐 ⚠️ Failed to sync skins to backend: $syncError');
+        // Don't fail authentication if sync fails
+      }
 
       notifyListeners();
 
@@ -872,9 +842,8 @@ class PlayerIdentityManager extends ChangeNotifier {
   }
 
   String _generatePlayerId() {
-    // Generate a proper UUID for backend compatibility
-    const uuid = Uuid();
-    return uuid.v4();
+    // Use unified ID manager for consistent UUID generation
+    return _idManager.generateCloudPlayerId();
   }
 
   String _generateDefaultName() {
