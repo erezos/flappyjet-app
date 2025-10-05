@@ -308,20 +308,24 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
             
             SizedBox(width: isVerySmallScreen ? 6 : isSmallScreen ? 8 : 12),
             
-            // Reward text
-            Text(
-              _getRewardDisplayText(),
-              style: TextStyle(
-                fontSize: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                shadows: const [
-                  Shadow(
-                    offset: Offset(0, 1),
-                    blurRadius: 2,
-                    color: Colors.black54,
-                  ),
-                ],
+            // Reward text - wrapped in Flexible to prevent overflow
+            Flexible(
+              child: Text(
+                _getRewardDisplayText(),
+                style: TextStyle(
+                  fontSize: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: const [
+                    Shadow(
+                      offset: Offset(0, 1),
+                      blurRadius: 2,
+                      color: Colors.black54,
+                    ),
+                  ],
+                ),
+                overflow: TextOverflow.ellipsis, // Prevent overflow with ellipsis
+                maxLines: 1, // Keep it on one line
               ),
             ),
           ],

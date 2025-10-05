@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
-import '../../services/unity_ads_service.dart';
+import '../../services/admob_mediation_service.dart';
 import '../../services/enhanced_iap_manager.dart';
 import '../core/iap_products.dart';
 import 'inventory_manager.dart';
@@ -10,13 +10,15 @@ import 'lives_manager.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
 import '../../core/analytics/comprehensive_analytics_manager.dart';
 
-/// 🚀 PRODUCTION MONETIZATION SYSTEM - Unity Ads + AdMob Fallback + IAP
+/// 🚀 PRODUCTION MONETIZATION SYSTEM - AdMob Mediation + IAP
 /// 
 /// Features:
-/// - 🎮 Unity Ads (gaming-focused, family-safe, $3-8 CPM)
-/// - 📱 AdMob fallback (PG-rated only, $0.50-2 CPM)
+/// - 📱 AdMob Mediation (Unity Ads + AdMob Network, automatic bidding)
+/// - 🎮 Unity Ads via Google's official adapter ($3-8 CPM)
+/// - 📱 AdMob Network as fallback ($0.50-2 CPM)
 /// - 💳 Real IAP with server-side validation
 /// - 📊 Comprehensive analytics tracking
+/// - ✅ Google-guaranteed callback order (no race conditions)
 /// - 🎮 Never breaks user experience
 class MonetizationManager extends ChangeNotifier {
   static final MonetizationManager _instance = MonetizationManager._internal();
@@ -24,7 +26,7 @@ class MonetizationManager extends ChangeNotifier {
   MonetizationManager._internal();
 
   // Core systems
-  final UnityAdsService _adService = UnityAdsService();
+  final AdMobMediationService _adService = AdMobMediationService();
   final EnhancedIAPManager _enhancedIAP = EnhancedIAPManager();
   final UnifiedAnalyticsManager _analytics = UnifiedAnalyticsManager();
 
@@ -55,15 +57,15 @@ class MonetizationManager extends ChangeNotifier {
     _currentContext = context;
   }
 
-  /// PRODUCTION initialization - Unity Ads + AdMob Fallback + Enhanced IAP
+  /// PRODUCTION initialization - AdMob Mediation + Enhanced IAP
   Future<void> initialize({
     InventoryManager? inventory,
     LivesManager? lives,
   }) async {
     try {
-      safePrint('💰 🚀 Initializing MonetizationManager (Unity Ads + AdMob Fallback + Enhanced IAP)...');
+      safePrint('💰 🚀 Initializing MonetizationManager (AdMob Mediation + Enhanced IAP)...');
 
-      // Initialize Unity Ads service (includes AdMob fallback)
+      // Initialize AdMob Mediation service (includes Unity Ads adapter)
       await _adService.initialize();
       _adServiceAvailable = _adService.isInitialized;
 
@@ -95,17 +97,18 @@ class MonetizationManager extends ChangeNotifier {
 
 
 
-  /// 🛡️ BULLETPROOF rewarded ad - Unity Ads + AdMob Fallback
+  /// 🛡️ BULLETPROOF rewarded ad - AdMob Mediation (Unity Ads + AdMob Network)
   /// 🎯 CRITICAL: Ad shows FIRST, then game continues (proper UX flow)
+  /// ✅ Google's mediation adapters guarantee callback order (no race conditions)
   Future<void> showRewardedAdForExtraLife({
     required VoidCallback onReward,
-    VoidCallback? onAdFailure, // Kept for interface compatibility
-    Function()? onAdStart, // 🎯 Called when ad starts (to pause game)
-    Function()? onAdEnd, // 🎯 Called when ad ends (to resume game)
-    Function()? onAdLoading, // 🎯 Called when ad is loading
+    VoidCallback? onAdFailure,
+    Function()? onAdStart,
+    Function()? onAdEnd,
+    Function()? onAdLoading,
   }) async {
     try {
-      safePrint('📺 🚀 Starting ad flow (Unity Ads + AdMob fallback)...');
+      safePrint('📺 🚀 Starting ad flow (AdMob Mediation)...');
       
       // 🎯 CRITICAL: Set loading state to prevent user interaction
       _isAdLoading = true;
@@ -114,16 +117,13 @@ class MonetizationManager extends ChangeNotifier {
       // 🎯 CRITICAL: Pause game BEFORE showing ad
       onAdStart?.call();
       
-      // Show loading indicator if ad is not ready
       // Check if ad is pre-loaded and ready
       if (!_adService.isAdReady) {
-        // 🚀 Ad should be pre-loaded from initialization or after previous ad
-        // But if not (edge case), load it now
         safePrint('📺 ⚠️ Ad not pre-loaded (edge case) - loading now...');
         onAdLoading?.call();
         await _adService.loadRewardedAd();
         
-        // Wait briefly for ad to load (Unity Ads usually takes 2-5s)
+        // Wait for ad to load
         int retries = 0;
         while (!_adService.isAdReady && retries < 20) {
           await Future.delayed(const Duration(milliseconds: 500));
@@ -134,6 +134,7 @@ class MonetizationManager extends ChangeNotifier {
         if (!_adService.isAdReady) {
           safePrint('📺 ⏱️ Ad load timeout after 10s');
           onAdFailure?.call();
+          onAdEnd?.call();
           _isAdLoading = false;
           notifyListeners();
           return;
@@ -143,23 +144,33 @@ class MonetizationManager extends ChangeNotifier {
       }
       
       // Set up callbacks for ad events
-      bool rewardGranted = false;
-      bool adSkippedEarly = false;
-      
-      // ⚠️ CRITICAL: Use Completer to wait for ad to fully close
-      final Completer<void> adClosedCompleter = Completer<void>();
-      
       _adService.onAdShown = () {
         safePrint('📺 🎬 Ad showing...');
-        // Track ad shown event
         ComprehensiveAnalyticsManager().trackAdShown(adType: 'rewarded');
       };
       
-      _adService.onAdRewardGranted = () {
+      _adService.onAdFailedToLoad = (error) {
+        safePrint('📺 ❌ Ad failed to load: $error');
+      };
+      
+      // ✅ Show the ad and wait for result
+      // The service returns true if reward was granted, false otherwise
+      final bool rewardGranted = await _adService.showRewardedAd();
+      
+      safePrint('📺 ✅ Ad flow completed - reward granted: $rewardGranted');
+      
+      // 🎯 CRITICAL: Resume game AFTER ad
+      onAdEnd?.call();
+      
+      // 🎯 CRITICAL: Clear loading state
+      _isAdLoading = false;
+      notifyListeners();
+      
+      // Handle result based on reward status
+      if (rewardGranted) {
+        // ✅ Ad completed successfully - grant reward
         safePrint('📺 ✅ Ad completed - Reward granted!');
-        rewardGranted = true;
         
-        // Track successful completion
         ComprehensiveAnalyticsManager().trackAdCompleted(
           adType: 'rewarded',
           rewardType: 'heart',
@@ -170,16 +181,13 @@ class MonetizationManager extends ChangeNotifier {
           'event': 'rewarded_ad_reward_granted',
           'reward_type': 'heart',
           'reward_amount': 1,
-          'provider': _adService.currentProviderName ?? 'unknown',
         });
-      };
-      
-      // ⚠️ CRITICAL: Handle early exit (user pressed back before ad completed)
-      _adService.onAdSkippedEarly = () {
-        safePrint('📺 ⚠️ Ad skipped early - NO REWARD');
-        adSkippedEarly = true;
         
-        // Track early exit
+        onReward();
+      } else {
+        // Ad was skipped early or failed
+        safePrint('📺 ⚠️ Ad skipped early - NO REWARD');
+        
         ComprehensiveAnalyticsManager().trackAdAbandoned(
           adType: 'rewarded',
           reason: 'User exited before completion',
@@ -188,60 +196,9 @@ class MonetizationManager extends ChangeNotifier {
         trackPlayerEngagement({
           'event': 'rewarded_ad_early_exit',
           'reason': 'User pressed back',
-          'provider': _adService.currentProviderName ?? 'unknown',
         });
-      };
-      
-      _adService.onAdClosed = () {
-        safePrint('📺 Ad closed');
-        // ✅ Complete when ad is fully closed
-        if (!adClosedCompleter.isCompleted) {
-          adClosedCompleter.complete();
-        }
-      };
-      
-      _adService.onAdFailedToLoad = (error) {
-        safePrint('📺 ❌ Ad failed to load: $error');
-        onAdFailure?.call();
-        // Complete on failure too
-        if (!adClosedCompleter.isCompleted) {
-          adClosedCompleter.complete();
-        }
-      };
-      
-      // Show the ad
-      await _adService.showRewardedAd();
-      
-      // ⚠️ CRITICAL: Wait for ad to FULLY close before checking reward status
-      safePrint('📺 ⏳ Waiting for ad to close...');
-      await adClosedCompleter.future.timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          safePrint('📺 ⏱️ Ad close timeout - proceeding anyway');
-        },
-      );
-      safePrint('📺 ✅ Ad closed - checking reward status...');
-      
-      // 🎯 CRITICAL: Resume game AFTER ad
-      onAdEnd?.call();
-      
-      // 🎯 CRITICAL: Clear loading state
-      _isAdLoading = false;
-      notifyListeners();
-      
-      // Handle result
-      if (rewardGranted) {
-        // ✅ Ad completed successfully - grant reward
-        safePrint('📺 ✅ Ad completed - granting extra life');
-        onReward();
-      } else if (adSkippedEarly) {
-        // ⚠️ CRITICAL: User exited early - show popup explaining no reward
-        safePrint('📺 ⚠️ Ad skipped early - showing explanation popup');
+        
         await _showEarlyExitConfirmationDialog('You need to complete the ad to get your reward');
-      } else {
-        // Ad failed or was closed without completion
-        safePrint('📺 ℹ️ Ad closed without reward');
-        onAdFailure?.call();
       }
       
     } catch (e) {

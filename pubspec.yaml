@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 1.6.2+32
+version: 1.6.3+47
 
 environment:
   sdk: '^3.8.0'
@@ -27,8 +27,7 @@ dependencies:
   flame_audio: ^2.1.0
   
   # Ads & Monetization
-  google_mobile_ads: ^5.3.1
-  unity_ads_plugin: ^0.3.12  # Unity Ads for gaming-focused, family-safe ads
+  google_mobile_ads: ^5.3.1  # AdMob Mediation (includes Unity Ads adapter)
   app_tracking_transparency: ^2.0.4
   
   # Firebase Analytics & Services
@@ -119,7 +118,6 @@ flutter:
     - assets/images/backgrounds/   # Background elements
     - assets/images/text/          # Custom text assets
     - assets/audio/
-    - assets/audio/android_optimized/
     - assets/backgrounds/
     - assets/images/obstacles/   # Dynamic obstacle sprites
     - assets/particles/

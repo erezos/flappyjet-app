@@ -2,6 +2,7 @@
     <!-- Internet permission for analytics and ads -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     
     <!-- Advertising ID permission for rewarded ads -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
@@ -69,10 +70,9 @@
             android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
             android:value="true" />
         
-        <!-- Unity Ads Game ID -->
-        <meta-data
-            android:name="com.unity3d.ads.game_id"
-            android:value="5958877" />
+        <!-- ✅ Unity Ads is now integrated via AdMob Mediation -->
+        <!-- Game ID and Placement IDs are configured in AdMob dashboard -->
+        <!-- No need for Unity Ads meta-data here -->
             
         <!-- Local notifications receiver -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />

@@ -69,8 +69,10 @@ android {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     
-    // Unity Ads SDK
-    implementation("com.unity3d.ads:unity-ads:4.12.5")
+    // ✅ AdMob Mediation: Unity Ads Integration
+    // The adapter requires the actual Unity Ads SDK to be present
+    implementation("com.unity3d.ads:unity-ads:4.12.5")  // Unity Ads SDK
+    implementation("com.google.ads.mediation:unity:4.12.5.0")  // Google's mediation adapter
 }
 
 flutter {
