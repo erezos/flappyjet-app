@@ -119,10 +119,10 @@ class AdMobMediationService {
       return false;
     }
 
-    // 🔧 CRITICAL: Reset reward status at the START
-    _rewardGranted = false;
+    // 🔧 CRITICAL: Use nullable variable like the old working service
+    bool? rewardEarned;
     
-    // Create completer to wait for ad dismissal
+    // Create completer to wait for ad dismissal (NO TIMEOUT - wait for actual dismissal)
     final Completer<bool> completer = Completer<bool>();
 
     safePrint('📱 🎬 Showing rewarded ad...');
@@ -131,19 +131,25 @@ class AdMobMediationService {
     _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
         onAdShown?.call();
-        safePrint('📱 🎬 Ad showing full screen');
+        safePrint('📱 🎬 Ad showing full screen - user is watching...');
       },
       onAdDismissedFullScreenContent: (ad) {
-        safePrint('📱 ✅ Ad dismissed - Final reward status: $_rewardGranted');
+        safePrint('📱 ✅ Ad dismissed - checking reward: $rewardEarned');
+        
+        // 🔧 CRITICAL: Check nullable variable (matches old working pattern)
+        // If null = early exit, if true = reward earned
+        final bool finalResult = rewardEarned ?? false;
+        
+        safePrint('📱 ✅ Final result: $finalResult (earned: $rewardEarned)');
         
         // Cleanup
         ad.dispose();
         _rewardedAd = null;
         onAdClosed?.call();
         
-        // Complete with final reward status
+        // Complete with final result
         if (!completer.isCompleted) {
-          completer.complete(_rewardGranted);
+          completer.complete(finalResult);
         }
         
         // Pre-load next ad
@@ -173,20 +179,16 @@ class AdMobMediationService {
     // Show the ad with reward callback
     await _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
-        _rewardGranted = true;
+        // 🔧 CRITICAL: Store in variable, don't complete yet (matches old pattern)
+        rewardEarned = true;
         safePrint('📱 ✅ ✅ ✅ REWARD EARNED! ${reward.amount} ${reward.type}');
         safePrint('📱 📊 Ad source: ${ad.responseInfo?.mediationAdapterClassName ?? "Unknown"}');
+        safePrint('📱 📊 Waiting for dismissal before completing...');
       },
     );
 
-    // Wait for dismissal
-    return completer.future.timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        safePrint('📱 ⏱️ Timeout - reward status: $_rewardGranted');
-        return _rewardGranted;
-      },
-    );
+    // Wait for dismissal (NO TIMEOUT - ad system will always call dismissal)
+    return completer.future;
   }
 
   /// Check if an ad is ready to show
