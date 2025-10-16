@@ -252,7 +252,7 @@ class EnhancedStorageManager extends ChangeNotifier {
       'hasCachedData': _cachedData != null,
       'dataVersion': _cachedData?['version'] ?? 'unknown',
       'lastSaved': _cachedData?['timestamp'] ?? 0,
-      'masterId': (_cachedData?['masterId']?.toString().substring(0, 8) ?? 'null') + '...',
+      'masterId': '${_cachedData?['masterId']?.toString().substring(0, 8) ?? 'null'}...',
     };
   }
 

@@ -277,7 +277,6 @@ class HardwareParticleSystem extends Component {
     }
 
     // Remove dead particles efficiently
-    final beforeCount = _activeParticles.length;
     _activeParticles.removeWhere((particle) {
       if (!particle.isAlive) {
         _pool.release(particle);
@@ -285,7 +284,6 @@ class HardwareParticleSystem extends Component {
       }
       return false;
     });
-    final afterCount = _activeParticles.length;
 
     // Debug output removed to reduce log spam
   }
@@ -295,7 +293,6 @@ class HardwareParticleSystem extends Component {
     if (!_isInitialized) return;
 
     // Enhanced rendering with proper color application
-    int renderedCount = 0;
     for (final particle in _activeParticles) {
       if (!particle.isAlive) continue;
 
@@ -315,7 +312,6 @@ class HardwareParticleSystem extends Component {
       _renderParticleShape(canvas, particle, paint);
       
       canvas.restore();
-      renderedCount++;
     }
     
     // Render count log removed to reduce spam

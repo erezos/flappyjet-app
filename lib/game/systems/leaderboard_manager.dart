@@ -3,7 +3,6 @@ library;
 import '../../core/debug_logger.dart';
 
 import 'dart:convert';
-import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'player_identity_manager.dart';
@@ -392,94 +391,4 @@ class LeaderboardManager extends ChangeNotifier {
 
   // Removed unused _initializeSampleData method
 
-  /// Generate a competitive leaderboard with realistic AI players
-  List<LeaderboardEntry> _generateCompetitiveLeaderboard() {
-    final playerNames = [
-      // Pro Players (High Scores 150-300+)
-      'SkyLegend', 'AceCommander', 'JetMaster', 'FlightKing', 'AviatorPro',
-      'WingElite', 'SkyDominator', 'JetChampion', 'FlightGod', 'AirSupreme',
-
-      // Advanced Players (80-150)
-      'SkyHunter', 'JetRider', 'FlightHero', 'AviatorX', 'WingWarrior',
-      'SkyStriker', 'JetPilot', 'FlightAce', 'AirForce', 'SkyRanger',
-
-      // Intermediate Players (40-80)
-      'SkyExplorer', 'JetCadet', 'FlightRookie', 'AviatorJr', 'WingLearner',
-      'SkyStudent', 'JetTrainee', 'FlightBeginner', 'AirCadet', 'SkyNovice',
-
-      // Casual Players (10-40)
-      'SkyTourist', 'JetVisitor', 'FlightGuest', 'AviatorFan', 'WingWatcher',
-      'SkyDreamer', 'JetHobby', 'FlightFun', 'AirCurious', 'SkyWanderer',
-    ];
-
-    final themes = [
-      'Sky Rookie',
-      'Sunny Skies',
-      'Afternoon Flight',
-      'Storm Chaser',
-      'Lightning Strike',
-      'High Altitude',
-      'Stratosphere',
-      'Cosmic Journey',
-    ];
-
-    final scores = <LeaderboardEntry>[];
-    final random = math.Random();
-    final now = DateTime.now();
-
-    // Generate scores with realistic distribution
-    for (int i = 0; i < playerNames.length; i++) {
-      final playerName = playerNames[i];
-      int baseScore;
-      String theme;
-
-      // Determine score range based on player tier
-      if (i < 10) {
-        // Pro players: 150-400 points
-        baseScore = 150 + random.nextInt(250);
-        theme = themes[random.nextInt(themes.length)]; // Can reach any theme
-      } else if (i < 20) {
-        // Advanced players: 80-150 points
-        baseScore = 80 + random.nextInt(70);
-        theme =
-            themes[random.nextInt(
-              math.min(5, themes.length),
-            )]; // Up to High Altitude
-      } else if (i < 30) {
-        // Intermediate players: 40-80 points
-        baseScore = 40 + random.nextInt(40);
-        theme =
-            themes[random.nextInt(
-              math.min(3, themes.length),
-            )]; // Up to Afternoon Flight
-      } else {
-        // Casual players: 10-40 points
-        baseScore = 10 + random.nextInt(30);
-        theme =
-            themes[random.nextInt(
-              math.min(2, themes.length),
-            )]; // Sky Rookie or Sunny Skies
-      }
-
-      // Add some randomness to make it feel more natural
-      final finalScore = (baseScore * (0.8 + random.nextDouble() * 0.4))
-          .round();
-
-      scores.add(
-        LeaderboardEntry(
-          playerName: playerName,
-          score: finalScore,
-          achievedAt: now.subtract(
-            Duration(
-              hours: random.nextInt(72), // Last 3 days
-              minutes: random.nextInt(60),
-            ),
-          ),
-          theme: theme,
-        ),
-      );
-    }
-
-    return scores;
-  }
 }

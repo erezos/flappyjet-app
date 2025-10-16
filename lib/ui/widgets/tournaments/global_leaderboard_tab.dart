@@ -250,7 +250,6 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
   }
 
   Widget _buildLeaderboardItem(LeaderboardEntry entry, bool isUserEntry) {
-    final rank = entry.rank;
     final playerName = entry.playerName;
     final playerScore = entry.score;
     final theme = entry.theme;

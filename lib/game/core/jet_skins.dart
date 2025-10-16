@@ -126,7 +126,7 @@ class JetSkinCatalog {
       id: 'desert_storm',
       displayName: 'Desert Storm',
       description: 'Battle-tested in harsh environments. Built for endurance!',
-      assetPath: 'jets/desert_strom.png',
+      assetPath: 'jets/desert_storm.png',
       price: 0.0,
       rarity: JetRarity.common,
       isPurchased: false,

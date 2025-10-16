@@ -1,7 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
-import '../core/game_config.dart';
 import '../core/game_themes.dart';
 import '../components/jet_player.dart';
 import '../components/parallax_background.dart';

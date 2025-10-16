@@ -66,6 +66,7 @@ class GameStateManager extends ChangeNotifier {
     _continuesUsedThisRun = 0;
 
     safePrint('🚀 Game is now in playing state - tap to make the jet jump!');
+    safePrint('🎯 GAME START TIME SET: $_gameStartTime (should be non-zero!)');
   }
 
   /// Handle collision - reduce lives and check for game over
@@ -79,13 +80,13 @@ class GameStateManager extends ChangeNotifier {
       return false; // Not game over
     } else {
       // Game over
-      _gameOver();
+      setGameOver();
       return true; // Game over
     }
   }
 
-  /// Set game over state
-  void _gameOver() {
+  /// Set game over state (public so FlappyGame can trigger it)
+  void setGameOver() {
     _isGameOver = true;
     gameOverNotifier.value = true; // Notify UI
     safePrint('💀 Game Over! Final Score: $_score in ${_currentTheme.displayName} theme');

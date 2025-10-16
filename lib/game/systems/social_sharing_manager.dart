@@ -285,18 +285,15 @@ class SocialSharingManager extends ChangeNotifier {
 
   /// App store links for download promotion
   static const String _androidStoreLink = 'https://play.google.com/store/apps/details?id=com.flappyjet.pro.flappy_jet_pro';
-  static const String _iosStoreLink = 'https://apps.apple.com/app/flappy-jet/id6752501703';
-  
-  /// Universal smart link that detects platform
-  static const String _universalLink = 'https://flappyjet.page.link/download'; // Firebase Dynamic Link (recommended)
-  
-  /// Fallback smart link using a simple redirect service
-  static const String _smartLink = 'https://linktr.ee/flappyjet'; // Alternative: Linktree
+  // iOS and Universal links kept for future cross-platform sharing features
+  // static const String _iosStoreLink = 'https://apps.apple.com/app/flappy-jet/id6752501703';
+  // static const String _universalLink = 'https://flappyjet.page.link/download';
+  // static const String _smartLink = 'https://linktr.ee/flappyjet';
   
   /// Get platform-appropriate download link
   String _getDownloadLink() {
     // For now, use Android link as primary (since iOS is pending approval)
-    // TODO: Update to use _iosStoreLink once iOS app is approved
+    // TODO: Update to use multi-platform links once iOS app is approved
     // TODO: Implement Firebase Dynamic Links for true universal linking
     return _androidStoreLink;
   }
@@ -422,7 +419,7 @@ class SocialSharingManager extends ChangeNotifier {
     
     textPainter.paint(canvas, Offset(xPosition, yPosition));
     
-    safePrint('🎯 Score positioned at: (${xPosition.toStringAsFixed(1)}, ${yPosition.toStringAsFixed(1)}) with font size ${absoluteFontSize.toStringAsFixed(1)} (${imageWidth}x${imageHeight})');
+    safePrint('🎯 Score positioned at: (${xPosition.toStringAsFixed(1)}, ${yPosition.toStringAsFixed(1)}) with font size ${absoluteFontSize.toStringAsFixed(1)} (${imageWidth}x$imageHeight)');
   }
 
   /// Perform the actual sharing operation with optional screenshot and direct app opening

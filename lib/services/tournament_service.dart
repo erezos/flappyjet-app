@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../core/debug_logger.dart';
 
@@ -404,20 +403,6 @@ class TournamentService {
     }
   }
 
-  /// Get platform string for authentication
-  String _getPlatformString() {
-    try {
-      if (Platform.isAndroid) {
-        return 'android';
-      } else if (Platform.isIOS) {
-        return 'ios';
-      } else {
-        return 'web';
-      }
-    } catch (e) {
-      return 'web';
-    }
-  }
 
   /// Get common headers for API requests
   Map<String, String> _getHeaders({String? authToken}) {

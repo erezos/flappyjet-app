@@ -28,6 +28,7 @@ import '../widgets/daily_streak/duplicate_jet_popup.dart';
 import '../widgets/rate_us_integration.dart';
 import '../../game/systems/daily_streak_manager.dart';
 import '../../integrations/ftue_integration.dart';
+import 'world_map_screen.dart'; // Story Mode - World Map
 
 class Homepage extends StatefulWidget {
   final bool firebaseEnabled;
@@ -377,14 +378,14 @@ class _HomepageState extends State<Homepage>
   Widget _buildButtonSection() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Fit 5 buttons + coin row without scrolling.
+        // Fit 6 buttons + coin row without scrolling.
         final availableHeight = constraints.maxHeight;
         final spacing = (availableHeight * 0.03).clamp(8.0, 12.0);
-        final totalSpacing = spacing * 4; // between 5 buttons
+        final totalSpacing = spacing * 5; // between 6 buttons
         final coinCounterHeight = (availableHeight * 0.1).clamp(32.0, 44.0);
         // Ensure all buttons fit: do not force a minimum higher than possible
         final buttonHeight =
-            (availableHeight - totalSpacing - coinCounterHeight) / 5;
+            (availableHeight - totalSpacing - coinCounterHeight) / 6;
         final adaptiveHeight = buttonHeight.clamp(44.0, 60.0);
 
         return Padding(
@@ -393,9 +394,19 @@ class _HomepageState extends State<Homepage>
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // PLAY Button - Primary Action
+              // STORY MODE Button - NEW FIRST!
               _buildNineSliceButton(
-                label: 'PLAY',
+                label: 'STORY',
+                iconAsset: 'assets/images/icons/icon_missions.png',
+                onPressed: _navigateToStoryMode,
+                height: adaptiveHeight,
+              ),
+
+              SizedBox(height: spacing),
+
+              // ENDLESS MODE Button - Original Play
+              _buildNineSliceButton(
+                label: 'ENDLESS',
                 iconAsset: 'assets/images/icons/icon_play.png',
                 onPressed: _navigateToGame,
                 height: adaptiveHeight,
@@ -741,6 +752,19 @@ class _HomepageState extends State<Homepage>
           monetization: widget.monetization,
           missions: widget.missions,
         ),
+      ),
+    );
+  }
+
+  void _navigateToStoryMode() async {
+    safePrint('📖 Navigating to Story Mode (World Map)...');
+    
+    // 🎵 AUDIO FIX: Stop menu music before going to story mode
+    await _audioManager.stopMenuMusic();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const WorldMapScreen(),
       ),
     );
   }

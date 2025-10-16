@@ -1,4 +1,5 @@
 /// 🧪 Network Manager Tests - Simplified test suite
+library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flappy_jet_pro/core/network/network_manager.dart';

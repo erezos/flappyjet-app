@@ -316,6 +316,7 @@ class AsyncAnalyticsManager extends ChangeNotifier {
   });
 
   /// Dispose resources
+  @override
   void dispose() {
     _flushTimer?.cancel();
     super.dispose();

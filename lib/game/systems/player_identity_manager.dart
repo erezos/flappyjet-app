@@ -572,23 +572,23 @@ class PlayerIdentityManager extends ChangeNotifier {
   /// Mark player as registered with backend
   Future<void> markBackendRegistered(
     String backendPlayerId,
-    String _playerName, [
-    String? _authToken,
+    String playerName, [
+    String? authToken,
   ]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyBackendRegistered, true);
       await prefs.setString(_keyPlayerId, backendPlayerId);
-      await prefs.setString(_keyPlayerName, _playerName);
+      await prefs.setString(_keyPlayerName, playerName);
 
-      if (_authToken != null) {
-        await prefs.setString(_keyAuthToken, _authToken);
-        _authToken = _authToken;
+      if (authToken != null) {
+        await prefs.setString(_keyAuthToken, authToken);
+        authToken = authToken;
       }
 
       _isBackendRegistered = true;
       _playerId = backendPlayerId;
-      _playerName = _playerName;
+      playerName = playerName;
 
       // Notify analytics system about player ID change
       UnifiedAnalyticsManager().updatePlayerId(_playerId);
@@ -611,7 +611,7 @@ class PlayerIdentityManager extends ChangeNotifier {
       notifyListeners();
 
       safePrint(
-        '🎯 Player marked as backend registered: $backendPlayerId ($_playerName)',
+        '🎯 Player marked as backend registered: $backendPlayerId ($playerName)',
       );
     } catch (e) {
       safePrint('⚠️ Failed to mark backend registered: $e');

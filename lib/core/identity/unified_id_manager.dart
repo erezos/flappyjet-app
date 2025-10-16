@@ -213,8 +213,8 @@ class UnifiedIdManager extends ChangeNotifier {
   /// Get ID statistics for debugging
   Map<String, dynamic> getIdStats() {
     return {
-      'masterId': (_masterId?.substring(0, 8) ?? 'null') + '...',
-      'deviceId': (_deviceId?.substring(0, 8) ?? 'null') + '...',
+      'masterId': '${_masterId?.substring(0, 8) ?? 'null'}...',
+      'deviceId': '${_deviceId?.substring(0, 8) ?? 'null'}...',
       'isInitialized': _isInitialized,
       'masterIdLength': _masterId?.length ?? 0,
       'deviceIdLength': _deviceId?.length ?? 0,

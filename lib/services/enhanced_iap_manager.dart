@@ -102,8 +102,8 @@ class EnhancedIAPManager extends ChangeNotifier {
   bool _isInitialized = false;
   bool _isAvailable = false;
   bool _isPurchasing = false;
-  Map<String, ProductDetails> _products = {};
-  Map<String, PurchaseDetails> _pendingPurchases = {};
+  final Map<String, ProductDetails> _products = {};
+  final Map<String, PurchaseDetails> _pendingPurchases = {};
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   
   // Caching to prevent repeated checks
@@ -706,7 +706,7 @@ class EnhancedIAPManager extends ChangeNotifier {
           'genymotion', 'vbox', 'virtualbox', 'andy', 'nox'
         ];
         
-        final deviceInfo = '${brand}_${model}_${device}_${manufacturer}'.toLowerCase();
+        final deviceInfo = '${brand}_${model}_${device}_$manufacturer'.toLowerCase();
         
         for (final indicator in emulatorIndicators) {
           if (deviceInfo.contains(indicator)) {

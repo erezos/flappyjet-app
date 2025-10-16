@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 1.6.3+47
+version: 1.6.4+48
 
 environment:
   sdk: '^3.8.0'
@@ -118,9 +118,11 @@ flutter:
     - assets/images/backgrounds/   # Background elements
     - assets/images/text/          # Custom text assets
     - assets/audio/
-    - assets/backgrounds/
     - assets/images/obstacles/   # Dynamic obstacle sprites
     - assets/particles/
+    # Story Mode Data
+    - assets/data/
+    - assets/data/levels/
     
   # fonts:
   #   - family: GameFont

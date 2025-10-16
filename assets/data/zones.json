@@ -1,0 +1,44 @@
+{
+  "zones": [
+    {
+      "id": 1,
+      "name": "Tropical Islands",
+      "description": "Begin your journey through sunny beaches and palm trees",
+      "startLevel": 1,
+      "endLevel": 10,
+      "iconPath": "icons/zone_tropical.png"
+    },
+    {
+      "id": 2,
+      "name": "Desert Oasis",
+      "description": "Soar through scorching sands and ancient pyramids",
+      "startLevel": 11,
+      "endLevel": 20,
+      "iconPath": "icons/zone_desert.png"
+    },
+    {
+      "id": 3,
+      "name": "Lava Mountains",
+      "description": "Navigate through volcanic peaks and molten rivers",
+      "startLevel": 21,
+      "endLevel": 30,
+      "iconPath": "icons/zone_lava.png"
+    },
+    {
+      "id": 4,
+      "name": "Storm Valley",
+      "description": "Battle through thunder, lightning, and heavy rain",
+      "startLevel": 31,
+      "endLevel": 40,
+      "iconPath": "icons/zone_storm.png"
+    },
+    {
+      "id": 5,
+      "name": "Frozen Peaks",
+      "description": "Conquer the icy mountains and frozen skies",
+      "startLevel": 41,
+      "endLevel": 50,
+      "iconPath": "icons/zone_frozen.png"
+    }
+  ]
+}

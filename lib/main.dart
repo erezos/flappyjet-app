@@ -394,7 +394,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                 builder: (context, value, child) {
                   return Opacity(
                     opacity: value,
-                    child: Container(
+                    child: SizedBox(
                       width: progressWidth,
                       child: Column(
                         children: [

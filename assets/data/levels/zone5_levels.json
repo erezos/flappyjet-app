@@ -1,0 +1,269 @@
+{
+  "zone": 5,
+  "zoneName": "Frozen Peaks",
+  "levels": [
+    {
+      "id": 41,
+      "zone": 5,
+      "name": "Frozen Gateway",
+      "objective": {
+        "type": "passObstacles",
+        "target": 12,
+        "description": "Pass 12 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 42,
+      "zone": 5,
+      "name": "Stealth Dragon Battle",
+      "objective": {
+        "type": "beatBot",
+        "target": 14,
+        "description": "Race against Stealth Dragon and win!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": {
+        "botName": "Stealth Dragon",
+        "botJetSkin": "stealth_dragon",
+        "skillLevel": 1.1,
+        "reactionTime": 0.15,
+        "mistakeRate": 0.03
+      }
+    },
+    {
+      "id": 43,
+      "zone": 5,
+      "name": "Blizzard Blast",
+      "objective": {
+        "type": "passObstacles",
+        "target": 13,
+        "description": "Pass 13 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 44,
+      "zone": 5,
+      "name": "Glacier Gauntlet",
+      "objective": {
+        "type": "surviveTime",
+        "target": 25,
+        "description": "Survive for 25 seconds"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 45,
+      "zone": 5,
+      "name": "Avalanche Alley",
+      "objective": {
+        "type": "passObstacles",
+        "target": 14,
+        "description": "Pass 14 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 46,
+      "zone": 5,
+      "name": "Frostbite Flight",
+      "objective": {
+        "type": "passObstacles",
+        "target": 14,
+        "description": "Pass 14 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 47,
+      "zone": 5,
+      "name": "Icicle Inferno",
+      "objective": {
+        "type": "passObstacles",
+        "target": 14,
+        "description": "Pass 14 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 48,
+      "zone": 5,
+      "name": "Summit Sprint",
+      "objective": {
+        "type": "surviveTime",
+        "target": 28,
+        "description": "Survive for 28 seconds"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 49,
+      "zone": 5,
+      "name": "Stealth Bomber Final",
+      "objective": {
+        "type": "beatBot",
+        "target": 15,
+        "description": "Race against Stealth Bomber and win!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": {
+        "botName": "Stealth Bomber",
+        "botJetSkin": "stealth_bomber",
+        "skillLevel": 1.2,
+        "reactionTime": 0.12,
+        "mistakeRate": 0.02
+      }
+    },
+    {
+      "id": 50,
+      "zone": 5,
+      "name": "Frozen Peak Master",
+      "objective": {
+        "type": "passObstacles",
+        "target": 15,
+        "description": "Pass 15 obstacles to conquer all zones!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.4,
+        "obstacleGap": 145,
+        "obstacleFrequency": 1.8
+      },
+      "reward": {
+        "coins": 100,
+        "gems": 30
+      },
+      "theme": {
+        "background": "phase6_altitude_complete.png",
+        "obstacles": "phase6_tech_structures.png",
+        "music": "void_master.mp3"
+      },
+      "botBattle": null
+    }
+  ]
+}
+

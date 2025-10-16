@@ -7,7 +7,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../game/systems/leaderboard_manager.dart';
 import '../../../game/systems/player_identity_manager.dart';
 import '../../../game/core/jet_skins.dart';
-import '../../../core/network/network_manager.dart';
 
 class PersonalScoresTab extends StatefulWidget {
   const PersonalScoresTab({super.key});

@@ -3,11 +3,9 @@
 /// Tests the complete analytics flow from Flutter app to Railway backend
 library;
 
-import 'package:flutter/foundation.dart';
 import '../core/debug_logger.dart';
 import '../core/analytics/unified_analytics_manager.dart';
 import '../core/analytics/smart_railway_analytics.dart';
-import '../core/analytics/app_lifecycle_analytics.dart';
 
 /// Analytics Test Suite
 class AnalyticsTestSuite {
@@ -17,7 +15,7 @@ class AnalyticsTestSuite {
 
   final UnifiedAnalyticsManager _analytics = UnifiedAnalyticsManager();
   final SmartRailwayAnalytics _railwayAnalytics = SmartRailwayAnalytics();
-  final AppLifecycleAnalytics _lifecycleAnalytics = AppLifecycleAnalytics();
+  // AppLifecycleAnalytics is managed by the app itself, not needed in tests
 
   /// Run comprehensive analytics test suite
   Future<void> runFullTestSuite() async {

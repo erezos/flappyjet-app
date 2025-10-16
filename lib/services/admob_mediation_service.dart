@@ -24,7 +24,7 @@ class AdMobMediationService {
   RewardedAd? _rewardedAd;
   bool _isLoading = false;
   bool _isInitialized = false;
-  bool _rewardGranted = false; // Track reward status at class level to avoid race conditions
+  // Reward status is tracked via callbacks directly to avoid state management complexity
 
   // Callbacks
   VoidCallback? onAdLoaded;

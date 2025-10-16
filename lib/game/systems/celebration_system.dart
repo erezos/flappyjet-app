@@ -5,7 +5,6 @@ import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
-import '../core/game_config.dart';
 import '../core/game_themes.dart';
 import '../systems/visual_asset_manager.dart';
 import '../systems/hardware_particle_system.dart';

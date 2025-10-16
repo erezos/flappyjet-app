@@ -13,12 +13,12 @@ class CloudConnectionWidget extends StatefulWidget {
   final bool showSkipOption;
 
   const CloudConnectionWidget({
-    Key? key,
+    super.key,
     required this.feature,
     this.onConnected,
     this.onSkipped,
     this.showSkipOption = true,
-  }) : super(key: key);
+  });
 
   @override
   _CloudConnectionWidgetState createState() => _CloudConnectionWidgetState();

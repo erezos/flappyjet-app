@@ -1,6 +1,5 @@
 import 'dart:collection';
 import 'package:flame/components.dart';
-import '../../core/debug_logger.dart';
 
 /// Particle types for hardware-accelerated rendering
 enum ParticleType { circle, star, confetti }

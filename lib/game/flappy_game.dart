@@ -14,6 +14,7 @@ import 'components/parallax_background.dart';
 import 'components/dynamic_obstacle.dart';
 import 'systems/jet_effects_system.dart'; // 🔥 EPIC ENGINE FIRE EFFECTS
 import 'components/jet_player.dart';
+import 'components/bot_jet_player.dart'; // 🤖 BOT OPPONENT
 import 'systems/monetization_manager.dart';
 import 'systems/hardware_particle_system.dart'; // 🚀 HARDWARE-ACCELERATED PARTICLES
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +35,9 @@ import 'systems/obstacle_manager.dart';
 import 'systems/celebration_system.dart';
 import 'systems/theme_manager.dart';
 
+// Story Mode
+import '../models/level_data_schema.dart';
+
 /// FlappyJet Pro - Refactored for maintainability and testability
 /// Uses modular architecture with separated concerns
 class FlappyGame extends FlameGame {
@@ -43,8 +47,21 @@ class FlappyGame extends FlameGame {
   // MISSIONS INTEGRATION
   final MissionsManager? missions;
 
-  // Constructor now accepts monetization and missions managers
-  FlappyGame({this.monetization, this.missions});
+  // STORY MODE INTEGRATION
+  final bool isStoryMode;
+  final LevelData? storyModeLevel;
+  final VoidCallback? onObstaclePassed;
+  final VoidCallback? onGameOver;
+
+  // Constructor now accepts monetization, missions, and story mode parameters
+  FlappyGame({
+    this.monetization,
+    this.missions,
+    this.isStoryMode = false,
+    this.storyModeLevel,
+    this.onObstaclePassed,
+    this.onGameOver,
+  });
 
   // Extracted modules - Initialize immediately to avoid late initialization errors
   final GameStateManager _gameStateManager = GameStateManager();
@@ -53,8 +70,16 @@ class FlappyGame extends FlameGame {
   late CelebrationSystem _celebrationSystem;
   late ThemeManager _themeManager;
 
+  // Public getter for story mode wrapper
+  GameStateManager get gameStateManager => _gameStateManager;
+  
+  // Public getter for bot score
+  int get botScore => _botJet?.score ?? 0;
+  bool get botIsActive => _botJet?.isActive ?? true; // ✅ Bot active state for objective tracking
+
   // Components
   late JetPlayer _jet;
+  BotJetPlayer? _botJet; // 🤖 Bot opponent for bot battle levels
   late HUD _hud;
   late ParallaxBackground _background;
   late TextComponent _startScreen;
@@ -74,12 +99,6 @@ class FlappyGame extends FlameGame {
   // AAA Performance: Adaptive quality system instead of frame limiting
   late AdaptiveQualityManager _qualityManager;
 
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-    // Production: collision debug rectangles disabled
-    // 🚀 HARDWARE-ACCELERATED: HardwareParticleSystem renders itself as a Component
-  }
 
   // PUBLIC METHODS for UI tap handling
   Future<void> handleTap() async {
@@ -88,12 +107,18 @@ class FlappyGame extends FlameGame {
     );
 
     if (_gameStateManager.isWaitingToStart) {
-      // Lives gate: Check if player has hearts available
-      if (LivesManager().currentLives <= 0) {
-        safePrint('❤️ No hearts available - cannot start game');
-        return;
+      // 🎯 STORY MODE: No heart consumption on game start
+      // Hearts are only consumed on crashes in story mode
+      if (!isStoryMode) {
+        // Lives gate: Check if player has hearts available
+        if (LivesManager().currentLives <= 0) {
+          safePrint('❤️ No hearts available - cannot start game');
+          return;
+        }
+        await LivesManager().consumeLife();
+      } else {
+        safePrint('🎯 Story mode: No heart consumed on start - hearts consumed on crashes only');
       }
-      await LivesManager().consumeLife();
       safePrint('🎮 Starting game from tap...');
       _handleGameStart();
     } else if (!_gameStateManager.isGameOver) {
@@ -265,6 +290,27 @@ class FlappyGame extends FlameGame {
     _jet.priority = 10; // Jet renders above most elements but below UI
     add(_jet);
 
+    // 🤖 Create bot opponent if in bot battle mode
+    if (isStoryMode && storyModeLevel?.objective.type == ObjectiveType.beatBot) {
+      final botBattle = storyModeLevel!.botBattle;
+      if (botBattle != null) {
+        // Calculate difficulty from bot parameters (0.0 = easy, 1.0 = hard)
+        // skillLevel: 0.6-1.5 → normalize to 0-1 range
+        final difficulty = ((botBattle.skillLevel - 0.6) / 0.9).clamp(0.0, 1.0);
+        
+        safePrint('🤖 Creating bot opponent: ${botBattle.botName} with difficulty $difficulty (skill: ${botBattle.skillLevel})');
+        
+        // Use bot's jet skin
+        final botSkinId = botBattle.botJetSkin;
+        _botJet = BotJetPlayer(
+          skinId: botSkinId,
+          difficulty: difficulty,
+        );
+        _botJet!.priority = 9; // Bot renders below player jet
+        add(_botJet!);
+      }
+    }
+
     // Create enhanced HUD
     final livesManager = LivesManager();
     _gameStateManager.setLives(livesManager.currentLives);
@@ -334,6 +380,14 @@ class FlappyGame extends FlameGame {
       'current_gems': InventoryManager().gems,
       'current_coins': InventoryManager().softCurrency,
     });
+
+    // 🎯 STORY MODE: Trigger initial jump immediately after start
+    if (isStoryMode) {
+      safePrint('🎯 Story mode: Triggering initial jump after game start');
+      safePrint('🎯 Story mode: Jet position before jump: ${_jet.position}');
+      _jump();
+      safePrint('🎯 Story mode: Initial jump triggered! Jet should now be jumping');
+    }
   }
 
   @override
@@ -389,6 +443,19 @@ class FlappyGame extends FlameGame {
     _gameStateManager.updateScore(_gameStateManager.score + 1);
     _hud.updateScore(_gameStateManager.score);
 
+    // 🤖 BOT BATTLE: Make bot score as well (with slight delay/randomness)
+    if (_botJet != null && _botJet!.isActive) {
+      // Bot has a chance to score based on difficulty
+      // This simulates the bot passing obstacles
+      _botJet!.incrementScore();
+    }
+
+    // 🎯 STORY MODE: Notify wrapper that obstacle was passed
+    if (isStoryMode && onObstaclePassed != null) {
+      safePrint('🎯 STORY MODE: Calling onObstaclePassed callback (score: ${_gameStateManager.score})');
+      onObstaclePassed!();
+    }
+
         // 🎨 UPDATE DYNAMIC BACKGROUND FOR NEW SCORE
     _background.updateForScore(_gameStateManager.score);
 
@@ -421,6 +488,44 @@ class FlappyGame extends FlameGame {
         safePrint('🎯 LEGITIMATE COLLISION: Jet vs Obstacle');
         _handleCollision();
         return;
+      }
+    }
+
+    // 🤖 BOT BATTLE: Check bot collisions
+    if (_botJet != null && _botJet!.isActive) {
+      for (final obstacle in _obstacleManager.obstacles) {
+        // Check if bot collides with obstacle (same logic as player)
+        final botRect = Rect.fromCenter(
+          center: Offset(_botJet!.position.x, _botJet!.position.y),
+          width: BotJetPlayer.botSize,
+          height: BotJetPlayer.botSize,
+        );
+        
+        final gapSize = obstacle.gapSize;
+        final topRect = Rect.fromLTWH(
+          obstacle.position.x,
+          0,
+          GameConfig.obstacleWidth,
+          obstacle.position.y - gapSize / 2,
+        );
+        final bottomRect = Rect.fromLTWH(
+          obstacle.position.x,
+          obstacle.position.y + gapSize / 2,
+          GameConfig.obstacleWidth,
+          size.y - (obstacle.position.y + gapSize / 2),
+        );
+        
+        if (botRect.overlaps(topRect) || botRect.overlaps(bottomRect)) {
+          safePrint('🤖 BOT COLLISION: Bot crashed into obstacle!');
+          _botJet!.crash();
+          return;
+        }
+      }
+      
+      // Check ground collision for bot
+      if (_botJet!.position.y > size.y - 50 - (BotJetPlayer.botSize / 2)) {
+        safePrint('🤖 BOT COLLISION: Bot crashed into ground!');
+        _botJet!.crash();
       }
     }
 
@@ -465,6 +570,12 @@ class FlappyGame extends FlameGame {
 
   /// Handle game over
   void _gameOver() {
+    // 🎯 STORY MODE: Call the onGameOver callback if provided
+    onGameOver?.call();
+    
+    // 🔥 CRITICAL: Set game over state and notify UI (triggers game over menu)
+    _gameStateManager.setGameOver();
+    
     // 🔥 CRITICAL FIX: Sync LivesManager with game's final life count (should be 0)
     () async {
       try {

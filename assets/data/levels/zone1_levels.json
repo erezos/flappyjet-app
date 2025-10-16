@@ -1,0 +1,262 @@
+{
+  "zone": 1,
+  "zoneName": "Tropical Islands",
+  "levels": [
+    {
+      "id": 1,
+      "zone": 1,
+      "name": "First Flight",
+      "objective": {
+        "type": "passObstacles",
+        "target": 3,
+        "description": "Pass 3 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.0,
+        "obstacleGap": 180,
+        "obstacleFrequency": 2.5
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 2,
+      "zone": 1,
+      "name": "Island Hopper",
+      "objective": {
+        "type": "passObstacles",
+        "target": 4,
+        "description": "Pass 4 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.0,
+        "obstacleGap": 180,
+        "obstacleFrequency": 2.5
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 3,
+      "zone": 1,
+      "name": "Palm Paradise",
+      "objective": {
+        "type": "passObstacles",
+        "target": 5,
+        "description": "Pass 5 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.0,
+        "obstacleGap": 180,
+        "obstacleFrequency": 2.5
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 4,
+      "zone": 1,
+      "name": "Wave Rider",
+      "objective": {
+        "type": "surviveTime",
+        "target": 15,
+        "description": "Survive for 15 seconds"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.0,
+        "obstacleGap": 180,
+        "obstacleFrequency": 2.5
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 5,
+      "zone": 1,
+      "name": "Coconut Challenge",
+      "objective": {
+        "type": "passObstacles",
+        "target": 6,
+        "description": "Pass 6 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.05,
+        "obstacleGap": 175,
+        "obstacleFrequency": 2.4
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 6,
+      "zone": 1,
+      "name": "Beach Breeze",
+      "objective": {
+        "type": "passObstacles",
+        "target": 7,
+        "description": "Pass 7 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.05,
+        "obstacleGap": 175,
+        "obstacleFrequency": 2.4
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 7,
+      "zone": 1,
+      "name": "Beach Buddy Showdown",
+      "objective": {
+        "type": "beatBot",
+        "target": 1,
+        "description": "Beat Beach Buddy in a race!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.05,
+        "obstacleGap": 175,
+        "obstacleFrequency": 2.4
+      },
+      "reward": {
+        "coins": 40,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": {
+        "botName": "Beach Buddy",
+        "botJetSkin": "green_lightning",
+        "skillLevel": 0.6,
+        "reactionTime": 0.4,
+        "mistakeRate": 0.15
+      }
+    },
+    {
+      "id": 8,
+      "zone": 1,
+      "name": "Tropical Storm",
+      "objective": {
+        "type": "passObstacles",
+        "target": 8,
+        "description": "Pass 8 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.05,
+        "obstacleGap": 175,
+        "obstacleFrequency": 2.4
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 9,
+      "zone": 1,
+      "name": "Sunset Flight",
+      "objective": {
+        "type": "passObstacles",
+        "target": 9,
+        "description": "Pass 9 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.05,
+        "obstacleGap": 175,
+        "obstacleFrequency": 2.4
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 10,
+      "zone": 1,
+      "name": "Island Master",
+      "objective": {
+        "type": "passObstacles",
+        "target": 10,
+        "description": "Pass 10 obstacles to complete Zone 1!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.1,
+        "obstacleGap": 170,
+        "obstacleFrequency": 2.3
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 10
+      },
+      "theme": {
+        "background": "phase1_dawn_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "sky_rookie.mp3"
+      },
+      "botBattle": null
+    }
+  ]
+}

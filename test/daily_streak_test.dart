@@ -1,9 +1,6 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flappy_jet_pro/game/systems/daily_streak_manager.dart';
-import 'package:flappy_jet_pro/game/systems/inventory_manager.dart';
-import 'package:flappy_jet_pro/game/systems/lives_manager.dart';
 
 void main() {
   // Initialize Flutter binding for tests

@@ -462,7 +462,7 @@ class SmartRailwayAnalytics {
       }
 
       safePrint('🚀 ✅ Batch processed: $sentEvents sent, ${failedEvents.length} failed');
-      safePrint('🚀 📊 Stats: ${_eventsTracked} tracked, ${_eventsSent} sent, ${_eventsFailed} failed');
+      safePrint('🚀 📊 Stats: $_eventsTracked tracked, $_eventsSent sent, $_eventsFailed failed');
       if (processingTime != null) {
         safePrint('🚀 ⏱️ Processing time: ${processingTime.inMilliseconds}ms');
       }

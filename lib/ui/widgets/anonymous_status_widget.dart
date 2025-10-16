@@ -11,10 +11,10 @@ class AnonymousStatusWidget extends StatefulWidget {
   final VoidCallback? onConnectionChanged;
 
   const AnonymousStatusWidget({
-    Key? key,
+    super.key,
     this.showInAppBar = false,
     this.onConnectionChanged,
-  }) : super(key: key);
+  });
 
   @override
   _AnonymousStatusWidgetState createState() => _AnonymousStatusWidgetState();

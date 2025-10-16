@@ -1,0 +1,269 @@
+{
+  "zone": 3,
+  "zoneName": "Lava Mountains",
+  "levels": [
+    {
+      "id": 21,
+      "zone": 3,
+      "name": "Volcanic Ascent",
+      "objective": {
+        "type": "beatBot",
+        "target": 12,
+        "description": "Race against Molten Devastator and win!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": {
+        "botName": "Molten Devastator",
+        "botJetSkin": "magma_fracture",
+        "skillLevel": 0.8,
+        "reactionTime": 0.25,
+        "mistakeRate": 0.1
+      }
+    },
+    {
+      "id": 22,
+      "zone": 3,
+      "name": "Lava Falls",
+      "objective": {
+        "type": "passObstacles",
+        "target": 9,
+        "description": "Pass 9 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 23,
+      "zone": 3,
+      "name": "Molten River",
+      "objective": {
+        "type": "passObstacles",
+        "target": 10,
+        "description": "Pass 10 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 24,
+      "zone": 3,
+      "name": "Ember Valley",
+      "objective": {
+        "type": "surviveTime",
+        "target": 20,
+        "description": "Survive for 20 seconds"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 25,
+      "zone": 3,
+      "name": "Crater Crossing",
+      "objective": {
+        "type": "passObstacles",
+        "target": 10,
+        "description": "Pass 10 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 26,
+      "zone": 3,
+      "name": "Pyroclastic Peak",
+      "objective": {
+        "type": "passObstacles",
+        "target": 11,
+        "description": "Pass 11 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 27,
+      "zone": 3,
+      "name": "Inferno Gauntlet",
+      "objective": {
+        "type": "passObstacles",
+        "target": 11,
+        "description": "Pass 11 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 28,
+      "zone": 3,
+      "name": "Blaze Duel",
+      "objective": {
+        "type": "beatBot",
+        "target": 12,
+        "description": "Race against Blaze and win!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": {
+        "botName": "Blaze",
+        "botJetSkin": "blaze",
+        "skillLevel": 0.85,
+        "reactionTime": 0.22,
+        "mistakeRate": 0.08
+      }
+    },
+    {
+      "id": 29,
+      "zone": 3,
+      "name": "Magma Chamber",
+      "objective": {
+        "type": "surviveTime",
+        "target": 25,
+        "description": "Survive for 25 seconds"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 30,
+      "zone": 3,
+      "name": "Volcano Master",
+      "objective": {
+        "type": "passObstacles",
+        "target": 12,
+        "description": "Pass 12 obstacles to complete Zone 3!"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.2,
+        "obstacleGap": 160,
+        "obstacleFrequency": 2.1
+      },
+      "reward": {
+        "coins": 60,
+        "gems": 20
+      },
+      "theme": {
+        "background": "phase3_afternoon_complete.png",
+        "obstacles": "phase3_stone_pillars.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    }
+  ]
+}
+

@@ -1,5 +1,6 @@
 /// 🔥 Firebase Cloud Messaging Service - Android Only
 /// Handles push notifications for Android users with smart timezone awareness
+library;
 
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
