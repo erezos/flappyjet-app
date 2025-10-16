@@ -35,14 +35,19 @@ class TestHelpers {
   /// [x]: Horizontal position
   /// [y]: Vertical position (gap center)
   /// [gapSize]: Size of the gap (default: 200)
+  /// [game]: The game instance (for theme access)
   static DynamicObstacle createTestObstacle({
+    required FlappyGame game,
     double x = 300,
     double y = 200,
     double gapSize = 200,
   }) {
     return DynamicObstacle(
-      Vector2(x, y),
+      position: Vector2(x, y),
+      theme: game.gameStateManager.currentTheme,
       gapSize: gapSize,
+      speed: 150,
+      currentScore: 0,
     );
   }
   
@@ -54,7 +59,7 @@ class TestHelpers {
   static LevelData createTestLevel({
     int id = 1,
     int zone = 1,
-    ObjectiveType type = ObjectiveType.reachScore,
+    ObjectiveType type = ObjectiveType.passObstacles,
     int target = 10,
   }) {
     return LevelData(
@@ -66,7 +71,7 @@ class TestHelpers {
         target: target,
         description: 'Test objective',
       ),
-      difficulty: LevelDifficulty(
+      difficulty: DifficultyConfig(
         speedMultiplier: 1.0,
         obstacleGap: 200,
         obstacleFrequency: 2.0,

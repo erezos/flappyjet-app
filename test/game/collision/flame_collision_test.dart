@@ -188,7 +188,7 @@ void main() {
       // Create obstacle
       final obstacle = DynamicObstacle(
         position: Vector2(game.jet.position.x + 100, game.size.y / 2),
-        theme: game.currentTheme,
+        theme: game.gameStateManager.currentTheme,
         gapSize: 200,
         speed: 150,
         currentScore: 0,
@@ -224,7 +224,7 @@ void main() {
       
       final obstacle = DynamicObstacle(
         position: Vector2(game.jet.position.x + 100, game.size.y / 2),
-        theme: game.currentTheme,
+        theme: game.gameStateManager.currentTheme,
         gapSize: 200,
         speed: 150,
         currentScore: 0,
@@ -262,7 +262,7 @@ void main() {
       
       final obstacle = DynamicObstacle(
         position: Vector2(game.jet.position.x + 50, game.size.y / 2),
-        theme: game.currentTheme,
+        theme: game.gameStateManager.currentTheme,
         gapSize: 200,
         speed: 150,
         currentScore: 0,
@@ -319,7 +319,7 @@ void main() {
       for (int i = 0; i < 20; i++) {
         final obstacle = DynamicObstacle(
           position: Vector2(game.jet.position.x + (i * 200.0), game.size.y / 2),
-          theme: game.currentTheme,
+          theme: game.gameStateManager.currentTheme,
           gapSize: 200,
           speed: 150,
           currentScore: 0,
