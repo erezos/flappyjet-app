@@ -13,6 +13,7 @@ dependencies:
   
   # Game Engine
   flame: ^1.32.0
+  flame_behaviors: ^1.2.0
   
   # State Management
   flutter_bloc: ^8.1.0
