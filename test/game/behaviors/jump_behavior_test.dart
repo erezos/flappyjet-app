@@ -19,7 +19,7 @@ void main() {
       behavior.jump();
       
       // Should set velocity to negative (upward)
-      expect(velocity.y, -GameConfig.jumpForce);
+      expect(velocity.y, GameConfig.jumpVelocity);
     });
     
     test('has jump cooldown to prevent spam', () {
@@ -32,7 +32,7 @@ void main() {
       // First jump works
       behavior.jump();
       final firstJumpVelocity = velocity.y;
-      expect(firstJumpVelocity, -GameConfig.jumpForce);
+      expect(firstJumpVelocity, GameConfig.jumpVelocity);
       
       // Immediate second jump should be blocked
       velocity.setZero(); // Reset velocity
@@ -56,12 +56,12 @@ void main() {
       
       // Second jump should now work
       behavior.jump();
-      expect(velocity.y, -GameConfig.jumpForce);
+      expect(velocity.y, GameConfig.jumpVelocity);
     });
     
     test('respects custom jump force', () {
       final velocity = Vector2.zero();
-      final customJumpForce = 500.0;
+      final customJumpForce = -500.0; // Negative = upward (like GameConfig)
       final behavior = JumpBehavior(
         velocity: velocity,
         jumpForce: customJumpForce,
@@ -69,7 +69,7 @@ void main() {
       
       behavior.jump();
       
-      expect(velocity.y, -customJumpForce);
+      expect(velocity.y, customJumpForce);
     });
     
     test('canJump property indicates cooldown state', () {
