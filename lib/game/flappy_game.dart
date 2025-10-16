@@ -2,7 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/collisions.dart'; // ✅ Flame collision system
 import 'package:flutter/material.dart';
-import '../../core/debug_logger.dart';
+import '../core/debug_logger.dart';
 import 'systems/adaptive_quality.dart';
 
 import 'core/game_config.dart';
@@ -27,7 +27,7 @@ import 'core/jet_skins.dart';
 import '../services/tournament_service.dart';
 import 'systems/firebase_analytics_manager.dart';
 import 'systems/player_identity_manager.dart';
-import '../../core/analytics/comprehensive_analytics_manager.dart';
+import '../core/analytics/comprehensive_analytics_manager.dart';
 
 // Extracted modules
 import 'systems/game_state_manager.dart';
