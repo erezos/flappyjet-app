@@ -482,19 +482,13 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   }
 
   /// Check collisions between jet and obstacles
+  /// ✅ REFACTOR v1.7.0: Player obstacle collisions now handled by Flame collision system
   void _checkCollisions() {
-    for (final obstacle in _obstacleManager.obstacles) {
-      // Only check collision if jet is near obstacle (performance optimization)
-      if (!_collisionSystem.isJetNearObstacle(_jet, obstacle)) continue;
-
-      if (!_gameStateManager.isInvulnerable && _collisionSystem.checkCollision(_jet, obstacle, Size(size.x, size.y))) {
-        safePrint('🎯 LEGITIMATE COLLISION: Jet vs Obstacle');
-        _handleCollision();
-        return;
-      }
-    }
-
-    // 🤖 BOT BATTLE: Check bot collisions
+    // ✅ REFACTOR v1.7.0: Player obstacle collision is now automatic via Flame's collision system
+    // JetPlayer.onCollisionStart() will call handleCollision() when it hits an obstacle
+    // This eliminates the need for manual collision checks and improves performance
+    
+    // 🤖 BOT BATTLE: Check bot collisions (bot still uses manual collision for now)
     if (_botJet != null && _botJet!.isActive) {
       for (final obstacle in _obstacleManager.obstacles) {
         // Check if bot collides with obstacle (same logic as player)
@@ -532,13 +526,21 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       }
     }
 
-    // Check ceiling collision
+    // ✅ Check boundary collisions (ceiling/ground) - Flame doesn't handle world boundaries automatically
+    // Ceiling collision
     if (_collisionSystem.checkCeilingCollision(_jet)) {
       _collisionSystem.handleCeilingCollision(_jet);
     }
+    
+    // Ground collision (trigger game over)
+    if (_jet.position.y > size.y - 50 - (GameConfig.jetSize / 2)) {
+      safePrint('💥 Ground collision detected via boundary check');
+      handleCollision();
+    }
   }
 
-  /// Handle collision
+  /// Handle collision (internal implementation)
+  /// ✅ REFACTOR v1.7.0: Called from public handleCollision() and JetPlayer.onCollisionStart()
   void _handleCollision() {
     final isGameOver = _gameStateManager.handleCollision();
     _hud.updateLives(_gameStateManager.lives);
@@ -841,7 +843,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _resetGame();
   }
 
-  /// PUBLIC METHOD: Handle collision (called from JetPlayer)
+  /// PUBLIC METHOD: Handle collision (called from JetPlayer and boundary checks)
+  /// ✅ REFACTOR v1.7.0: This is the public entry point for collision handling
   void handleCollision() {
     _handleCollision();
   }
