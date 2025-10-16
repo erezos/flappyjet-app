@@ -10,6 +10,7 @@ import '../core/game_themes.dart';
 import '../core/jet_skins.dart';
 // import 'jet_fire_state.dart';
 import '../flappy_game.dart'; // 🔥 FIX: Add type import for collision handling
+import 'score_zone.dart'; // ✅ REFACTOR v1.7.0: Score trigger zones
 
 /// Damage states for universal overlay system
 enum JetDamageState {
@@ -777,6 +778,12 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
   ) {
     super.onCollisionStart(intersectionPoints, other);
     
+    // ✅ Check if this is a score zone collision
+    if (other is ScoreZone) {
+      _handleScoreZoneCollision(other);
+      return;
+    }
+    
     // Ignore collision if invulnerable
     if (_isInvulnerable) {
       safePrint('🛡️ Jet is invulnerable - ignoring collision with ${other.runtimeType}');
@@ -788,6 +795,20 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     // Handle collision through game (maintains existing game over logic)
     if (game is FlappyGame) {
       (game as FlappyGame).handleCollision();
+    }
+  }
+  
+  /// ✅ REFACTOR v1.7.0: Handle score zone collision (increment score)
+  void _handleScoreZoneCollision(ScoreZone zone) {
+    if (zone.hasScored) {
+      return; // Already scored this zone
+    }
+    
+    zone.markScored();
+    
+    // Notify game to increment score
+    if (game is FlappyGame) {
+      (game as FlappyGame).incrementScoreFromZone();
     }
   }
   

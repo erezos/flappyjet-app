@@ -7,11 +7,12 @@ import '../../core/debug_logger.dart';
 import '../systems/visual_asset_manager.dart';
 import '../core/game_config.dart';
 import '../core/game_themes.dart';
+import 'score_zone.dart'; // ✅ REFACTOR v1.7.0: Score trigger zones
 
 /// Dynamic obstacle that changes appearance based on current game score/difficulty
 /// ✅ REFACTOR v1.7.0: Now uses Flame's native collision detection with RectangleHitboxes
 class DynamicObstacle extends PositionComponent with HasGameReference {
-  bool scored = false;
+  bool scored = false; // Legacy field (kept for backward compatibility)
   final GameTheme theme;
   final double gapSize;
   final double speed;
@@ -19,6 +20,7 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   
   PositionComponent? _topObstacle;
   PositionComponent? _bottomObstacle;
+  ScoreZone? _scoreZone; // ✅ REFACTOR v1.7.0: Flame collision-based scoring
   bool _isLoaded = false;
   // Visual alignment fields computed from sprite transparency trimming
   double _visualXOffset = 0.0; // left padding after trimming (world units)
@@ -231,8 +233,18 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     );
     await add(bottomHitbox);
     
-    safePrint('💎 Added Flame hitboxes: Top(w=${_visualWidth}, h=$gapTop), Bottom(w=${_visualWidth}, h=$bottomHeight)');
+    // ✅ REFACTOR v1.7.0: Add score trigger zone in the gap
+    _scoreZone = ScoreZone(
+      position: Vector2(_visualXOffset, gapTop - position.y),
+      size: Vector2(_visualWidth, gapBottom - gapTop),
+    );
+    await add(_scoreZone!);
+    
+    safePrint('💎 Added Flame hitboxes: Top(w=${_visualWidth}, h=$gapTop), Bottom(w=${_visualWidth}, h=$bottomHeight), ScoreZone(h=${gapBottom - gapTop})');
   }
+  
+  /// Get the score zone (for Flame collision detection)
+  ScoreZone? get scoreZone => _scoreZone;
   
   @override
   void update(double dt) {
