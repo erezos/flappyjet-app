@@ -848,6 +848,14 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   void handleCollision() {
     _handleCollision();
   }
+  
+  /// PUBLIC METHOD: Increment score from score zone collision
+  /// ✅ REFACTOR v1.7.0: Called from JetPlayer when passing through ScoreZone
+  void incrementScoreFromZone() {
+    // Use existing score increment logic
+    _incrementScore();
+    safePrint('🎯 Score incremented via Flame collision zone: ${_gameStateManager.score}');
+  }
 
   /// Reset game state
   Future<void> _resetGame() async {

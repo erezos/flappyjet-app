@@ -4,11 +4,22 @@ import '../core/game_config.dart';
 import '../components/jet_player.dart';
 import '../components/dynamic_obstacle.dart';
 
-/// Handles collision detection between jet and obstacles
-/// Separated from FlappyGame for better testability and maintainability
+/// ⚠️ DEPRECATED: Legacy manual collision detection system
+/// ✅ REFACTOR v1.7.0: Replaced by Flame's native collision system
+/// 
+/// This class is kept for backward compatibility (bot collisions, ceiling checks)
+/// and will be fully removed in Phase 2.
+/// 
+/// New code should use:
+/// - Flame's HasCollisionDetection mixin
+/// - CircleHitbox / RectangleHitbox components
+/// - CollisionCallbacks mixin
 class CollisionSystem {
+  /// ⚠️ DEPRECATED: Use Flame collision detection instead
+  /// 
   /// Check collision between jet and obstacle
   /// Returns true if collision detected
+  @Deprecated('Use Flame collision detection with CircleHitbox and RectangleHitbox')
   bool checkCollision(JetPlayer jet, DynamicObstacle obstacle, Size gameSize) {
     // Jet collision box tuned to align with sprite visually: slightly forward towards nose
     final skin = jet.currentSkin;
@@ -48,8 +59,11 @@ class CollisionSystem {
     return collision;
   }
 
+  /// ⚠️ DEPRECATED: Use Flame's quadtree spatial partitioning instead
+  /// 
   /// Check if jet is near obstacle (for performance optimization)
   /// Only check collision with obstacles that are actually near the jet
+  @Deprecated('Flame collision system handles spatial partitioning automatically')
   bool isJetNearObstacle(JetPlayer jet, DynamicObstacle obstacle) {
     final obstacleLeft = obstacle.position.x;
     final obstacleRight = obstacle.position.x + GameConfig.obstacleWidth;
