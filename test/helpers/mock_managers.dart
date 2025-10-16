@@ -32,10 +32,12 @@ class MockMonetizationManager extends Mock implements MonetizationManager {
   @override
   Future<void> showRewardedAdForExtraLife({
     required VoidCallback onReward,
-    required VoidCallback onAdFailure,
+    VoidCallback? onAdFailure,
     VoidCallback? onAdEnd,
+    VoidCallback? onAdLoading,
   }) async {
     // For testing: immediately call onReward
+    onAdLoading?.call();
     onReward();
     onAdEnd?.call();
   }

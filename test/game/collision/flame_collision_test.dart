@@ -187,8 +187,11 @@ void main() {
       
       // Create obstacle
       final obstacle = DynamicObstacle(
-        Vector2(game.jet.position.x + 100, game.size.y / 2),
+        position: Vector2(game.jet.position.x + 100, game.size.y / 2),
+        theme: game.currentTheme,
         gapSize: 200,
+        speed: 150,
+        currentScore: 0,
       );
       await game.add(obstacle);
       await tester.pump();
@@ -220,8 +223,11 @@ void main() {
       await tester.pump();
       
       final obstacle = DynamicObstacle(
-        Vector2(game.jet.position.x + 100, game.size.y / 2),
+        position: Vector2(game.jet.position.x + 100, game.size.y / 2),
+        theme: game.currentTheme,
         gapSize: 200,
+        speed: 150,
+        currentScore: 0,
       );
       await game.add(obstacle);
       await tester.pump();
@@ -255,8 +261,11 @@ void main() {
       game.jet.setInvulnerable(true);
       
       final obstacle = DynamicObstacle(
-        Vector2(game.jet.position.x + 50, game.size.y / 2),
+        position: Vector2(game.jet.position.x + 50, game.size.y / 2),
+        theme: game.currentTheme,
         gapSize: 200,
+        speed: 150,
+        currentScore: 0,
       );
       await game.add(obstacle);
       await tester.pump();
@@ -309,8 +318,11 @@ void main() {
       // Add many obstacles
       for (int i = 0; i < 20; i++) {
         final obstacle = DynamicObstacle(
-          Vector2(game.jet.position.x + (i * 200.0), game.size.y / 2),
+          position: Vector2(game.jet.position.x + (i * 200.0), game.size.y / 2),
+          theme: game.currentTheme,
           gapSize: 200,
+          speed: 150,
+          currentScore: 0,
         );
         await game.add(obstacle);
       }
