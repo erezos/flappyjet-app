@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
+import 'package:flame/collisions.dart'; // ✅ REFACTOR v1.7.0: Flame collision system
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
 
@@ -8,6 +9,7 @@ import '../core/game_config.dart';
 import '../core/game_themes.dart';
 
 /// Dynamic obstacle that changes appearance based on current game score/difficulty
+/// ✅ REFACTOR v1.7.0: Now uses Flame's native collision detection with RectangleHitboxes
 class DynamicObstacle extends PositionComponent with HasGameReference {
   bool scored = false;
   final GameTheme theme;
@@ -99,6 +101,9 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       
       add(_topObstacle!);
       add(_bottomObstacle!);
+      
+      // ✅ REFACTOR v1.7.0: Add Flame collision hitboxes
+      await _addCollisionHitboxes(gapTop, gapBottom);
       
       _isLoaded = true;
       
