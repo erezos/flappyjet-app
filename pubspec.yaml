@@ -97,6 +97,10 @@ dev_dependencies:
   sqflite_common_ffi: ^2.3.3
   # Flame testing utilities
   flame_test: ^1.0.0
+  # Modern mocking library for v1.7.0 refactoring
+  mocktail: ^1.0.0
+  # Golden testing for visual regression
+  golden_toolkit: ^0.15.0
 
 # App Icon Configuration (Removed duplicate - using flutter_launcher_icons below)
 
