@@ -852,8 +852,31 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   /// PUBLIC METHOD: Increment score from score zone collision
   /// ✅ REFACTOR v1.7.0: Called from JetPlayer when passing through ScoreZone
   void incrementScoreFromZone() {
-    // Use existing score increment logic
-    _incrementScore();
+    // Use existing score handling logic (increments score, plays sound, celebrations, etc.)
+    // Pass null as obstacle since we don't have access to it from the score zone
+    _gameStateManager.updateScore(_gameStateManager.score + 1);
+    _hud.updateScore(_gameStateManager.score);
+    
+    // 🤖 BOT BATTLE: Make bot score as well (with slight delay/randomness)
+    if (_botJet != null && _botJet!.isActive) {
+      _botJet!.incrementScore();
+    }
+    
+    // 🎯 STORY MODE: Notify wrapper that obstacle was passed
+    if (isStoryMode && onObstaclePassed != null) {
+      safePrint('🎯 STORY MODE: Calling onObstaclePassed callback (score: ${_gameStateManager.score})');
+      onObstaclePassed!();
+    }
+    
+    // Background, celebrations, transitions
+    _background.updateForScore(_gameStateManager.score);
+    _celebrationSystem.handleScoreCelebrations(_gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
+    _checkPhaseTransition(_gameStateManager.score);
+    _audioManager.playScore();
+    _celebrationSystem.createCelebrationBurst(_jet.position, _gameStateManager.score);
+    _checkThemeTransition();
+    _checkAchievement(_gameStateManager.score);
+    
     safePrint('🎯 Score incremented via Flame collision zone: ${_gameStateManager.score}');
   }
 

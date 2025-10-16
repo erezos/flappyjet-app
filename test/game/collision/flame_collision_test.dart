@@ -133,8 +133,11 @@ void main() {
       
       // Create and add obstacle
       final obstacle = DynamicObstacle(
-        Vector2(300, game.size.y / 2),
+        position: Vector2(300, game.size.y / 2),
+        theme: game.gameStateManager.currentTheme,
         gapSize: 200,
+        speed: 150,
+        currentScore: 0,
       );
       await game.add(obstacle);
       await tester.pump();
@@ -156,8 +159,11 @@ void main() {
       await TestHelpers.waitForGameReady(game);
       
       final obstacle = DynamicObstacle(
-        Vector2(300, game.size.y / 2),
+        position: Vector2(300, game.size.y / 2),
+        theme: game.gameStateManager.currentTheme,
         gapSize: 200,
+        speed: 150,
+        currentScore: 0,
       );
       await game.add(obstacle);
       await tester.pump();
