@@ -179,7 +179,7 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   }
   
   /// Create fallback colored obstacles when sprite loading fails
-  void _createFallbackObstacles() {
+  void _createFallbackObstacles() async {
     final paint = Paint()..color = theme.colors.obstacle;
     // final accentPaint = Paint()..color = theme.colors.obstacleAccent;
     
@@ -202,9 +202,36 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     add(_topObstacle!);
     add(_bottomObstacle!);
     
+    // ✅ REFACTOR v1.7.0: Add Flame collision hitboxes
+    await _addCollisionHitboxes(gapTop, gapBottom);
+    
     _isLoaded = true;
     
     safePrint('🎨 Using fallback obstacle rendering');
+  }
+  
+  /// ✅ REFACTOR v1.7.0: Add Flame collision hitboxes for top and bottom pillars
+  Future<void> _addCollisionHitboxes(double gapTop, double gapBottom) async {
+    // Top pillar hitbox
+    final topHitbox = RectangleHitbox(
+      size: Vector2(_visualWidth, gapTop),
+      position: Vector2(_visualXOffset, -position.y),
+      anchor: Anchor.topLeft,
+      collisionType: CollisionType.passive, // Obstacles don't check, only get checked
+    );
+    await add(topHitbox);
+    
+    // Bottom pillar hitbox
+    final bottomHeight = game.size.y - gapBottom;
+    final bottomHitbox = RectangleHitbox(
+      size: Vector2(_visualWidth, bottomHeight),
+      position: Vector2(_visualXOffset, gapBottom - position.y),
+      anchor: Anchor.topLeft,
+      collisionType: CollisionType.passive, // Obstacles don't check, only get checked
+    );
+    await add(bottomHitbox);
+    
+    safePrint('💎 Added Flame hitboxes: Top(w=${_visualWidth}, h=$gapTop), Bottom(w=${_visualWidth}, h=$bottomHeight)');
   }
   
   @override
