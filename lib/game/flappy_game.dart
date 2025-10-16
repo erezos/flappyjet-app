@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flame/collisions.dart'; // ✅ Flame collision system
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
 import 'systems/adaptive_quality.dart';
@@ -40,7 +41,9 @@ import '../models/level_data_schema.dart';
 
 /// FlappyJet Pro - Refactored for maintainability and testability
 /// Uses modular architecture with separated concerns
-class FlappyGame extends FlameGame {
+/// 
+/// ✅ REFACTOR v1.7.0: Now uses Flame's native collision detection system
+class FlappyGame extends FlameGame with HasCollisionDetection {
   // MONETIZATION INTEGRATION
   final MonetizationManager? monetization;
 
