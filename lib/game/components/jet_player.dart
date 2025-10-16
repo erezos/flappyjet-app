@@ -1,8 +1,8 @@
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flame/components.dart';
+import 'package:flame/collisions.dart'; // ✅ REFACTOR v1.7.0: Flame collision system
 import '../../core/debug_logger.dart';
-// 🔥 CLEANUP: Using manual collision detection - no automatic collision imports needed
 import 'package:flutter/material.dart';
 
 import '../core/game_config.dart';
@@ -20,8 +20,8 @@ enum JetDamageState {
 }
 
 /// Jet player with MONETIZABLE skin system + UNIVERSAL DAMAGE OVERLAYS
-/// 🔥 BLOCKBUSTER: Uses manual collision detection for precise control!
-class JetPlayer extends SpriteComponent with HasGameReference {
+/// ✅ REFACTOR v1.7.0: Now uses Flame's native collision detection with CircleHitbox
+class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallbacks {
   Vector2 velocity = Vector2.zero();
   double _bobTime = 0.0;
   late double _startY;
@@ -55,15 +55,22 @@ class JetPlayer extends SpriteComponent with HasGameReference {
     safePrint('🔄 JET ONLOAD START: HashCode=$hashCode, Position=$position');
     
     _startY = position.y;
-    anchor = Anchor.center; // 🔥 BLOCKBUSTER: Proper anchor for collision detection
+    anchor = Anchor.center; // ✅ Proper anchor for collision detection
     
     // Fire system disabled temporarily
     await _loadJetSprite();
     await _loadDamageOverlays(); // Load universal damage effects
     
-    // 🔥 BLOCKBUSTER: Using manual collision detection for precise control (no automatic hitbox)
+    // ✅ REFACTOR v1.7.0: Add Flame CircleHitbox for collision detection
+    // Hitbox is 70% of jet width for better gameplay (forgiving hitbox)
+    final hitboxRadius = size.x * 0.35; // 35% radius = 70% diameter
+    await add(CircleHitbox(
+      radius: hitboxRadius,
+      anchor: Anchor.center,
+      collisionType: CollisionType.active, // Jet actively checks for collisions
+    ));
     
-    safePrint('✅ JET ONLOAD COMPLETE: HashCode=$hashCode - Enhanced Jet Player with fire system and collision loaded!');
+    safePrint('✅ JET ONLOAD COMPLETE: HashCode=$hashCode - Enhanced Jet Player with Flame collision loaded! Hitbox radius: $hitboxRadius');
   }
   
   /// Load universal damage overlays that work with ANY jet skin
@@ -762,5 +769,31 @@ class JetPlayer extends SpriteComponent with HasGameReference {
     );
   }
   
-  // 🔥 BLOCKBUSTER: Using manual collision detection only (no automatic callbacks)
+  // ✅ REFACTOR v1.7.0: Flame collision callbacks
+  @override
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
+    super.onCollisionStart(intersectionPoints, other);
+    
+    // Ignore collision if invulnerable
+    if (_isInvulnerable) {
+      safePrint('🛡️ Jet is invulnerable - ignoring collision with ${other.runtimeType}');
+      return;
+    }
+    
+    safePrint('💥 Flame collision detected: Jet collided with ${other.runtimeType}');
+    
+    // Handle collision through game (maintains existing game over logic)
+    if (game is FlappyGame) {
+      (game as FlappyGame).handleCollision();
+    }
+  }
+  
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    super.onCollisionEnd(other);
+    // No action needed on collision end for now
+  }
 }
