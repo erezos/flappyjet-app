@@ -3,6 +3,7 @@
 /// Provides mock implementations of managers for isolated testing
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:mocktail/mocktail.dart';
 import '../../lib/game/systems/monetization_manager.dart';
 import '../../lib/game/systems/missions_manager.dart';
@@ -17,8 +18,8 @@ class MockMonetizationManager extends Mock implements MonetizationManager {
   
   @override
   Future<void> initialize({
-    required InventoryManager inventory,
-    required LivesManager lives,
+    InventoryManager? inventory,
+    LivesManager? lives,
   }) async {
     // No-op for testing
   }
@@ -32,9 +33,11 @@ class MockMonetizationManager extends Mock implements MonetizationManager {
   Future<void> showRewardedAdForExtraLife({
     required VoidCallback onReward,
     required VoidCallback onAdFailure,
+    VoidCallback? onAdEnd,
   }) async {
     // For testing: immediately call onReward
     onReward();
+    onAdEnd?.call();
   }
 }
 
@@ -72,7 +75,7 @@ class MockLivesManager extends Mock implements LivesManager {
   }
   
   @override
-  Future<void> addLife(int count) async {
+  Future<void> addLife([int count = 1]) async {
     _currentLives += count;
     if (_currentLives > maxLives) {
       _currentLives = maxLives;
@@ -116,9 +119,12 @@ class MockInventoryManager extends Mock implements InventoryManager {
   }
   
   @override
-  void spendGems(int amount) {
-    _gems -= amount;
-    if (_gems < 0) _gems = 0;
+  Future<bool> spendGems(int amount) async {
+    if (_gems >= amount) {
+      _gems -= amount;
+      return true;
+    }
+    return false;
   }
 }
 

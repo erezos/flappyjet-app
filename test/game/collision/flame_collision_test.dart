@@ -7,7 +7,10 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame_test/flame_test.dart';
+import 'package:flame/game.dart';
+import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
+import 'package:flutter/material.dart';
 import '../../../lib/game/flappy_game.dart';
 import '../../../lib/game/components/jet_player.dart';
 import '../../../lib/game/components/dynamic_obstacle.dart';
