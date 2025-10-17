@@ -88,13 +88,13 @@ void main() {
       final initialOpacity = behavior.flashOpacity;
       expect(initialOpacity, lessThan(1.0), reason: 'Should start fading');
       
-      // Mid-flash
-      behavior.update(0.1);
-      final midOpacity = behavior.flashOpacity;
-      expect(midOpacity, greaterThan(0.0));
-      expect(midOpacity, lessThan(1.0));
+      // Early in flash (avoid exact midpoint where sine peaks)
+      behavior.update(0.05);
+      final earlyOpacity = behavior.flashOpacity;
+      expect(earlyOpacity, greaterThan(initialOpacity), reason: 'Opacity should increase');
+      expect(earlyOpacity, lessThan(1.0), reason: 'Should still be flashing');
       
-      // After flash
+      // After flash completes
       behavior.update(0.2);
       expect(behavior.flashOpacity, 1.0, reason: 'Should return to full opacity');
     });
