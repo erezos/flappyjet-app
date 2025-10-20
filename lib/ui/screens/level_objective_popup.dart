@@ -158,7 +158,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 blurRadius: 30,
                 spreadRadius: 5,
               ),
@@ -198,7 +198,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                     letterSpacing: 2,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         offset: const Offset(0, 2),
                         blurRadius: 4,
                       ),
@@ -256,15 +256,15 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           width: 2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -307,7 +307,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.red.withOpacity(0.4),
+                  color: Colors.red.withValues(alpha: 0.4),
                   blurRadius: 12,
                   spreadRadius: 2,
                 ),
@@ -324,7 +324,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -362,18 +362,18 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                                 shape: BoxShape.circle,
                                 gradient: RadialGradient(
                                   colors: [
-                                    Colors.white.withOpacity(0.3),
-                                    Colors.white.withOpacity(0.1),
+                                    Colors.white.withValues(alpha: 0.3),
+                                    Colors.white.withValues(alpha: 0.1),
                                   ],
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.red.withOpacity(0.5),
+                                    color: Colors.red.withValues(alpha: 0.5),
                                     blurRadius: 12,
                                     spreadRadius: 3,
                                   ),
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.4),
+                                    color: Colors.black.withValues(alpha: 0.4),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
                                   ),
@@ -389,10 +389,10 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // ✅ FIX: Reduced padding
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -428,10 +428,10 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           width: 2,
         ),
       ),
@@ -443,7 +443,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
+                  color: Colors.amber.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -491,13 +491,13 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.15),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withValues(alpha: 0.15),
+            Colors.white.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
+          color: Colors.white.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -520,7 +520,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
+                  color: Colors.amber.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: Colors.amber.shade300,
@@ -549,7 +549,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(0.2),
+                    color: Colors.cyan.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: Colors.cyan,
@@ -593,7 +593,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.red.withOpacity(0.3),
+                    color: Colors.red.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -634,7 +634,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withOpacity(0.5),
+            color: Colors.amber.withValues(alpha: 0.5),
             blurRadius: 20,
             spreadRadius: 2,
           ),

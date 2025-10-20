@@ -309,12 +309,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
                           borderRadius: BorderRadius.circular(logoSize * 0.2),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.orange.withOpacity(0.4),
+                              color: Colors.orange.withValues(alpha: 0.4),
                               blurRadius: 30,
                               spreadRadius: 5,
                             ),
                             BoxShadow(
-                              color: Colors.deepOrange.withOpacity(0.2),
+                              color: Colors.deepOrange.withValues(alpha: 0.2),
                               blurRadius: 50,
                               spreadRadius: 10,
                             ),
@@ -368,12 +368,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
                           letterSpacing: 2.0,
                           shadows: [
                             Shadow(
-                              color: Colors.orange.withOpacity(0.6),
+                              color: Colors.orange.withValues(alpha: 0.6),
                               blurRadius: 15,
                               offset: Offset(0, 3),
                             ),
                             Shadow(
-                              color: Colors.deepOrange.withOpacity(0.3),
+                              color: Colors.deepOrange.withValues(alpha: 0.3),
                               blurRadius: 25,
                               offset: Offset(0, 5),
                             ),
@@ -402,10 +402,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
                           Container(
                             height: 8,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade800.withOpacity(0.3),
+                              color: Colors.grey.shade800.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: Colors.orange.shade300.withOpacity(0.3),
+                                color: Colors.orange.shade300.withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),

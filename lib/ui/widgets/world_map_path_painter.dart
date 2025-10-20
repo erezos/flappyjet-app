@@ -81,7 +81,7 @@ class WorldMapPathPainter extends CustomPainter {
       _drawDottedPath(canvas, path, color);
     } else {
       // Uncompleted path: faded solid line
-      paint.color = color.withOpacity(0.3);
+      paint.color = color.withValues(alpha: 0.3);
       canvas.drawPath(path, paint);
     }
   }
@@ -133,7 +133,7 @@ class WorldMapPathPainter extends CustomPainter {
           
           if (start != null && end != null) {
             final paint = Paint()
-              ..color = color.withOpacity(0.5)
+              ..color = color.withValues(alpha: 0.5)
               ..strokeWidth = pathWidth
               ..strokeCap = StrokeCap.round;
             

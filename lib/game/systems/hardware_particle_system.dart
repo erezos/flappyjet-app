@@ -151,120 +151,243 @@ class HardwareParticleSystem extends Component {
 
   /// Create casual crash burst for collision effects with realistic smoke and fire
   void createCrashBurst(Vector2 position) {
-    // Creating casual crash burst
+    // ✅ USER REQUEST: Enhanced smoke effect - modern, casual, and prominent
     final random = math.Random();
     
-    // Create subtle smoke with realistic physics
-    final smokeCount = 8 + random.nextInt(6); // Fewer, more subtle smoke particles
-    // Creating subtle smoke particles
-
-    for (int i = 0; i < smokeCount; i++) {
+    // === SMOKE EFFECT ===
+    // Multi-layered smoke cloud: Large → Medium → Small particles
+    // This creates depth and realistic billowing smoke without assets
+    
+    // Layer 1: Large base smoke clouds (foundation)
+    final largeSmokeCount = 8 + random.nextInt(5);
+    for (int i = 0; i < largeSmokeCount; i++) {
       final particle = _pool.acquire();
       if (particle == null) continue;
 
-      // Realistic smoke physics - gentle upward movement with slight drift
-      final angle = (random.nextDouble() - 0.5) * math.pi * 0.2; // Very narrow upward cone
-      final speed = 30 + random.nextDouble() * 40; // Slower, more casual
-      final drift = (random.nextDouble() - 0.5) * 20; // Gentle side-to-side drift
+      final spreadAngle = (random.nextDouble() - 0.5) * math.pi * 0.4; // Wider spread
+      final upwardSpeed = 60 + random.nextDouble() * 80; // Moderate upward
+      final lateralDrift = (random.nextDouble() - 0.5) * 50;
 
       particle.position = position.clone();
       particle.velocity = Vector2(
-        math.sin(angle) * speed + drift, // Gentle horizontal drift
-        math.cos(angle) * speed - 80, // Upward movement (slower)
+        math.sin(spreadAngle) * 40 + lateralDrift,
+        -upwardSpeed, // Negative = up
       );
       
-      // Smoke properties for casual realism
-      particle.lifetime = 1.5 + random.nextDouble() * 1.0; // Shorter, more subtle
-      particle.size = 8.0 + random.nextDouble() * 12.0; // Smaller smoke particles
+      // Large, slowly expanding smoke
+      particle.lifetime = 2.5 + random.nextDouble() * 1.5; // Long-lasting
+      particle.size = 20.0 + random.nextDouble() * 16.0; // LARGE base smoke
       particle.type = ParticleType.circle;
-      particle.sizeGrowthPerSecond = 8.0; // Gentle expansion
-      particle.alpha = 0.3 + random.nextDouble() * 0.2; // More transparent
+      particle.sizeGrowthPerSecond = 18.0; // Expand quickly for billowing effect
+      particle.alpha = 0.35 + random.nextDouble() * 0.25; // Semi-transparent
       particle.rotation = random.nextDouble() * math.pi * 2;
-      particle.angularVelocity = (random.nextDouble() - 0.5) * 1.0; // Very slow rotation
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 1.0; // Slow rotation
+
+      _activeParticles.add(particle);
+    }
+    
+    // Layer 2: Medium smoke wisps (detail layer)
+    final mediumSmokeCount = 12 + random.nextInt(8);
+    for (int i = 0; i < mediumSmokeCount; i++) {
+      final particle = _pool.acquire();
+      if (particle == null) continue;
+
+      final spreadAngle = (random.nextDouble() - 0.5) * math.pi * 0.5;
+      final upwardSpeed = 80 + random.nextDouble() * 100;
+      final lateralDrift = (random.nextDouble() - 0.5) * 70;
+
+      particle.position = position.clone();
+      particle.velocity = Vector2(
+        math.sin(spreadAngle) * 50 + lateralDrift,
+        -upwardSpeed,
+      );
+      
+      particle.lifetime = 1.8 + random.nextDouble() * 1.2;
+      particle.size = 12.0 + random.nextDouble() * 12.0; // Medium smoke
+      particle.type = ParticleType.circle;
+      particle.sizeGrowthPerSecond = 14.0; // Moderate expansion
+      particle.alpha = 0.45 + random.nextDouble() * 0.3; // More opaque
+      particle.rotation = random.nextDouble() * math.pi * 2;
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 1.5;
+
+      _activeParticles.add(particle);
+    }
+    
+    // Layer 3: Small smoke puffs (fine detail)
+    final smallSmokeCount = 15 + random.nextInt(10);
+    for (int i = 0; i < smallSmokeCount; i++) {
+      final particle = _pool.acquire();
+      if (particle == null) continue;
+
+      final spreadAngle = (random.nextDouble() - 0.5) * math.pi * 0.6;
+      final upwardSpeed = 100 + random.nextDouble() * 120;
+      final lateralDrift = (random.nextDouble() - 0.5) * 80;
+
+      particle.position = position.clone();
+      particle.velocity = Vector2(
+        math.sin(spreadAngle) * 60 + lateralDrift,
+        -upwardSpeed,
+      );
+      
+      particle.lifetime = 1.2 + random.nextDouble() * 0.8;
+      particle.size = 6.0 + random.nextDouble() * 8.0; // Small puffs
+      particle.type = ParticleType.circle;
+      particle.sizeGrowthPerSecond = 10.0;
+      particle.alpha = 0.5 + random.nextDouble() * 0.35; // Most opaque
+      particle.rotation = random.nextDouble() * math.pi * 2;
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 2.0; // Faster rotation
 
       _activeParticles.add(particle);
     }
 
-    // Create small fire sparks
-    final fireCount = 4 + random.nextInt(4); // Fewer, smaller fire particles
-    // Creating small fire particles
+    // === FIRE/DEBRIS EFFECT ===
+    // Add orange/yellow fire sparks and dark debris for impact
+    final fireCount = 8 + random.nextInt(8);
     
     for (int i = 0; i < fireCount; i++) {
       final particle = _pool.acquire();
       if (particle == null) continue;
 
       final angle = random.nextDouble() * 2 * math.pi;
-      final speed = 80 + random.nextDouble() * 120; // Moderate speed
+      final speed = 100 + random.nextDouble() * 150;
 
       particle.position = position.clone();
       particle.velocity = Vector2(
         math.cos(angle) * speed,
-        math.sin(angle) * speed - 50, // Slight upward bias
+        math.sin(angle) * speed - 40, // Slight upward bias
       );
       
-      particle.lifetime = 0.4 + random.nextDouble() * 0.3; // Short-lived fire
-      particle.size = 3.0 + random.nextDouble() * 4.0; // Small fire particles
-      particle.type = ParticleType.confetti;
+      particle.lifetime = 0.5 + random.nextDouble() * 0.4; // Quick flash
+      particle.size = 4.0 + random.nextDouble() * 5.0;
+      particle.type = ParticleType.confetti; // Rectangular fire sparks
       particle.rotation = random.nextDouble() * math.pi * 2;
-      particle.angularVelocity = (random.nextDouble() - 0.5) * 8.0;
-      particle.sizeGrowthPerSecond = -1.5; // Gentle fade
-      particle.alpha = 0.7 + random.nextDouble() * 0.3; // Bright but not overwhelming
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 10.0; // Fast spin
+      particle.sizeGrowthPerSecond = -2.0; // Shrink quickly
+      particle.alpha = 0.8 + random.nextDouble() * 0.2; // Bright flash
 
       _activeParticles.add(particle);
     }
     
-    // Casual crash burst complete
+    safePrint('🚀 Hardware-accelerated crash burst created at [$position]');
   }
 
   /// Create celebration burst for score milestones with vibrant effects
   void createCelebrationBurst(Vector2 position, int score) {
-    // Creating vibrant celebration burst
+    // ✅ USER REQUEST: Enhanced celebration - more beautiful, modern, and casual
     final random = math.Random();
     
-    // Calculate particle count based on score milestones
-    final int baseCount = 12;
-    final int bonus5 = (score % 5 == 0) ? 8 : 0; // Extra for every 5th
-    final int bonus10 = (score % 10 == 0) ? 15 : 0; // Extra for every 10th
+    // Calculate particle count based on score milestones - MORE PARTICLES!
+    final int baseCount = 25; // Even MORE base particles
+    final int bonus5 = (score % 5 == 0) ? 15 : 0; // More for every 5th
+    final int bonus10 = (score % 10 == 0) ? 30 : 0; // HUGE burst for every 10th!
     final int count = baseCount + bonus5 + bonus10;
     
-    // Creating celebration particles
+    final bool isMilestone = score % 10 == 0;
+    final bool isHalfMilestone = score % 5 == 0;
+    
+    // === RING WAVE EFFECT ===
+    // Create an expanding ring of particles for modern, satisfying feedback
+    final ringParticleCount = isMilestone ? 20 : (isHalfMilestone ? 12 : 8);
+    for (int i = 0; i < ringParticleCount; i++) {
+      final particle = _pool.acquire();
+      if (particle == null) continue;
+      
+      // Evenly distributed angles for perfect ring
+      final angle = (i / ringParticleCount) * 2 * math.pi;
+      final ringSpeed = isMilestone ? 220 : 180;
+      
+      particle.position = position.clone();
+      particle.velocity = Vector2(
+        math.cos(angle) * ringSpeed,
+        math.sin(angle) * ringSpeed,
+      );
+      
+      particle.lifetime = 0.8 + random.nextDouble() * 0.4;
+      particle.size = isMilestone ? 14.0 : 10.0; // Larger for milestones
+      particle.type = ParticleType.star; // Stars for ring effect
+      particle.rotation = angle; // Rotate to face outward
+      particle.angularVelocity = 0; // Keep orientation
+      particle.alpha = 0.9;
+      particle.sizeGrowthPerSecond = -3.0; // Quick fade
 
+      _activeParticles.add(particle);
+    }
+    
+    // === EXPLOSION BURST ===
+    // Main celebration explosion with varied particles
     for (int i = 0; i < count; i++) {
       final particle = _pool.acquire();
       if (particle == null) continue;
 
       final angle = random.nextDouble() * 2 * math.pi;
-      final bool isMilestone = score % 10 == 0;
-      final speed = (isMilestone ? 300 : 250) + random.nextDouble() * (isMilestone ? 200 : 150);
+      
+      // ✅ MODERN: Varied speed patterns for more dynamic feel
+      final speedMultiplier = isMilestone ? 1.5 : (isHalfMilestone ? 1.3 : 1.0);
+      final speed = (180 * speedMultiplier) + random.nextDouble() * (200 * speedMultiplier);
+      
+      // ✅ CASUAL: Add some randomness to make it feel more playful
+      final verticalBias = (random.nextDouble() - 0.5) * 100; // More vertical variety
       
       particle.position = position.clone();
       particle.velocity = Vector2(
         math.cos(angle) * speed,
-        math.sin(angle) * speed,
+        math.sin(angle) * speed + verticalBias,
       );
       
-      // Enhanced particle properties
-      particle.lifetime = 1.2 + random.nextDouble() * 0.8; // Longer celebration
-      particle.size = 10.0 + random.nextDouble() * 15.0; // Larger particles
+      // ✅ BEAUTIFUL: Enhanced particle properties for more visual appeal
+      particle.lifetime = 1.6 + random.nextDouble() * 1.2; // Longer celebration
+      particle.size = 14.0 + random.nextDouble() * 20.0; // HUGE particles for impact!
       
-      // Choose particle type based on score and position
+      // ✅ MODERN: Choose particle type with better distribution
       if (isMilestone) {
-        // Special effects for milestones
-        particle.type = i % 3 == 0 ? ParticleType.star : ParticleType.confetti;
+        // Special sparkly effects for 10-point milestones
+        final typeChoice = i % 3;
+        particle.type = typeChoice == 0 ? ParticleType.star : 
+                       typeChoice == 1 ? ParticleType.confetti : ParticleType.circle;
+      } else if (isHalfMilestone) {
+        // Mixed effects for 5-point milestones
+        particle.type = i % 3 == 0 ? ParticleType.star : ParticleType.circle;
       } else {
-        // Regular celebration mix
-        particle.type = ParticleType.values[i % ParticleType.values.length];
+        // Regular celebration mix - colorful variety
+        particle.type = i % 2 == 0 ? ParticleType.circle : ParticleType.confetti;
       }
       
       particle.rotation = random.nextDouble() * 2 * math.pi;
-      particle.angularVelocity = (random.nextDouble() - 0.5) * 8.0; // Moderate rotation
-      particle.alpha = 0.9 + random.nextDouble() * 0.1; // Bright and vibrant
-      particle.sizeGrowthPerSecond = -1.5; // Gentle fade
+      particle.angularVelocity = (random.nextDouble() - 0.5) * 12.0; // Fast rotation for excitement!
+      particle.alpha = 0.85 + random.nextDouble() * 0.15; // Bright and vibrant
+      particle.sizeGrowthPerSecond = isMilestone ? -0.5 : -1.5; // Milestones linger longer
 
       _activeParticles.add(particle);
     }
     
-    // Celebration burst complete
+    // === SECONDARY WAVE ===
+    // Delayed secondary burst for satisfying "thump" feeling
+    Future.delayed(const Duration(milliseconds: 120), () {
+      for (int i = 0; i < 12; i++) {
+        final particle = _pool.acquire();
+        if (particle == null) continue;
+        
+        final angle = random.nextDouble() * 2 * math.pi;
+        final speed = 140 + random.nextDouble() * 120;
+        
+        particle.position = position.clone();
+        particle.velocity = Vector2(
+          math.cos(angle) * speed,
+          math.sin(angle) * speed - 60, // Upward bias for excitement
+        );
+        particle.lifetime = 1.2 + random.nextDouble() * 0.6;
+        particle.size = 10.0 + random.nextDouble() * 12.0;
+        particle.type = ParticleType.star; // Stars for secondary wave
+        particle.rotation = random.nextDouble() * 2 * math.pi;
+        particle.angularVelocity = (random.nextDouble() - 0.5) * 15.0;
+        particle.alpha = 0.75 + random.nextDouble() * 0.25;
+        particle.sizeGrowthPerSecond = -2.0;
+        
+        _activeParticles.add(particle);
+      }
+    });
+    
+    safePrint('🚀 Hardware-accelerated celebration burst created at [$position] for score $score');
   }
 
   @override

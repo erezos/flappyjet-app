@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flame/components.dart';
+// ✅ REFACTOR v1.7.0: Effects import removed (no longer using visual effects per user request)
 import 'package:flame/collisions.dart'; // ✅ REFACTOR v1.7.0: Flame collision system
 import '../../core/debug_logger.dart';
 import 'package:flutter/material.dart';
@@ -12,32 +13,39 @@ import '../core/jet_skins.dart';
 import '../flappy_game.dart'; // 🔥 FIX: Add type import for collision handling
 import 'score_zone.dart'; // ✅ REFACTOR v1.7.0: Score trigger zones
 
+// ✅ REFACTOR v1.7.0: Behavior Pattern System (Phase 2)
+import '../behaviors/gravity_behavior.dart';
+import '../behaviors/jump_behavior.dart';
+import '../behaviors/invulnerability_behavior.dart';
+import '../behaviors/damage_visualization_behavior.dart';
+
 /// Damage states for universal overlay system
+/// ✅ SIMPLIFIED: Jet visual state - only healthy or invulnerable
+/// Health tracking is done by GameStateManager.lives (displayed in HUD)
 enum JetDamageState {
-  healthy,     // 3 hearts - no overlay
-  damaged,     // 2 hearts - light damage overlay  
-  critical,    // 1 heart  - heavy damage overlay
-  invulnerable // Shield effect during immunity
+  healthy,     // Default state - jet looks normal
+  invulnerable // Shield effect during immunity after crash/continue
 }
 
 /// Jet player with MONETIZABLE skin system + UNIVERSAL DAMAGE OVERLAYS
 /// ✅ REFACTOR v1.7.0: Now uses Flame's native collision detection with CircleHitbox
+/// ✅ REFACTOR v1.7.0 Phase 2: Now uses Behavior Pattern System
 class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallbacks {
   Vector2 velocity = Vector2.zero();
   double _bobTime = 0.0;
   late double _startY;
   bool _isPlaying = false;
-  bool _isInvulnerable = false;
-  double _invulnerabilityTime = 0.0;
   GameTheme _environmentTheme; // Environmental theme (changes automatically)
   JetSkin _currentSkin;        // Jet skin (player choice, purchased)
   bool _usingImageAssets = false;
   
-  // UNIVERSAL DAMAGE OVERLAY SYSTEM 🔥
-  JetDamageState _damageState = JetDamageState.healthy;
-  JetDamageState? _pendingDamageState; // Damage state to apply when invulnerability ends
-  double _damageFlashTime = 0.0;
-  // Removed unused field // kept for future shield re-enable
+  // ✅ REFACTOR v1.7.0 Phase 2: Behavior Components
+  late final GravityBehavior _gravityBehavior;
+  late final JumpBehavior _jumpBehavior;
+  late final InvulnerabilityBehavior _invulnerabilityBehavior;
+  late final DamageVisualizationBehavior _damageVisualizationBehavior;
+  
+  // ✅ REFACTOR v1.7.0 Phase 2: All behaviors integrated - no legacy fields needed!
   
   // Removed legacy fire state manager (temporary)
   
@@ -63,15 +71,40 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     await _loadDamageOverlays(); // Load universal damage effects
     
     // ✅ REFACTOR v1.7.0: Add Flame CircleHitbox for collision detection
-    // Hitbox is 70% of jet width for better gameplay (forgiving hitbox)
-    final hitboxRadius = size.x * 0.35; // 35% radius = 70% diameter
+    // ✅ USER REQUEST: Hitbox reduced to 40% diameter for pixel-perfect collision accuracy
+    // Previously 70% (too large, early collisions), now 40% (jet must actually hit obstacle)
+    final hitboxRadius = size.x * 0.20; // 20% radius = 40% diameter (tight, accurate hitbox)
     await add(CircleHitbox(
       radius: hitboxRadius,
       anchor: Anchor.center,
       collisionType: CollisionType.active, // Jet actively checks for collisions
     ));
     
-    safePrint('✅ JET ONLOAD COMPLETE: HashCode=$hashCode - Enhanced Jet Player with Flame collision loaded! Hitbox radius: $hitboxRadius');
+    // ✅ REFACTOR v1.7.0 Phase 2: Initialize Behavior Components
+    _gravityBehavior = GravityBehavior(
+      velocity: velocity,
+      maxFallSpeed: GameConfig.maxFallSpeed,
+    );
+    _jumpBehavior = JumpBehavior(
+      velocity: velocity,
+      jumpForce: GameConfig.jumpVelocity,
+    );
+    _invulnerabilityBehavior = InvulnerabilityBehavior(
+      duration: GameConfig.invulnerabilityDuration,
+    );
+    _damageVisualizationBehavior = DamageVisualizationBehavior();
+    
+    // Wire up invulnerability behavior to damage visualization
+    _damageVisualizationBehavior.setInvulnerable(_invulnerabilityBehavior.isInvulnerable);
+    
+    await addAll([
+      _gravityBehavior,
+      _jumpBehavior,
+      _invulnerabilityBehavior,
+      _damageVisualizationBehavior,
+    ]);
+    
+    safePrint('✅ JET ONLOAD COMPLETE: HashCode=$hashCode - Enhanced Jet Player with Flame collision + behaviors loaded! Hitbox radius: $hitboxRadius');
   }
   
   /// Load universal damage overlays that work with ANY jet skin
@@ -320,71 +353,24 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
   
   /// Render universal damage overlay that works with ANY jet skin
   void _renderDamageOverlay(Canvas canvas) {
-    // CRITICAL FIX: Always show damage flash immediately, even during invulnerability
-    if (_damageFlashTime > 0) {
-      // Determine damage color based on pending damage state or current state
-      Color damageColor = Colors.red;
-      
-      if (_pendingDamageState != null) {
-        switch (_pendingDamageState!) {
-          case JetDamageState.damaged:
-            damageColor = Colors.orange;
-            break;
-          case JetDamageState.critical:
-            damageColor = Colors.red;
-            break;
-          default:
-            break;
-        }
-      } else {
-        switch (_damageState) {
-          case JetDamageState.damaged:
-            damageColor = Colors.orange;
-            break;
-          case JetDamageState.critical:
-            damageColor = Colors.red;
-            break;
-          default:
-            break;
-        }
-      }
-      
-      // Show damage flash with high priority (renders over everything)
-      final flashAlpha = (math.sin(_damageFlashTime * 30) + 1) / 2; // Faster flashing
-      canvas.saveLayer(
-        size.toRect(),
-        Paint()..color = damageColor.withValues(alpha: flashAlpha * 0.8), // Much more visible damage flash
-      );
-      canvas.restore();
+    // ✅ USER REQUEST: Removed all damage flash and state-based overlays
+    // Only render shield effect when invulnerable
+    
+    if (_damageVisualizationBehavior.currentState == JetDamageState.invulnerable) {
+      // Shield effect when invulnerable
+      _renderShieldEffect(canvas);
     }
     
-    // Then render the normal state overlay
-    switch (_damageState) {
-      case JetDamageState.healthy:
-        // No overlay needed
-        break;
-        
-      case JetDamageState.damaged:
-        _renderDamageEffect(canvas, 0.6, Colors.orange);
-        break;
-        
-      case JetDamageState.critical:
-        _renderDamageEffect(canvas, 0.8, Colors.red);
-        break;
-        
-       case JetDamageState.invulnerable:
-        // BULLETPROOF: Shield is ALWAYS visible when damage state is invulnerable
-        // This ensures perfect synchronization between invulnerability and shield
-        _renderShieldEffect(canvas);
-        break;
-    }
+    // No damage flash, no dark tint - jet always looks normal!
   }
   
 
   /// Render shield effect during invulnerability - Neon Outline Glow only
   void _renderShieldEffect(Canvas canvas) {
-    final center = Offset(size.x / 2, size.y / 2); // Center of the jet sprite
-    final pulsePhase = (_invulnerabilityTime * 3.0) % (2 * math.pi); // 3 pulses per second
+    // ✅ REFACTOR v1.7.0 Phase 2: Use InvulnerabilityBehavior for animation timing
+    final center = Offset(size.x / 2, size.y / 2);
+    final timeRemaining = _invulnerabilityBehavior.timeRemaining;
+    final pulsePhase = (timeRemaining * 3.0) % (2 * math.pi); // 3 pulses per second
     final pulseIntensity = (math.sin(pulsePhase) * 0.3 + 0.7); // Pulse between 0.4 and 1.0
     
     // Always use Neon Outline Glow (Type 2)
@@ -485,88 +471,21 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     }
   }
   
-  /// Render damage effect with cracks and smoke
-  void _renderDamageEffect(Canvas canvas, double intensity, Color damageColor) {
-    // Damage overlay tint (static damage appearance)
-    canvas.saveLayer(
-      size.toRect(),
-      Paint()..color = damageColor.withValues(alpha: intensity * 0.2),
-    );
-    canvas.restore();
-    
-    // Procedural damage cracks if no assets available
-    _drawProceduralDamage(canvas, intensity, damageColor);
-  }
-  
-  // Shield effect disabled for now
-  
-  /// Draw procedural damage effects as fallback
-  void _drawProceduralDamage(Canvas canvas, double intensity, Color damageColor) {
-    final rect = size.toRect();
-    final random = math.Random(42); // Fixed seed for consistent cracks
-    
-    // Draw crack lines
-    final crackPaint = Paint()
-      ..color = damageColor.withValues(alpha: intensity * 0.7)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-    
-    for (int i = 0; i < (intensity * 5).toInt(); i++) {
-      final start = Offset(
-        random.nextDouble() * rect.width,
-        random.nextDouble() * rect.height,
-      );
-      final end = Offset(
-        start.dx + (random.nextDouble() - 0.5) * 20,
-        start.dy + (random.nextDouble() - 0.5) * 20,
-      );
-      
-      canvas.drawLine(start, end, crackPaint);
-    }
-  }
+  // ✅ USER REQUEST: Removed _renderDamageEffect and _drawProceduralDamage methods
+  // No dark shading/tint needed - only shield effect for invulnerability
   
   @override
   void update(double dt) {
-    // Fire system disabled
+    // ✅ REFACTOR v1.7.0 Phase 2: Invulnerability and damage animations now handled by behaviors!
+    // Behaviors automatically update in their update() methods via Flame component tree
     
-    // Update invulnerability system
-    if (_isInvulnerable) {
-      _invulnerabilityTime += dt;
-      if (_invulnerabilityTime >= GameConfig.invulnerabilityDuration) {
-        setInvulnerable(false); // Use the method to ensure proper state transition
-      }
-    }
-    
-    // Update damage overlay animations
-    _updateDamageAnimations(dt);
+    // Sync invulnerability state to damage visualization
+    _damageVisualizationBehavior.setInvulnerable(_invulnerabilityBehavior.isInvulnerable);
     
     if (_isPlaying) {
       updatePlaying(dt);
     } else {
       updateWaiting(dt);
-    }
-  }
-  
-  /// Update damage overlay animations
-  void _updateDamageAnimations(double dt) {
-    // Update damage flash timer
-    if (_damageFlashTime > 0) {
-      _damageFlashTime -= dt;
-      if (_damageFlashTime <= 0) {
-        _damageFlashTime = 0;
-      }
-    }
-    
-    // Shield pulse animation removed
-  }
-  
-  /// Update damage state when invulnerability ends
-  void _updateDamageStateFromInvulnerability() {
-    // Apply pending damage state if available, otherwise default to healthy
-    if (_damageState == JetDamageState.invulnerable) {
-      _damageState = _pendingDamageState ?? JetDamageState.healthy;
-      _pendingDamageState = null; // Clear pending state
-      safePrint('🛡️ Applied pending damage state: ${_damageState.name}');
     }
   }
   
@@ -577,10 +496,8 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
   }
   
   void updatePlaying(double dt) {
-    velocity.y += GameConfig.gravity * dt;
-    
-    // 🔥 BLOCKBUSTER: Apply velocity limits for better control
-    velocity.y = velocity.y.clamp(-GameConfig.maxFallSpeed, GameConfig.maxFallSpeed);
+    // ✅ REFACTOR v1.7.0 Phase 2: Gravity is now handled by GravityBehavior automatically!
+    // No need for manual gravity application - behavior updates velocity in its update() method
     
     position.y += velocity.y * dt;
     
@@ -592,7 +509,7 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
       position.y = halfSize;
       velocity.y = 0;
       // 🔥 BLOCKBUSTER: Top screen collision should also trigger collision (like bottom boundary)
-      if (!_isInvulnerable && _isPlaying) {
+      if (!_invulnerabilityBehavior.isInvulnerable && _isPlaying) {
         _handleTopBoundaryCollision();
       }
     }
@@ -604,14 +521,18 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
       position.y = groundLevel;
       velocity.y = 0;
       // 🔥 BLOCKBUSTER: Trigger ground collision ONLY if not invulnerable and not already triggered
-      if (!_isInvulnerable && _isPlaying) {
+      if (!_invulnerabilityBehavior.isInvulnerable && _isPlaying) {
         _handleGroundCollision();
       }
     }
   }
   
   void jump() {
-    velocity.y = GameConfig.jumpVelocity;
+    // ✅ REFACTOR v1.7.0 Phase 2: Jump is now handled by JumpBehavior!
+    _jumpBehavior.jump();
+    
+    // ✅ REFACTOR v1.7.0 Phase 3: Visual effects removed per user request
+    // (Previously had squash/stretch and rotation effects)
   }
   
   void startPlaying() {
@@ -621,68 +542,26 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
   
   void stopPlaying() {
     _isPlaying = false;
-    velocity = Vector2.zero(); // Stop all movement
+    velocity.setZero(); // Stop all movement (use setZero() to preserve reference for behaviors)
     safePrint('🛑 Enhanced Jet Player stopped');
   }
   
+  /// ✅ SIMPLIFIED: Set invulnerability (after crash / after continue)
+  /// Only tracks invulnerability - no damage states needed
   void setInvulnerable([bool invulnerable = true]) {
-    _isInvulnerable = invulnerable;
+    _invulnerabilityBehavior.setInvulnerable(invulnerable);
+    _damageVisualizationBehavior.setInvulnerable(invulnerable);
+    
     if (invulnerable) {
-      _invulnerabilityTime = 0.0;
-      _damageState = JetDamageState.invulnerable; // Show shield effect
       safePrint('🛡️ Neon Shield activated - invulnerable for ${GameConfig.invulnerabilityDuration}s');
     } else {
-      // When invulnerability ends, return to appropriate damage state
-      _updateDamageStateFromInvulnerability();
       safePrint('🛡️ Neon Shield deactivated - vulnerable again');
     }
   }
   
-  /// Set damage state based on remaining lives (GAME INTEGRATION POINT)
-  void setDamageStateFromLives(int remainingLives) {
-    final newDamageState = _getDamageStateForLives(remainingLives);
-    
-    // CRITICAL: Always show damage flash immediately, even during invulnerability
-    if (newDamageState == JetDamageState.damaged || newDamageState == JetDamageState.critical) {
-      _triggerDamageFlash(); // Show immediate visual feedback
-    }
-    
-    if (_isInvulnerable) {
-      // Store the target damage state for when invulnerability ends
-      _pendingDamageState = newDamageState;
-      safePrint('💥 Damage state deferred during invulnerability: ${_pendingDamageState?.name} ($remainingLives lives remaining)');
-      return;
-    }
-    
-    _damageState = newDamageState;
-    safePrint('💥 Jet damage state: ${_damageState.name} ($remainingLives lives remaining)');
-  }
-  
-  /// Get appropriate damage state for given lives (helper method)
-  JetDamageState _getDamageStateForLives(int remainingLives) {
-    switch (remainingLives) {
-      case 3:
-        return JetDamageState.healthy;
-      case 2:
-        return JetDamageState.damaged;
-      case 1:
-        return JetDamageState.critical;
-      default:
-        return JetDamageState.critical; // Game over state
-    }
-  }
-  
-  /// Trigger damage flash effect
-  void _triggerDamageFlash() {
-    _damageFlashTime = 0.8; // Flash for longer to be more noticeable
-  }
-  
-  /// Heal the jet (when lives are restored)
-  void healJet() {
-    _damageState = JetDamageState.healthy;
-    _damageFlashTime = 0.0;
-    safePrint('💚 Jet healed to healthy state');
-  }
+  /// ✅ SIMPLIFIED: Removed healJet() and setDamageStateFromLives()
+  /// Health is tracked by GameStateManager.lives and displayed in HUD
+  /// Jet appearance is ALWAYS normal (no visual damage states)
   
   /// Update environment theme (automatic) - does NOT change jet skin
   Future<void> updateEnvironmentTheme(GameTheme newTheme) async {
@@ -705,7 +584,8 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     }
   }
   
-  bool get isInvulnerable => _isInvulnerable;
+  // ✅ REFACTOR v1.7.0 Phase 2: Use behaviors for state queries
+  bool get isInvulnerable => _invulnerabilityBehavior.isInvulnerable;
   bool get isUsingImageAssets => _usingImageAssets;
   JetSkin get currentSkin => _currentSkin;
   GameTheme get environmentTheme => _environmentTheme;
@@ -714,33 +594,23 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
   void reset(Vector2 newPosition, GameTheme newEnvironmentTheme) {
     position = newPosition;
     _environmentTheme = newEnvironmentTheme;
-    velocity = Vector2.zero();
+    velocity.setZero(); // Use setZero() to preserve reference for behaviors
     _isPlaying = false;
-    _isInvulnerable = false;
-    _invulnerabilityTime = 0.0;
     _bobTime = 0.0;
     _startY = newPosition.y;
     
-    // Reset damage system to healthy state
-    _damageState = JetDamageState.healthy;
-    _pendingDamageState = null;
-    _damageFlashTime = 0.0;
-          // Shield pulse reset removed
+    // ✅ SIMPLIFIED: Reset behaviors (jet always healthy, just clear invulnerability)
+    _invulnerabilityBehavior.setInvulnerable(false);
+    _damageVisualizationBehavior.reset(); // Reset to healthy
     
     // Reload sprite for new environment (but keep purchased skin)
     _loadJetSprite();
   }
   
-  /// Update invulnerability - backward compatibility
+  /// @Deprecated - invulnerability handled by behavior now
+  @Deprecated('Invulnerability is now handled automatically by InvulnerabilityBehavior')
   void updateInvulnerability(double dt) {
-    // CRITICAL: This method should NOT be used - invulnerability is handled internally
-    // But if called, ensure it uses proper setInvulnerable method for shield sync
-    if (_isInvulnerable) {
-      _invulnerabilityTime += dt;
-      if (_invulnerabilityTime >= GameConfig.invulnerabilityDuration) {
-        setInvulnerable(false); // ✅ Use proper method to sync shield
-      }
-    }
+    // No-op: Behavior handles this automatically
   }
   
   /// 🔥 BLOCKBUSTER: Handle ground collision properly
@@ -785,7 +655,7 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     }
     
     // Ignore collision if invulnerable
-    if (_isInvulnerable) {
+    if (_invulnerabilityBehavior.isInvulnerable) {
       safePrint('🛡️ Jet is invulnerable - ignoring collision with ${other.runtimeType}');
       return;
     }
@@ -812,9 +682,6 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     }
   }
   
-  @override
-  void onCollisionEnd(PositionComponent other) {
-    super.onCollisionEnd(other);
-    // No action needed on collision end for now
-  }
+  // ✅ REFACTOR v1.7.0: onCollisionEnd removed - unnecessary override
+  // (was only calling super with no additional logic)
 }

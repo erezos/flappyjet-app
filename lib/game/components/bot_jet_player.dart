@@ -25,7 +25,9 @@ String _getBotJetSpriteFileName(String botJetSkin) {
   return botToSpriteMap[botJetSkin] ?? botJetSkin;  // Use skin name directly if not in map
 }
 
-class BotJetPlayer extends SpriteComponent with HasGameRef {
+/// ✅ REFACTOR v1.7.0: Using HasGameReference instead of deprecated HasGameRef
+/// Note: Property name changed from `gameRef` to `game`
+class BotJetPlayer extends SpriteComponent with HasGameReference {
   final String skinId;
   final double difficulty; // 0.0 = easy, 1.0 = hard
   
@@ -59,17 +61,17 @@ class BotJetPlayer extends SpriteComponent with HasGameRef {
     safePrint('🤖 Loading bot jet skin: $skinId -> $skinPath');
     
     try {
-      sprite = await gameRef.loadSprite(skinPath);
+      sprite = await game.loadSprite(skinPath);
       safePrint('🤖 ✅ Bot jet skin loaded successfully: $actualSkinName');
     } catch (e) {
       safePrint('🤖 ❌ Failed to load bot skin: $e, using fallback');
       // Use sky_jet as final fallback
-      sprite = await gameRef.loadSprite('jets/sky_jet.png');
+      sprite = await game.loadSprite('jets/sky_jet.png');
     }
     
     // Set size and initial position
     size = Vector2(botSize, botSize);
-    position = Vector2(botXPosition, gameRef.size.y / 2);
+    position = Vector2(botXPosition, game.size.y / 2);
     anchor = Anchor.center;
     
     // Adjust jump interval based on difficulty
@@ -93,7 +95,7 @@ class BotJetPlayer extends SpriteComponent with HasGameRef {
     
     // Keep bot within bounds
     final minY = botSize / 2;
-    final maxY = gameRef.size.y - 50 - (botSize / 2); // 50 = ground height
+    final maxY = game.size.y - 50 - (botSize / 2); // 50 = ground height
     
     if (position.y < minY) {
       position.y = minY;
@@ -112,7 +114,7 @@ class BotJetPlayer extends SpriteComponent with HasGameRef {
     _timeSinceLastJump += dt;
     
     // Calculate target Y position (center of screen)
-    _targetY = gameRef.size.y / 2;
+    _targetY = game.size.y / 2;
     
     // Jump if:
     // 1. Enough time has passed since last jump
@@ -162,7 +164,7 @@ class BotJetPlayer extends SpriteComponent with HasGameRef {
     _isActive = true;
     _verticalVelocity = 0;
     _timeSinceLastJump = 0;
-    position.y = gameRef.size.y / 2;
+    position.y = game.size.y / 2;
   }
 }
 

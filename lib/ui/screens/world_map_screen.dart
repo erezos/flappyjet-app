@@ -163,7 +163,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -178,14 +178,14 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.2),
-                  Colors.white.withOpacity(0.1),
+                  Colors.white.withValues(alpha: 0.2),
+                  Colors.white.withValues(alpha: 0.1),
                 ],
               ),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -230,7 +230,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.red.withOpacity(0.4),
+                  color: Colors.red.withValues(alpha: 0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -435,7 +435,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 2,
                   offset: const Offset(0, 1),
                 ),
@@ -643,7 +643,7 @@ class _HexagonalLevelNodeState extends State<_HexagonalLevelNode>
                   CustomPaint(
                     size: const Size(70, 70),
                     painter: _HexagonGlowPainter(
-                      color: Colors.amber.withOpacity(0.4),
+                      color: Colors.amber.withValues(alpha: 0.4),
                       blurRadius: 12,
                     ),
                   ),
@@ -675,7 +675,7 @@ class _HexagonalLevelNodeState extends State<_HexagonalLevelNode>
                         border: Border.all(color: Colors.white, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -721,7 +721,7 @@ class _HexagonBadgePainter extends CustomPainter {
     // Draw shadow (bottom hexagon, slightly offset)
     final shadowPath = _createHexagonPath(center + const Offset(0, 3), radius);
     final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.4)
+      ..color = Colors.black.withValues(alpha: 0.4)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawPath(shadowPath, shadowPaint);
 
@@ -737,7 +737,7 @@ class _HexagonBadgePainter extends CustomPainter {
 
     // Draw inner border (lighter)
     final innerBorderPaint = Paint()
-      ..color = Colors.white.withOpacity(isUnlocked ? 0.3 : 0.1)
+      ..color = Colors.white.withValues(alpha: isUnlocked ? 0.3 : 0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     final innerPath = _createHexagonPath(center, radius - 3);
@@ -764,8 +764,8 @@ class _HexagonBadgePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.white.withOpacity(isUnlocked ? 0.5 : 0.2),
-          Colors.white.withOpacity(0.05),
+          Colors.white.withValues(alpha: isUnlocked ? 0.5 : 0.2),
+          Colors.white.withValues(alpha: 0.05),
         ],
       ).createShader(Rect.fromCircle(center: center, radius: radius));
     canvas.drawPath(shinePath, shinePaint);

@@ -416,10 +416,10 @@ class DailyStreakManager extends ChangeNotifier {
     _currentStreak = 0;
     _cycleStartDate = DateTime.now();
     
-    // CRITICAL FIX: Reset claimed status for new cycle
-    // The user just completed Day 7, but now we're starting a new cycle
-    // so they should be able to claim Day 1 of the new cycle
-    _claimedToday = false;
+    // ✅ CRITICAL FIX: DO NOT reset _claimedToday here!
+    // The user just claimed Day 7 TODAY, so _claimedToday should remain true.
+    // It will be reset to false by _checkDailyReset() when the next day arrives.
+    // Resetting it here would allow double-claiming on the same day (Day 7 + Day 1).
     
     safePrint('🎉 Completed cycle $_currentCycle! Starting new cycle with $_currentCycleRewardSet rewards');
     

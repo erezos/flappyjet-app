@@ -119,10 +119,10 @@ class _CloudConnectionWidgetState extends State<CloudConnectionWidget>
         decoration: BoxDecoration(
           color: Color(0xFF1a1a2e),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.orange.withOpacity(0.3), width: 2),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -141,7 +141,7 @@ class _CloudConnectionWidgetState extends State<CloudConnectionWidget>
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.2),
+                      color: Colors.orange.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.orange, width: 2),
                     ),
@@ -217,9 +217,9 @@ class _CloudConnectionWidgetState extends State<CloudConnectionWidget>
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -310,9 +310,9 @@ class _CloudConnectionWidgetState extends State<CloudConnectionWidget>
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -127,9 +127,9 @@ class _AnonymousStatusWidgetState extends State<AnonymousStatusWidget>
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: _getStatusColor().withOpacity(0.2),
+          color: _getStatusColor().withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _getStatusColor().withOpacity(0.5)),
+          border: Border.all(color: _getStatusColor().withValues(alpha: 0.5)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -171,7 +171,7 @@ class _AnonymousStatusWidgetState extends State<AnonymousStatusWidget>
       decoration: BoxDecoration(
         color: Color(0xFF2a2a3e),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _getStatusColor().withOpacity(0.3)),
+        border: Border.all(color: _getStatusColor().withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,7 +246,7 @@ class _AnonymousStatusWidgetState extends State<AnonymousStatusWidget>
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.2),
+                      color: Colors.green.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

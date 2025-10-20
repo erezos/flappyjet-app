@@ -1,6 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flame/collisions.dart'; // ✅ Flame collision system
+// ✅ REFACTOR v1.7.0: Collision detection now handled by HasCollisionDetection mixin (removed unused import)
 import 'package:flutter/material.dart';
 import '../core/debug_logger.dart';
 import 'systems/adaptive_quality.dart';
@@ -12,7 +12,7 @@ import 'systems/difficulty_system.dart';
 import 'systems/leaderboard_manager.dart';
 import 'systems/lightweight_performance_timer.dart';
 import 'components/parallax_background.dart';
-import 'components/dynamic_obstacle.dart';
+// ✅ REFACTOR v1.7.0: DynamicObstacle import removed - not used in this file (managed by ObstacleManager)
 import 'systems/jet_effects_system.dart'; // 🔥 EPIC ENGINE FIRE EFFECTS
 import 'components/jet_player.dart';
 import 'components/bot_jet_player.dart'; // 🤖 BOT OPPONENT
@@ -31,7 +31,7 @@ import '../core/analytics/comprehensive_analytics_manager.dart';
 
 // Extracted modules
 import 'systems/game_state_manager.dart';
-import 'systems/collision_system.dart';
+// ✅ AUDIT FIX: collision_system.dart removed - fully replaced by Flame's native collision detection
 import 'systems/obstacle_manager.dart';
 import 'systems/celebration_system.dart';
 import 'systems/theme_manager.dart';
@@ -68,7 +68,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   // Extracted modules - Initialize immediately to avoid late initialization errors
   final GameStateManager _gameStateManager = GameStateManager();
-  late CollisionSystem _collisionSystem;
+  // ✅ AUDIT FIX: CollisionSystem removed - using Flame's HasCollisionDetection mixin
   late ObstacleManager _obstacleManager;
   late CelebrationSystem _celebrationSystem;
   late ThemeManager _themeManager;
@@ -105,10 +105,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   // PUBLIC METHODS for UI tap handling
   Future<void> handleTap() async {
-    safePrint(
-      '🎯 TAP HANDLED! Game state - waiting: ${_gameStateManager.isWaitingToStart}, gameOver: ${_gameStateManager.isGameOver}',
-    );
-
     if (_gameStateManager.isWaitingToStart) {
       // 🎯 STORY MODE: No heart consumption on game start
       // Hearts are only consumed on crashes in story mode
@@ -125,11 +121,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       safePrint('🎮 Starting game from tap...');
       _handleGameStart();
     } else if (!_gameStateManager.isGameOver) {
-      // Make the jet jump (🔥 BLOCKBUSTER fire effect triggered automatically!)
-      safePrint('🚀 Making jet jump...');
+      // Make the jet jump
       _jump();
-    } else {
-      safePrint('⚠️ Tap ignored - game over state');
     }
   }
 
@@ -190,8 +183,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Game state manager is already initialized, just load persisted data
     await _gameStateManager.loadPersistedData();
 
-    // Initialize collision system
-    _collisionSystem = CollisionSystem();
+    // ✅ AUDIT FIX: CollisionSystem initialization removed - using Flame's HasCollisionDetection mixin
+    // Collision detection is now automatic via the mixin added to FlappyGame class
 
     // Initialize obstacle manager
     _obstacleManager = ObstacleManager();
@@ -424,11 +417,12 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Update obstacle manager
     _obstacleManager.update(dt, _gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
 
-    // Check scoring
-    final scoredObstacles = _obstacleManager.checkScoring(_jet.position);
-    for (final obstacle in scoredObstacles) {
-      _handleScore(obstacle);
-    }
+    // ❌ DEPRECATED: Scoring now handled via Flame collision detection (ScoreZone)
+    // Old manual scoring system commented out to prevent double-counting
+    // final scoredObstacles = _obstacleManager.checkScoring(_jet.position);
+    // for (final obstacle in scoredObstacles) {
+    //   _handleScore(obstacle);
+    // }
 
     // Check collisions
     _checkCollisions();
@@ -439,46 +433,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
         _obstacleManager.addObstacleToGame(obstacle, this);
       }
     }
-  }
-
-  /// Handle scoring when jet passes obstacle
-  void _handleScore(DynamicObstacle obstacle) {
-    _gameStateManager.updateScore(_gameStateManager.score + 1);
-    _hud.updateScore(_gameStateManager.score);
-
-    // 🤖 BOT BATTLE: Make bot score as well (with slight delay/randomness)
-    if (_botJet != null && _botJet!.isActive) {
-      // Bot has a chance to score based on difficulty
-      // This simulates the bot passing obstacles
-      _botJet!.incrementScore();
-    }
-
-    // 🎯 STORY MODE: Notify wrapper that obstacle was passed
-    if (isStoryMode && onObstaclePassed != null) {
-      safePrint('🎯 STORY MODE: Calling onObstaclePassed callback (score: ${_gameStateManager.score})');
-      onObstaclePassed!();
-    }
-
-        // 🎨 UPDATE DYNAMIC BACKGROUND FOR NEW SCORE
-    _background.updateForScore(_gameStateManager.score);
-
-        // Celebration policy: single source of truth
-    _celebrationSystem.handleScoreCelebrations(_gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
-
-        // 🎯 CHECK FOR DIFFICULTY PHASE TRANSITIONS
-    _checkPhaseTransition(_gameStateManager.score);
-
-        // Flame Audio: Play score sound
-    _audioManager.playScore();
-
-        // Celebration particles (modernized)
-    _celebrationSystem.createCelebrationBurst(_jet.position, _gameStateManager.score);
-
-        // Check for theme transitions
-        _checkThemeTransition();
-
-        // Check for achievements
-    _checkAchievement(_gameStateManager.score);
   }
 
   /// Check collisions between jet and obstacles
@@ -526,11 +480,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       }
     }
 
-    // ✅ Check boundary collisions (ceiling/ground) - Flame doesn't handle world boundaries automatically
-    // Ceiling collision
-    if (_collisionSystem.checkCeilingCollision(_jet)) {
-      _collisionSystem.handleCeilingCollision(_jet);
-    }
+    // ✅ REFACTOR v1.7.0: Boundary collisions now handled in JetPlayer component
+    // Ceiling collision is checked in JetPlayer._handleTopBoundaryCollision()
+    // Ground collision is checked below
     
     // Ground collision (trigger game over)
     if (_jet.position.y > size.y - 50 - (GameConfig.jetSize / 2)) {
@@ -548,8 +500,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Flame Audio: Play collision sound
     _audioManager.playCollision();
 
-    // UNIVERSAL DAMAGE SYSTEM INTEGRATION 🔥
-    _jet.setDamageStateFromLives(_gameStateManager.lives);
+    // ✅ SIMPLIFIED: Removed setDamageStateFromLives() - jet always looks normal
+    // Health is tracked by GameStateManager.lives and displayed in HUD
 
     // Impact particles (crash-specific, not celebratory)
     _celebrationSystem.createCrashBurst(_jet.position);
@@ -812,7 +764,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Set jet state
     _jet.setInvulnerable(true);
-    _jet.setDamageStateFromLives(_gameStateManager.lives);
+    // ✅ SIMPLIFIED: Removed setDamageStateFromLives() - jet always looks normal
 
     // Remove game over screen if it exists
     if (_gameOverScreen != null) {
@@ -906,7 +858,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _jet.priority = 10;
     add(_jet);
 
-    _jet.setDamageStateFromLives(_gameStateManager.lives);
+    // ✅ SIMPLIFIED: Removed setDamageStateFromLives() - jet always looks normal
 
     // Reset HUD
     _hud.updateScore(_gameStateManager.score);
@@ -968,18 +920,26 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       }
     }();
 
-    // Keep current position; just stop vertical motion and resume play
-    _jet.velocity = Vector2.zero();
-    _jet.startPlaying();
-    _jet.setDamageStateFromLives(_gameStateManager.lives);
+    // ✅ Move jet to safe starting position FIRST!
+    // This prevents immediate collision after continue
+    _jet.position = Vector2(
+      size.x * 0.2, // Same as initial position - 20% from left edge
+      size.y * 0.5, // Center vertically
+    );
+    // ✅ CRITICAL FIX: Use setZero() instead of creating new Vector2!
+    // Behaviors hold a reference to the original velocity vector
+    _jet.velocity.setZero();
     
-    // CRITICAL FIX: Sync jet invulnerability with game state
+    // ✅ Set invulnerability (jet always looks normal, no healing needed)
     _jet.setInvulnerable(_gameStateManager.isInvulnerable);
-
+    
+    // Start playing again
+    _jet.startPlaying();
+    
     // Update HUD
     _hud.updateLives(_gameStateManager.lives);
 
-    // 🎵 CRITICAL FIX: Resume theme music when continuing game
+    // 🎵 Resume theme music when continuing game
     () async {
       try {
         final themeMusic = _themeManager.getThemeMusic(_gameStateManager.currentTheme);

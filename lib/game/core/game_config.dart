@@ -56,7 +56,7 @@ class GameConfig {
   // === LIFE SYSTEM ===
   static const int maxLives = 3; // Maximum lives
   static const double invulnerabilityDuration =
-      5.0; // PRODUCTION: Extended recovery time for better player experience
+      8.0; // PRODUCTION: Extended recovery time for better player experience (increased from 5.0 to give players more time after continue)
   static const double heartFlashDuration = 0.5; // Heart loss animation duration
   static const int lifeRegenIntervalSeconds = 10 * 60; // 10 minutes per heart
 

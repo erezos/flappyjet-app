@@ -1,103 +1,89 @@
-/// DamageVisualizationBehavior Tests (TDD Red Phase)
+/// ✅ SIMPLIFIED: DamageVisualizationBehavior Tests
 /// 
-/// Tests written BEFORE implementation
-/// Expected: Tests will FAIL initially
+/// Tests for simplified behavior that only tracks invulnerability
+/// Health is tracked by GameStateManager.lives and displayed in HUD
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flame/components.dart';
 import '../../../lib/game/behaviors/damage_visualization_behavior.dart';
 import '../../../lib/game/components/jet_player.dart';
 
 void main() {
-  group('DamageVisualizationBehavior', () {
+  group('DamageVisualizationBehavior (Simplified)', () {
     
-    test('updates damage state based on lives count', () {
+    test('starts in healthy state', () {
       final behavior = DamageVisualizationBehavior();
       
-      // 3 hearts = healthy
-      behavior.updateFromLives(3);
+      expect(behavior.currentState, JetDamageState.healthy);
+      expect(behavior.isInvulnerable, false);
+    });
+    
+    test('switches to invulnerable state when set', () {
+      final behavior = DamageVisualizationBehavior();
+      
+      // Start healthy
       expect(behavior.currentState, JetDamageState.healthy);
       
-      // 2 hearts = damaged
-      behavior.updateFromLives(2);
-      expect(behavior.currentState, JetDamageState.damaged);
-      
-      // 1 heart = critical
-      behavior.updateFromLives(1);
-      expect(behavior.currentState, JetDamageState.critical);
-    });
-    
-    test('triggers flash animation on damage', () {
-      final behavior = DamageVisualizationBehavior();
-      
-      // Initially not flashing
-      expect(behavior.isFlashing, false);
-      
-      // Take damage
-      behavior.updateFromLives(2);
-      
-      // Should trigger flash
-      expect(behavior.isFlashing, true);
-    });
-    
-    test('flash animation completes after duration', () {
-      final behavior = DamageVisualizationBehavior(
-        flashDuration: 0.2, // 200ms
-      );
-      
-      // Trigger flash
-      behavior.updateFromLives(2);
-      expect(behavior.isFlashing, true);
-      
-      // Update for half duration
-      behavior.update(0.1);
-      expect(behavior.isFlashing, true, reason: 'Should still be flashing');
-      
-      // Update past duration
-      behavior.update(0.15); // Total 0.25s > 0.2s
-      expect(behavior.isFlashing, false, reason: 'Flash should complete');
-    });
-    
-    test('pending damage state applies after invulnerability ends', () {
-      final behavior = DamageVisualizationBehavior();
-      
-      // Take damage while invulnerable
+      // Activate invulnerability
       behavior.setInvulnerable(true);
-      behavior.updateFromLives(2);
       
-      // Damage state should be pending
-      expect(behavior.hasPendingState, true);
+      // State should change to invulnerable for shield rendering
+      expect(behavior.currentState, JetDamageState.invulnerable);
+      expect(behavior.isInvulnerable, true);
+    });
+    
+    test('returns to healthy state when invulnerability ends', () {
+      final behavior = DamageVisualizationBehavior();
       
-      // End invulnerability
+      // Activate invulnerability
+      behavior.setInvulnerable(true);
+      expect(behavior.currentState, JetDamageState.invulnerable);
+      
+      // Deactivate invulnerability
       behavior.setInvulnerable(false);
       
-      // Pending state should now apply
-      expect(behavior.currentState, JetDamageState.damaged);
-      expect(behavior.hasPendingState, false);
+      // Should return to healthy
+      expect(behavior.currentState, JetDamageState.healthy);
+      expect(behavior.isInvulnerable, false);
     });
     
-    test('provides opacity for flash effect', () {
-      final behavior = DamageVisualizationBehavior(
-        flashDuration: 0.2,
-      );
+    test('reset returns to healthy state', () {
+      final behavior = DamageVisualizationBehavior();
       
-      behavior.updateFromLives(2); // Trigger flash
+      // Set invulnerable
+      behavior.setInvulnerable(true);
+      expect(behavior.currentState, JetDamageState.invulnerable);
       
-      // At start of flash
-      final initialOpacity = behavior.flashOpacity;
-      expect(initialOpacity, lessThan(1.0), reason: 'Should start fading');
+      // Reset
+      behavior.reset();
       
-      // Early in flash (avoid exact midpoint where sine peaks)
-      behavior.update(0.05);
-      final earlyOpacity = behavior.flashOpacity;
-      expect(earlyOpacity, greaterThan(initialOpacity), reason: 'Opacity should increase');
-      expect(earlyOpacity, lessThan(1.0), reason: 'Should still be flashing');
+      // Should be healthy again
+      expect(behavior.currentState, JetDamageState.healthy);
+      expect(behavior.isInvulnerable, false);
+    });
+    
+    test('does not change state when setting same invulnerability value', () {
+      final behavior = DamageVisualizationBehavior();
       
-      // After flash completes
-      behavior.update(0.2);
-      expect(behavior.flashOpacity, 1.0, reason: 'Should return to full opacity');
+      // Initially healthy and not invulnerable
+      expect(behavior.currentState, JetDamageState.healthy);
+      expect(behavior.isInvulnerable, false);
+      
+      // Set invulnerable to false (already false)
+      behavior.setInvulnerable(false);
+      
+      // Should remain healthy
+      expect(behavior.currentState, JetDamageState.healthy);
+      
+      // Now activate invulnerability
+      behavior.setInvulnerable(true);
+      expect(behavior.currentState, JetDamageState.invulnerable);
+      
+      // Set invulnerable to true (already true)
+      behavior.setInvulnerable(true);
+      
+      // Should remain invulnerable
+      expect(behavior.currentState, JetDamageState.invulnerable);
     });
   });
 }
-

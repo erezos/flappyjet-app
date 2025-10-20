@@ -190,7 +190,7 @@ class _ZoneCompletionCelebrationScreenState
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A237E).withOpacity(0.9),
+        color: const Color(0xFF1A237E).withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: Colors.amber,
@@ -198,12 +198,12 @@ class _ZoneCompletionCelebrationScreenState
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withOpacity(0.5),
+            color: Colors.amber.withValues(alpha: 0.5),
             blurRadius: 40,
             spreadRadius: 10,
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -295,10 +295,10 @@ class _ZoneCompletionCelebrationScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -372,7 +372,7 @@ class _ZoneCompletionCelebrationScreenState
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 8,
-                shadowColor: Colors.amber.withOpacity(0.5),
+                shadowColor: Colors.amber.withValues(alpha: 0.5),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

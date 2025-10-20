@@ -288,6 +288,16 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
             safePrint('🎯 STORY MODE: Continue with ad requested');
             
             await monetization.showRewardedAdForExtraLife(
+              onAdStart: () {
+                // 🎯 CRITICAL: Pause Flame game engine when ad starts
+                _game.pauseForAd();
+                safePrint('⏸️ STORY MODE: Game engine paused for ad');
+              },
+              onAdEnd: () {
+                // 🎯 CRITICAL: Resume Flame game engine when ad ends
+                _game.resumeFromAd();
+                safePrint('▶️ STORY MODE: Game engine resumed after ad');
+              },
               onReward: () async {
                 safePrint('🎯 STORY MODE: Ad reward granted - continuing game');
                 
@@ -296,7 +306,22 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                 await livesManager.addLife(1);
                 safePrint('💖 Story Mode: Restored 1 heart after ad continue (now: ${livesManager.currentLives})');
                 
+                // 🎮 CRITICAL FIX: Force UI rebuild FIRST to remove overlay, THEN continue game
+                // This ensures the game over menu is fully removed before the game resumes
+                if (mounted) {
+                  setState(() {
+                    // Trigger gameOverNotifier update synchronously
+                    // This will cause the overlay builder to rebuild WITHOUT the game over menu
+                  });
+                  
+                  // Wait for the UI to rebuild (2 frames to be safe)
+                  await Future.delayed(const Duration(milliseconds: 50));
+                }
+                
+                // NOW continue the game after the overlay is definitely gone
                 _game.continueGame();
+                
+                safePrint('🎬 Game continued after ad - back in action! Lives=${livesManager.currentLives}, continues remaining: ${_game.continuesRemaining}');
               },
               onAdFailure: () {
                 safePrint('🎯 STORY MODE: Ad failed - staying on game over');
@@ -368,10 +393,23 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       await livesManager.addLife(1);
       safePrint('💖 Story Mode: Restored 1 heart after gem continue (now: ${livesManager.currentLives})');
       
-      // ✅ FIX: Use continueGame instead of resetGame to avoid duplicate jet
+      // 🎮 CRITICAL FIX: Force UI rebuild FIRST to remove overlay, THEN continue game
+      // This ensures the game over menu is fully removed before the game resumes
+      if (mounted) {
+        setState(() {
+          // Trigger gameOverNotifier update synchronously
+          // This will cause the overlay builder to rebuild WITHOUT the game over menu
+        });
+        
+        // Wait for the UI to rebuild (2 frames to be safe)
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      
+      // NOW continue the game after the overlay is definitely gone
       _game.continueGame();
       
       safePrint('🎯 STORY MODE: Purchased continue with 3 gems');
+      safePrint('🎬 Game continued after gem purchase - back in action! Lives=${livesManager.currentLives}');
     } else {
       safePrint('🎯 STORY MODE: Not enough gems (${inventory.gems}/3)');
       _handleGoToStore();
@@ -394,7 +432,7 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
+        color: Colors.black.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white24, width: 2),
       ),

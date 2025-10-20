@@ -110,6 +110,9 @@ class GameStateManager extends ChangeNotifier {
 
     _isGameOver = false;
     gameOverNotifier.value = false;
+    
+    // ✅ CRITICAL FIX: Resume playing state (not waiting!)
+    _isWaitingToStart = false;
 
     // Grant exactly +1 life (up to max). If at 0, restore to 1.
     final int newLives = (_lives <= 0)

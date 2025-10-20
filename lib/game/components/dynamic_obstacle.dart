@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
+// ✅ REFACTOR v1.7.0: Effects import removed (no longer using visual effects per user request)
 import 'package:flame/collisions.dart'; // ✅ REFACTOR v1.7.0: Flame collision system
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
@@ -40,6 +41,12 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     
     // Load appropriate obstacle sprite for current score/difficulty
     await _loadObstacleSprites();
+    
+    // ✅ REFACTOR v1.7.0: Spawn effects removed per user request (no scale animation)
+    
+    // Fade in from invisible using OpacityEffect
+    // Note: This requires the component to be rendered with child components
+    // For now, the scale effect provides sufficient visual feedback
   }
   
   /// Load obstacle sprites based on current difficulty phase
@@ -240,7 +247,7 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     );
     await add(_scoreZone!);
     
-    safePrint('💎 Added Flame hitboxes: Top(w=${_visualWidth}, h=$gapTop), Bottom(w=${_visualWidth}, h=$bottomHeight), ScoreZone(h=${gapBottom - gapTop})');
+    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$gapTop), Bottom(w=$_visualWidth, h=$bottomHeight), ScoreZone(h=${gapBottom - gapTop})');
   }
   
   /// Get the score zone (for Flame collision detection)
@@ -368,4 +375,8 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     final assetPath = VisualAssetManager.getObstacleAsset(currentScore);
     return 'Score: $currentScore, Asset: $assetPath, Gap: $gapSize, Speed: ${speed.toStringAsFixed(1)}';
   }
+  
+  /// ✅ REFACTOR v1.7.0: Removal effects removed per user request
+  /// Obstacles are now removed immediately without fade-out animation
+  // (Previously had OpacityEffect.fadeOut + RemoveEffect)
 }

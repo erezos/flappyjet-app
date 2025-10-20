@@ -68,9 +68,10 @@ class PrizeDistributionService extends ChangeNotifier {
         final tournament = tournamentResult.data!;
 
         // Check if tournament has ended
-        if (tournament.status == 'ended') {
+        // ✅ AUDIT FIX: Use enum comparison instead of string comparison
+        if (tournament.status == TournamentStatus.ended) {
           await _handleTournamentEnded(tournament);
-        } else if (tournament.status == 'active' &&
+        } else if (tournament.status == TournamentStatus.active &&
                    tournament.timeRemaining != null &&
                    tournament.timeRemaining!.inMinutes < 30) {
           // Tournament ending soon - show anticipation

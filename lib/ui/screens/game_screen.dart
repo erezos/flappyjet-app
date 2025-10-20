@@ -21,11 +21,15 @@ import 'store_screen.dart';
 class GameScreen extends StatefulWidget {
   final MonetizationManager monetization;
   final MissionsManager missions;
+  final VoidCallback? onGameScreenOpened; // ✅ CRITICAL FIX: Callback to notify homepage
+  final VoidCallback? onGameScreenClosed; // ✅ CRITICAL FIX: Callback to notify homepage
 
   const GameScreen({
     super.key,
     required this.monetization,
     required this.missions,
+    this.onGameScreenOpened,
+    this.onGameScreenClosed,
   });
 
   @override
@@ -44,6 +48,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       missions: widget.missions,
     );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    
+    // ✅ CRITICAL FIX: Notify homepage that game screen is now active
+    widget.onGameScreenOpened?.call();
   }
   
   @override
@@ -72,6 +79,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    // ✅ CRITICAL FIX: Notify homepage that game screen is closing
+    widget.onGameScreenClosed?.call();
+    
     WidgetsBinding.instance.removeObserver(this);
     // Let the next screen (homepage) manage menu music; do not force-stop here
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

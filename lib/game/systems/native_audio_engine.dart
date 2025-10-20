@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'audio_settings_manager.dart';
+import '../../core/debug_logger.dart'; // ✅ AUDIT FIX: Added for safePrint
 
 /// Audio engine states
 enum AudioEngineState {
@@ -103,7 +104,7 @@ class NativeAudioEngine {
     _state = AudioEngineState.initializing;
     
     try {
-        print('🎵 Initializing Native Audio Engine...');
+        safePrint('🎵 Initializing Native Audio Engine...');
       
       // Initialize settings
       await _settings.initialize();
@@ -120,8 +121,8 @@ class NativeAudioEngine {
         _engineLatency = (result?['latency'] as num?)?.toDouble() ?? 0.0;
         _state = AudioEngineState.ready;
         
-        print('🎵 ✅ Native Audio Engine initialized successfully');
-        print('🎵 📊 Engine latency: ${_engineLatency.toStringAsFixed(1)}ms');
+        safePrint('🎵 ✅ Native Audio Engine initialized successfully');
+        safePrint('🎵 📊 Engine latency: ${_engineLatency.toStringAsFixed(1)}ms');
         
         // Set up method call handler for callbacks
         _channel.setMethodCallHandler(_handleNativeCallback);
@@ -131,7 +132,7 @@ class NativeAudioEngine {
         throw Exception('Native engine initialization failed: ${result?['error']}');
       }
     } catch (e) {
-      print('🎵 ❌ Native Audio Engine initialization failed: $e');
+      safePrint('🎵 ❌ Native Audio Engine initialization failed: $e');
       _state = AudioEngineState.error;
       return false;
     }
@@ -144,7 +145,7 @@ class NativeAudioEngine {
         final trackId = call.arguments['trackId'] as String;
         _loadedTracks[trackId] = true;
         _totalTracksLoaded++;
-        print('🎵 Track loaded: $trackId');
+        safePrint('🎵 Track loaded: $trackId');
         break;
         
       case 'onTrackStarted':
@@ -157,27 +158,27 @@ class NativeAudioEngine {
         
       case 'onMusicStarted':
         // REMOVED: This callback was causing restart loops
-        print('🎵 ⚠️ Unexpected music started callback (should not happen)');
+        safePrint('🎵 ⚠️ Unexpected music started callback (should not happen)');
         break;
         
       case 'onMusicStopped':
-        print('🎵 🛑 Music stopped');
+        safePrint('🎵 🛑 Music stopped');
         break;
         
       case 'onEngineError':
         final error = call.arguments['error'] as String;
-        print('🎵 ❌ Native engine error: $error');
+        safePrint('🎵 ❌ Native engine error: $error');
         break;
         
       default:
-        print('🎵 Unknown callback: ${call.method}');
+        safePrint('🎵 Unknown callback: ${call.method}');
     }
   }
 
   /// Register an audio track for use
   Future<bool> registerTrack(AudioTrack track) async {
     if (!isReady) {
-      print('🎵 ❌ Engine not ready, cannot register track: ${track.id}');
+      safePrint('🎵 ❌ Engine not ready, cannot register track: ${track.id}');
       return false;
     }
 
@@ -193,14 +194,14 @@ class NativeAudioEngine {
 
       if (result == true) {
         _tracks[track.id] = track;
-        print('🎵 ✅ Track registered: ${track.id}');
+        safePrint('🎵 ✅ Track registered: ${track.id}');
         return true;
       } else {
-        print('🎵 ❌ Failed to register track: ${track.id}');
+        safePrint('🎵 ❌ Failed to register track: ${track.id}');
         return false;
       }
     } catch (e) {
-      print('🎵 ❌ Error registering track ${track.id}: $e');
+      safePrint('🎵 ❌ Error registering track ${track.id}: $e');
       return false;
     }
   }
@@ -211,7 +212,7 @@ class NativeAudioEngine {
     
     final track = _tracks[trackId];
     if (track == null) {
-      print('🎵 ❌ Track not found: $trackId');
+      safePrint('🎵 ❌ Track not found: $trackId');
       return false;
     }
 
@@ -223,14 +224,14 @@ class NativeAudioEngine {
 
       if (result == true) {
         if (kDebugMode) {
-          print('🎵 🔊 SFX played: $trackId');
+          safePrint('🎵 🔊 SFX played: $trackId');
         }
         return true;
       }
       return false;
     } catch (e) {
       if (kDebugMode) {
-        print('🎵 ❌ Error playing SFX $trackId: $e');
+        safePrint('🎵 ❌ Error playing SFX $trackId: $e');
       }
       return false;
     }
@@ -242,7 +243,7 @@ class NativeAudioEngine {
     
     final track = _tracks[trackId];
     if (track == null) {
-      print('🎵 ❌ Music track not found: $trackId');
+      safePrint('🎵 ❌ Music track not found: $trackId');
       return false;
     }
 
@@ -254,12 +255,12 @@ class NativeAudioEngine {
       });
 
       if (result == true) {
-        print('🎵 🎼 Music started: $trackId');
+        safePrint('🎵 🎼 Music started: $trackId');
         return true;
       }
       return false;
     } catch (e) {
-      print('🎵 ❌ Error playing music $trackId: $e');
+      safePrint('🎵 ❌ Error playing music $trackId: $e');
       return false;
     }
   }
@@ -271,12 +272,12 @@ class NativeAudioEngine {
     try {
       final result = await _channel.invokeMethod<bool>('stopMusic');
       if (result == true) {
-        print('🎵 🛑 Music stopped');
+        safePrint('🎵 🛑 Music stopped');
         return true;
       }
       return false;
     } catch (e) {
-      print('🎵 ❌ Error stopping music: $e');
+      safePrint('🎵 ❌ Error stopping music: $e');
       return false;
     }
   }
@@ -288,12 +289,12 @@ class NativeAudioEngine {
     try {
       final result = await _channel.invokeMethod<bool>('pauseMusic');
       if (result == true) {
-        print('🎵 ⏸️ Music paused');
+        safePrint('🎵 ⏸️ Music paused');
         return true;
       }
       return false;
     } catch (e) {
-      print('🎵 ❌ Error pausing music: $e');
+      safePrint('🎵 ❌ Error pausing music: $e');
       return false;
     }
   }
@@ -305,12 +306,12 @@ class NativeAudioEngine {
     try {
       final result = await _channel.invokeMethod<bool>('resumeMusic');
       if (result == true) {
-        print('🎵 ▶️ Music resumed');
+        safePrint('🎵 ▶️ Music resumed');
         return true;
       }
       return false;
     } catch (e) {
-      print('🎵 ❌ Error resuming music: $e');
+      safePrint('🎵 ❌ Error resuming music: $e');
       return false;
     }
   }
@@ -325,7 +326,7 @@ class NativeAudioEngine {
       });
       return result == true;
     } catch (e) {
-      print('🎵 ❌ Error setting master volume: $e');
+      safePrint('🎵 ❌ Error setting master volume: $e');
       return false;
     }
   }
@@ -338,7 +339,7 @@ class NativeAudioEngine {
       final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('getStats');
       return Map<String, dynamic>.from(result ?? {});
     } catch (e) {
-      print('🎵 ❌ Error getting performance stats: $e');
+      safePrint('🎵 ❌ Error getting performance stats: $e');
       return {};
     }
   }
@@ -352,9 +353,9 @@ class NativeAudioEngine {
       _state = AudioEngineState.disposed;
       _tracks.clear();
       _loadedTracks.clear();
-      print('🎵 🧹 Native Audio Engine disposed');
+      safePrint('🎵 🧹 Native Audio Engine disposed');
     } catch (e) {
-      print('🎵 ❌ Error disposing audio engine: $e');
+      safePrint('🎵 ❌ Error disposing audio engine: $e');
     }
   }
 }

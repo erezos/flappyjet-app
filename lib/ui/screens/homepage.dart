@@ -751,6 +751,9 @@ class _HomepageState extends State<Homepage>
         builder: (context) => GameScreen(
           monetization: widget.monetization,
           missions: widget.missions,
+          // ✅ CRITICAL FIX: Pass audio context callbacks
+          onGameScreenOpened: () => _audioManager.onGameScreenOpened(),
+          onGameScreenClosed: () => _audioManager.onGameScreenClosed(),
         ),
       ),
     );

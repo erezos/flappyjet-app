@@ -19,6 +19,9 @@ class HomepageAudioManager extends ChangeNotifier {
   bool _hasHandledRouteChange = false; // Prevent repeated route change handling
   bool _isNavigatedAway =
       false; // Track if user has navigated away from homepage
+  
+  // ✅ CRITICAL FIX: Track if game screen is active to prevent audio conflicts
+  bool _gameScreenActive = false;
 
   // UNIFIED AUDIO: Use single FlappyJetAudioManager instance
   late FlappyJetAudioManager _audioManager;
@@ -28,6 +31,21 @@ class HomepageAudioManager extends ChangeNotifier {
   }
 
   bool get isInitialized => _isInitialized;
+  
+  /// ✅ CRITICAL FIX: Register game screen as active audio context
+  void onGameScreenOpened() {
+    safePrint('🎵 🎮 Game screen opened - homepage audio suspended');
+    _gameScreenActive = true;
+    // Let game manage its own audio now
+  }
+  
+  /// ✅ CRITICAL FIX: Unregister game screen, homepage resumes audio control
+  void onGameScreenClosed() {
+    safePrint('🎵 🏠 Game screen closed - homepage audio resumed');
+    _gameScreenActive = false;
+    // Homepage can manage audio again
+    _startMenuMusic(); // Resume menu music
+  }
 
   /// Initialize audio for homepage and start menu music
   Future<void> initializeAudio() async {
@@ -96,8 +114,13 @@ class HomepageAudioManager extends ChangeNotifier {
     if (_disposed) return;
     
     if (isResumed) {
-      safePrint('🎵 App resumed - restarting homepage menu music');
-      _initializeAudio();
+      // ✅ CRITICAL FIX: Only restart menu music if game screen is NOT active!
+      if (!_gameScreenActive) {
+        safePrint('🎵 App resumed - restarting homepage menu music');
+        _initializeAudio();
+      } else {
+        safePrint('🎵 App resumed - game screen active, homepage audio suspended');
+      }
     } else {
       safePrint('🎵 App went to background - pausing all audio');
       _pauseAllAudio();

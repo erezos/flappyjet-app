@@ -91,8 +91,8 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.7),
-              Colors.black.withOpacity(0.9),
+              Colors.black.withValues(alpha: 0.7),
+              Colors.black.withValues(alpha: 0.9),
             ],
           ),
         ),
@@ -112,15 +112,15 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
                     maxHeight: screenSize.height * 0.8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E).withOpacity(0.95),
+                    color: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),
@@ -170,8 +170,8 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            widget.themeColor.withOpacity(0.8),
-            widget.themeColor.withOpacity(0.6),
+            widget.themeColor.withValues(alpha: 0.8),
+            widget.themeColor.withValues(alpha: 0.6),
           ],
         ),
         borderRadius: const BorderRadius.only(
@@ -296,7 +296,7 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
       textAlign: TextAlign.center,
       style: TextStyle(
         fontSize: isVerySmallScreen ? 14 : 16,
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         height: 1.4,
       ),
     );
@@ -321,16 +321,16 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               width: 2,
             ),
           ),
         ).copyWith(
           backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
             if (states.contains(WidgetState.pressed)) {
-              return Colors.white.withOpacity(0.2);
+              return Colors.white.withValues(alpha: 0.2);
             }
-            return Colors.white.withOpacity(0.1);
+            return Colors.white.withValues(alpha: 0.1);
           }),
         ),
         child: Text(
@@ -369,7 +369,7 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       blurRadius: 4,
                       spreadRadius: 1,
                     ),

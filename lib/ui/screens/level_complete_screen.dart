@@ -188,7 +188,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             spreadRadius: 5,
           ),
@@ -233,7 +233,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -261,7 +261,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: (_isReplay ? Colors.lightBlue : Colors.amber).withOpacity(0.2),
+              color: (_isReplay ? Colors.lightBlue : Colors.amber).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: _isReplay ? Colors.lightBlue : Colors.amber,
@@ -320,7 +320,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
                   Text(
                     'Original reward already earned',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
                     ),
@@ -422,13 +422,13 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.red.shade900.withOpacity(0.3),
-            Colors.orange.shade900.withOpacity(0.2),
+            Colors.red.shade900.withValues(alpha: 0.3),
+            Colors.orange.shade900.withValues(alpha: 0.2),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.red.withOpacity(0.5),
+          color: Colors.red.withValues(alpha: 0.5),
           width: 2,
         ),
       ),
@@ -444,7 +444,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.red.withOpacity(0.5),
+                  color: Colors.red.withValues(alpha: 0.5),
                   blurRadius: 12,
                   spreadRadius: 2,
                 ),
@@ -478,7 +478,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Colors.black.withOpacity(0.4),
+                        Colors.black.withValues(alpha: 0.4),
                         Colors.transparent,
                       ],
                     ),
@@ -527,8 +527,8 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                Colors.grey.withOpacity(0.5),
-                Colors.grey.withOpacity(0.1),
+                Colors.grey.withValues(alpha: 0.5),
+                Colors.grey.withValues(alpha: 0.1),
                 Colors.transparent,
               ],
             ),
@@ -546,8 +546,8 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                Colors.grey.withOpacity(0.4),
-                Colors.grey.withOpacity(0.1),
+                Colors.grey.withValues(alpha: 0.4),
+                Colors.grey.withValues(alpha: 0.1),
                 Colors.transparent,
               ],
             ),
@@ -565,8 +565,8 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                Colors.grey.withOpacity(0.6),
-                Colors.grey.withOpacity(0.2),
+                Colors.grey.withValues(alpha: 0.6),
+                Colors.grey.withValues(alpha: 0.2),
                 Colors.transparent,
               ],
             ),
@@ -591,7 +591,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             color: Colors.orange,
             boxShadow: [
               BoxShadow(
-                color: Colors.orange.withOpacity(0.8),
+                color: Colors.orange.withValues(alpha: 0.8),
                 blurRadius: 8,
                 spreadRadius: 2,
               ),
@@ -611,7 +611,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             color: Colors.red,
             boxShadow: [
               BoxShadow(
-                color: Colors.red.withOpacity(0.8),
+                color: Colors.red.withValues(alpha: 0.8),
                 blurRadius: 6,
                 spreadRadius: 2,
               ),
@@ -631,7 +631,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             color: Colors.yellow,
             boxShadow: [
               BoxShadow(
-                color: Colors.yellow.withOpacity(0.8),
+                color: Colors.yellow.withValues(alpha: 0.8),
                 blurRadius: 8,
                 spreadRadius: 2,
               ),

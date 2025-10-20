@@ -148,13 +148,13 @@ class _ZoneSelectorDropdownState extends State<ZoneSelectorDropdown>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
             if (_isExpanded)
               BoxShadow(
-                color: Colors.amber.withOpacity(0.4),
+                color: Colors.amber.withValues(alpha: 0.4),
                 blurRadius: 20,
                 spreadRadius: 3,
               ),
@@ -191,7 +191,7 @@ class _ZoneSelectorDropdownState extends State<ZoneSelectorDropdown>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -242,7 +242,7 @@ class _ZoneSelectorDropdownState extends State<ZoneSelectorDropdown>
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: RotationTransition(
@@ -279,7 +279,7 @@ class _ZoneSelectorDropdownState extends State<ZoneSelectorDropdown>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha: 0.6),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -315,18 +315,18 @@ class _ZoneSelectorDropdownState extends State<ZoneSelectorDropdown>
 
     return Material(
       color: isCurrent
-          ? Colors.amber.withOpacity(0.2)
+          ? Colors.amber.withValues(alpha: 0.2)
           : Colors.transparent,
       child: InkWell(
         onTap: () => _selectZone(zone.id),
-        splashColor: Colors.amber.withOpacity(0.3),
-        highlightColor: Colors.white.withOpacity(0.1),
+        splashColor: Colors.amber.withValues(alpha: 0.3),
+        highlightColor: Colors.white.withValues(alpha: 0.1),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -340,8 +340,8 @@ class _ZoneSelectorDropdownState extends State<ZoneSelectorDropdown>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isUnlocked
-                      ? Colors.green.withOpacity(0.2)
-                      : Colors.grey.withOpacity(0.2),
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.grey.withValues(alpha: 0.2),
                 ),
                 child: Icon(
                   isUnlocked
