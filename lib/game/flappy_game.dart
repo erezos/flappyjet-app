@@ -72,6 +72,14 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   }) {
     safePrint('🎮 CONSTRUCTOR: FlappyGame constructor called!');
     safePrint('🎮 CONSTRUCTOR: Instance created, waiting for Flame lifecycle...');
+    safePrint('🎮 CONSTRUCTOR: isStoryMode=$isStoryMode');
+    safePrint('🎮 CONSTRUCTOR: HasCollisionDetection mixin present: ${this is HasCollisionDetection}');
+  }
+  
+  @override
+  Future<void> get loaded {
+    safePrint('🎮 LIFECYCLE: ⚠️ loaded future accessed - game is loading!');
+    return super.loaded;
   }
   
   @override
