@@ -300,7 +300,13 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     await add(_camera);
     safePrint('📷 PHASE 1: Camera + World added to game');
     
-    // ✅ CRITICAL: World.onLoad() has completed, NOW we can access components
+    // ✅ CRITICAL FIX: Wait for World.onLoad() to complete before accessing components
+    // The add(_camera) only adds the camera, but World.onLoad() runs asynchronously
+    // We need to explicitly wait for the World to be fully mounted
+    await _world.mounted;
+    safePrint('🌍 PHASE 1: World fully loaded - components ready!');
+    
+    // ✅ NOW SAFE: World.onLoad() has completed, components are initialized
     // Load initial background
     await _world.background.updateForScore(_gameStateManager.score);
     _world.background.setScrollSpeed(160);
