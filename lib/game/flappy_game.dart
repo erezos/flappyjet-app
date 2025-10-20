@@ -71,6 +71,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.onGameOver,
   });
 
+  // ✅ PHASE 1 REFACTORING: World + Camera components
+  late FlappyWorld _world;
+  late FlappyCamera _camera;
+  
   // Extracted modules - Initialize immediately to avoid late initialization errors
   final GameStateManager _gameStateManager = GameStateManager();
   // ✅ AUDIT FIX: CollisionSystem removed - using Flame's HasCollisionDetection mixin
@@ -81,11 +85,14 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   // Public getter for story mode wrapper
   GameStateManager get gameStateManager => _gameStateManager;
   
-  // Public getter for bot score
-  int get botScore => _botJet?.score ?? 0;
-  bool get botIsActive => _botJet?.isActive ?? true; // ✅ Bot active state for objective tracking
+  // ✅ PHASE 1: Access components through World
+  /// Public getter for bot score (via World)
+  int get botScore => _world.botScore;
+  /// Public getter for bot active state (via World)
+  bool get botIsActive => _world.botIsActive;
 
-  // Components
+  // ✅ PHASE 1: Legacy component references (for gradual migration in Task 1.4)
+  // These will be replaced with world.player, world.background, etc. in Task 1.4
   late JetPlayer _jet;
   BotJetPlayer? _botJet; // 🤖 Bot opponent for bot battle levels
   late HUD _hud;
@@ -259,27 +266,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   /// Create game components
   Future<void> _createGameComponents() async {
-    // Create dynamic background (FLAME PRIORITY: Render first)
-    _background = ParallaxBackground();
-    add(_background);
-
-    // Load initial background for current score
-    await _background.updateForScore(_gameStateManager.score);
-    _background.setScrollSpeed(160);
-
-    // Create ground (FLAME PRIORITY: Render above background)
-    _ground = RectangleComponent(
-      position: Vector2(0, size.y - 50),
-      size: Vector2(size.x, 50),
-      paint: Paint()..color = _gameStateManager.currentTheme.colors.obstacle,
-    );
-    _ground.priority = -50; // Ground renders above background but below game elements
-    add(_ground);
-
-    // Create enhanced jet with image asset support
-    final jetX = GameConfig.getStartScreenJetX(size.x);
-    final jetY = GameConfig.getStartScreenJetY(size.y);
+    safePrint('🌍 PHASE 1: Creating World + Camera architecture...');
     
+    // Get equipped skin before creating World
     String equippedId = InventoryManager().equippedSkinId;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -287,40 +276,45 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     } catch (_) {}
     final equippedSkin = JetSkinCatalog.getSkinById(equippedId) ?? JetSkinCatalog.starterJet;
     
-    _jet = JetPlayer(Vector2(jetX, jetY), _gameStateManager.currentTheme, jetSkin: equippedSkin);
-    _jet.priority = 10; // Jet renders above most elements but below UI
-    add(_jet);
-
-    // 🤖 Create bot opponent if in bot battle mode
-    if (isStoryMode && storyModeLevel?.objective.type == ObjectiveType.beatBot) {
-      final botBattle = storyModeLevel!.botBattle;
-      if (botBattle != null) {
-        // Calculate difficulty from bot parameters (0.0 = easy, 1.0 = hard)
-        // skillLevel: 0.6-1.5 → normalize to 0-1 range
-        final difficulty = ((botBattle.skillLevel - 0.6) / 0.9).clamp(0.0, 1.0);
-        
-        safePrint('🤖 Creating bot opponent: ${botBattle.botName} with difficulty $difficulty (skill: ${botBattle.skillLevel})');
-        
-        // Use bot's jet skin
-        final botSkinId = botBattle.botJetSkin;
-        _botJet = BotJetPlayer(
-          skinId: botSkinId,
-          difficulty: difficulty,
-        );
-        _botJet!.priority = 9; // Bot renders below player jet
-        add(_botJet!);
-      }
-    }
-
-    // Create enhanced HUD
+    // ✅ PHASE 1: Create World (contains all game objects)
+    _world = FlappyWorld(
+      gameSize: size,
+      initialTheme: _gameStateManager.currentTheme,
+      playerSkin: equippedSkin,
+      isStoryMode: isStoryMode,
+      storyModeLevel: storyModeLevel,
+    );
+    
+    // Load initial background
+    await _world.background.updateForScore(_gameStateManager.score);
+    _world.background.setScrollSpeed(160);
+    
+    // ✅ PHASE 1: Create Camera (contains World + HUD)
     final livesManager = LivesManager();
     _gameStateManager.setLives(livesManager.currentLives);
     _lastKnownMaxLives = livesManager.maxLives;
-    _hud = HUD(_gameStateManager.lives, livesManager.maxLives);
-    _hud.priority = 100; // HUD renders above all game elements
-    add(_hud);
+    
+    _camera = FlappyCamera(
+      world: _world,
+      currentLives: _gameStateManager.lives,
+      maxLives: livesManager.maxLives,
+    );
+    
+    // Add Camera to game (Camera contains World)
+    await add(_camera);
+    safePrint('📷 PHASE 1: Camera + World added to game');
+    
+    // ✅ PHASE 1: Setup legacy references (for gradual migration in Task 1.4)
+    // Point to World's components so existing code still works
+    _jet = _world.player;
+    _botJet = _world.bot;
+    _background = _world.background;
+    _ground = _world.ground;
+    _hud = _camera.hud!;
+    
+    safePrint('🔗 PHASE 1: Legacy references connected to World components');
 
-    // Create start screen
+    // Create start screen (NOT in World, this is UI overlay)
     _startScreen = TextComponent(
       text: 'TAP TO PLAY',
       position: Vector2(size.x * 0.5, size.y * 0.5),
@@ -341,6 +335,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       ),
     );
     add(_startScreen);
+    
+    safePrint('✅ PHASE 1: World + Camera architecture initialized!');
   }
 
   /// Start theme music
@@ -1025,119 +1021,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     if (isLoaded) {
       _hud.updateScore(_gameStateManager.score);
     }
-  }
-}
-
-/// Enhanced HUD with lives and theme info
-class HUD extends Component {
-  late TextComponent _scoreText;
-  late TextComponent _subtitleText;
-  late List<TextComponent> _hearts;
-  int _currentLives;
-  int _maxLives;
-
-  HUD(this._currentLives, this._maxLives);
-
-  @override
-  Future<void> onLoad() async {
-    _scoreText = TextComponent(
-      text: 'Score: 0',
-      position: Vector2(20, 30),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(offset: Offset(1, 1), blurRadius: 2, color: Colors.black),
-          ],
-        ),
-      ),
-    );
-    add(_scoreText);
-
-    _subtitleText = TextComponent(
-      text: '',
-      position: Vector2(20, 55),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.yellow,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(offset: Offset(1, 1), blurRadius: 2, color: Colors.black),
-          ],
-        ),
-      ),
-    );
-    add(_subtitleText);
-
-    // Create heart displays - use dynamic max lives
-    _hearts = [];
-    for (int i = 0; i < _maxLives; i++) {
-      final heart = TextComponent(
-        text: i < _currentLives ? '❤️' : '🤍',
-        position: Vector2(350 - (i * 25), 30),
-        textRenderer: TextPaint(style: const TextStyle(fontSize: 20)),
-      );
-      _hearts.add(heart);
-      add(heart);
-    }
-  }
-
-  void updateScore(int score) {
-    _scoreText.text = 'Score: $score';
-    // Show nickname + high score beneath the score
-    () async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final best = prefs.getInt('best_score') ?? 0;
-        final nick = prefs.getString('pf_nickname') ?? '';
-        _subtitleText.text = nick.isNotEmpty
-            ? '$nick   •   High score: $best'
-            : 'High score: $best';
-      } catch (_) {
-        _subtitleText.text = '';
-      }
-    }();
-  }
-
-  void updateLives(int lives) {
-    _currentLives = lives;
-    for (int i = 0; i < _hearts.length; i++) {
-      _hearts[i].text = i < lives ? '❤️' : '🤍';
-    }
-  }
-
-  /// Update max lives and recreate heart display (for Heart Booster activation)
-  void updateMaxLives(int newMaxLives) {
-    if (newMaxLives == _maxLives) return;
-
-    // Remove existing hearts
-    for (final heart in _hearts) {
-      heart.removeFromParent();
-    }
-    _hearts.clear();
-
-    // Update max lives
-    _maxLives = newMaxLives;
-
-    // Recreate hearts with new max
-    for (int i = 0; i < _maxLives; i++) {
-      final heart = TextComponent(
-        text: i < _currentLives ? '❤️' : '🤍',
-        position: Vector2(350 - (i * 25), 30),
-        textRenderer: TextPaint(style: const TextStyle(fontSize: 20)),
-      );
-      _hearts.add(heart);
-      add(heart);
-    }
-  }
-
-  void reset(int score, int lives) {
-    _currentLives = lives;
-    updateScore(score);
-    updateLives(lives);
   }
 }
 
