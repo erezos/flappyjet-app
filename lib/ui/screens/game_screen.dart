@@ -90,100 +90,36 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    safePrint('🔍 DIAGNOSTIC: GameScreen.build() called - rendering GameWidget');
     return Scaffold(
-      body: Stack(
-        children: [
-          // Game Widget - Fills screen
-          // ✅ Positioned.fill makes GameWidget fill entire screen
-          // ✅ Flame's withFixedResolution handles scaling 400x800 → actual screen
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () {
-                safePrint('🎯 UI TAP DETECTED - calling game.handleTap()');
-                game.handleTap();
+      backgroundColor: Colors.black, // For visibility
+      body: Container(
+        color: Colors.black,
+        child: Center(
+          child: GestureDetector(
+            onTap: () {
+              safePrint('🎯 UI TAP DETECTED - calling game.handleTap()');
+              game.handleTap();
+            },
+            child: GameWidget(
+              game: game,
+              loadingBuilder: (context) {
+                safePrint('🔍 DIAGNOSTIC: GameWidget loadingBuilder called - game is loading');
+                return Container(
+                  color: Colors.yellow,
+                  child: const Center(child: Text('LOADING...', style: TextStyle(color: Colors.black, fontSize: 32))),
+                );
               },
-              child: GameWidget(game: game),
+              errorBuilder: (context, error) {
+                safePrint('🔍 DIAGNOSTIC: GameWidget errorBuilder called - ERROR: $error');
+                return Container(
+                  color: Colors.red,
+                  child: Center(child: Text('ERROR: $error', style: const TextStyle(color: Colors.white, fontSize: 24))),
+                );
+              },
             ),
           ),
-
-          // Enhanced Game Over Overlay
-          ValueListenableBuilder<bool>(
-            valueListenable: game.gameOverNotifier,
-            builder: (context, isGameOver, child) {
-              return isGameOver
-                  ? ListenableBuilder(
-                      listenable: widget.monetization,
-                      builder: (context, child) {
-                        return GameOverMenu(
-                          score: game.currentScore,
-                          bestScore: game.bestScore,
-                          onRestart: () => _handleRestart(),
-                          onMainMenu: () async {
-                            // 🎮 Record game completion for FTUE tracking
-                            await FTUEIntegration.recordGameCompleted();
-                            
-                            // Check for rate us after game completion
-                            await RateUsIntegration.showAfterGameCompletion(
-                              context,
-                              score: game.currentScore,
-                              isHighScore: game.currentScore >= game.bestScore,
-                            );
-                            Navigator.pop(context);
-                          },
-                          onContinueWithAd: () async {
-                            // 🎯 CRITICAL: Set loading state immediately to prevent navigation
-                            widget.monetization.setAdLoading(true);
-                            
-                            // 🛡️ BULLETPROOF: This ALWAYS succeeds within 3 seconds
-                            await widget.monetization.showRewardedAdForExtraLife(
-                              onAdStart: () {
-                                // 🎯 CRITICAL: Pause game when ad starts
-                                game.pauseForAd();
-                              },
-                              onAdEnd: () {
-                                // 🎯 CRITICAL: Resume game when ad ends
-                                game.resumeFromAd();
-                              },
-                              onReward: () {
-                                game.continueGame();
-                                // Always show success - user always gets reward
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Row(
-                                        children: [
-                                          Icon(Icons.check_circle, color: Colors.white),
-                                          SizedBox(width: 8),
-                                          Text('Extra life granted! Keep flying! 🚀'),
-                                        ],
-                                      ),
-                                      backgroundColor: Colors.green,
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
-                                }
-                              },
-                              // onAdFailure removed - bulletproof system never fails
-                            );
-                          },
-                          onBuySingleHeart: () => _handleBuySingleHeart(),
-                          onGoToStore: () => _handleGoToStore(),
-                          secondsUntilHeart: null,
-                          onShare: (platform) => _shareScore(platform),
-                          canContinue: game.canContinueWithAd,
-                          continuesRemaining: game.continuesRemaining,
-                          playerGems: InventoryManager().gems,
-                          singleHeartPrice: _getSingleHeartPrice(),
-                          isAdLoading: widget.monetization.isAdLoading,
-                        );
-                      },
-                    )
-                  : const SizedBox.shrink();
-            },
-          ),
-
-          // 🔥 REMOVED: Back button not needed on start screen
-        ],
+        ),
       ),
     );
   }
