@@ -33,16 +33,10 @@ class FlappyCamera {
     safePrint('📷 FlappyCamera: Creating camera for full-screen game: $width x $height');
     
     // ✅ FLAME BEST PRACTICE: Standard CameraComponent for full-screen games
-    // The viewport automatically fills the screen, no scaling needed
+    // The viewport automatically fills the screen and centers at (0,0)
     final camera = CameraComponent(world: world);
     
-    // 🎯 CRITICAL: Set viewfinder to show the full game area
-    // By default, the camera centers at (0,0). We need to center it on the game area.
-    camera.viewfinder.visibleGameSize = Vector2(width, height);
-    camera.viewfinder.position = Vector2(width / 2, height / 2);
-    camera.viewfinder.anchor = Anchor.center;
-    
-    safePrint('📷 FlappyCamera: Camera viewfinder configured - center at (${width / 2}, ${height / 2})');
+    safePrint('📷 FlappyCamera: Camera created with default viewport (auto-fills screen)');
     
     // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives);
