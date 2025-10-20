@@ -69,7 +69,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.storyModeLevel,
     this.onObstaclePassed,
     this.onGameOver,
-  });
+  }) {
+    safePrint('🎮 CONSTRUCTOR: FlappyGame constructor called!');
+  }
 
   // ✅ FLAME NATIVE: World + Camera components
   late FlappyWorld _world;
