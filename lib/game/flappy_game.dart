@@ -285,10 +285,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       storyModeLevel: storyModeLevel,
     );
     
-    // Load initial background
-    await _world.background.updateForScore(_gameStateManager.score);
-    _world.background.setScrollSpeed(160);
-    
     // ✅ PHASE 1: Create Camera (contains World + HUD)
     final livesManager = LivesManager();
     _gameStateManager.setLives(livesManager.currentLives);
@@ -300,9 +296,14 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       maxLives: livesManager.maxLives,
     );
     
-    // Add Camera to game (Camera contains World)
+    // ✅ CRITICAL: Add Camera to game (this triggers World.onLoad())
     await add(_camera);
     safePrint('📷 PHASE 1: Camera + World added to game');
+    
+    // ✅ CRITICAL: World.onLoad() has completed, NOW we can access components
+    // Load initial background
+    await _world.background.updateForScore(_gameStateManager.score);
+    _world.background.setScrollSpeed(160);
     
     // ✅ PHASE 1: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
