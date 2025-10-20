@@ -154,40 +154,55 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   @override
   Future<void> onLoad() async {
-    await super.onLoad();
+    try {
+      safePrint('🎮 GAME ONLOAD: Starting FlappyGame initialization...');
+      await super.onLoad();
+      safePrint('🎮 GAME ONLOAD: super.onLoad() complete');
 
-    // Initialize AAA performance systems first
-    _qualityManager = AdaptiveQualityManager.instance;
-    await _qualityManager.initialize();
+      // Initialize AAA performance systems first
+      _qualityManager = AdaptiveQualityManager.instance;
+      await _qualityManager.initialize();
+      safePrint('🎮 GAME ONLOAD: QualityManager initialized');
 
-    // Apply AAA adaptive quality optimizations
-    final profile = _qualityManager.currentProfile;
-    safePrint('🎯 Game using AAA adaptive quality: $profile');
+      // Apply AAA adaptive quality optimizations
+      final profile = _qualityManager.currentProfile;
+      safePrint('🎯 Game using AAA adaptive quality: $profile');
 
-    // Initialize extracted modules
-    await _initializeModules();
+      // Initialize extracted modules
+      await _initializeModules();
+      safePrint('🎮 GAME ONLOAD: Modules initialized');
 
-    // Initialize MCP-guided systems
-    await _initializeMCPSystems();
+      // Initialize MCP-guided systems
+      await _initializeMCPSystems();
+      safePrint('🎮 GAME ONLOAD: MCP systems initialized');
 
-    // Ensure dynamic skin catalog is ready before reading equipped skin
-    await JetSkinCatalog.initializeFromAssets();
+      // Ensure dynamic skin catalog is ready before reading equipped skin
+      await JetSkinCatalog.initializeFromAssets();
+      safePrint('🎮 GAME ONLOAD: Skin catalog initialized');
 
-    // Load persisted data
-    await _gameStateManager.loadPersistedData();
+      // Load persisted data
+      await _gameStateManager.loadPersistedData();
+      safePrint('🎮 GAME ONLOAD: Persisted data loaded');
 
-    // Initialize monetization integration
-    if (monetization != null) {
-      safePrint('💰 MonetizationManager integrated with game!');
+      // Initialize monetization integration
+      if (monetization != null) {
+        safePrint('💰 MonetizationManager integrated with game!');
+      }
+
+      // Create game components
+      await _createGameComponents();
+      safePrint('🎮 GAME ONLOAD: Game components created');
+
+      // Start theme music
+      await _startThemeMusic();
+      safePrint('🎮 GAME ONLOAD: Theme music started');
+
+      safePrint('🚀 Enhanced Flappy Game with modular architecture initialized!');
+    } catch (e, stackTrace) {
+      safePrint('❌ FATAL ERROR in FlappyGame.onLoad(): $e');
+      safePrint('Stack trace: $stackTrace');
+      rethrow;
     }
-
-    // Create game components
-    await _createGameComponents();
-
-    // Start theme music
-    await _startThemeMusic();
-
-    safePrint('🚀 Enhanced Flappy Game with modular architecture initialized!');
   }
 
   /// Initialize extracted modules
