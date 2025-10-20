@@ -31,19 +31,15 @@ class FlappyCamera {
   }) {
     safePrint('📷 FlappyCamera: Creating camera (game size: $width x $height)');
     
-    // ✅ FLAME NATIVE: Use withFixedResolution for games with fixed coordinate system
-    // This ensures the game world (0,0) to (width, height) maps correctly to screen
+    // ✅ FLAME NATIVE: Use withFixedResolution for fixed-coordinate games
+    // This creates a viewport that maintains the game's coordinate system
     final camera = CameraComponent.withFixedResolution(
       world: world,
       width: width,
       height: height,
     );
     
-    // Position viewfinder at top-left of world
-    camera.viewfinder.anchor = Anchor.topLeft;
-    camera.viewfinder.position = Vector2.zero();
-    
-    safePrint('📷 FlappyCamera: Camera created, adding HUD to viewport');
+    safePrint('📷 FlappyCamera: Camera created with fixed resolution viewport');
     
     // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives);
