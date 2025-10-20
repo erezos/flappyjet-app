@@ -29,15 +29,11 @@ class FlappyCamera {
     required double width,
     required double height,
   }) {
-    safePrint('📷 FlappyCamera: Creating camera with fixed resolution ($width x $height)');
+    safePrint('📷 FlappyCamera: Creating camera (fills entire screen: $width x $height)');
     
-    // ✅ FLAME NATIVE: Use CameraComponent.withFixedResolution
-    // This creates camera + viewport in one go, properly configured
-    final camera = CameraComponent.withFixedResolution(
-      world: world,
-      width: width,
-      height: height,
-    );
+    // ✅ FLAME NATIVE: Use standard CameraComponent with default viewport
+    // Flame's default viewport fills the entire screen automatically
+    final camera = CameraComponent(world: world);
     
     safePrint('📷 FlappyCamera: Camera created, adding HUD to viewport');
     

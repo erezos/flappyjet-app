@@ -298,7 +298,17 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     );
     safePrint('🌍 FLAME NATIVE: World created');
     
-    // ✅ Step 2: Create Camera using Flame native factory
+    // ✅ Step 2: Add World to game FIRST (triggers World.onLoad())
+    await add(_world);
+    safePrint('🌍 FLAME NATIVE: World added to game tree');
+    
+    // ✅ Step 3: Wait for World.onLoad() to complete
+    // Because FlappyWorld.onLoad() properly awaits each child's loaded future,
+    // this ensures ALL child components (background, player, ground, bot) are ready!
+    await _world.loaded;
+    safePrint('✅ FLAME NATIVE: World + all components fully loaded!');
+    
+    // ✅ Step 4: Create Camera using Flame native factory
     final livesManager = LivesManager();
     _gameStateManager.setLives(livesManager.currentLives);
     _lastKnownMaxLives = livesManager.maxLives;
@@ -312,18 +322,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     );
     safePrint('📷 FLAME NATIVE: Camera created with HUD');
     
-    // ✅ Step 3: Add Camera to game - ONE await, Flame handles everything!
-    // This triggers: Camera.onLoad() → World.onLoad() → All components load
+    // ✅ Step 5: Add Camera to game
     await add(_camera);
-    safePrint('✅ FLAME NATIVE: Camera + World fully loaded and mounted!');
+    safePrint('✅ FLAME NATIVE: Camera added - architecture complete!');
     
-    // ✅ Step 4: Now safe to initialize World components
-    // (World.onLoad() has completed, all components are mounted)
-    await _world.background.updateForScore(_gameStateManager.score);
-    _world.background.setScrollSpeed(160);
-    safePrint('🌍 FLAME NATIVE: Background initialized');
-    
-    // ✅ Step 5: Setup legacy references (for gradual migration in Task 1.4)
+    // ✅ Step 6: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
     _jet = _world.player;
     _botJet = _world.bot;
@@ -332,6 +335,12 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _hud = FlappyCamera.getHud(_camera)!;
     
     safePrint('🔗 FLAME NATIVE: Legacy references connected');
+    
+    // ✅ Step 7: Now safe to initialize World components
+    // (World.onLoad() has completed, all components are mounted, references are set)
+    await _world.background.updateForScore(_gameStateManager.score);
+    _world.background.setScrollSpeed(160);
+    safePrint('🌍 FLAME NATIVE: Background initialized');
 
     // Create start screen (NOT in World, this is UI overlay)
     _startScreen = TextComponent(

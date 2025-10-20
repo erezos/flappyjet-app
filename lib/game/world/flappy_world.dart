@@ -54,7 +54,8 @@ class FlappyWorld extends World {
     background = ParallaxBackground();
     background.priority = -100; // Render behind everything
     await add(background);
-    safePrint('🌍 FlappyWorld: Background added');
+    await background.loaded; // ✅ FLAME BEST PRACTICE: Await loaded after add
+    safePrint('🌍 FlappyWorld: Background fully loaded');
     
     // 2. Create ground (renders above background)
     ground = RectangleComponent(
@@ -64,7 +65,8 @@ class FlappyWorld extends World {
     );
     ground.priority = -50;
     await add(ground);
-    safePrint('🌍 FlappyWorld: Ground added');
+    await ground.loaded; // ✅ FLAME BEST PRACTICE: Await loaded after add
+    safePrint('🌍 FlappyWorld: Ground fully loaded');
     
     // 3. Create player jet (renders above ground)
     final jetX = GameConfig.getStartScreenJetX(gameSize.x);
@@ -77,7 +79,8 @@ class FlappyWorld extends World {
     );
     player.priority = 10; // Render above most elements
     await add(player);
-    safePrint('🌍 FlappyWorld: Player jet added at ($jetX, $jetY)');
+    await player.loaded; // ✅ FLAME BEST PRACTICE: Await loaded after add
+    safePrint('🌍 FlappyWorld: Player jet fully loaded at ($jetX, $jetY)');
     
     // 4. Create bot opponent if in bot battle mode
     if (isStoryMode && storyModeLevel?.objective.type == ObjectiveType.beatBot) {
@@ -94,11 +97,12 @@ class FlappyWorld extends World {
         );
         bot!.priority = 9; // Render below player
         await add(bot!);
-        safePrint('🌍 FlappyWorld: Bot added');
+        await bot!.loaded; // ✅ FLAME BEST PRACTICE: Await loaded after add
+        safePrint('🌍 FlappyWorld: Bot fully loaded');
       }
     }
     
-    safePrint('🌍 FlappyWorld: All components loaded successfully!');
+    safePrint('🌍 FlappyWorld: ✅ All components loaded successfully!');
   }
   
   /// Update ground color when theme changes
