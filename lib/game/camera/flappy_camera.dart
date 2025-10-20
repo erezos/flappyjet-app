@@ -5,49 +5,58 @@ import '../components/hud.dart';
 
 /// FlappyCamera - Flame Camera component managing viewport and rendering
 /// 
-/// ✅ PHASE 1 REFACTORING: Separates viewport (camera) from game world
-/// This enables camera effects, culling, and proper UI overlay
+/// ✅ FLAME NATIVE PATTERN: Uses CameraComponent.withFixedResolution
+/// This is the industry-standard way to setup Flame's camera system
 ///
 /// Architecture:
-/// - Camera contains World (game objects)
-/// - Viewport contains HUD (UI overlay - not affected by world movement)
+/// - Camera automatically manages World lifecycle (onLoad, onMount)
+/// - Viewport renders HUD (UI overlay - not affected by world movement)
 /// - Clean separation allows for camera shake, zoom, follow effects
-class FlappyCamera extends CameraComponent {
-  final int currentLives;
-  final int maxLives;
-  
-  FlappyCamera({
+/// 
+/// Why this pattern?
+/// - Flame handles all lifecycle management ✅
+/// - Single await point in FlappyGame ✅
+/// - No manual World.add() needed ✅
+/// - Industry standard (Subway Surfers, Temple Run style) ✅
+class FlappyCamera {
+  /// Factory method to create camera with fixed resolution viewport
+  /// 
+  /// This is the Flame-native way to setup World + Camera
+  static CameraComponent create({
     required FlappyWorld world,
-    required this.currentLives,
-    required this.maxLives,
-  }) : super(world: world);
-  
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
+    required int currentLives,
+    required int maxLives,
+    required double width,
+    required double height,
+  }) {
+    safePrint('📷 FlappyCamera: Creating camera with fixed resolution ($width x $height)');
     
-    safePrint('📷 FlappyCamera: Initializing camera...');
+    // ✅ FLAME NATIVE: Use CameraComponent.withFixedResolution
+    // This creates camera + viewport in one go, properly configured
+    final camera = CameraComponent.withFixedResolution(
+      world: world,
+      width: width,
+      height: height,
+    );
     
-    // Note: In Flame 1.32.0, viewport is auto-created by CameraComponent
-    // We can customize it in future phases if needed
-    // For now, the default viewport works perfectly
+    safePrint('📷 FlappyCamera: Camera created, adding HUD to viewport');
     
-    safePrint('📷 FlappyCamera: Viewport ready');
-    
-    // Add HUD to camera's viewport
-    // This keeps the HUD fixed on screen, not affected by world movement
+    // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives);
     hud.priority = 100; // Render above everything
-    add(hud);
     
-    safePrint('📷 FlappyCamera: HUD added');
-    safePrint('📷 FlappyCamera: Camera ready!');
+    // Add HUD after camera is created (will be mounted when camera loads)
+    camera.viewport.add(hud);
+    
+    safePrint('📷 FlappyCamera: Camera ready with HUD!');
+    
+    return camera;
   }
   
-  /// Get HUD component for updates
-  HUD? get hud {
+  /// Get HUD from camera for updates
+  static HUD? getHud(CameraComponent camera) {
     try {
-      return children.whereType<HUD>().firstOrNull;
+      return camera.viewport.children.whereType<HUD>().firstOrNull;
     } catch (e) {
       safePrint('📷 FlappyCamera: Error getting HUD: $e');
       return null;
@@ -57,8 +66,8 @@ class FlappyCamera extends CameraComponent {
   /// Camera shake effect (for future use - collisions, power-ups)
   /// Can be enabled in future phases when we add more juice/polish
   /*
-  void shake({double intensity = 5.0, double duration = 0.2}) {
-    viewport.add(
+  static void shake(CameraComponent camera, {double intensity = 5.0, double duration = 0.2}) {
+    camera.viewport.add(
       MoveEffect.by(
         Vector2(intensity, 0),
         EffectController(

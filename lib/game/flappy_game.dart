@@ -71,9 +71,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.onGameOver,
   });
 
-  // ✅ PHASE 1 REFACTORING: World + Camera components
+  // ✅ FLAME NATIVE: World + Camera components
   late FlappyWorld _world;
-  late FlappyCamera _camera;
+  late CameraComponent _camera;  // FlappyCamera is now a factory, not a class
   
   // Extracted modules - Initialize immediately to avoid late initialization errors
   final GameStateManager _gameStateManager = GameStateManager();
@@ -264,9 +264,21 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     safePrint('🤖 All MCP-guided systems initialized successfully!');
   }
 
-  /// Create game components
+  /// Create game components using Flame native World + Camera pattern
+  /// 
+  /// ✅ FLAME NATIVE PATTERN - Industry Standard:
+  /// 1. Create World
+  /// 2. Create Camera (references World)
+  /// 3. await add(Camera) - ONE await, Flame handles the rest!
+  /// 4. Access components via gameWorld.player, gameWorld.background
+  /// 
+  /// Why this works:
+  /// - CameraComponent.onLoad() triggers World.onLoad()
+  /// - await add(camera) waits for both Camera + World to load
+  /// - No manual lifecycle management needed
+  /// - Clean, testable, scalable
   Future<void> _createGameComponents() async {
-    safePrint('🌍 PHASE 1: Creating World + Camera architecture...');
+    safePrint('🌍 FLAME NATIVE: Creating World + Camera architecture...');
     
     // Get equipped skin before creating World
     String equippedId = InventoryManager().equippedSkinId;
@@ -276,7 +288,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     } catch (_) {}
     final equippedSkin = JetSkinCatalog.getSkinById(equippedId) ?? JetSkinCatalog.starterJet;
     
-    // ✅ PHASE 1: Create World (contains all game objects)
+    // ✅ Step 1: Create World (contains all game objects)
     _world = FlappyWorld(
       gameSize: size,
       initialTheme: _gameStateManager.currentTheme,
@@ -284,42 +296,42 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       isStoryMode: isStoryMode,
       storyModeLevel: storyModeLevel,
     );
+    safePrint('🌍 FLAME NATIVE: World created');
     
-    // ✅ PHASE 1: Create Camera (contains World + HUD)
+    // ✅ Step 2: Create Camera using Flame native factory
     final livesManager = LivesManager();
     _gameStateManager.setLives(livesManager.currentLives);
     _lastKnownMaxLives = livesManager.maxLives;
     
-    _camera = FlappyCamera(
+    _camera = FlappyCamera.create(
       world: _world,
       currentLives: _gameStateManager.lives,
       maxLives: livesManager.maxLives,
+      width: size.x,
+      height: size.y,
     );
+    safePrint('📷 FLAME NATIVE: Camera created with HUD');
     
-    // ✅ CRITICAL: Add Camera to game (this triggers World.onLoad())
+    // ✅ Step 3: Add Camera to game - ONE await, Flame handles everything!
+    // This triggers: Camera.onLoad() → World.onLoad() → All components load
     await add(_camera);
-    safePrint('📷 PHASE 1: Camera + World added to game');
+    safePrint('✅ FLAME NATIVE: Camera + World fully loaded and mounted!');
     
-    // ✅ CRITICAL FIX: Wait for World.onLoad() to complete before accessing components
-    // The add(_camera) triggers World.onLoad() asynchronously
-    // We need to explicitly wait for the World's onLoad() to finish
-    await _world.loaded;
-    safePrint('🌍 PHASE 1: World fully loaded - components ready!');
-    
-    // ✅ NOW SAFE: World.onLoad() has completed, components are initialized
-    // Load initial background
+    // ✅ Step 4: Now safe to initialize World components
+    // (World.onLoad() has completed, all components are mounted)
     await _world.background.updateForScore(_gameStateManager.score);
     _world.background.setScrollSpeed(160);
+    safePrint('🌍 FLAME NATIVE: Background initialized');
     
-    // ✅ PHASE 1: Setup legacy references (for gradual migration in Task 1.4)
+    // ✅ Step 5: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
     _jet = _world.player;
     _botJet = _world.bot;
     _background = _world.background;
     _ground = _world.ground;
-    _hud = _camera.hud!;
+    _hud = FlappyCamera.getHud(_camera)!;
     
-    safePrint('🔗 PHASE 1: Legacy references connected to World components');
+    safePrint('🔗 FLAME NATIVE: Legacy references connected');
 
     // Create start screen (NOT in World, this is UI overlay)
     _startScreen = TextComponent(
@@ -343,7 +355,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     );
     add(_startScreen);
     
-    safePrint('✅ PHASE 1: World + Camera architecture initialized!');
+    safePrint('✅ FLAME NATIVE: World + Camera architecture complete!');
+    safePrint('   - World components: ${_world.children.length}');
+    safePrint('   - Camera viewport children: ${_camera.viewport.children.length}');
   }
 
   /// Start theme music
