@@ -71,19 +71,28 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.onGameOver,
   }) {
     safePrint('🎮 CONSTRUCTOR: FlappyGame constructor called!');
-    safePrint('🎮 CONSTRUCTOR: Instance created, waiting for onLoad() to be called by Flame...');
+    safePrint('🎮 CONSTRUCTOR: Instance created, waiting for Flame lifecycle...');
+  }
+  
+  @override
+  void onAttach() {
+    safePrint('🎮 LIFECYCLE: ⚠️ BEFORE onAttach() super - game attaching');
+    super.onAttach();
+    safePrint('🎮 LIFECYCLE: ✅ AFTER onAttach() super - attached successfully');
   }
   
   @override
   void onMount() {
+    safePrint('🎮 LIFECYCLE: ⚠️ BEFORE onMount() super - mounting');
     super.onMount();
-    safePrint('🎮 LIFECYCLE: onMount() called - game is being mounted to component tree');
+    safePrint('🎮 LIFECYCLE: ✅ AFTER onMount() super - mounted successfully');
   }
   
   @override
   void onGameResize(Vector2 size) {
+    safePrint('🎮 LIFECYCLE: ⚠️ BEFORE onGameResize($size) super - resizing');
     super.onGameResize(size);
-    safePrint('🎮 LIFECYCLE: onGameResize($size) called - game size set');
+    safePrint('🎮 LIFECYCLE: ✅ AFTER onGameResize() super - resized successfully');
   }
 
   // ✅ FLAME NATIVE: World + Camera components
