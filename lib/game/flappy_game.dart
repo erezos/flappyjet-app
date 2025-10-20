@@ -288,15 +288,22 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     } catch (_) {}
     final equippedSkin = JetSkinCatalog.getSkinById(equippedId) ?? JetSkinCatalog.starterJet;
     
-    // ✅ Step 1: Create World (contains all game objects)
+    // ✅ CRITICAL FIX: Use FIXED logical resolution, not device screen size!
+    // The camera will scale this fixed resolution to fit any screen size
+    const logicalWidth = GameConfig.gameWidth;
+    const logicalHeight = GameConfig.gameHeight;
+    
+    safePrint('🎯 Using FIXED logical resolution: ${logicalWidth}x${logicalHeight} (device screen: ${size.x}x${size.y})');
+    
+    // ✅ Step 1: Create World with FIXED logical dimensions
     _world = FlappyWorld(
-      gameSize: size,
+      gameSize: Vector2(logicalWidth, logicalHeight),
       initialTheme: _gameStateManager.currentTheme,
       playerSkin: equippedSkin,
       isStoryMode: isStoryMode,
       storyModeLevel: storyModeLevel,
     );
-    safePrint('🌍 FLAME NATIVE: World created');
+    safePrint('🌍 FLAME NATIVE: World created with logical resolution');
     
     // ✅ Step 2: Add World to game FIRST (triggers World.onLoad())
     await add(_world);
@@ -308,7 +315,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     await _world.loaded;
     safePrint('✅ FLAME NATIVE: World + all components fully loaded!');
     
-    // ✅ Step 4: Create Camera using Flame native factory
+    // ✅ Step 4: Create Camera with SAME logical resolution
     final livesManager = LivesManager();
     _gameStateManager.setLives(livesManager.currentLives);
     _lastKnownMaxLives = livesManager.maxLives;
@@ -317,10 +324,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       world: _world,
       currentLives: _gameStateManager.lives,
       maxLives: livesManager.maxLives,
-      width: size.x,
-      height: size.y,
+      width: logicalWidth,
+      height: logicalHeight,
     );
-    safePrint('📷 FLAME NATIVE: Camera created with HUD');
+    safePrint('📷 FLAME NATIVE: Camera created with logical resolution');
     
     // ✅ Step 5: Add Camera to game
     await add(_camera);
