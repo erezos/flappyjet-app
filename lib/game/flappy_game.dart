@@ -39,6 +39,11 @@ import 'systems/theme_manager.dart';
 // Story Mode
 import '../models/level_data_schema.dart';
 
+// ✅ PHASE 1 REFACTORING: World + Camera architecture
+import 'world/flappy_world.dart';
+import 'camera/flappy_camera.dart';
+import 'components/hud.dart';
+
 /// FlappyJet Pro - Refactored for maintainability and testability
 /// Uses modular architecture with separated concerns
 /// 
