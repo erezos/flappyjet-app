@@ -31,9 +31,12 @@ class FlappyCamera {
   }) {
     safePrint('📷 FlappyCamera: Creating camera (fills entire screen: $width x $height)');
     
-    // ✅ FLAME NATIVE: Use standard CameraComponent with default viewport
-    // Flame's default viewport fills the entire screen automatically
-    final camera = CameraComponent(world: world);
+    // ✅ FLAME NATIVE: Use standard CameraComponent
+    // The viewport automatically fills the screen, we just need to tell the viewfinder
+    // what area of the world to display
+    final camera = CameraComponent(world: world)
+      ..viewfinder.visibleGameSize = Vector2(width, height)
+      ..viewfinder.anchor = Anchor.topLeft;
     
     safePrint('📷 FlappyCamera: Camera created, adding HUD to viewport');
     
