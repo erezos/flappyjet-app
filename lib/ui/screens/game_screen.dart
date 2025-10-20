@@ -93,13 +93,21 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     return Scaffold(
       body: Stack(
         children: [
-          // Game Widget
+          // Game Widget - Scaled to fill screen
+          // ✅ FittedBox scales the fixed 400x800 logical resolution to fill any screen
           GestureDetector(
             onTap: () {
               safePrint('🎯 UI TAP DETECTED - calling game.handleTap()');
               game.handleTap();
             },
-            child: GameWidget(game: game),
+            child: FittedBox(
+              fit: BoxFit.contain, // Scale to fit while maintaining aspect ratio
+              child: SizedBox(
+                width: 400, // Fixed logical width
+                height: 800, // Fixed logical height
+                child: GameWidget(game: game),
+              ),
+            ),
           ),
 
           // Enhanced Game Over Overlay
