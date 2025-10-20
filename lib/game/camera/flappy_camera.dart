@@ -29,14 +29,19 @@ class FlappyCamera {
     required double width,
     required double height,
   }) {
-    safePrint('📷 FlappyCamera: Creating camera (fills entire screen: $width x $height)');
+    safePrint('📷 FlappyCamera: Creating camera (game size: $width x $height)');
     
-    // ✅ FLAME NATIVE: Use standard CameraComponent
-    // The viewport automatically fills the screen, we just need to tell the viewfinder
-    // what area of the world to display
-    final camera = CameraComponent(world: world)
-      ..viewfinder.visibleGameSize = Vector2(width, height)
-      ..viewfinder.anchor = Anchor.topLeft;
+    // ✅ FLAME NATIVE: Use withFixedResolution for games with fixed coordinate system
+    // This ensures the game world (0,0) to (width, height) maps correctly to screen
+    final camera = CameraComponent.withFixedResolution(
+      world: world,
+      width: width,
+      height: height,
+    );
+    
+    // Position viewfinder at top-left of world
+    camera.viewfinder.anchor = Anchor.topLeft;
+    camera.viewfinder.position = Vector2.zero();
     
     safePrint('📷 FlappyCamera: Camera created, adding HUD to viewport');
     
