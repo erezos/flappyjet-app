@@ -19,10 +19,10 @@ import '../components/hud.dart';
 /// - No manual World.add() needed ✅
 /// - Industry standard (Subway Surfers, Temple Run style) ✅
 class FlappyCamera {
-  /// Factory method to create camera with fixed logical resolution
+  /// Factory method to create camera for full-screen mobile games
   /// 
   /// This is the Flame-native way to setup World + Camera for mobile games.
-  /// Use a FIXED logical resolution (not device screen size) for consistent gameplay.
+  /// The camera fills the entire screen and views the world at actual device dimensions.
   static CameraComponent create({
     required FlappyWorld world,
     required int currentLives,
@@ -30,17 +30,13 @@ class FlappyCamera {
     required double width,
     required double height,
   }) {
-    safePrint('📷 FlappyCamera: Creating camera with FIXED logical resolution: $width x $height');
+    safePrint('📷 FlappyCamera: Creating camera for full-screen game: $width x $height');
     
-    // ✅ FLAME BEST PRACTICE: Use withFixedResolution with logical game dimensions
-    // This creates a fixed coordinate system that Flame scales to fit any screen
-    final camera = CameraComponent.withFixedResolution(
-      world: world,
-      width: width,
-      height: height,
-    );
+    // ✅ FLAME BEST PRACTICE: Standard CameraComponent for full-screen games
+    // The viewport automatically fills the screen, no scaling needed
+    final camera = CameraComponent(world: world);
     
-    safePrint('📷 FlappyCamera: Fixed resolution viewport created, adding HUD');
+    safePrint('📷 FlappyCamera: Camera created with default viewport, adding HUD');
     
     // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives);

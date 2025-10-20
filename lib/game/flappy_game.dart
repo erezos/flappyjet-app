@@ -288,22 +288,22 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     } catch (_) {}
     final equippedSkin = JetSkinCatalog.getSkinById(equippedId) ?? JetSkinCatalog.starterJet;
     
-    // ✅ CRITICAL FIX: Use FIXED logical resolution, not device screen size!
-    // The camera will scale this fixed resolution to fit any screen size
-    const logicalWidth = GameConfig.gameWidth;
-    const logicalHeight = GameConfig.gameHeight;
+    // ✅ Use device screen size (NOT fixed logical resolution)
+    // Flame's CameraComponent handles scaling automatically when viewport fills screen
+    final gameWidth = size.x;
+    final gameHeight = size.y;
     
-    safePrint('🎯 Using FIXED logical resolution: ${logicalWidth}x${logicalHeight} (device screen: ${size.x}x${size.y})');
+    safePrint('🎯 Using device screen size: ${gameWidth}x${gameHeight}');
     
-    // ✅ Step 1: Create World with FIXED logical dimensions
+    // ✅ Step 1: Create World with device screen dimensions
     _world = FlappyWorld(
-      gameSize: Vector2(logicalWidth, logicalHeight),
+      gameSize: size,
       initialTheme: _gameStateManager.currentTheme,
       playerSkin: equippedSkin,
       isStoryMode: isStoryMode,
       storyModeLevel: storyModeLevel,
     );
-    safePrint('🌍 FLAME NATIVE: World created with logical resolution');
+    safePrint('🌍 FLAME NATIVE: World created with device screen size');
     
     // ✅ Step 2: Add World to game FIRST (triggers World.onLoad())
     await add(_world);
@@ -315,7 +315,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     await _world.loaded;
     safePrint('✅ FLAME NATIVE: World + all components fully loaded!');
     
-    // ✅ Step 4: Create Camera with SAME logical resolution
+    // ✅ Step 4: Create Camera with device screen size
     final livesManager = LivesManager();
     _gameStateManager.setLives(livesManager.currentLives);
     _lastKnownMaxLives = livesManager.maxLives;
@@ -324,8 +324,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       world: _world,
       currentLives: _gameStateManager.lives,
       maxLives: livesManager.maxLives,
-      width: logicalWidth,
-      height: logicalHeight,
+      width: gameWidth,
+      height: gameHeight,
     );
     safePrint('📷 FLAME NATIVE: Camera created with logical resolution');
     
