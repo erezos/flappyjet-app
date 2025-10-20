@@ -36,7 +36,13 @@ class FlappyCamera {
     // The viewport automatically fills the screen, no scaling needed
     final camera = CameraComponent(world: world);
     
-    safePrint('📷 FlappyCamera: Camera created with default viewport, adding HUD');
+    // 🎯 CRITICAL: Set viewfinder to show the full game area
+    // By default, the camera centers at (0,0). We need to center it on the game area.
+    camera.viewfinder.visibleGameSize = Vector2(width, height);
+    camera.viewfinder.position = Vector2(width / 2, height / 2);
+    camera.viewfinder.anchor = Anchor.center;
+    
+    safePrint('📷 FlappyCamera: Camera viewfinder configured - center at (${width / 2}, ${height / 2})');
     
     // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives);
