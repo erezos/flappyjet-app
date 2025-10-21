@@ -133,7 +133,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 onMainMenu: () => Navigator.of(context).pop(),
                 onContinueWithAd: () async {
                   // Show rewarded ad and continue game
-                  await widget.monetization.showRewardedAd(
+                  await widget.monetization.showRewardedAdForExtraLife(
                     onReward: () {
                       game.continueGame();
                     },
