@@ -523,9 +523,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _checkCollisions();
 
     // Update obstacles in game
+    // ✅ FLAME NATIVE: Add obstacles to World (not Game) so camera can see them
     for (final obstacle in _obstacleManager.obstacles) {
-      if (!children.contains(obstacle)) {
-        _obstacleManager.addObstacleToGame(obstacle, this);
+      if (!_world.children.contains(obstacle)) {
+        _obstacleManager.addObstacleToGame(obstacle, _world);
       }
     }
   }

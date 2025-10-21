@@ -83,7 +83,7 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 
 ---
 
-### Attempt 17: Fix Viewfinder Position and Anchor ⏳ TESTING
+### Attempt 17: Fix Viewfinder Position and Anchor ⚠️ PARTIAL SUCCESS - NO OBSTACLES VISIBLE
 
 **ROOT CAUSE IDENTIFIED**: Viewfinder was centered at `(0,0)` with `anchor.center`!
 
@@ -99,12 +99,89 @@ camera.viewfinder.anchor = Anchor.topLeft;  // Anchor at top-left, not center
 camera.viewfinder.position = Vector2.zero();  // Look at (0,0) of world
 ```
 
-**Why this works**:
-- With `anchor.topLeft` and position `(0,0)`, the camera views from `(0,0)` to `(width, height)`
-- This matches the entire world: `(0,0)` to `(411, 731)`
-- Full screen rendering! 🎉
+**Logs (lines 709-715)**:
+```
+🔍   - Camera viewport type: MaxViewport
+🔍   - Camera viewport.size: [411.4285583496094,731.4285888671875]
+🔍   - Camera viewfinder.visibleGameSize: null
+🔍   - Camera viewfinder.zoom: 1.0
+🔍   - FlameGame.size (device screen): [411.4285583496094,731.4285888671875]
+🔍   - World.gameSize (logical resolution): [411.4285583496094,731.4285888671875]
+```
 
-**Result**: ⏳ AWAITING HOT RELOAD
+**Logs (lines 785-789) - Obstacles are being created**:
+```
+🎯 OBSTACLE: Score 0 → Super Easy (gap: 365.7, speed: 200.0)
+🎨 OBSTACLE: Score 0 → OBS Phase 2 → obstacles/phase2_reinforced_wood.png
+🎯 ScoreZone created at x=0.0, width=135.375, height=365.71429443359375
+💎 Added Flame hitboxes: Top(w=135.375, h=223.00579833984375), Bottom(w=135.375, h=142.70849609375)
+🎨 OBSTACLE LOADED: Score 0 → obstacles/phase2_reinforced_wood.png
+```
+
+**Result**: 
+✅ Game renders **full screen** (411x731)!
+✅ Background and jet visible
+✅ Obstacles are being **created and loaded** (logs confirm it)
+❌ Obstacles are **NOT visible** on screen
+
+**NEW PROBLEM**: 
+This is the **SAME issue as Attempt 16** - the camera configuration is correct, but obstacles aren't rendering.
+This suggests the issue is **NOT with the camera**, but with:
+1. **Obstacle positioning** - Are they being placed outside the visible world area?
+2. **Render priority/layering** - Are obstacles behind the background?
+3. **Camera children vs World children** - Are obstacles added to the wrong parent?
+
+**CRITICAL OBSERVATION**: In logs, obstacles show `x=0.0` which means they're at the LEFT EDGE of the screen.
+With `Anchor.topLeft` and `position = (0,0)`, the camera should see `(0,0)` to `(411, 731)`.
+Obstacles at `x=0.0` should be visible IF they're in the World's coordinate system.
+
+**NEXT INVESTIGATION**: Need to check where obstacles are being added and their actual positions!
+
+**🔍 INVESTIGATION RESULTS** (lib/game/systems/obstacle_manager.dart:111):
+```dart
+final obstacle = DynamicObstacle(
+  position: Vector2(gameSize.width, gapY),  // ← Spawns at RIGHT EDGE (411.4)
+  // ...
+);
+```
+
+**THE REAL PROBLEM**: Obstacles spawn at `x = gameSize.width` (411.4), which is **at the right edge of the screen**.
+They should then **move LEFT** (negative X direction) to come into view.
+
+**HYPOTHESIS**: Obstacles are spawning correctly, but either:
+1. They're **not moving** (velocity/update not working)
+2. They're moving in the **wrong direction** (moving right instead of left)
+3. They're added to the **wrong parent** (not in World, so camera doesn't see them)
+
+**NEXT STEP**: Check `DynamicObstacle.update()` to see if obstacles are moving correctly!
+
+**✅ INVESTIGATION COMPLETE** (lib/game/components/dynamic_obstacle.dart:261):
+```dart
+void update(double dt) {
+  super.update(dt);
+  // Move obstacle to the left
+  position.x -= speed * dt;  // ← Moving LEFT correctly! ✅
+  // ...
+}
+```
+
+Obstacles ARE moving correctly (leftward)!
+
+**🔍 FINAL INVESTIGATION** (lib/game/flappy_game.dart:528):
+```dart
+_obstacleManager.addObstacleToGame(obstacle, this);  // ← Adding to FlappyGame (this)
+```
+
+**🔥 ROOT CAUSE CONFIRMED!**
+
+Obstacles are being added to `FlappyGame` directly (`this`), **NOT to `_world`!**
+
+With Flame's World + Camera architecture:
+- The `CameraComponent` only renders what's in its `world`
+- Obstacles added to `FlappyGame` are **outside** the camera's view
+- They need to be added to `_world` instead!
+
+**THE FIX**: Change `this` to `_world` when adding obstacles!
 
 ---
 
