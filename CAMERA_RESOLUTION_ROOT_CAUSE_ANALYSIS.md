@@ -83,7 +83,60 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 
 ---
 
-### Attempt 14: Diagnostic - Check Viewport Size ✅ ROOT CAUSE FOUND!
+### Attempt 15: Use Device Screen Size for World ⏳ TESTING
+
+**NEW ROOT CAUSE DISCOVERED**:
+The World size was 450x800 (logical resolution), but viewport was only 411x731 (device screen).
+When Flame rendered the 450-wide world into a 411-wide viewport, it scaled/clipped it, causing the narrow strip!
+
+**The Fix**:
+```dart
+// Use DEVICE SCREEN SIZE for both World and Camera
+final gameWidth = size.x;   // 411.4
+final gameHeight = size.y;  // 731.4
+
+_world = FlappyWorld(gameSize: Vector2(gameWidth, gameHeight));
+_camera = FlappyCamera.create(width: gameWidth, height: gameHeight);
+```
+
+**Why this should work**:
+- World size: 411 x 731 (matches device screen)
+- Viewport size: 411 x 731 (matches device screen)
+- No scaling needed - 1:1 pixel mapping!
+
+**Result**: ⏳ AWAITING HOT RELOAD
+
+---
+
+### Attempt 14: Adaptive Logical Resolution ⚠️ PARTIAL SUCCESS
+
+**Change**: Calculate logical resolution that matches device aspect ratio instead of fixed 400x800.
+
+```dart
+final deviceAspectRatio = size.x / size.y;  // 411/731 = 0.562
+final logicalHeight = 800.0;
+final logicalWidth = logicalHeight * deviceAspectRatio;  // 449.99
+```
+
+**Logs (lines 908-912)**:
+```
+🔍   - Camera viewport.size: [411.4285583496094,731.4285888671875]
+🔍   - FlameGame.size (device screen): [411.4285583496094,731.4285888671875]
+🔍   - World.gameSize (logical resolution): [449.9999694824219,800.0]
+```
+
+**Result**: 
+✅ Viewport NOW fills entire screen (411x731)!
+❌ BUT game still renders in narrow vertical strip on right side
+
+**NEW PROBLEM**: Viewport is correct size, but rendering is wrong. The issue is likely:
+1. World coordinate system mismatch
+2. Camera viewfinder position/anchor issue
+3. GameWidget canvas/rendering issue
+
+---
+
+### Attempt 14 (Original Analysis): ✅ ROOT CAUSE FOUND!
 
 **Hypothesis**: `withFixedResolution` might be creating a viewport that's literally 400x800 pixels instead of scaling to fill the screen.
 
