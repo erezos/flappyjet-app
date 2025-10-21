@@ -83,26 +83,59 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 
 ---
 
-### Attempt 16: Standard CameraComponent (no withFixedResolution) ⏳ TESTING
+### Attempt 17: Fix Viewfinder Position and Anchor ⏳ TESTING
 
-**CRITICAL REALIZATION**: `withFixedResolution` is for **fixed logical resolution with letterboxing**, NOT full-screen mobile games!
+**ROOT CAUSE IDENTIFIED**: Viewfinder was centered at `(0,0)` with `anchor.center`!
+
+When viewfinder is centered at (0,0):
+- With `anchor.center`, it views from `(-width/2, -height/2)` to `(width/2, height/2)`
+- World starts at `(0, 0)` and goes to `(411, 731)`
+- Camera was looking at `(-205, -365)` to `(205, 365)` 
+- Most of the world was OFF-SCREEN!
 
 **The Fix**:
 ```dart
-// STOP using withFixedResolution!
-final camera = CameraComponent(world: world);  // ← Standard camera, auto-fills screen!
+camera.viewfinder.anchor = Anchor.topLeft;  // Anchor at top-left, not center
+camera.viewfinder.position = Vector2.zero();  // Look at (0,0) of world
 ```
 
-**Why this should work**:
-- `CameraComponent(world: world)` without `withFixedResolution` is the simplest form
-- Flame's default behavior is to fill the entire game canvas
-- No fixed resolution = no letterboxing = full screen!
-
-**Expected Logs**:
-- Viewport type: `MaxViewport` or similar (NOT `FixedResolutionViewport`)
-- Game should render full screen
+**Why this works**:
+- With `anchor.topLeft` and position `(0,0)`, the camera views from `(0,0)` to `(width, height)`
+- This matches the entire world: `(0,0)` to `(411, 731)`
+- Full screen rendering! 🎉
 
 **Result**: ⏳ AWAITING HOT RELOAD
+
+---
+
+### Attempt 16: Standard CameraComponent (no withFixedResolution) ⚠️ VIEWPORT FIXED, RENDERING STILL WRONG
+
+**Change**: Use standard `CameraComponent(world: world)` instead of `withFixedResolution`.
+
+**Logs (lines 676-692)**:
+```
+📷 DIAGNOSTIC: Camera viewport type: MaxViewport
+📷 DIAGNOSTIC: Camera viewfinder.anchor: center
+🔍   - Camera viewport.size: [411.4285583496094,731.4285888671875]
+🔍   - Camera viewfinder.visibleGameSize: null
+🔍   - Camera viewfinder.zoom: 1.0
+```
+
+**Result**: ⚠️ Viewport is CORRECT (MaxViewport, full screen), but game STILL renders in quarter screen!
+
+**NEW DISCOVERY**: 
+- Viewport type: `MaxViewport` ✅ (correct!)
+- Viewport size: `411x731` ✅ (full screen!)
+- Viewfinder anchor: `center` ❌ (THIS IS THE PROBLEM!)
+- Viewfinder position: `[0, 0]` ❌
+
+**ROOT CAUSE**: The camera's viewfinder is centered at `(0, 0)` which is the **top-left corner** of the world! 
+- World size: 411x731
+- Camera viewfinder centered at (0, 0)
+- This means the camera is looking at `(-205, -365)` to `(205, 365)` 
+- Most of the world is OFF-SCREEN to the bottom-right!
+
+**THE FIX**: Set viewfinder position to world center and anchor to top-left!
 
 ---
 

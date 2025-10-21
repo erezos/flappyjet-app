@@ -32,12 +32,17 @@ class FlappyCamera {
   }) {
     safePrint('📷 FlappyCamera: Creating standard camera for full-screen game: $width x $height');
     
-    // ✅ ATTEMPT 16: Use STANDARD CameraComponent (not withFixedResolution!)
-    // withFixedResolution is for fixed logical resolution with letterboxing
-    // We want full-screen mobile game that fills entire device screen!
+    // ✅ ATTEMPT 17: Standard CameraComponent + Set viewfinder to look at entire world!
+    // The issue: Default viewfinder is centered at (0,0) with anchor.center
+    // This makes it look at (-width/2, -height/2) to (width/2, height/2)
+    // Most of the world is off-screen!
     final camera = CameraComponent(world: world);
     
-    safePrint('📷 FlappyCamera: Standard camera created (will auto-fill screen)');
+    // ✅ FIX: Position viewfinder at world center with topLeft anchor
+    camera.viewfinder.anchor = Anchor.topLeft;
+    camera.viewfinder.position = Vector2.zero();  // Look at (0,0) of the world
+    
+    safePrint('📷 FlappyCamera: Camera viewfinder positioned at (0,0) with topLeft anchor');
     
     // 🔍 DIAGNOSTIC: Log viewport and viewfinder details
     safePrint('📷 DIAGNOSTIC: Camera viewport type: ${camera.viewport.runtimeType}');
