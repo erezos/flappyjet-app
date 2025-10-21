@@ -14,11 +14,13 @@ import '../systems/hardware_particle_system.dart';
 class CelebrationSystem {
   late HardwareParticleSystem _hardwareParticleSystem;
   late FlameGame _game; // Reference to the game to add components
+  late Component _overlayParent; // Parent for UI overlays (camera viewport)
 
   /// Initialize celebration system
-  void initialize(HardwareParticleSystem hardwareParticleSystem, FlameGame game) {
+  void initialize(HardwareParticleSystem hardwareParticleSystem, FlameGame game, Component overlayParent) {
     _hardwareParticleSystem = hardwareParticleSystem;
     _game = game;
+    _overlayParent = overlayParent; // This should be camera.viewport for UI overlays
     safePrint('🎉 CelebrationSystem initialized');
   }
 
@@ -178,8 +180,8 @@ class CelebrationSystem {
       );
     });
     
-    // Add the component to the game
-    _game.add(comp);
+    // ✅ FLAME NATIVE: Add text to viewport (UI overlay) for World + Camera architecture
+    _overlayParent.add(comp);
     
     Future.delayed(const Duration(milliseconds: 900), () {
       if (comp.isMounted) comp.removeFromParent();

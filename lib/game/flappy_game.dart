@@ -132,7 +132,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   late TextComponent _startScreen;
   TextComponent? _gameOverScreen;
   int _lastKnownMaxLives = 3; // Track max lives changes
-  late RectangleComponent _ground;
+  // late RectangleComponent _ground; - Removed: ground collision handled by JetPlayer
 
   // MCP-Guided Systems
   late FlappyJetAudioManager _audioManager;
@@ -287,7 +287,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     add(_hardwareParticleSystem);
     
     // Connect celebration system to hardware particle system
-    _celebrationSystem.initialize(_hardwareParticleSystem, this);
+    // Pass camera.viewport as overlay parent for UI text (will be set after camera is created)
+    // For now, pass 'this' as a placeholder - we'll update it after camera is created
+    _celebrationSystem.initialize(_hardwareParticleSystem, this, this);
     
     // Initialize hardware particle system synchronously
     await _hardwareParticleSystem.preRenderParticles();
@@ -381,12 +383,16 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     await add(_camera);
     safePrint('✅ FLAME NATIVE: Camera added - architecture complete!');
     
+    // ✅ NOW update celebration system to use camera.viewport for UI overlays
+    _celebrationSystem.initialize(_hardwareParticleSystem, this, _camera.viewport);
+    safePrint('🎉 CelebrationSystem updated to use camera viewport for UI text');
+    
     // ✅ Step 6: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
     _jet = _world.player;
     _botJet = _world.bot;
     _background = _world.background;
-    _ground = _world.ground;
+    // _ground removed - ground component no longer exists in World
     _hud = FlappyCamera.getHud(_camera)!;
     
     safePrint('🔗 FLAME NATIVE: Legacy references connected');
@@ -811,7 +817,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       _gameStateManager.score,
       jet: _jet,
       background: _background,
-      ground: _ground,
+      // ground parameter removed - ground component no longer exists
     );
 
     if (themeChanged) {
@@ -963,8 +969,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Clear obstacles
     _obstacleManager.clearObstacles();
 
-    // Reset background
-    _ground.paint = Paint()..color = _gameStateManager.currentTheme.colors.obstacle;
+    // Reset background (ground component removed - no longer needed)
 
     // Remove game over screen if it exists
     if (_gameOverScreen != null) {

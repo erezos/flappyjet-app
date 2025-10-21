@@ -23,7 +23,7 @@ import '../../models/level_data_schema.dart';
 class FlappyWorld extends World {
   // Game objects
   late ParallaxBackground background;
-  late RectangleComponent ground;
+  // Ground component removed - collision handled by JetPlayer, visuals by background
   late JetPlayer player;
   BotJetPlayer? bot;
   
@@ -57,16 +57,10 @@ class FlappyWorld extends World {
     await background.loaded; // ✅ FLAME BEST PRACTICE: Await loaded after add
     safePrint('🌍 FlappyWorld: Background fully loaded');
     
-    // 2. Create ground (renders above background)
-    ground = RectangleComponent(
-      position: Vector2(0, gameSize.y - 50),
-      size: Vector2(gameSize.x, 50),
-      paint: Paint()..color = initialTheme.colors.obstacle,
-    );
-    ground.priority = -50;
-    await add(ground);
-    await ground.loaded; // ✅ FLAME BEST PRACTICE: Await loaded after add
-    safePrint('🌍 FlappyWorld: Ground fully loaded');
+    // 2. Ground is NOT needed for gameplay - the parallax background handles visuals
+    // Collision with ground is handled in JetPlayer directly (y >= gameSize.y)
+    // So we can skip creating the ground component entirely!
+    safePrint('🌍 FlappyWorld: Ground collision handled by JetPlayer (no visual needed)');
     
     // 3. Create player jet (renders above ground)
     final jetX = GameConfig.getStartScreenJetX(gameSize.x);
@@ -105,10 +99,7 @@ class FlappyWorld extends World {
     safePrint('🌍 FlappyWorld: ✅ All components loaded successfully!');
   }
   
-  /// Update ground color when theme changes
-  void updateGroundColor(GameTheme theme) {
-    ground.paint = Paint()..color = theme.colors.obstacle;
-  }
+  // updateGroundColor removed - ground component no longer exists
   
   /// Get player position (for obstacle manager, collision checks, etc.)
   Vector2 get playerPosition => player.position;

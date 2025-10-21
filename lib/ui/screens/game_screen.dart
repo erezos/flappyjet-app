@@ -93,30 +93,54 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     safePrint('🔍 DIAGNOSTIC: GameScreen.build() called - rendering GameWidget');
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen for withFixedResolution to work!
-        child: GestureDetector(
-          onTap: () {
-            safePrint('🎯 UI TAP DETECTED - calling game.handleTap()');
-            game.handleTap();
-          },
-          child: GameWidget(
-            game: game,
-            loadingBuilder: (context) {
-              safePrint('🔍 DIAGNOSTIC: GameWidget loadingBuilder called - game is loading');
-              return Container(
-                color: Colors.yellow,
-                child: const Center(child: Text('LOADING...', style: TextStyle(color: Colors.black, fontSize: 32))),
-              );
-            },
-            errorBuilder: (context, error) {
-              safePrint('🔍 DIAGNOSTIC: GameWidget errorBuilder called - ERROR: $error');
-              return Container(
-                color: Colors.red,
-                child: Center(child: Text('ERROR: $error', style: const TextStyle(color: Colors.white, fontSize: 24))),
+      body: Stack(
+        children: [
+          // Game canvas (full screen)
+          SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
+            child: GestureDetector(
+              onTap: () {
+                safePrint('🎯 UI TAP DETECTED - calling game.handleTap()');
+                game.handleTap();
+              },
+              child: GameWidget(
+                game: game,
+                loadingBuilder: (context) {
+                  safePrint('🔍 DIAGNOSTIC: GameWidget loadingBuilder called - game is loading');
+                  return Container(
+                    color: Colors.yellow,
+                    child: const Center(child: Text('LOADING...', style: TextStyle(color: Colors.black, fontSize: 32))),
+                  );
+                },
+                errorBuilder: (context, error) {
+                  safePrint('🔍 DIAGNOSTIC: GameWidget errorBuilder called - ERROR: $error');
+                  return Container(
+                    color: Colors.red,
+                    child: Center(child: Text('ERROR: $error', style: const TextStyle(color: Colors.white, fontSize: 16))),
+                  );
+                },
+              ),
+            ),
+          ),
+          
+          // Game Over Overlay (listens to game state)
+          ValueListenableBuilder<bool>(
+            valueListenable: game.gameStateManager.gameOverNotifier,
+            builder: (context, isGameOver, child) {
+              if (!isGameOver) return const SizedBox.shrink();
+              
+              return GameOverMenu(
+                score: game.currentScore,
+                bestScore: game.gameStateManager.bestScore,
+                onRestart: _handleRestart,
+                onHome: () => Navigator.of(context).pop(),
+                onShare: _shareScore,
+                monetization: widget.monetization,
+                onBuySingleHeart: _handleBuySingleHeart,
+                onGoToStore: _handleGoToStore,
               );
             },
           ),
-        ),
+        ],
       ),
     );
   }

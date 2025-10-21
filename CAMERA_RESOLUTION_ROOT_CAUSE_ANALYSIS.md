@@ -638,6 +638,28 @@ For Flame Engine documentation (or our own):
 
 ---
 
+## 🎯 **POST-RESOLUTION ISSUES (After Attempt 18)**
+
+### Issue 1: Colored Strip at Bottom ⏳ INVESTIGATING
+**Problem**: Ground component visible as colored strip at bottom, changes color with theme.
+**Root Cause**: Ground is at `y = gameSize.y - 50` (50px height), visible below gameplay area.
+**Solution Options**:
+- Remove ground component entirely (not needed for gameplay)
+- Move ground to `y = gameSize.y` (off-screen)
+- Extend parallax background to cover ground area
+
+### Issue 2: Missing Celebration Effects ⏳ INVESTIGATING
+**Problem**: Obstacle pass celebration text and particles disappeared.
+**Root Cause**: `CelebrationSystem._showMotivationText()` adds components to `_game` (line 182), but with World + Camera, they're outside camera's view.
+**Solution**: Update `CelebrationSystem` to add text components to `_camera.viewport` for UI overlays, not `_game`.
+
+### Issue 3: No Game Over Screen ⏳ INVESTIGATING
+**Problem**: When lives reach 0, game over screen doesn't appear.
+**Root Cause**: Game over overlay might be added to Game instead of World, or UI is not properly listening to `GameStateManager.gameOverNotifier`.
+**Solution**: Investigate game over screen rendering in `game_screen.dart` and ensure it's triggered by state changes.
+
+---
+
 ## ✅ Final Checklist
 
 - [x] Use `GameConfig.gameWidth` and `GameConfig.gameHeight` (400x800)
