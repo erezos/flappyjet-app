@@ -32,16 +32,15 @@ class FlappyCamera {
   }) {
     safePrint('📷 FlappyCamera: Creating camera for full-screen game: $width x $height');
     
-    // ✅ FLAME BEST PRACTICE: Standard CameraComponent for full-screen games
-    final camera = CameraComponent(world: world);
+    // ✅ FLAME BEST PRACTICE: Use withFixedResolution for fixed coordinate system
+    // This creates a logical 400x800 (or width x height) game that auto-scales to any screen
+    final camera = CameraComponent.withFixedResolution(
+      world: world,
+      width: width,
+      height: height,
+    );
     
-    // 🎯 CRITICAL: Configure viewfinder to show the full game area
-    // By default, CameraComponent uses zoom=1 and doesn't know what area to show
-    // We explicitly tell it to show the entire game from (0,0) to (width, height)
-    camera.viewfinder.visibleGameSize = Vector2(width, height);
-    camera.viewfinder.anchor = Anchor.topLeft; // View from top-left corner (0,0)
-    
-    safePrint('📷 FlappyCamera: Viewfinder configured to show full game area from (0,0) to ($width, $height)');
+    safePrint('📷 FlappyCamera: Camera created with fixed resolution $width x $height (will auto-scale to device screen)');
     
     // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives);
