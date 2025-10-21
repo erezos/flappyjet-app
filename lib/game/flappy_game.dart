@@ -284,7 +284,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // 🚀 HARDWARE-ACCELERATED PARTICLE SYSTEM - High-performance crash effects!
     _hardwareParticleSystem = HardwareParticleSystem();
     _hardwareParticleSystem.priority = 1000; // Render on top of everything
-    add(_hardwareParticleSystem);
+    // NOTE: Will be added to World in _createGameComponents() so camera can see it!
     
     // Connect celebration system to hardware particle system
     // Pass camera.viewport as overlay parent for UI text (will be set after camera is created)
@@ -386,6 +386,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // ✅ NOW update celebration system to use camera.viewport for UI overlays
     _celebrationSystem.initialize(_hardwareParticleSystem, this, _camera.viewport);
     safePrint('🎉 CelebrationSystem updated to use camera viewport for UI text');
+    
+    // ✅ Add HardwareParticleSystem to World so camera can see it!
+    // Particles must be in the World, not the root game, for World + Camera architecture
+    await _world.add(_hardwareParticleSystem);
+    safePrint('🚀 HardwareParticleSystem added to World - particles will be visible!');
     
     // ✅ Step 6: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works

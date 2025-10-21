@@ -648,13 +648,20 @@ For Flame Engine documentation (or our own):
 - `lib/game/world/flappy_world.dart` - Removed ground component creation and `updateGroundColor()` method
 - `lib/game/flappy_game.dart` - Removed `_ground` field and all references
 
-### Issue 2: Missing Celebration Effects ✅ FIXED
-**Problem**: Obstacle pass celebration text and particles disappeared.
-**Root Cause**: `CelebrationSystem._showMotivationText()` adds components to `_game` (line 182), but with World + Camera, they're outside camera's view.
-**Solution**: Updated `CelebrationSystem.initialize()` to accept `overlayParent` parameter (camera.viewport), and add text components to viewport instead of game.
+### Issue 2: Missing Celebration Effects ✅ FIXED (TEXT) → ❌ PARTICLES INVISIBLE
+**Problem 1**: Obstacle pass celebration text disappeared.
+**Root Cause 1**: `CelebrationSystem._showMotivationText()` was adding components to `_game`, outside camera's view.
+**Solution 1**: Updated `CelebrationSystem` to add text to camera viewport.
 **Files Modified**:
 - `lib/game/systems/celebration_system.dart` - Added `_overlayParent` field, changed `_game.add(comp)` to `_overlayParent.add(comp)`
 - `lib/game/flappy_game.dart` - Pass `_camera.viewport` to `CelebrationSystem.initialize()`
+
+**Problem 2**: Particles are created (logs confirm) but NOT VISIBLE! 🔍
+**Root Cause 2**: `HardwareParticleSystem` was added to `FlappyGame` root in `onLoad()`, but with World + Camera architecture, only components IN THE WORLD are visible through the camera!
+**Solution 2**: Move `HardwareParticleSystem` from game root to World component tree.
+**Files Modified**:
+- `lib/game/flappy_game.dart` - Removed `add(_hardwareParticleSystem)` from `onLoad()`, added `await _world.add(_hardwareParticleSystem)` in `_createGameComponents()` after camera setup
+**Test Result**: ⏳ Hot reload to verify particles are now visible!
 
 ### Issue 3: No Game Over Screen ✅ FIXED
 **Problem**: When lives reach 0, game over screen doesn't appear.
