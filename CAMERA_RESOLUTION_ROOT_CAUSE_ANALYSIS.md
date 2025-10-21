@@ -83,11 +83,66 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 
 ---
 
-### Attempt 14: Diagnostic - Check Viewport Size
+### Attempt 14: Diagnostic - Check Viewport Size ✅ ROOT CAUSE FOUND!
 
 **Hypothesis**: `withFixedResolution` might be creating a viewport that's literally 400x800 pixels instead of scaling to fill the screen.
 
-**Need to check**: What size is the actual viewport/canvas that Flame is rendering to?
+**LOGS REVEALED THE PROBLEM** (Line 816):
+```
+🔍   - Camera viewport.size: [365.71429443359375,731.4285888671875]
+🔍   - FlameGame.size (device screen): [411.4285583496094,731.4285888671875]
+🔍   - World.gameSize (logical resolution): [400.0,800.0]
+```
+
+**🔥 ROOT CAUSE**: 
+- Logical resolution: **400x800** (1:2 aspect ratio)
+- Device screen: **411x731** (1:1.78 aspect ratio - DIFFERENT!)
+- `FixedResolutionViewport` maintains 1:2 aspect ratio by letterboxing
+- Result: Viewport width scaled DOWN from 411 to **365.7** to maintain 1:2 ratio
+- This creates a **narrow vertical strip** (~366px wide) with black bars on sides
+
+**Why it happens**:
+- `withFixedResolution(400, 800)` enforces 1:2 aspect ratio
+- Device screen (411x731) has 1:1.78 aspect ratio
+- To fit 1:2 into 1:1.78, Flame adds letterboxing (black bars on sides)
+- The actual game renders in 365.7 x 731.4 (which maintains 1:2 aspect ratio)
+
+**Result**: ❌ Game in vertical strip with black bars on left/right sides
+
+---
+
+### **THE SOLUTION: Use Device Aspect Ratio, Not Fixed 400x800**
+
+**Option 1: Match device aspect ratio** (RECOMMENDED)
+```dart
+// Calculate logical resolution that matches device aspect ratio
+final deviceAspectRatio = size.x / size.y;  // 411/731 = 0.562
+final logicalHeight = 800.0;
+final logicalWidth = logicalHeight * deviceAspectRatio;  // 800 * 0.562 = 449.6
+
+_world = FlappyWorld(gameSize: Vector2(logicalWidth, logicalHeight));
+_camera = FlappyCamera.create(width: logicalWidth, height: logicalHeight);
+```
+
+**Option 2: Stop using withFixedResolution**
+Use standard `CameraComponent` and set viewport manually to fill screen.
+
+**Option 3: Accept letterboxing**
+Keep 400x800 but understand black bars on sides are intentional.
+
+---
+
+## ✅ FINAL ANSWER: Why Fixed 400x800 Doesn't Work
+
+`withFixedResolution(400, 800)` is designed for **maintaining aspect ratio**, not **filling the screen**.
+
+When you use `withFixedResolution(400, 800)`:
+1. Flame creates a 1:2 aspect ratio coordinate system
+2. On a device with different aspect ratio (like 411:731 = 1:1.78), Flame adds letterboxing
+3. The game renders in a smaller viewport to maintain the 1:2 ratio
+4. Black bars appear on sides (or top/bottom) to fill the remaining space
+
+**This is WORKING AS DESIGNED** - it's just not what we want for a full-screen mobile game!
 
 ---
 
