@@ -640,23 +640,28 @@ For Flame Engine documentation (or our own):
 
 ## 🎯 **POST-RESOLUTION ISSUES (After Attempt 18)**
 
-### Issue 1: Colored Strip at Bottom ⏳ INVESTIGATING
+### Issue 1: Colored Strip at Bottom ✅ FIXED
 **Problem**: Ground component visible as colored strip at bottom, changes color with theme.
-**Root Cause**: Ground is at `y = gameSize.y - 50` (50px height), visible below gameplay area.
-**Solution Options**:
-- Remove ground component entirely (not needed for gameplay)
-- Move ground to `y = gameSize.y` (off-screen)
-- Extend parallax background to cover ground area
+**Root Cause**: Ground was at `y = gameSize.y - 50` (50px height), visible below gameplay area.
+**Solution**: Removed ground component entirely - collision is handled by JetPlayer, visuals by parallax background.
+**Files Modified**: 
+- `lib/game/world/flappy_world.dart` - Removed ground component creation and `updateGroundColor()` method
+- `lib/game/flappy_game.dart` - Removed `_ground` field and all references
 
-### Issue 2: Missing Celebration Effects ⏳ INVESTIGATING
+### Issue 2: Missing Celebration Effects ✅ FIXED
 **Problem**: Obstacle pass celebration text and particles disappeared.
 **Root Cause**: `CelebrationSystem._showMotivationText()` adds components to `_game` (line 182), but with World + Camera, they're outside camera's view.
-**Solution**: Update `CelebrationSystem` to add text components to `_camera.viewport` for UI overlays, not `_game`.
+**Solution**: Updated `CelebrationSystem.initialize()` to accept `overlayParent` parameter (camera.viewport), and add text components to viewport instead of game.
+**Files Modified**:
+- `lib/game/systems/celebration_system.dart` - Added `_overlayParent` field, changed `_game.add(comp)` to `_overlayParent.add(comp)`
+- `lib/game/flappy_game.dart` - Pass `_camera.viewport` to `CelebrationSystem.initialize()`
 
-### Issue 3: No Game Over Screen ⏳ INVESTIGATING
+### Issue 3: No Game Over Screen ✅ FIXED
 **Problem**: When lives reach 0, game over screen doesn't appear.
-**Root Cause**: Game over overlay might be added to Game instead of World, or UI is not properly listening to `GameStateManager.gameOverNotifier`.
-**Solution**: Investigate game over screen rendering in `game_screen.dart` and ensure it's triggered by state changes.
+**Root Cause**: `GameScreen` was a minimal diagnostic version (used for debugging camera issues) without UI overlays. It only had `GameWidget` with no game over menu.
+**Solution**: Restored full `GameScreen` with `Stack` + `ValueListenableBuilder` listening to `game.gameStateManager.gameOverNotifier`. Game over menu now appears as overlay.
+**Files Modified**:
+- `lib/ui/screens/game_screen.dart` - Wrapped `GameWidget` in `Stack` with `GameOverMenu` overlay
 
 ---
 

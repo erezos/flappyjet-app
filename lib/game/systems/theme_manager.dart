@@ -25,7 +25,7 @@ class ThemeManager {
   Future<bool> checkThemeTransition(int score, {
     required JetPlayer jet,
     required ParallaxBackground background,
-    required RectangleComponent ground,
+    // ground parameter removed - ground component no longer exists
   }) async {
     final newTheme = GameThemes.getThemeForScore(score);
 
@@ -39,7 +39,7 @@ class ThemeManager {
 
       // Update all components for new theme
       jet.updateEnvironmentTheme(_currentTheme);
-      ground.paint = Paint()..color = _currentTheme.colors.obstacle;
+      // ground.paint removed - ground component no longer exists
 
       // 🎵 FIXED: Use dynamic music manager for proper theme music
       _audioManager.playSFX(
@@ -80,11 +80,11 @@ class ThemeManager {
   /// Set theme manually (for testing or special cases)
   void setTheme(GameTheme theme, {
     required JetPlayer jet,
-    required RectangleComponent ground,
+    // ground parameter removed - ground component no longer exists
   }) {
     _currentTheme = theme;
     jet.updateEnvironmentTheme(_currentTheme);
-    ground.paint = Paint()..color = _currentTheme.colors.obstacle;
+    // ground.paint removed - ground component no longer exists
     safePrint('🎭 Theme manually set to ${_currentTheme.displayName}');
   }
 

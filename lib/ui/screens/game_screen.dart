@@ -14,8 +14,6 @@ import '../../game/systems/social_sharing_manager.dart';
 import '../../game/core/economy_config.dart';
 import '../widgets/game_over_menu.dart';
 import '../widgets/no_hearts_dialog.dart';
-import '../widgets/rate_us_integration.dart';
-import '../../integrations/ftue_integration.dart';
 import 'store_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -132,9 +130,20 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 score: game.currentScore,
                 bestScore: game.gameStateManager.bestScore,
                 onRestart: _handleRestart,
-                onHome: () => Navigator.of(context).pop(),
+                onMainMenu: () => Navigator.of(context).pop(),
+                onContinueWithAd: () async {
+                  // Show rewarded ad and continue game
+                  await widget.monetization.showRewardedAd(
+                    onReward: () {
+                      game.continueGame();
+                    },
+                  );
+                },
                 onShare: _shareScore,
-                monetization: widget.monetization,
+                canContinue: game.gameStateManager.canContinueWithAd,
+                continuesRemaining: game.gameStateManager.continuesRemaining,
+                playerGems: InventoryManager().gems,
+                singleHeartPrice: _getSingleHeartPrice(),
                 onBuySingleHeart: _handleBuySingleHeart,
                 onGoToStore: _handleGoToStore,
               );

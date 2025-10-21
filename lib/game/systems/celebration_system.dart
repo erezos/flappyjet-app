@@ -13,13 +13,11 @@ import '../systems/hardware_particle_system.dart';
 /// Separated from FlappyGame for better testability and maintainability
 class CelebrationSystem {
   late HardwareParticleSystem _hardwareParticleSystem;
-  late FlameGame _game; // Reference to the game to add components
   late Component _overlayParent; // Parent for UI overlays (camera viewport)
 
   /// Initialize celebration system
   void initialize(HardwareParticleSystem hardwareParticleSystem, FlameGame game, Component overlayParent) {
     _hardwareParticleSystem = hardwareParticleSystem;
-    _game = game;
     _overlayParent = overlayParent; // This should be camera.viewport for UI overlays
     safePrint('🎉 CelebrationSystem initialized');
   }
