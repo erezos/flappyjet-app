@@ -915,6 +915,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Pass null as obstacle since we don't have access to it from the score zone
     _gameStateManager.updateScore(_gameStateManager.score + 1);
     _hud.updateScore(_gameStateManager.score);
+    _hud.updateBestScore(_gameStateManager.bestScore); // Update best score display
     
     // 🤖 BOT BATTLE: Make bot score as well (with slight delay/randomness)
     if (_botJet != null && _botJet!.isActive) {
@@ -969,6 +970,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Reset HUD
     _hud.updateScore(_gameStateManager.score);
+    _hud.updateBestScore(_gameStateManager.bestScore);
     _hud.updateLives(_gameStateManager.lives);
 
     // Clear obstacles

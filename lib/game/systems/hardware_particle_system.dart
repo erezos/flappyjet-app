@@ -276,10 +276,10 @@ class HardwareParticleSystem extends Component {
     // ✅ USER REQUEST: Enhanced celebration - more beautiful, modern, and casual
     final random = math.Random();
     
-    // Calculate particle count based on score milestones - MORE PARTICLES!
-    final int baseCount = 25; // Even MORE base particles
-    final int bonus5 = (score % 5 == 0) ? 15 : 0; // More for every 5th
-    final int bonus10 = (score % 10 == 0) ? 30 : 0; // HUGE burst for every 10th!
+    // Calculate particle count based on score milestones - Subtle and polished
+    final int baseCount = 8; // Fewer particles for cleaner look
+    final int bonus5 = (score % 5 == 0) ? 4 : 0; // Small bonus for every 5th
+    final int bonus10 = (score % 10 == 0) ? 8 : 0; // Larger burst for every 10th
     final int count = baseCount + bonus5 + bonus10;
     
     final bool isMilestone = score % 10 == 0;
@@ -287,7 +287,7 @@ class HardwareParticleSystem extends Component {
     
     // === RING WAVE EFFECT ===
     // Create an expanding ring of particles for modern, satisfying feedback
-    final ringParticleCount = isMilestone ? 20 : (isHalfMilestone ? 12 : 8);
+    final ringParticleCount = isMilestone ? 10 : (isHalfMilestone ? 6 : 4);
     for (int i = 0; i < ringParticleCount; i++) {
       final particle = _pool.acquire();
       if (particle == null) continue;
@@ -302,8 +302,8 @@ class HardwareParticleSystem extends Component {
         math.sin(angle) * ringSpeed,
       );
       
-      particle.lifetime = 0.8 + random.nextDouble() * 0.4;
-      particle.size = isMilestone ? 14.0 : 10.0; // Larger for milestones
+      particle.lifetime = 0.6 + random.nextDouble() * 0.3;
+      particle.size = isMilestone ? 8.0 : 6.0; // Smaller, more subtle
       particle.type = ParticleType.star; // Stars for ring effect
       particle.rotation = angle; // Rotate to face outward
       particle.angularVelocity = 0; // Keep orientation
@@ -334,9 +334,9 @@ class HardwareParticleSystem extends Component {
         math.sin(angle) * speed + verticalBias,
       );
       
-      // ✅ BEAUTIFUL: Enhanced particle properties for more visual appeal
-      particle.lifetime = 1.6 + random.nextDouble() * 1.2; // Longer celebration
-      particle.size = 14.0 + random.nextDouble() * 20.0; // HUGE particles for impact!
+      // ✅ SUBTLE: Smaller particles for cleaner look
+      particle.lifetime = 1.0 + random.nextDouble() * 0.8; // Shorter lifetime
+      particle.size = 8.0 + random.nextDouble() * 8.0; // Smaller particles (was 14-34)
       
       // ✅ MODERN: Choose particle type with better distribution
       if (isMilestone) {
@@ -363,7 +363,7 @@ class HardwareParticleSystem extends Component {
     // === SECONDARY WAVE ===
     // Delayed secondary burst for satisfying "thump" feeling
     Future.delayed(const Duration(milliseconds: 120), () {
-      for (int i = 0; i < 12; i++) {
+      for (int i = 0; i < 4; i++) { // Fewer secondary particles (was 12)
         final particle = _pool.acquire();
         if (particle == null) continue;
         
@@ -375,8 +375,8 @@ class HardwareParticleSystem extends Component {
           math.cos(angle) * speed,
           math.sin(angle) * speed - 60, // Upward bias for excitement
         );
-        particle.lifetime = 1.2 + random.nextDouble() * 0.6;
-        particle.size = 10.0 + random.nextDouble() * 12.0;
+        particle.lifetime = 0.8 + random.nextDouble() * 0.4;
+        particle.size = 6.0 + random.nextDouble() * 6.0; // Smaller (was 10-22)
         particle.type = ParticleType.star; // Stars for secondary wave
         particle.rotation = random.nextDouble() * 2 * math.pi;
         particle.angularVelocity = (random.nextDouble() - 0.5) * 15.0;

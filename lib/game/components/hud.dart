@@ -5,48 +5,73 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 /// HUD component for displaying game information
-class HUD extends Component {
+class HUD extends Component with HasGameReference {
   int _currentLives;
   int _maxLives;
   int _score = 0;
+  int _bestScore = 0;
   late TextComponent _scoreText;
+  late TextComponent _bestScoreText;
   late TextComponent _livesText;
 
   HUD(this._currentLives, this._maxLives);
 
   @override
   Future<void> onLoad() async {
-    // Score display
+    // Get game size for positioning
+    final gameSize = gameRef.size;
+    
+    // Score display (top left)
     _scoreText = TextComponent(
-      text: 'Score: $_score',
+      text: '$_score',
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 24,
+          fontSize: 48,
           fontWeight: FontWeight.bold,
           shadows: [
-            Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(2, 2)),
+            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(2, 2)),
           ],
         ),
       ),
-      position: Vector2(20, 60),
+      position: Vector2(20, 20),
+      anchor: Anchor.topLeft,
     );
     add(_scoreText);
 
-    // Lives display
+    // Best score display (under score, smaller font)
+    _bestScoreText = TextComponent(
+      text: 'Best: $_bestScore',
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          shadows: [
+            Shadow(color: Colors.black54, blurRadius: 3, offset: Offset(1, 1)),
+          ],
+        ),
+      ),
+      position: Vector2(20, 76), // Under score text
+      anchor: Anchor.topLeft,
+    );
+    add(_bestScoreText);
+
+    // Lives display (top right)
     _livesText = TextComponent(
       text: _formatLives(_currentLives),
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Colors.red,
-          fontSize: 20,
+          fontSize: 32,
           fontWeight: FontWeight.bold,
           shadows: [
-            Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(2, 2)),
+            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(2, 2)),
           ],
         ),
       ),
-      position: Vector2(20, 100),
+      position: Vector2(gameSize.x - 20, 20),
+      anchor: Anchor.topRight,
     );
     add(_livesText);
   }
@@ -55,7 +80,15 @@ class HUD extends Component {
   void updateScore(int newScore) {
     _score = newScore;
     if (hasChildren) {
-      _scoreText.text = 'Score: $_score';
+      _scoreText.text = '$_score';
+    }
+  }
+
+  /// Update the best score display
+  void updateBestScore(int newBestScore) {
+    _bestScore = newBestScore;
+    if (hasChildren) {
+      _bestScoreText.text = 'Best: $_bestScore';
     }
   }
 
