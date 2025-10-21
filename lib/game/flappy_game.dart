@@ -337,20 +337,23 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     
     // ✅ Use device screen size (NOT fixed logical resolution)
     // Flame's CameraComponent handles scaling automatically when viewport fills screen
-    final gameWidth = size.x;
-    final gameHeight = size.y;
+    // ✅ FLAME NATIVE PATTERN: Use FIXED LOGICAL RESOLUTION
+    // withFixedResolution will auto-scale this to any device screen
+    final gameWidth = GameConfig.gameWidth;   // 400.0
+    final gameHeight = GameConfig.gameHeight; // 800.0
     
-    safePrint('🎯 Using device screen size: ${gameWidth}x${gameHeight}');
+    safePrint('🎯 Using FIXED logical resolution: ${gameWidth}x${gameHeight}');
+    safePrint('🎯 Device screen size: ${size.x}x${size.y} (will auto-scale)');
     
-    // ✅ Step 1: Create World with device screen dimensions
+    // ✅ Step 1: Create World with FIXED logical resolution
     _world = FlappyWorld(
-      gameSize: size,
+      gameSize: Vector2(gameWidth, gameHeight),  // 400x800 logical resolution
       initialTheme: _gameStateManager.currentTheme,
       playerSkin: equippedSkin,
       isStoryMode: isStoryMode,
       storyModeLevel: storyModeLevel,
     );
-    safePrint('🌍 FLAME NATIVE: World created with device screen size');
+    safePrint('🌍 FLAME NATIVE: World created with logical resolution $gameWidth x $gameHeight');
     
     // ✅ Step 2: Add World to game FIRST (triggers World.onLoad())
     await add(_world);
