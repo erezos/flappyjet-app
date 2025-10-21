@@ -92,32 +92,29 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     safePrint('🔍 DIAGNOSTIC: GameScreen.build() called - rendering GameWidget');
     return Scaffold(
-      backgroundColor: Colors.black, // For visibility
-      body: Container(
-        color: Colors.black,
-        child: Center(
-          child: GestureDetector(
-            onTap: () {
-              safePrint('🎯 UI TAP DETECTED - calling game.handleTap()');
-              game.handleTap();
+      backgroundColor: Colors.black,
+      body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen for withFixedResolution to work!
+        child: GestureDetector(
+          onTap: () {
+            safePrint('🎯 UI TAP DETECTED - calling game.handleTap()');
+            game.handleTap();
+          },
+          child: GameWidget(
+            game: game,
+            loadingBuilder: (context) {
+              safePrint('🔍 DIAGNOSTIC: GameWidget loadingBuilder called - game is loading');
+              return Container(
+                color: Colors.yellow,
+                child: const Center(child: Text('LOADING...', style: TextStyle(color: Colors.black, fontSize: 32))),
+              );
             },
-            child: GameWidget(
-              game: game,
-              loadingBuilder: (context) {
-                safePrint('🔍 DIAGNOSTIC: GameWidget loadingBuilder called - game is loading');
-                return Container(
-                  color: Colors.yellow,
-                  child: const Center(child: Text('LOADING...', style: TextStyle(color: Colors.black, fontSize: 32))),
-                );
-              },
-              errorBuilder: (context, error) {
-                safePrint('🔍 DIAGNOSTIC: GameWidget errorBuilder called - ERROR: $error');
-                return Container(
-                  color: Colors.red,
-                  child: Center(child: Text('ERROR: $error', style: const TextStyle(color: Colors.white, fontSize: 24))),
-                );
-              },
-            ),
+            errorBuilder: (context, error) {
+              safePrint('🔍 DIAGNOSTIC: GameWidget errorBuilder called - ERROR: $error');
+              return Container(
+                color: Colors.red,
+                child: Center(child: Text('ERROR: $error', style: const TextStyle(color: Colors.white, fontSize: 24))),
+              );
+            },
           ),
         ),
       ),
