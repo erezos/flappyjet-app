@@ -5,7 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 /// HUD component for displaying game information
-class HUD extends Component with HasGameReference {
+class HUD extends Component {
   int _currentLives;
   int _maxLives;
   int _score = 0;
@@ -13,13 +13,15 @@ class HUD extends Component with HasGameReference {
   late TextComponent _scoreText;
   late TextComponent _bestScoreText;
   late TextComponent _livesText;
+  Vector2? _gameSize;
 
   HUD(this._currentLives, this._maxLives);
 
   @override
   Future<void> onLoad() async {
-    // Get game size for positioning
-    final gameSize = gameRef.size;
+    // Get game size from parent (will be set when mounted to viewport)
+    // Use a default for now, will be repositioned in onMount
+    _gameSize = parent?.size ?? Vector2(400, 800);
     
     // Score display (top left)
     _scoreText = TextComponent(
@@ -57,7 +59,7 @@ class HUD extends Component with HasGameReference {
     );
     add(_bestScoreText);
 
-    // Lives display (top right)
+    // Lives display (top right) - will be repositioned in onMount
     _livesText = TextComponent(
       text: _formatLives(_currentLives),
       textRenderer: TextPaint(
@@ -70,10 +72,20 @@ class HUD extends Component with HasGameReference {
           ],
         ),
       ),
-      position: Vector2(gameSize.x - 20, 20),
+      position: Vector2(_gameSize!.x - 20, 20),
       anchor: Anchor.topRight,
     );
     add(_livesText);
+  }
+  
+  @override
+  void onMount() {
+    super.onMount();
+    // Update lives position now that we have the correct parent size
+    if (parent != null) {
+      _gameSize = parent!.size;
+      _livesText.position = Vector2(_gameSize!.x - 20, 20);
+    }
   }
 
   /// Update the score display

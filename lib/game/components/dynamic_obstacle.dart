@@ -284,6 +284,35 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     }
     
     super.render(canvas);
+    
+    // 🐛 DEBUG: Draw collision borders in red
+    final debugPaint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    
+    // Draw top obstacle collision border
+    if (_topObstacle != null) {
+      final topRect = _topObstacle!.toRect();
+      canvas.drawRect(topRect, debugPaint);
+    }
+    
+    // Draw bottom obstacle collision border
+    if (_bottomObstacle != null) {
+      final bottomRect = _bottomObstacle!.toRect();
+      canvas.drawRect(bottomRect, debugPaint);
+    }
+    
+    // Draw score zone border in green
+    if (_scoreZone != null) {
+      final zonePaint = Paint()
+        ..color = Colors.green.withValues(alpha: 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+      
+      final zoneRect = _scoreZone!.toRect();
+      canvas.drawRect(zoneRect, zonePaint);
+    }
   }
   
   /// Get collision rectangles for this obstacle
@@ -374,40 +403,6 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   String getObstacleInfo() {
     final assetPath = VisualAssetManager.getObstacleAsset(currentScore);
     return 'Score: $currentScore, Asset: $assetPath, Gap: $gapSize, Speed: ${speed.toStringAsFixed(1)}';
-  }
-  
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-    
-    // 🐛 DEBUG: Draw collision borders in red
-    final debugPaint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    
-    // Draw top obstacle collision border
-    if (_topObstacle != null) {
-      final topRect = _topObstacle!.toRect();
-      canvas.drawRect(topRect, debugPaint);
-    }
-    
-    // Draw bottom obstacle collision border
-    if (_bottomObstacle != null) {
-      final bottomRect = _bottomObstacle!.toRect();
-      canvas.drawRect(bottomRect, debugPaint);
-    }
-    
-    // Draw score zone border in green
-    if (_scoreZone != null) {
-      final zonePaint = Paint()
-        ..color = Colors.green.withValues(alpha: 0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-      
-      final zoneRect = _scoreZone!.toRect();
-      canvas.drawRect(zoneRect, zonePaint);
-    }
   }
   
   /// ✅ REFACTOR v1.7.0: Removal effects removed per user request
