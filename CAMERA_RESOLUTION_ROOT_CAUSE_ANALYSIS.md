@@ -83,28 +83,51 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 
 ---
 
-### Attempt 15: Use Device Screen Size for World ⏳ TESTING
+### Attempt 16: Standard CameraComponent (no withFixedResolution) ⏳ TESTING
 
-**NEW ROOT CAUSE DISCOVERED**:
-The World size was 450x800 (logical resolution), but viewport was only 411x731 (device screen).
-When Flame rendered the 450-wide world into a 411-wide viewport, it scaled/clipped it, causing the narrow strip!
+**CRITICAL REALIZATION**: `withFixedResolution` is for **fixed logical resolution with letterboxing**, NOT full-screen mobile games!
 
 **The Fix**:
 ```dart
-// Use DEVICE SCREEN SIZE for both World and Camera
-final gameWidth = size.x;   // 411.4
-final gameHeight = size.y;  // 731.4
-
-_world = FlappyWorld(gameSize: Vector2(gameWidth, gameHeight));
-_camera = FlappyCamera.create(width: gameWidth, height: gameHeight);
+// STOP using withFixedResolution!
+final camera = CameraComponent(world: world);  // ← Standard camera, auto-fills screen!
 ```
 
 **Why this should work**:
-- World size: 411 x 731 (matches device screen)
-- Viewport size: 411 x 731 (matches device screen)
-- No scaling needed - 1:1 pixel mapping!
+- `CameraComponent(world: world)` without `withFixedResolution` is the simplest form
+- Flame's default behavior is to fill the entire game canvas
+- No fixed resolution = no letterboxing = full screen!
+
+**Expected Logs**:
+- Viewport type: `MaxViewport` or similar (NOT `FixedResolutionViewport`)
+- Game should render full screen
 
 **Result**: ⏳ AWAITING HOT RELOAD
+
+---
+
+### Attempt 15: Use Device Screen Size for World ❌ STILL QUARTER SCREEN
+
+**Change**: Use device screen size (411x731) for both World and Camera instead of fixed logical resolution.
+
+**Logs (lines 553-562)**:
+```
+🔍   - Camera viewport type: FixedResolutionViewport
+🔍   - Camera viewport.size: [411.4285583496094,731.4285888671875]
+🔍   - Camera viewfinder.visibleGameSize: null
+🔍   - FlameGame.size (device screen): [411.4285583496094,731.4285888671875]
+🔍   - World.gameSize (logical resolution): [411.4285583496094,731.4285888671875]
+```
+
+**Result**: ❌ Game STILL renders in top-left quarter of screen!
+
+**NEW DISCOVERY**: 
+- Viewport size is CORRECT (411x731 = full screen)
+- World size is CORRECT (411x731)
+- BUT still quarter screen rendering!
+- **Problem**: `withFixedResolution` creates a `FixedResolutionViewport` which doesn't fill the screen!
+
+**CONCLUSION**: `CameraComponent.withFixedResolution` is NOT for full-screen mobile games. It's for fixed coordinate systems with letterboxing. We need a standard `CameraComponent` without `withFixedResolution`!
 
 ---
 

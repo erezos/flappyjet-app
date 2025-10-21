@@ -30,17 +30,14 @@ class FlappyCamera {
     required double width,
     required double height,
   }) {
-    safePrint('📷 FlappyCamera: Creating camera for full-screen game: $width x $height');
+    safePrint('📷 FlappyCamera: Creating standard camera for full-screen game: $width x $height');
     
-    // ✅ FLAME BEST PRACTICE: Use withFixedResolution for fixed coordinate system
-    // This creates a logical 400x800 (or width x height) game that auto-scales to any screen
-    final camera = CameraComponent.withFixedResolution(
-      world: world,
-      width: width,
-      height: height,
-    );
+    // ✅ ATTEMPT 16: Use STANDARD CameraComponent (not withFixedResolution!)
+    // withFixedResolution is for fixed logical resolution with letterboxing
+    // We want full-screen mobile game that fills entire device screen!
+    final camera = CameraComponent(world: world);
     
-    safePrint('📷 FlappyCamera: Camera created with fixed resolution $width x $height (will auto-scale to device screen)');
+    safePrint('📷 FlappyCamera: Standard camera created (will auto-fill screen)');
     
     // 🔍 DIAGNOSTIC: Log viewport and viewfinder details
     safePrint('📷 DIAGNOSTIC: Camera viewport type: ${camera.viewport.runtimeType}');
