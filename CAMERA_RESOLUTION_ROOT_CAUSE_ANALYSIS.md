@@ -3,8 +3,8 @@
 ## ⚠️ STATUS: ATTEMPTED FIX - DID NOT RESOLVE ISSUE
 
 **Date**: Oct 21, 2025  
-**Attempts**: 12+  
-**Current Issue**: Game renders in a narrow vertical strip on right side of screen
+**Attempts**: 14+  
+**Current Issue**: Game renders in a narrow vertical strip on right side of screen (like a 400px wide column)
 
 ---
 
@@ -74,7 +74,20 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 ),
 ```
 
-**Status**: ⏳ Testing...
+**Result**: ❌ **FAILED** - Still renders in narrow vertical strip
+
+**Logs confirmed (lines 774-807)**:
+- `🎯 Using FIXED logical resolution: 400.0x800.0`
+- `📷 Camera created with fixed resolution 400.0 x 800.0`
+- Game IS using 400x800, but visual shows ~400px wide vertical strip on right side
+
+---
+
+### Attempt 14: Diagnostic - Check Viewport Size
+
+**Hypothesis**: `withFixedResolution` might be creating a viewport that's literally 400x800 pixels instead of scaling to fill the screen.
+
+**Need to check**: What size is the actual viewport/canvas that Flame is rendering to?
 
 ---
 

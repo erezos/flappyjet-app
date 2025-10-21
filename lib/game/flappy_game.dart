@@ -421,6 +421,15 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     );
     add(_startScreen);
     
+    // 🔍 DIAGNOSTIC: Log final camera/viewport state after everything is set up
+    safePrint('🔍 FINAL DIAGNOSTIC: Camera/Viewport state after full initialization:');
+    safePrint('🔍   - Camera viewport type: ${_camera.viewport.runtimeType}');
+    safePrint('🔍   - Camera viewport.size: ${_camera.viewport.size}');
+    safePrint('🔍   - Camera viewfinder.visibleGameSize: ${_camera.viewfinder.visibleGameSize}');
+    safePrint('🔍   - Camera viewfinder.zoom: ${_camera.viewfinder.zoom}');
+    safePrint('🔍   - FlameGame.size (device screen): $size');
+    safePrint('🔍   - World.size: ${_world.size}');
+    
     safePrint('✅ FLAME NATIVE: World + Camera architecture complete!');
     safePrint('   - World components: ${_world.children.length}');
     safePrint('   - Camera viewport children: ${_camera.viewport.children.length}');

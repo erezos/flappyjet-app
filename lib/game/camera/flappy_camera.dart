@@ -42,6 +42,13 @@ class FlappyCamera {
     
     safePrint('📷 FlappyCamera: Camera created with fixed resolution $width x $height (will auto-scale to device screen)');
     
+    // 🔍 DIAGNOSTIC: Log viewport and viewfinder details
+    safePrint('📷 DIAGNOSTIC: Camera viewport type: ${camera.viewport.runtimeType}');
+    safePrint('📷 DIAGNOSTIC: Camera viewfinder.visibleGameSize: ${camera.viewfinder.visibleGameSize}');
+    safePrint('📷 DIAGNOSTIC: Camera viewfinder.zoom: ${camera.viewfinder.zoom}');
+    safePrint('📷 DIAGNOSTIC: Camera viewfinder.position: ${camera.viewfinder.position}');
+    safePrint('📷 DIAGNOSTIC: Camera viewfinder.anchor: ${camera.viewfinder.anchor}');
+    
     // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives);
     hud.priority = 100; // Render above everything
