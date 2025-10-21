@@ -52,7 +52,7 @@ class FlappyCamera {
     safePrint('📷 DIAGNOSTIC: Camera viewfinder.anchor: ${camera.viewfinder.anchor}');
     
     // Add HUD to viewport (renders in screen space, not world space)
-    final hud = HUD(currentLives, maxLives);
+    final hud = HUD(currentLives, maxLives, width, height);
     hud.priority = 100; // Render above everything
     
     // Add HUD after camera is created (will be mounted when camera loads)

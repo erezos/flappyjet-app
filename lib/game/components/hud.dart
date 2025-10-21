@@ -13,16 +13,13 @@ class HUD extends Component {
   late TextComponent _scoreText;
   late TextComponent _bestScoreText;
   late TextComponent _livesText;
-  Vector2? _gameSize;
+  final double _screenWidth;
+  final double _screenHeight;
 
-  HUD(this._currentLives, this._maxLives);
+  HUD(this._currentLives, this._maxLives, this._screenWidth, this._screenHeight);
 
   @override
   Future<void> onLoad() async {
-    // Get game size from parent (will be set when mounted to viewport)
-    // Use a default for now, will be repositioned in onMount
-    _gameSize = parent?.size ?? Vector2(400, 800);
-    
     // Score display (top left)
     _scoreText = TextComponent(
       text: '$_score',
@@ -59,7 +56,7 @@ class HUD extends Component {
     );
     add(_bestScoreText);
 
-    // Lives display (top right) - will be repositioned in onMount
+    // Lives display (top right)
     _livesText = TextComponent(
       text: _formatLives(_currentLives),
       textRenderer: TextPaint(
@@ -72,20 +69,10 @@ class HUD extends Component {
           ],
         ),
       ),
-      position: Vector2(_gameSize!.x - 20, 20),
+      position: Vector2(_screenWidth - 20, 20),
       anchor: Anchor.topRight,
     );
     add(_livesText);
-  }
-  
-  @override
-  void onMount() {
-    super.onMount();
-    // Update lives position now that we have the correct parent size
-    if (parent != null) {
-      _gameSize = parent!.size;
-      _livesText.position = Vector2(_gameSize!.x - 20, 20);
-    }
   }
 
   /// Update the score display
