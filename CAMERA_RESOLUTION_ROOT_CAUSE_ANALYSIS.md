@@ -87,7 +87,7 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 
 **Hypothesis**: `withFixedResolution` might be creating a viewport that's literally 400x800 pixels instead of scaling to fill the screen.
 
-**LOGS REVEALED THE PROBLEM** (Line 816):
+**LOGS REVEALED THE PROBLEM** (Line 816 - BEFORE FIX):
 ```
 🔍   - Camera viewport.size: [365.71429443359375,731.4285888671875]
 🔍   - FlameGame.size (device screen): [411.4285583496094,731.4285888671875]
@@ -108,6 +108,45 @@ body: SizedBox.expand( // ✅ CRITICAL: GameWidget MUST fill screen!
 - The actual game renders in 365.7 x 731.4 (which maintains 1:2 aspect ratio)
 
 **Result**: ❌ Game in vertical strip with black bars on left/right sides
+
+---
+
+### Attempt 15: Adaptive Logical Resolution ✅✅✅ SUCCESS!
+
+**Solution**: Calculate logical resolution that MATCHES device aspect ratio.
+
+**Implementation**:
+```dart
+// Calculate logical resolution matching device aspect ratio
+final deviceAspectRatio = size.x / size.y;  // 411/731 = 0.562
+final logicalHeight = 800.0;  // Keep height fixed
+final logicalWidth = logicalHeight * deviceAspectRatio;  // 800 * 0.562 = 450
+
+// Create World and Camera with matching aspect ratio
+_world = FlappyWorld(gameSize: Vector2(logicalWidth, logicalHeight));
+_camera = FlappyCamera.create(width: logicalWidth, height: logicalHeight);
+```
+
+**LOGS AFTER FIX** (Line 910):
+```
+🔍   - Camera viewport.size: [411.4285583496094,731.4285888671875]
+🔍   - FlameGame.size (device screen): [411.4285583496094,731.4285888671875]
+🔍   - World.gameSize (logical resolution): [449.9999694824219,800.0]
+```
+
+**🎉 RESULT**: 
+- ✅ Viewport size: **411.4 x 731.4** (EXACTLY device screen size!)
+- ✅ World logical resolution: **450 x 800** (matches device aspect ratio 1:1.78)
+- ✅ **NO LETTERBOXING** - Game fills entire screen!
+- ✅ **FULLY PLAYABLE** at correct size!
+
+**Why it works**:
+1. Device aspect ratio: 411/731 = 0.562 (or 1:1.78)
+2. Logical resolution: 450/800 = 0.562 (or 1:1.78) - **SAME RATIO!**
+3. `withFixedResolution` can now scale perfectly without letterboxing
+4. Viewport fills entire screen: 411.4 x 731.4 = 100% coverage
+
+**✅ FINAL STATUS**: **CAMERA ISSUE FULLY RESOLVED!** 🚀
 
 ---
 
