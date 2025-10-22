@@ -274,45 +274,16 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
         ..color = Colors.grey.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
-        
+
       canvas.drawRect(
         Rect.fromLTWH(0, 0, GameConfig.obstacleWidth, game.size.y),
         paint,
       );
-      
+
       return;
     }
-    
+
     super.render(canvas);
-    
-    // 🐛 DEBUG: Draw collision borders in red (THICK for visibility)
-    final debugPaint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
-    
-    // Draw top obstacle collision border
-    if (_topObstacle != null) {
-      final topRect = _topObstacle!.toRect();
-      canvas.drawRect(topRect, debugPaint);
-    }
-    
-    // Draw bottom obstacle collision border
-    if (_bottomObstacle != null) {
-      final bottomRect = _bottomObstacle!.toRect();
-      canvas.drawRect(bottomRect, debugPaint);
-    }
-    
-    // Draw score zone border in green (THICK for visibility)
-    if (_scoreZone != null) {
-      final zonePaint = Paint()
-        ..color = Colors.green.withValues(alpha: 0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4.0;
-      
-      final zoneRect = _scoreZone!.toRect();
-      canvas.drawRect(zoneRect, zonePaint);
-    }
   }
   
   /// Get collision rectangles for this obstacle

@@ -69,38 +69,21 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.storyModeLevel,
     this.onObstaclePassed,
     this.onGameOver,
-  }) {
-    safePrint('🎮 CONSTRUCTOR: FlappyGame constructor called!');
-    safePrint('🎮 CONSTRUCTOR: Instance created, waiting for Flame lifecycle...');
-    safePrint('🎮 CONSTRUCTOR: isStoryMode=$isStoryMode');
-    safePrint('🎮 CONSTRUCTOR: HasCollisionDetection mixin present: ${this is HasCollisionDetection}');
-  }
-  
-  @override
-  Future<void> get loaded {
-    safePrint('🎮 LIFECYCLE: ⚠️ loaded future accessed - game is loading!');
-    return super.loaded;
-  }
+  });
   
   @override
   void onAttach() {
-    safePrint('🎮 LIFECYCLE: ⚠️ BEFORE onAttach() super - game attaching');
     super.onAttach();
-    safePrint('🎮 LIFECYCLE: ✅ AFTER onAttach() super - attached successfully');
   }
   
   @override
   void onMount() {
-    safePrint('🎮 LIFECYCLE: ⚠️ BEFORE onMount() super - mounting');
     super.onMount();
-    safePrint('🎮 LIFECYCLE: ✅ AFTER onMount() super - mounted successfully');
   }
   
   @override
   void onGameResize(Vector2 size) {
-    safePrint('🎮 LIFECYCLE: ⚠️ BEFORE onGameResize($size) super - resizing');
     super.onGameResize(size);
-    safePrint('🎮 LIFECYCLE: ✅ AFTER onGameResize() super - resized successfully');
   }
 
   // ✅ FLAME NATIVE: World + Camera components
@@ -187,14 +170,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   @override
   Future<void> onLoad() async {
     try {
-      safePrint('🎮 GAME ONLOAD: Starting FlappyGame initialization...');
       await super.onLoad();
-      safePrint('🎮 GAME ONLOAD: super.onLoad() complete');
 
       // Initialize AAA performance systems first
       _qualityManager = AdaptiveQualityManager.instance;
       await _qualityManager.initialize();
-      safePrint('🎮 GAME ONLOAD: QualityManager initialized');
 
       // Apply AAA adaptive quality optimizations
       final profile = _qualityManager.currentProfile;
@@ -202,19 +182,15 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
       // Initialize extracted modules
       await _initializeModules();
-      safePrint('🎮 GAME ONLOAD: Modules initialized');
 
       // Initialize MCP-guided systems
       await _initializeMCPSystems();
-      safePrint('🎮 GAME ONLOAD: MCP systems initialized');
 
       // Ensure dynamic skin catalog is ready before reading equipped skin
       await JetSkinCatalog.initializeFromAssets();
-      safePrint('🎮 GAME ONLOAD: Skin catalog initialized');
 
       // Load persisted data
       await _gameStateManager.loadPersistedData();
-      safePrint('🎮 GAME ONLOAD: Persisted data loaded');
 
       // Initialize monetization integration
       if (monetization != null) {
@@ -223,11 +199,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
       // Create game components
       await _createGameComponents();
-      safePrint('🎮 GAME ONLOAD: Game components created');
 
       // Start theme music
       await _startThemeMusic();
-      safePrint('🎮 GAME ONLOAD: Theme music started');
 
       safePrint('🚀 Enhanced Flappy Game with modular architecture initialized!');
     } catch (e, stackTrace) {
@@ -327,8 +301,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   /// - No manual lifecycle management needed
   /// - Clean, testable, scalable
   Future<void> _createGameComponents() async {
-    safePrint('🌍 FLAME NATIVE: Creating World + Camera architecture...');
-    
     // Get equipped skin before creating World
     String equippedId = InventoryManager().equippedSkinId;
     try {
@@ -339,11 +311,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     
     // ✅ CRITICAL FIX: World size MUST match device screen size
     // Using a logical resolution larger than screen causes scaling issues
-    final gameWidth = size.x;   // 411.4 - Device screen width
-    final gameHeight = size.y;  // 731.4 - Device screen height
-    
-    safePrint('🎯 Using DEVICE SCREEN size for World: ${gameWidth}x$gameHeight');
-    safePrint('🎯 This ensures 1:1 pixel mapping - no scaling!');
+    final gameWidth = size.x;   // Device screen width
+    final gameHeight = size.y;  // Device screen height
     
     // ✅ Step 1: Create World with DEVICE SCREEN size
     _world = FlappyWorld(
@@ -353,17 +322,14 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       isStoryMode: isStoryMode,
       storyModeLevel: storyModeLevel,
     );
-    safePrint('🌍 FLAME NATIVE: World created with device screen size $gameWidth x $gameHeight');
     
     // ✅ Step 2: Add World to game FIRST (triggers World.onLoad())
     await add(_world);
-    safePrint('🌍 FLAME NATIVE: World added to game tree');
     
     // ✅ Step 3: Wait for World.onLoad() to complete
     // Because FlappyWorld.onLoad() properly awaits each child's loaded future,
     // this ensures ALL child components (background, player, ground, bot) are ready!
     await _world.loaded;
-    safePrint('✅ FLAME NATIVE: World + all components fully loaded!');
     
     // ✅ Step 4: Create Camera with device screen size
     final livesManager = LivesManager();
@@ -374,23 +340,19 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       world: _world,
       currentLives: _gameStateManager.lives,
       maxLives: livesManager.maxLives,
-      width: gameWidth,   // Device screen width (411.4)
-      height: gameHeight, // Device screen height (731.4)
+      width: gameWidth,
+      height: gameHeight,
     );
-    safePrint('📷 FLAME NATIVE: Camera created with device screen size');
     
     // ✅ Step 5: Add Camera to game
     await add(_camera);
-    safePrint('✅ FLAME NATIVE: Camera added - architecture complete!');
     
     // ✅ NOW update celebration system to use camera.viewport for UI overlays
     _celebrationSystem.initialize(_hardwareParticleSystem, this, _camera.viewport);
-    safePrint('🎉 CelebrationSystem updated to use camera viewport for UI text');
     
     // ✅ Add HardwareParticleSystem to World so camera can see it!
     // Particles must be in the World, not the root game, for World + Camera architecture
     await _world.add(_hardwareParticleSystem);
-    safePrint('🚀 HardwareParticleSystem added to World - particles will be visible!');
     
     // ✅ Step 6: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
@@ -400,13 +362,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // _ground removed - ground component no longer exists in World
     _hud = FlappyCamera.getHud(_camera)!;
     
-    safePrint('🔗 FLAME NATIVE: Legacy references connected');
-    
     // ✅ Step 7: Now safe to initialize World components
     // (World.onLoad() has completed, all components are mounted, references are set)
     await _world.background.updateForScore(_gameStateManager.score);
     _world.background.setScrollSpeed(160);
-    safePrint('🌍 FLAME NATIVE: Background initialized');
 
     // Create start screen (NOT in World, this is UI overlay)
     _startScreen = TextComponent(
@@ -429,19 +388,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       ),
     );
     add(_startScreen);
-    
-    // 🔍 DIAGNOSTIC: Log final camera/viewport state after everything is set up
-    safePrint('🔍 FINAL DIAGNOSTIC: Camera/Viewport state after full initialization:');
-    safePrint('🔍   - Camera viewport type: ${_camera.viewport.runtimeType}');
-    safePrint('🔍   - Camera viewport.size: ${_camera.viewport.size}');
-    safePrint('🔍   - Camera viewfinder.visibleGameSize: ${_camera.viewfinder.visibleGameSize}');
-    safePrint('🔍   - Camera viewfinder.zoom: ${_camera.viewfinder.zoom}');
-    safePrint('🔍   - FlameGame.size (device screen): $size');
-    safePrint('🔍   - World.gameSize (logical resolution): ${_world.gameSize}');
-    
-    safePrint('✅ FLAME NATIVE: World + Camera architecture complete!');
-    safePrint('   - World components: ${_world.children.length}');
-    safePrint('   - Camera viewport children: ${_camera.viewport.children.length}');
   }
 
   /// Start theme music

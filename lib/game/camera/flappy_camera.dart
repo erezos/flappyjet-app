@@ -30,35 +30,20 @@ class FlappyCamera {
     required double width,
     required double height,
   }) {
-    safePrint('📷 FlappyCamera: Creating standard camera for full-screen game: $width x $height');
-    
-    // ✅ ATTEMPT 17: Standard CameraComponent + Set viewfinder to look at entire world!
-    // The issue: Default viewfinder is centered at (0,0) with anchor.center
-    // This makes it look at (-width/2, -height/2) to (width/2, height/2)
-    // Most of the world is off-screen!
+    // ✅ Standard CameraComponent with viewfinder positioned at world origin
+    // The default viewfinder is centered at (0,0) with anchor.center
+    // We change it to look at (0,0) of the world with topLeft anchor
     final camera = CameraComponent(world: world);
     
-    // ✅ FIX: Position viewfinder at world center with topLeft anchor
+    // ✅ Position viewfinder at world origin with topLeft anchor
     camera.viewfinder.anchor = Anchor.topLeft;
-    camera.viewfinder.position = Vector2.zero();  // Look at (0,0) of the world
-    
-    safePrint('📷 FlappyCamera: Camera viewfinder positioned at (0,0) with topLeft anchor');
-    
-    // 🔍 DIAGNOSTIC: Log viewport and viewfinder details
-    safePrint('📷 DIAGNOSTIC: Camera viewport type: ${camera.viewport.runtimeType}');
-    safePrint('📷 DIAGNOSTIC: Camera viewfinder.visibleGameSize: ${camera.viewfinder.visibleGameSize}');
-    safePrint('📷 DIAGNOSTIC: Camera viewfinder.zoom: ${camera.viewfinder.zoom}');
-    safePrint('📷 DIAGNOSTIC: Camera viewfinder.position: ${camera.viewfinder.position}');
-    safePrint('📷 DIAGNOSTIC: Camera viewfinder.anchor: ${camera.viewfinder.anchor}');
+    camera.viewfinder.position = Vector2.zero();
     
     // Add HUD to viewport (renders in screen space, not world space)
     final hud = HUD(currentLives, maxLives, width, height);
     hud.priority = 100; // Render above everything
     
-    // Add HUD after camera is created (will be mounted when camera loads)
     camera.viewport.add(hud);
-    
-    safePrint('📷 FlappyCamera: Camera ready with HUD!');
     
     return camera;
   }
@@ -68,7 +53,6 @@ class FlappyCamera {
     try {
       return camera.viewport.children.whereType<HUD>().firstOrNull;
     } catch (e) {
-      safePrint('📷 FlappyCamera: Error getting HUD: $e');
       return null;
     }
   }

@@ -52,17 +52,11 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
   JetPlayer(Vector2 position, this._environmentTheme, {JetSkin? jetSkin}) 
     : _currentSkin = jetSkin ?? JetSkinCatalog.starterJet,
       super(position: position, size: Vector2.all(GameConfig.jetSize)) {
-    // 🔍 CRITICAL DEBUG: Track jet creation with full context
-    safePrint('🚀 JET CREATION: HashCode=$hashCode, Position=$position, Theme=$_environmentTheme.displayName');
-    safePrint('📍 CREATION STACK TRACE:');
-    safePrint(StackTrace.current.toString().split('\n').take(10).join('\n'));
-    safePrint('🚀 JET CREATION COMPLETE: $hashCode');
+    anchor = Anchor.center;
   }
   
   @override
   Future<void> onLoad() async {
-    safePrint('🔄 JET ONLOAD START: HashCode=$hashCode, Position=$position');
-    
     _startY = position.y;
     anchor = Anchor.center; // ✅ Proper anchor for collision detection
     
@@ -103,8 +97,6 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
       _invulnerabilityBehavior,
       _damageVisualizationBehavior,
     ]);
-    
-    safePrint('✅ JET ONLOAD COMPLETE: HashCode=$hashCode - Enhanced Jet Player with Flame collision + behaviors loaded! Hitbox radius: $hitboxRadius');
   }
   
   /// Load universal damage overlays that work with ANY jet skin
@@ -347,17 +339,6 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
 
     // Shield/damage overlay in world space
     _renderDamageOverlay(canvas);
-    
-    // 🐛 DEBUG: Draw collision border in red (THICK for visibility)
-    final debugPaint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
-    
-    // Draw circular hitbox border - use actual hitbox radius, not hardcoded value!
-    final center = Offset(size.x / 2, size.y / 2);
-    final actualHitboxRadius = size.x * 0.20; // Same calculation as in onLoad()
-    canvas.drawCircle(center, actualHitboxRadius, debugPaint);
   }
   
 
