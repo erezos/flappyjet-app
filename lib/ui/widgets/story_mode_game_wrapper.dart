@@ -133,9 +133,13 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       safePrint('🎯 STORY MODE: Is completed? ${_objectiveTracker.isCompleted}');
       safePrint('🎯 STORY MODE: Level ended? $_levelEnded');
 
-      // 🎯 UPDATE UI: Trigger rebuild to show progress
+      // 🎯 UPDATE UI: Defer setState to avoid calling during build phase
       if (mounted) {
-        setState(() {});
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       }
 
       // Check if objective is completed
