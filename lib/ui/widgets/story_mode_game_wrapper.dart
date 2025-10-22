@@ -6,6 +6,7 @@ library;
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flame/game.dart';
 import '../../models/level_data_schema.dart';
 import '../../game/flappy_game.dart';
