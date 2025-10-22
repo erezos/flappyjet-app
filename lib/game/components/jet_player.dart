@@ -354,9 +354,10 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0;
     
-    // Draw circular hitbox border
+    // Draw circular hitbox border - use actual hitbox radius, not hardcoded value!
     final center = Offset(size.x / 2, size.y / 2);
-    canvas.drawCircle(center, 16.8, debugPaint); // Hitbox radius is 16.8
+    final actualHitboxRadius = size.x * 0.20; // Same calculation as in onLoad()
+    canvas.drawCircle(center, actualHitboxRadius, debugPaint);
   }
   
 

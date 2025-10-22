@@ -38,12 +38,12 @@ class HUD extends Component {
     );
     add(_scoreText);
 
-    // Best score display (under score, smaller font)
+    // Best score display (under score, smaller font, gold color)
     _bestScoreText = TextComponent(
       text: 'Best: $_bestScore',
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Colors.white70,
+          color: Color(0xFFFFD700), // Gold color
           fontSize: 20,
           fontWeight: FontWeight.w600,
           shadows: [
