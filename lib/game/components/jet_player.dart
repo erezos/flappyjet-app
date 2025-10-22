@@ -347,6 +347,16 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
 
     // Shield/damage overlay in world space
     _renderDamageOverlay(canvas);
+    
+    // 🐛 DEBUG: Draw collision border in red (THICK for visibility)
+    final debugPaint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0;
+    
+    // Draw circular hitbox border
+    final center = Offset(size.x / 2, size.y / 2);
+    canvas.drawCircle(center, 16.8, debugPaint); // Hitbox radius is 16.8
   }
   
 
