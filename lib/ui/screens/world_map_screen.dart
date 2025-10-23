@@ -15,6 +15,8 @@ import '../widgets/world_map_jet_widget.dart';
 import '../widgets/zone_selector_dropdown.dart';
 import 'level_objective_popup.dart';
 import '../../core/debug_logger.dart';
+import '../widgets/buttons/modern_game_button.dart';
+import '../widgets/buttons/button_styles.dart';
 
 class WorldMapScreen extends StatefulWidget {
   const WorldMapScreen({super.key});
@@ -490,26 +492,14 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
           ),
           if (isZone1Completed) ...[
             const SizedBox(height: 40),
-            ElevatedButton(
+            ModernGameButton(
+              label: 'BACK TO HOME',
               onPressed: () {
                 // ✅ FIX: Use popUntil to safely return to homepage
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                foregroundColor: const Color(0xFF1A237E),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'BACK TO HOME',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              height: 56,
+              style: ModernButtonStyle.secondary, // Secondary blue
             ),
           ],
         ],

@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import '../../models/level_data_schema.dart';
 import '../../core/debug_logger.dart';
 import '../widgets/story_mode_game_wrapper.dart';
+import '../widgets/buttons/modern_game_button.dart';
+import '../widgets/buttons/button_styles.dart';
 
 /// Map bot theme names to actual jet sprite files
 String _getBotJetSpritePath(String botJetSkin) {
@@ -640,42 +642,28 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
           ),
         ],
       ),
-      child: ElevatedButton(
-        onPressed: _isStarting ? null : _startLevel,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
-        child: _isStarting
-            ? const SizedBox(
+      child: _isStarting
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+              child: const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 3,
                 ),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.play_arrow_rounded, size: 36),
-                  SizedBox(width: 8),
-                  Text(
-                    'START',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                ],
               ),
-      ),
+            )
+          : ModernGameButton(
+              label: 'START ▶',
+              onPressed: _startLevel,
+              height: 60,
+              style: ModernButtonStyle.gold, // Gold for level start
+              customGradient: const [
+                Colors.transparent, // Transparent to show gradient container behind
+                Colors.transparent,
+              ],
+            ),
     );
   }
 
