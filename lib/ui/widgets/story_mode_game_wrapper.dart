@@ -67,6 +67,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     Future.delayed(const Duration(milliseconds: 800), () async {
       if (mounted) {
         safePrint('🎯 Auto-starting story mode game...');
+        
+        // Wait for the game to be fully loaded before starting
+        while (!_game.loaded) {
+          safePrint('🎯 Waiting for game to load...');
+          await Future.delayed(const Duration(milliseconds: 50));
+        }
+        
+        safePrint('🎯 Game loaded! Starting now...');
         await _game.handleTap(); // Start the game + initial jump
         
         // 🎯 Start UI update timer for ALL objectives (not just time-based)

@@ -285,8 +285,43 @@ Reuse the same behaviors for bot opponent (proof of reusability!)
 
 ## 🐛 **BUGS ENCOUNTERED**
 
-### **No bugs yet!**
-Will track any issues that arise during Phase 2 implementation.
+### **Bug #1: Story Mode Jet Not Responding to Taps (FIXED)** ✅
+**Date**: October 22, 2025  
+**Severity**: Critical  
+**Status**: ✅ Fixed
+
+**Symptoms**:
+- In story mode (1vs1 levels), the player's jet doesn't respond to tap inputs
+- Game appears to be running but jet stays frozen
+- Error in logs: `LateInitializationError: Field '_jet@86079649' has not been initialized`
+
+**Root Cause**:
+- Race condition in `StoryModeGameWrapper._initializeGame()`
+- Auto-start timer called `_game.handleTap()` after 800ms
+- Game was not fully loaded yet (`onLoad()` still running)
+- `_jet` field in `FlappyGame` was still uninitialized when `handleTap()` tried to access it
+- Line 419 in `flappy_game.dart`: `_jet.startPlaying()` failed because `_jet` was late-initialized
+
+**Solution**:
+Added a loading check before auto-starting the game:
+```dart
+// Wait for the game to be fully loaded before starting
+while (!_game.loaded) {
+  safePrint('🎯 Waiting for game to load...');
+  await Future.delayed(const Duration(milliseconds: 50));
+}
+
+safePrint('🎯 Game loaded! Starting now...');
+await _game.handleTap();
+```
+
+**Files Changed**:
+- `lib/ui/widgets/story_mode_game_wrapper.dart`: Added loading check in `_initializeGame()`
+
+**Result**: ✅ **FIXED**  
+- Game now waits for full initialization before starting
+- Jet responds correctly to taps in story mode
+- No more `LateInitializationError`
 
 ---
 
@@ -451,7 +486,7 @@ All tasks finished:
 
 **Phase 2 Progress:**
 - Tasks Completed: 5/5 (100%) 🎉🎉🎉
-- Bugs Fixed: 0 (zero bugs encountered!)
+- Bugs Fixed: 1 (Story mode jet not responding - race condition)
 - Code Quality: ✅ Excellent
   - Zero allocations per frame
   - Clean component composition
