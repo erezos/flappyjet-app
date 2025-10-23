@@ -43,10 +43,10 @@ class ButtonColorScheme {
   
   /// Gradient definitions - Top to Bottom
   static const Map<ModernButtonStyle, List<Color>> _gradients = {
-    // Light green - Modern casual style (testing new color)
+    // Gold - Modern casual style (testing new color)
     ModernButtonStyle.primary: [
-      Color(0xFF4CAF50), // Light green top
-      Color(0xFF388E3C), // Darker green bottom
+      Color(0xFFFFD700), // Gold top
+      Color(0xFFFFA500), // Orange bottom
     ],
     
     // Lighter blue - Secondary actions
@@ -76,7 +76,7 @@ class ButtonColorScheme {
   
   /// Shadow color definitions
   static const Map<ModernButtonStyle, Color> _shadowColors = {
-    ModernButtonStyle.primary: Color(0x66388E3C), // Green shadow
+    ModernButtonStyle.primary: Color(0x66FFA500), // Gold/orange shadow
     ModernButtonStyle.secondary: Color(0x665EB3FF), // Light blue shadow
     ModernButtonStyle.success: Color(0x66388E3C), // Green shadow
     ModernButtonStyle.danger: Color(0x66D32F2F), // Red shadow
