@@ -9,6 +9,8 @@ import '../../game/systems/lives_manager.dart';
 import '../../core/debug_logger.dart';
 import 'world_map_screen.dart';
 import 'level_objective_popup.dart';
+import '../widgets/buttons/modern_game_button.dart';
+import '../widgets/buttons/button_styles.dart';
 
 class LevelFailedScreen extends StatefulWidget {
   final LevelData level;
@@ -213,39 +215,14 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               // Try Again button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _canRetry() ? _onTryAgain : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _canRetry() ? Colors.amber : Colors.grey,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'TRY AGAIN',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (_canRetry()) ...[
-                        const SizedBox(width: 8),
-                        const Icon(Icons.favorite, color: Colors.red, size: 20),
-                        Text(
-                          ' (${_livesManager.currentLives})',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                child: ModernGameButton(
+                  label: _canRetry() 
+                    ? 'TRY AGAIN (${_livesManager.currentLives} ❤️)'
+                    : 'TRY AGAIN',
+                  onPressed: _canRetry() ? _onTryAgain : () {},
+                  height: 56,
+                  style: _canRetry() ? ModernButtonStyle.gold : ModernButtonStyle.secondary,
+                  enabled: _canRetry(),
                 ),
               ),
               if (!_canRetry()) ...[
@@ -263,23 +240,11 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               // Back to Map button
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
+                child: ModernGameButton(
+                  label: 'BACK TO MAP',
                   onPressed: _onBackToMap,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white, width: 2),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'BACK TO MAP',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  height: 56,
+                  style: ModernButtonStyle.secondary, // Secondary blue
                 ),
               ),
             ],

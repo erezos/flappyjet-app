@@ -12,6 +12,8 @@ import '../../core/debug_logger.dart';
 import 'world_map_screen.dart';
 import 'level_objective_popup.dart';
 import 'zone_completion_celebration_screen.dart';
+import '../widgets/buttons/modern_game_button.dart';
+import '../widgets/buttons/button_styles.dart';
 
 /// Map bot theme names to actual jet sprite files
 String _getBotJetSpritePath(String botJetSkin) {
@@ -338,23 +340,11 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               if (_hasNextLevel()) ...[
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: ModernGameButton(
+                    label: 'NEXT LEVEL',
                     onPressed: _onNextLevel,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'NEXT LEVEL',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    height: 56,
+                    style: ModernButtonStyle.success, // Green for success
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -362,23 +352,11 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               // Back to Map button
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
+                child: ModernGameButton(
+                  label: 'BACK TO MAP',
                   onPressed: _onBackToMap,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white, width: 2),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'BACK TO MAP',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  height: 56,
+                  style: ModernButtonStyle.secondary, // Secondary blue
                 ),
               ),
             ],

@@ -10,6 +10,8 @@ import '../../models/level_data_schema.dart';
 import '../../core/debug_logger.dart';
 import '../widgets/text_3d_widget.dart';
 import 'world_map_screen.dart';
+import '../widgets/buttons/modern_game_button.dart';
+import '../widgets/buttons/button_styles.dart';
 
 class ZoneCompletionCelebrationScreen extends StatefulWidget {
   final ZoneData completedZone;
@@ -362,44 +364,13 @@ class _ZoneCompletionCelebrationScreenState
           scale: 1.0 + (_animationController.value * 0.05), // Subtle pulse
           child: SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: ModernGameButton(
+              label: hasNextZone 
+                ? 'CONTINUE TO ZONE $nextZone →'
+                : 'BACK TO MAP',
               onPressed: _onContinueToNextZone,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 8,
-                shadowColor: Colors.amber.withValues(alpha: 0.5),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (hasNextZone) ...[
-                    Text(
-                      'CONTINUE TO ZONE $nextZone',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward, size: 24),
-                  ] else ...[
-                    const Text(
-                      'BACK TO MAP',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              height: 60,
+              style: ModernButtonStyle.gold, // Gold for celebration
             ),
           ),
         );
