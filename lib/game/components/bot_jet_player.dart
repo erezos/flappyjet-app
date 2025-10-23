@@ -8,6 +8,8 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import '../../core/debug_logger.dart';
 import '../core/game_config.dart';
+import '../behaviors/gravity_behavior.dart';
+import '../behaviors/jump_behavior.dart';
 
 /// Map bot theme names to actual jet sprite files
 String _getBotJetSpriteFileName(String botJetSkin) {
@@ -26,13 +28,20 @@ String _getBotJetSpriteFileName(String botJetSkin) {
 }
 
 /// ✅ REFACTOR v1.7.0: Using HasGameReference instead of deprecated HasGameRef
+/// ✅ REFACTOR v2.0.0 Phase 2: Using Behavior Pattern (GravityBehavior, JumpBehavior)
 /// Note: Property name changed from `gameRef` to `game`
 class BotJetPlayer extends SpriteComponent with HasGameReference {
   final String skinId;
   final double difficulty; // 0.0 = easy, 1.0 = hard
   
+  // ✅ REFACTOR v2.0.0 Phase 2: Use velocity Vector2 for behaviors
+  final Vector2 velocity = Vector2.zero();
+  
+  // ✅ REFACTOR v2.0.0 Phase 2: Behavior Components
+  late final GravityBehavior _gravityBehavior;
+  late final JumpBehavior _jumpBehavior;
+  
   // Bot state
-  double _verticalVelocity = 0;
   double _targetY = 0;
   int _score = 0;
   bool _isActive = true;
@@ -40,8 +49,6 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   // Bot AI parameters
   final double _jumpInterval = 1.5; // Jump every 1.5 seconds
   double _timeSinceLastJump = 0;
-  final double _gravity = GameConfig.gravity;
-  final double _jumpVelocity = GameConfig.jumpVelocity;
   
   // Visual parameters (match player jet size from GameConfig)
   static const double botSize = 60.0; // Same as player jet
@@ -74,8 +81,21 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     position = Vector2(botXPosition, game.size.y / 2);
     anchor = Anchor.center;
     
-    // Adjust jump interval based on difficulty
-    // Easier bots jump less frequently, harder bots jump more strategically
+    // ✅ REFACTOR v2.0.0 Phase 2: Initialize Behavior Components
+    _gravityBehavior = GravityBehavior(
+      velocity: velocity,
+      maxFallSpeed: GameConfig.maxFallSpeed,
+    );
+    _jumpBehavior = JumpBehavior(
+      velocity: velocity,
+      jumpForce: GameConfig.jumpVelocity,
+    );
+    
+    // Add behaviors to component tree
+    await addAll([
+      _gravityBehavior,
+      _jumpBehavior,
+    ]);
     
     safePrint('🤖 Bot jet loaded at position: $position with difficulty: $difficulty');
   }
@@ -89,9 +109,9 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     // Update bot AI
     _updateBotAI(dt);
     
-    // Apply gravity and velocity
-    _verticalVelocity += _gravity * dt;
-    position.y += _verticalVelocity * dt;
+    // ✅ REFACTOR v2.0.0 Phase 2: Gravity applied by GravityBehavior automatically
+    // Just apply velocity to position
+    position.y += velocity.y * dt;
     
     // Keep bot within bounds
     final minY = botSize / 2;
@@ -99,10 +119,10 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     
     if (position.y < minY) {
       position.y = minY;
-      _verticalVelocity = 0;
+      velocity.y = 0;
     } else if (position.y > maxY) {
       position.y = maxY;
-      _verticalVelocity = 0;
+      velocity.y = 0;
       // Bot crashed into ground - deactivate
       _isActive = false;
       safePrint('🤖 Bot crashed! Final score: $_score');
@@ -120,7 +140,7 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     // 1. Enough time has passed since last jump
     // 2. Bot is falling and below target position
     final shouldJump = _timeSinceLastJump >= _jumpInterval ||
-        (position.y > _targetY + 50 && _verticalVelocity > 0);
+        (position.y > _targetY + 50 && velocity.y > 0);
     
     if (shouldJump) {
       _jump();
@@ -129,13 +149,14 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   
   /// Make the bot jump
   void _jump() {
-    _verticalVelocity = _jumpVelocity;
+    // ✅ REFACTOR v2.0.0 Phase 2: Use JumpBehavior
+    _jumpBehavior.jump();
     _timeSinceLastJump = 0;
     
     // Add some randomness based on difficulty
     final randomness = (1.0 - difficulty) * 50; // Less randomness for harder bots
     final random = Random();
-    _verticalVelocity += (random.nextDouble() * randomness) - (randomness / 2);
+    velocity.y += (random.nextDouble() * randomness) - (randomness / 2);
   }
   
   /// Increment bot score when it passes an obstacle
@@ -162,7 +183,7 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   void reset() {
     _score = 0;
     _isActive = true;
-    _verticalVelocity = 0;
+    velocity.setZero(); // ✅ REFACTOR v2.0.0 Phase 2: Reset velocity Vector2
     _timeSinceLastJump = 0;
     position.y = game.size.y / 2;
   }
