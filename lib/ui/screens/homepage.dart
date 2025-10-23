@@ -29,6 +29,8 @@ import '../widgets/rate_us_integration.dart';
 import '../../game/systems/daily_streak_manager.dart';
 import '../../integrations/ftue_integration.dart';
 import 'world_map_screen.dart'; // Story Mode - World Map
+import '../widgets/buttons/modern_game_button.dart'; // ✅ Unified button system
+import '../widgets/buttons/button_styles.dart';
 
 class Homepage extends StatefulWidget {
   final bool firebaseEnabled;
@@ -395,57 +397,63 @@ class _HomepageState extends State<Homepage>
             mainAxisSize: MainAxisSize.min,
             children: [
               // STORY MODE Button - NEW FIRST!
-              _buildNineSliceButton(
+              ModernGameButton(
                 label: 'STORY',
                 iconAsset: 'assets/images/icons/icon_missions.png',
                 onPressed: _navigateToStoryMode,
                 height: adaptiveHeight,
+                style: ModernButtonStyle.primary, // Light blue
               ),
 
               SizedBox(height: spacing),
 
               // ENDLESS MODE Button - Original Play
-              _buildNineSliceButton(
+              ModernGameButton(
                 label: 'ENDLESS',
                 iconAsset: 'assets/images/icons/icon_play.png',
                 onPressed: _navigateToGame,
                 height: adaptiveHeight,
+                style: ModernButtonStyle.primary, // Light blue
               ),
 
               SizedBox(height: spacing),
 
-              _buildNineSliceButton(
+              ModernGameButton(
                 label: 'PROFILE',
                 iconAsset: 'assets/images/icons/icon_profile.png',
                 onPressed: _navigateToProfile,
                 height: adaptiveHeight,
+                style: ModernButtonStyle.primary, // Light blue
               ),
 
               SizedBox(height: spacing),
 
-              _buildNineSliceButton(
+              ModernGameButton(
                 label: 'MISSIONS',
                 iconAsset: 'assets/images/icons/icon_missions.png',
                 onPressed: _navigateToMissions,
                 height: adaptiveHeight,
+                style: ModernButtonStyle.primary, // Light blue
               ),
 
               SizedBox(height: spacing),
 
-              _buildNineSliceButton(
+              ModernGameButton(
                 label: 'TOURNAMENTS',
                 iconAsset: 'assets/images/icons/icon_leaderboard.png',
                 onPressed: _navigateToTournaments,
                 height: adaptiveHeight,
+                style: ModernButtonStyle.primary, // Light blue
               ),
 
               SizedBox(height: spacing),
 
-              _buildNineSliceButton(
+              ModernGameButton(
                 label: 'STORE',
                 iconAsset: 'assets/images/icons/icon_store.png',
                 onPressed: _navigateToStore,
                 height: adaptiveHeight,
+                style: ModernButtonStyle.primary, // Light blue
               ),
 
               // Coin Counter - Shows current balance
@@ -454,20 +462,6 @@ class _HomepageState extends State<Homepage>
           ),
         );
       },
-    );
-  }
-
-  Widget _buildNineSliceButton({
-    required String label,
-    required String iconAsset,
-    required VoidCallback onPressed,
-    required double height,
-  }) {
-    return _NineSliceButton(
-      label: label,
-      iconAsset: iconAsset,
-      height: height,
-      onPressed: onPressed,
     );
   }
 
@@ -821,22 +815,6 @@ class _HomepageState extends State<Homepage>
 
 // CloudsPainter removed - clouds now part of background image
 
-class _NineSliceButton extends StatefulWidget {
-  final String label;
-  final String iconAsset;
-  final double height;
-  final VoidCallback onPressed;
-  const _NineSliceButton({
-    required this.label,
-    required this.iconAsset,
-    required this.height,
-    required this.onPressed,
-  });
-
-  @override
-  State<_NineSliceButton> createState() => _NineSliceButtonState();
-}
-
 /// Live updating heart regeneration timer widget
 class _HeartRegenTimer extends StatefulWidget {
   @override
@@ -973,131 +951,6 @@ class _PulsingHeartState extends State<_PulsingHeart>
           child: Icon(Icons.favorite, size: 12, color: Colors.red.shade300),
         );
       },
-    );
-  }
-}
-
-class _NineSliceButtonState extends State<_NineSliceButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final height = widget.height;
-    final radius = BorderRadius.circular(height * 0.48);
-    // Button gradient varies by label to create a green->gold progression
-    List<Color> baseColors(String label) {
-      switch (label) {
-        case 'PLAY':
-          return const [Color(0xFF3CCB7C), Color(0xFF27B267)];
-        case 'PROFILE':
-          return const [Color(0xFF55D07D), Color(0xFF2FBA69)];
-        case 'MISSIONS':
-          return const [Color(0xFF7DDC7A), Color(0xFF46C36A)];
-        case 'LEADER BOARD':
-          return const [Color(0xFFF4C04E), Color(0xFFE19A19)];
-        case 'STORE':
-          return const [Color(0xFFFFD256), Color(0xFFF5A623)];
-        default:
-          return const [Color(0xFFFFD256), Color(0xFFF5A623)];
-      }
-    }
-
-    final normal = baseColors(widget.label);
-    final pressed = normal
-        .map((c) => Color.alphaBlend(Colors.black12, c))
-        .toList();
-    final Gradient gradient = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: _pressed ? pressed : normal,
-    );
-    final Color borderColor = _pressed ? Colors.black26 : Colors.black26;
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        HapticFeedback.lightImpact();
-        widget.onPressed();
-      },
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-        scale: _pressed ? 0.98 : 1.0,
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.76,
-          height: height,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Capsule gradient background with shadow and border
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: gradient,
-                  borderRadius: radius,
-                  border: Border.all(color: borderColor, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0x66C57D0B),
-                      blurRadius: 14,
-                      offset: const Offset(0, 7),
-                    ),
-                  ],
-                ),
-              ),
-              // Subtle top highlight
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: radius,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.center,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.18),
-                        Colors.white.withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // Content: centered group with text first, then icon
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                        fontSize: (height * 0.34).clamp(14.0, 20.0),
-                        shadows: [
-                          Shadow(
-                            offset: const Offset(0, 2),
-                            blurRadius: 4,
-                            color: Colors.black.withValues(alpha: 0.35),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Image.asset(
-                      widget.iconAsset,
-                      width: (height * 0.58).clamp(22.0, 32.0),
-                      height: (height * 0.58).clamp(22.0, 32.0),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
