@@ -69,9 +69,17 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
         safePrint('🎯 Auto-starting story mode game...');
         
         // Wait for the game to be fully loaded before starting
-        while (!_game.loaded) {
-          safePrint('🎯 Waiting for game to load...');
+        // Check if game components are mounted (loaded is a Future, not bool)
+        int attempts = 0;
+        while (!_game.isMounted && attempts < 100) {
+          safePrint('🎯 Waiting for game to load... (attempt $attempts)');
           await Future.delayed(const Duration(milliseconds: 50));
+          attempts++;
+        }
+        
+        if (!_game.isMounted) {
+          safePrint('🎯 ⚠️ Game failed to load after ${attempts * 50}ms');
+          return;
         }
         
         safePrint('🎯 Game loaded! Starting now...');

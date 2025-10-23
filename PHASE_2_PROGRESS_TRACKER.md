@@ -303,17 +303,27 @@ Reuse the same behaviors for bot opponent (proof of reusability!)
 - Line 419 in `flappy_game.dart`: `_jet.startPlaying()` failed because `_jet` was late-initialized
 
 **Solution**:
-Added a loading check before auto-starting the game:
+Added a loading check before auto-starting the game (revised to use `isMounted`):
 ```dart
 // Wait for the game to be fully loaded before starting
-while (!_game.loaded) {
-  safePrint('🎯 Waiting for game to load...');
+// Check if game components are mounted (loaded is a Future, not bool)
+int attempts = 0;
+while (!_game.isMounted && attempts < 100) {
+  safePrint('🎯 Waiting for game to load... (attempt $attempts)');
   await Future.delayed(const Duration(milliseconds: 50));
+  attempts++;
+}
+
+if (!_game.isMounted) {
+  safePrint('🎯 ⚠️ Game failed to load after ${attempts * 50}ms');
+  return;
 }
 
 safePrint('🎯 Game loaded! Starting now...');
 await _game.handleTap();
 ```
+
+**Note**: Initial attempt used `_game.loaded` (Future) instead of `_game.isMounted` (bool), which caused compilation error. See Attempts Log for details.
 
 **Files Changed**:
 - `lib/ui/widgets/story_mode_game_wrapper.dart`: Added loading check in `_initializeGame()`
@@ -327,18 +337,49 @@ await _game.handleTap();
 
 ## 🔄 **ATTEMPTS LOG**
 
-### **Format for Each Attempt:**
-```
-Attempt #N: [Task Name]
-Date: [Date]
-What we tried: [Description]
-Result: ✅ Success / ❌ Failed
-Why it worked/didn't work: [Explanation]
-Next steps: [What to do next]
+### **Attempt #1: Fix Story Mode Race Condition**
+**Date**: October 22, 2025  
+**Task**: Fix jet not responding to taps in story mode
+
+**What we tried**: 
+```dart
+while (!_game.loaded) {
+  await Future.delayed(const Duration(milliseconds: 50));
+}
 ```
 
-### **No attempts yet!**
-Will document each attempt as we progress through Phase 2.
+**Result**: ❌ Failed  
+**Why it didn't work**: 
+- `_game.loaded` is a `Future<void>`, not a `bool`
+- Can't use it in a `while` condition
+- Compilation error: "A value of type 'Future<void>' can't be assigned to a variable of type 'bool'"
+
+**Next steps**: Use `_game.isMounted` instead (returns bool)
+
+---
+
+### **Attempt #2: Fix Story Mode Race Condition (FINAL)**
+**Date**: October 22, 2025  
+**Task**: Fix jet not responding to taps in story mode
+
+**What we tried**:
+```dart
+int attempts = 0;
+while (!_game.isMounted && attempts < 100) {
+  safePrint('🎯 Waiting for game to load... (attempt $attempts)');
+  await Future.delayed(const Duration(milliseconds: 50));
+  attempts++;
+}
+```
+
+**Result**: ✅ Success (pending test)  
+**Why it worked**: 
+- `isMounted` is a `bool` property (can be used in while condition)
+- Checks if component is mounted (loaded and attached to tree)
+- Added safety timeout (100 attempts = 5 seconds max)
+- Added logging to track loading progress
+
+**Next steps**: Test in story mode to confirm fix works
 
 ---
 
