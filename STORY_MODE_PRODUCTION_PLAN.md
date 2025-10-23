@@ -241,104 +241,93 @@ STORY_MODE_PRODUCTION_PLAN.md
 
 ---
 
-## **1.2: Popup System Overhaul** 🔶
+## **1.2: Popup System Overhaul** 🟢
 
 ### **Current State Analysis:**
-- **TBD**: Which popups need improvement?
-- **Target**: Modern, non-intrusive, animated popups
+- **Status**: ✅ **ANALYSIS COMPLETE**
+- **Document**: `TASK_1.2_POPUP_SYSTEM_ANALYSIS.md`
+- **Findings**: 11 popups identified, solid architecture, opportunities for visual consistency
+- **Recommendation**: Create BasePopup component + migrate all popups
 
-### **Common Popup Types in Casual Games:**
+### **Research Completed** (2025-10-23):
+- ✅ Identified all 11 popup/dialog components
+- ✅ Analyzed current implementation patterns
+- ✅ Researched Flame game engine popup best practices
+- ✅ Researched Flutter UI/UX popup design trends (2025)
+- ✅ Researched casual mobile game popup design trends
+- ✅ Completed gap analysis
+- ✅ Created implementation recommendations
 
-1. **Level Objective Popup** (start of level)
-   - Shows: Objective description, target, reward preview
-   - UX: Clear, quick to dismiss, animated entry
+### **Key Findings:**
 
-2. **Pause Menu** (during gameplay)
-   - Shows: Resume, Restart, Quit options
-   - UX: Semi-transparent overlay, doesn't block view entirely
+**Popup Inventory:**
+1. Level Objective Popup ⭐⭐⭐⭐⭐ (Excellent - recently updated)
+2. No Hearts Dialog ⭐⭐⭐⭐ (Good - needs visual polish)
+3. Rate Us Popup ⭐⭐⭐⭐⭐ (Excellent)
+4. Daily Streak Popup Stable ⭐⭐⭐⭐ (Good - needs polish)
+5. Daily Streak Reward Claim Popup ⭐⭐⭐⭐ (Good)
+6. Duplicate Jet Popup ⭐⭐⭐ (Needs review)
+7. Reward Claim Popup ⭐⭐⭐ (Needs review)
+8. FTUE Popup ⭐⭐⭐ (Needs review)
+9. Notification Permission Popup ⭐⭐⭐ (Needs review)
+10. Privacy Terms Popup ⭐⭐⭐ (Needs review)
+11. Nickname Edit Dialog ⭐⭐⭐ (Needs review)
 
-3. **Level Complete** (after success)
-   - Shows: Stars earned, rewards, next level button
-   - UX: Celebratory animation, satisfying sound
+**Strengths:**
+- ✅ Solid architecture with proper animation controllers
+- ✅ Consistent showDialog() usage
+- ✅ Responsive design considerations
+- ✅ Good separation of concerns
 
-4. **Level Failed** (after failure)
-   - Shows: Reason, retry cost (lives), retry/quit options
-   - UX: Gentle, encouraging tone
+**Opportunities:**
+- 🟡 Visual consistency (animation styles, button styling)
+- 🟡 Performance (optimize 3+ animation controllers)
+- 🟡 Missing features (haptics, sounds, blur effects)
+- 🟡 Accessibility (Semantics, focus trapping)
+- 🟡 Button inconsistency (mix of ElevatedButton, custom, ModernGameButton)
 
-5. **Daily Rewards** (app open)
-   - Shows: Streak, today's reward, claim button
-   - UX: Exciting, shows progress
+### **Recommended Implementation:**
 
-6. **Tournament Info** (if applicable)
-   - Shows: Tournament details, leaderboard, join button
-   - UX: Competitive feel, time pressure indication
+#### **Phase 1: Foundation (Priority HIGH)**
+- [ ] **Task 1.2.1**: Create BasePopup component (2h)
+  - Unified styling (shadows, radius, backdrop)
+  - Standard entrance/exit animations
+  - ModernGameButton integration
+  - Haptic feedback support
 
-### **Implementation Tasks:**
+- [ ] **Task 1.2.2**: Migrate high-traffic popups (4h)
+  - No Hearts Dialog
+  - Daily Streak Popup
+  - Level Objective Popup (verify already good)
+  - Add sound effects
 
-#### **Task 1.2.1: Popup System Design Review** (2 hours)
-**Priority**: HIGH  
-**Status**: 🔴 Not Started - **TBD: User Input Required**
+- [ ] **Task 1.2.3**: Add haptics + popup sounds (1h)
 
-**Discussion Points:**
-1. Which popups currently exist and need improvement?
-2. Which popups are missing but needed?
-3. Desired popup animations (slide, fade, scale, bounce)?
-4. Popup priority system (which can stack, which dismisses others)?
+#### **Phase 2: Enhancement (Priority MEDIUM)**
+- [ ] **Task 1.2.4**: Progressive animations (2h)
+  - Stagger child element entrance
+  - Add micro-interactions
 
-**Action Items:**
-- [ ] **TBD**: User lists all current popups
-- [ ] **TBD**: User specifies desired improvements per popup
-- [ ] **TBD**: User approves animation style direction
-- [ ] Document popup hierarchy and interaction rules
+- [ ] **Task 1.2.5**: Accessibility pass (2h)
+  - Add Semantics
+  - Focus management
+  - Screen reader testing
 
----
+#### **Phase 3: Polish (Priority LOW)**
+- [ ] **Task 1.2.6**: Visual effects (2h)
+  - BackdropFilter blur
+  - Particle effects for celebration popups
+  - Gesture support (swipe-to-dismiss)
 
-#### **Task 1.2.2: Create Modern Popup Framework** (6 hours)
-**Priority**: HIGH  
-**Status**: 🔴 Not Started (waiting for Task 1.2.1)
-
-**Files to Create:**
-- `lib/ui/widgets/popups/modern_popup.dart`
-- `lib/ui/widgets/popups/popup_animations.dart`
-- `lib/ui/widgets/popups/popup_manager.dart`
-
-**Implementation Steps:**
-1. Create base `ModernPopup` widget:
-   - Backdrop blur effect
-   - Card-style container
-   - Rounded corners (24px)
-   - Drop shadow
-   - Close button (X) in top-right
-
-2. Create popup animations:
-   - Entry: Scale + fade (0.8 → 1.0, 0 → 1.0)
-   - Exit: Scale + fade (1.0 → 0.8, 1.0 → 0)
-   - Duration: 300ms with ease-out curve
-
-3. Create `PopupManager` for queue management:
-   - Priority system
-   - Queue popups that can't stack
-   - Dismiss on outside tap (configurable)
-
-**Acceptance Criteria:**
-- ✅ Popup base component created
-- ✅ Animations smooth and professional
-- ✅ Manager handles queue correctly
-- ✅ Works on all screen sizes
+**Status**: 🟢 **READY FOR DISCUSSION**  
+**Estimated Total Time**: 15 hours (can be split into phases)  
+**Next Action**: Discuss priorities → Approve approach → Start Phase 1
 
 ---
 
-#### **Task 1.2.3: Implement Specific Popups** (8 hours)
-**Priority**: MEDIUM  
-**Status**: 🔴 Not Started (waiting for Task 1.2.1 & 1.2.2)
-
-**Popups to Create/Update:**
-- [ ] Level Objective Popup (start of level)
-- [ ] Pause Menu
-- [ ] Level Complete Popup
-- [ ] Level Failed Popup
-- [ ] Daily Streak Popup
-- [ ] **TBD**: Other popups as identified
+#### **ARCHIVED: Original Task Breakdown**
+<details>
+<summary>Click to expand original tasks (replaced by new analysis-driven approach)</summary>
 
 **Per Popup:**
 - Design layout
