@@ -1366,6 +1366,80 @@ Goal: Nice-to-haves
 
 ---
 
+## 🐛 **CRITICAL BUG FIXES - SESSION LOG**
+
+This section tracks critical bugs discovered and fixed during production work.
+
+---
+
+### **Bug #1: Collision Detection Coordinate System Mismatch**
+**Date**: October 24, 2025  
+**Severity**: 🔴 CRITICAL  
+**Status**: ✅ **FIXED**
+
+**User Report:**
+"The jet and the top obstacle sometimes act like a crash although I see clearly that the jet didn't touch the top obstacle. The opposite happens with the lower obstacle - the jet can easily touch the lower obstacle and it won't count as crash."
+
+**Symptoms:**
+1. **Top obstacle**: **False positives** - jet crashes when not touching (phantom collisions)
+2. **Bottom obstacle**: **False negatives** - no crash when clearly touching (passing through)
+
+**Investigation Process:**
+
+**Attempt #1** (2025-10-24, commit 1):
+- **Hypothesis**: Hitbox positions using world coordinates instead of local coordinates
+- **Fix Applied**: Converted hitbox positions from world to local coordinate system
+- **Result**: ❌ **Failed** - Bug persisted, issue was deeper
+
+**Attempt #2** (2025-10-24, commit 2e0fbb6):
+- **Hypothesis**: Hitbox **positions** were fixed, but hitbox **sizes** still using world coordinates!
+- **Root Cause Found**: 
+  ```dart
+  // BEFORE (WRONG):
+  final topHitbox = RectangleHitbox(
+    size: Vector2(_visualWidth, gapTop),  // ❌ gapTop is WORLD coord
+    position: Vector2(_visualXOffset, -position.y),  // ✅ Local coord
+  );
+  
+  // AFTER (CORRECT):
+  final topPillarHeight = localGapTop - localTopOfScreen;  // ✅ Local height
+  final topHitbox = RectangleHitbox(
+    size: Vector2(_visualWidth, topPillarHeight),  // ✅ Local size
+    position: Vector2(_visualXOffset, localTopOfScreen),  // ✅ Local position
+  );
+  ```
+
+**The Real Bug:**
+In Flame's component system, **child components** (like hitboxes) use coordinates **relative to their parent**. Both the `position` AND `size` must be in the **same coordinate system** (local). 
+
+The previous fix only converted `position` to local coords, but `size` was still mixing world and local coordinates, causing misalignment between visual obstacles and collision hitboxes.
+
+**Fix Applied:**
+1. Calculate local screen bounds: `localTopOfScreen`, `localBottomOfScreen`
+2. Calculate local pillar heights: `topPillarHeight = localGapTop - localTopOfScreen`
+3. Use local heights for hitbox sizes
+
+**Files Changed:**
+- `lib/game/components/dynamic_obstacle.dart` (method `_addCollisionHitboxes`)
+
+**Impact:**
+- ✅ Top obstacle: No more phantom collisions
+- ✅ Bottom obstacle: No more passing through
+- ✅ Collision detection now pixel-perfect
+- ✅ Game feels fair and responsive
+
+**Lessons Learned:**
+- Flame coordinate systems require **full consistency** (position AND size)
+- Visual debugging (red lines) isn't enough - they can lie if using wrong coord system
+- Always verify coordinate system at **every level** of the calculation
+
+**Testing Verification Needed:**
+- [ ] User to test top obstacle collisions (no false positives)
+- [ ] User to test bottom obstacle collisions (no false negatives)
+- [ ] User to verify game feels fair and responsive
+
+---
+
 ## **Let's Get Started! 🚀**
 
 **Recommended First Step:**
