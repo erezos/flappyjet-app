@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import '../../../game/systems/lives_manager.dart';
+import '../popups/base_popup.dart';
+import '../buttons/modern_game_button.dart';
+import '../buttons/button_styles.dart';
 
 class FTUEPopup extends StatefulWidget {
   final String title;
@@ -29,12 +32,9 @@ class FTUEPopup extends StatefulWidget {
 }
 
 class _FTUEPopupState extends State<FTUEPopup>
-    with TickerProviderStateMixin {
-  late AnimationController _scaleController;
-  late AnimationController _slideController;
+    with SingleTickerProviderStateMixin {
+  // Only keep heart animation controller (popup-specific)
   late AnimationController _heartController;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
   late Animation<double> _heartAnimation;
 
   bool _heartsRefilled = false;
@@ -43,30 +43,7 @@ class _FTUEPopupState extends State<FTUEPopup>
   void initState() {
     super.initState();
     
-    // Scale animation for popup entrance
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 700),
-      vsync: this,
-    );
-    _scaleAnimation = CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    );
-
-    // Slide animation for content
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 900),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    // Heart animation
+    // Only heart animation (popup-specific, for refill bounce)
     _heartController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -76,20 +53,12 @@ class _FTUEPopupState extends State<FTUEPopup>
       curve: Curves.bounceOut,
     );
 
-    // Start animations
-    _scaleController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _slideController.forward();
-    });
-
     // Haptic feedback
     HapticFeedback.mediumImpact();
   }
 
   @override
   void dispose() {
-    _scaleController.dispose();
-    _slideController.dispose();
     _heartController.dispose();
     super.dispose();
   }
@@ -128,126 +97,98 @@ class _FTUEPopupState extends State<FTUEPopup>
     final isSmallScreen = screenSize.height < 700;
     final isVerySmallScreen = screenSize.height < 600;
 
-    return Material(
-      color: Colors.transparent,
+    return BasePopup(
+      padding: EdgeInsets.zero,
+      backgroundColor: Colors.transparent,
       child: Container(
-        width: double.infinity,
-        height: double.infinity,
+        margin: EdgeInsets.symmetric(
+          horizontal: math.max(20, screenSize.width * 0.05),
+          vertical: math.max(20, screenSize.height * 0.05),
+        ),
+        constraints: BoxConstraints(
+          maxWidth: math.min(380, screenSize.width * 0.9),
+          maxHeight: screenSize.height * 0.85,
+        ),
         decoration: BoxDecoration(
-          // Premium gradient background with animated sparkles
+          // FlappyJet premium glassmorphism
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Colors.black.withValues(alpha: 0.85),
-              Colors.black.withValues(alpha: 0.95),
+              Colors.white.withValues(alpha: 0.15),
+              Colors.white.withValues(alpha: 0.05),
             ],
           ),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 30,
+              offset: const Offset(0, 15),
+            ),
+            BoxShadow(
+              color: widget.isGiftPopup
+                  ? const Color(0xFFFFD700).withValues(alpha: 0.4)
+                  : widget.isSecondPopup 
+                      ? const Color(0xFF9C27B0).withValues(alpha: 0.3)
+                      : const Color(0xFF2196F3).withValues(alpha: 0.3),
+              blurRadius: 50,
+              offset: const Offset(0, 0),
+            ),
+          ],
         ),
         child: Stack(
           children: [
             // Animated sparkles background
             ..._buildSparkles(),
             
-            // Main popup content
-            SafeArea(
-              child: Center(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: Container(
-                          margin: EdgeInsets.symmetric(
-                            horizontal: math.max(20, constraints.maxWidth * 0.05),
-                            vertical: math.max(20, constraints.maxHeight * 0.05),
-                          ),
-                          constraints: BoxConstraints(
-                            maxWidth: math.min(380, constraints.maxWidth * 0.9),
-                            maxHeight: constraints.maxHeight * 0.85,
-                          ),
-                          decoration: BoxDecoration(
-                            // FlappyJet premium glassmorphism
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.white.withValues(alpha: 0.15),
-                                Colors.white.withValues(alpha: 0.05),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                blurRadius: 30,
-                                offset: const Offset(0, 15),
-                              ),
-                              BoxShadow(
-                                color: widget.isGiftPopup
-                                    ? const Color(0xFFFFD700).withValues(alpha: 0.4)
-                                    : widget.isSecondPopup 
-                                        ? const Color(0xFF9C27B0).withValues(alpha: 0.3)
-                                        : const Color(0xFF2196F3).withValues(alpha: 0.3),
-                                blurRadius: 50,
-                                offset: const Offset(0, 0),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(30),
-                            child: SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Header with jet
-                                  _buildHeader(isSmallScreen, isVerySmallScreen),
-                                  
-                                  // Content
-                                  Padding(
-                                    padding: EdgeInsets.fromLTRB(
-                                      isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
-                                      isVerySmallScreen ? 16 : isSmallScreen ? 20 : 24,
-                                      isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
-                                      isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // Title
-                                        _buildTitle(isSmallScreen, isVerySmallScreen),
-                                        
-                                        SizedBox(height: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20),
-                                        
-                                        // Message
-                                        _buildMessage(isSmallScreen, isVerySmallScreen),
-                                        
-                                        SizedBox(height: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 32),
-                                        
-                                        // Heart refill section
-                                        _buildHeartSection(isSmallScreen, isVerySmallScreen),
-                                        
-                                        SizedBox(height: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 32),
-                                        
-                                        // Action button
-                                        _buildActionButton(context, isSmallScreen, isVerySmallScreen),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+            // Main content
+            ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with jet
+                    _buildHeader(isSmallScreen, isVerySmallScreen),
+                    
+                    // Content
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
+                        isVerySmallScreen ? 16 : isSmallScreen ? 20 : 24,
+                        isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
+                        isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
                       ),
-                    );
-                  },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Title
+                          _buildTitle(isSmallScreen, isVerySmallScreen),
+                          
+                          SizedBox(height: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20),
+                          
+                          // Message
+                          _buildMessage(isSmallScreen, isVerySmallScreen),
+                          
+                          SizedBox(height: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 32),
+                          
+                          // Heart refill section
+                          _buildHeartSection(isSmallScreen, isVerySmallScreen),
+                          
+                          SizedBox(height: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 32),
+                          
+                          // Action button
+                          _buildActionButton(context, isSmallScreen, isVerySmallScreen),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -617,184 +558,36 @@ class _FTUEPopupState extends State<FTUEPopup>
   Widget _buildActionButton(BuildContext context, bool isSmallScreen, bool isVerySmallScreen) {
     // For gift popup, show claim gift button
     if (widget.isGiftPopup) {
-      return SizedBox(
-        width: double.infinity,
+      return ModernGameButton(
+        label: 'CLAIM GIFT',
+        onPressed: () {
+          if (context.mounted) {
+            widget.onClose();
+          }
+        },
         height: isVerySmallScreen ? 48 : isSmallScreen ? 52 : 56,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFFFD700),
-                Color(0xFFFF8F00),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: ElevatedButton(
-            onPressed: () {
-              if (context.mounted) {
-                widget.onClose();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.card_giftcard,
-                  size: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 22,
-                ),
-                SizedBox(width: isVerySmallScreen ? 8 : 10),
-                Text(
-                  'Claim Gift',
-                  style: TextStyle(
-                    fontSize: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        style: ModernButtonStyle.primary, // Gold
       );
     }
     
     if (_heartsRefilled) {
-      return SizedBox(
-        width: double.infinity,
+      return ModernGameButton(
+        label: 'LET\'S FLY!',
+        onPressed: () {
+          if (context.mounted) {
+            widget.onClose();
+          }
+        },
         height: isVerySmallScreen ? 48 : isSmallScreen ? 52 : 56,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF4CAF50),
-                Color(0xFF2E7D32),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-            child: ElevatedButton(
-              onPressed: () {
-                if (context.mounted) {
-                  widget.onClose();
-                }
-              },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.flight_takeoff,
-                  size: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 22,
-                ),
-                SizedBox(width: isVerySmallScreen ? 8 : 10),
-                Text(
-                  'Let\'s Fly!',
-                  style: TextStyle(
-                    fontSize: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        style: ModernButtonStyle.success, // Green
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
+    return ModernGameButton(
+      label: 'CLAIM 3 HEARTS',
+      onPressed: _refillHearts,
       height: isVerySmallScreen ? 48 : isSmallScreen ? 52 : 56,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFE91E63),
-              Color(0xFFAD1457),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFE91E63).withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: _refillHearts,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.favorite,
-                size: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 22,
-              ),
-              SizedBox(width: isVerySmallScreen ? 8 : 10),
-              Flexible(
-                child: Text(
-                  'Claim 3 Hearts',
-                  style: TextStyle(
-                    fontSize: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      style: ModernButtonStyle.primary, // Gold
     );
   }
 }
