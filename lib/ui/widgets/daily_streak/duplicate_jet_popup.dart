@@ -1,10 +1,14 @@
 /// 🚁 Beautiful Duplicate Jet Popup - FlappyJet Design Language
 /// Premium UI/UX following Flutter mobile development and Flame game engine best practices
+/// Migrated to use BasePopup + ModernGameButton
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/core/jet_skins.dart';
+import '../popups/base_popup.dart';
+import '../buttons/modern_game_button.dart';
+import '../buttons/button_styles.dart';
 
 class DuplicateJetPopup extends StatefulWidget {
   final String jetSkinId;
@@ -21,42 +25,15 @@ class DuplicateJetPopup extends StatefulWidget {
 }
 
 class _DuplicateJetPopupState extends State<DuplicateJetPopup>
-    with TickerProviderStateMixin {
-  late AnimationController _scaleController;
-  late AnimationController _slideController;
+    with SingleTickerProviderStateMixin {
   late AnimationController _coinController;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
   late Animation<double> _coinAnimation;
 
   @override
   void initState() {
     super.initState();
     
-    // Scale animation for popup entrance
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _scaleAnimation = CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    );
-
-    // Slide animation for content
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    // Coin animation
+    // Keep coin bounce animation (BasePopup handles entrance)
     _coinController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -66,13 +43,9 @@ class _DuplicateJetPopupState extends State<DuplicateJetPopup>
       curve: Curves.bounceOut,
     );
 
-    // Start animations
-    _scaleController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _slideController.forward();
-    });
-    Future.delayed(const Duration(milliseconds: 600), () {
-      _coinController.forward();
+    // Start coin animation after delay
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) _coinController.forward();
     });
 
     // Haptic feedback
@@ -81,8 +54,6 @@ class _DuplicateJetPopupState extends State<DuplicateJetPopup>
 
   @override
   void dispose() {
-    _scaleController.dispose();
-    _slideController.dispose();
     _coinController.dispose();
     super.dispose();
   }
@@ -93,116 +64,72 @@ class _DuplicateJetPopupState extends State<DuplicateJetPopup>
     final isSmallScreen = screenSize.height < 700;
     final jetSkin = JetSkinCatalog.getSkinById(widget.jetSkinId);
 
-    return Material(
-      color: Colors.transparent,
+    return BasePopup(
+      maxWidthPixels: 400,
+      padding: EdgeInsets.zero,
+      backgroundColor: Colors.transparent,
       child: Container(
-        width: double.infinity,
-        height: double.infinity,
+        constraints: BoxConstraints(
+          maxHeight: screenSize.height * 0.8,
+        ),
         decoration: BoxDecoration(
-          // Glassmorphism background
+          // Premium glassmorphism effect
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Colors.black.withValues(alpha: 0.7),
-              Colors.black.withValues(alpha: 0.9),
+              Colors.white.withValues(alpha: 0.15),
+              Colors.white.withValues(alpha: 0.05),
             ],
           ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 2,
+          ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Container(
-                  margin: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 20 : 32,
-                    vertical: isSmallScreen ? 40 : 60,
-                  ),
-                  constraints: BoxConstraints(
-                    maxWidth: 400,
-                    maxHeight: screenSize.height * 0.8,
-                  ),
-                  decoration: BoxDecoration(
-                    // Premium glassmorphism effect
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.white.withValues(alpha: 0.05),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        blurRadius: 40,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Header with jet icon
-                        _buildHeader(jetSkin, isSmallScreen),
-                        
-                        // Content
-                        Flexible(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isSmallScreen ? 20 : 24,
-                              vertical: isSmallScreen ? 16 : 20,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Title
-                                _buildTitle(isSmallScreen),
-                                
-                                SizedBox(height: isSmallScreen ? 12 : 16),
-                                
-                                // Jet preview
-                                _buildJetPreview(jetSkin, isSmallScreen),
-                                
-                                SizedBox(height: isSmallScreen ? 16 : 20),
-                                
-                                // Explanation text
-                                _buildExplanation(isSmallScreen),
-                                
-                                SizedBox(height: isSmallScreen ? 20 : 24),
-                                
-                                // Coin reward
-                                _buildCoinReward(isSmallScreen),
-                                
-                                SizedBox(height: isSmallScreen ? 24 : 32),
-                                
-                                // Action button
-                                _buildActionButton(context, isSmallScreen),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header with jet icon
+            _buildHeader(jetSkin, isSmallScreen),
+            
+            // Content
+            Flexible(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 20 : 24,
+                  vertical: isSmallScreen ? 16 : 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Title
+                    _buildTitle(isSmallScreen),
+                    
+                    SizedBox(height: isSmallScreen ? 12 : 16),
+                    
+                    // Jet preview
+                    _buildJetPreview(jetSkin, isSmallScreen),
+                    
+                    SizedBox(height: isSmallScreen ? 16 : 20),
+                    
+                    // Explanation text
+                    _buildExplanation(isSmallScreen),
+                    
+                    SizedBox(height: isSmallScreen ? 20 : 24),
+                    
+                    // Coin reward
+                    _buildCoinReward(isSmallScreen),
+                    
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+                    
+                    // Action button
+                    _buildActionButton(context, isSmallScreen),
+                  ],
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -393,41 +320,13 @@ class _DuplicateJetPopupState extends State<DuplicateJetPopup>
   }
 
   Widget _buildActionButton(BuildContext context, bool isSmallScreen) {
-    return SizedBox(
-      width: double.infinity,
+    return ModernGameButton(
+      label: 'AWESOME!',
+      onPressed: () {
+        Navigator.of(context).pop();
+      },
       height: isSmallScreen ? 48 : 56,
-      child: ElevatedButton(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          Navigator.of(context).pop();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.4),
-              width: 2,
-            ),
-          ),
-        ).copyWith(
-          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-            if (states.contains(WidgetState.pressed)) {
-              return Colors.white.withValues(alpha: 0.2);
-            }
-            return Colors.white.withValues(alpha: 0.1);
-          }),
-        ),
-        child: Text(
-          'Awesome!',
-          style: TextStyle(
-            fontSize: isSmallScreen ? 16 : 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      style: ModernButtonStyle.primary, // Gold
     );
   }
 }
