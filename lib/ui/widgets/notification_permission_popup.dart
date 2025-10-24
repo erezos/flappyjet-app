@@ -7,6 +7,9 @@ import 'package:flutter/services.dart';
 import '../../game/systems/local_notification_manager.dart';
 import '../../game/systems/firebase_analytics_manager.dart';
 import '../../core/debug_logger.dart';
+import 'popups/base_popup.dart';
+import 'buttons/modern_game_button.dart';
+import 'buttons/button_styles.dart';
 
 /// Smart notification permission re-request popup
 class NotificationPermissionPopup extends StatefulWidget {
@@ -27,15 +30,12 @@ class NotificationPermissionPopup extends StatefulWidget {
 
 class _NotificationPermissionPopupState extends State<NotificationPermissionPopup>
     with SingleTickerProviderStateMixin {
-  
-  late AnimationController _slideController;
-  late Animation<Offset> _slideAnimation;
+  // No entrance animation controller needed (BasePopup handles)
   bool _isProcessing = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
     
     // Track popup shown
     FirebaseAnalyticsManager().trackEvent('notification_permission_popup_shown', {
@@ -44,25 +44,8 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
     });
   }
 
-  void _initializeAnimations() {
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutBack,
-    ));
-    
-    _slideController.forward();
-  }
-
   @override
   void dispose() {
-    _slideController.dispose();
     super.dispose();
   }
 
@@ -74,83 +57,79 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
     final isSmallScreen = screenHeight < 700;
     final isNarrowScreen = screenWidth < 400;
 
-    return Material(
-      color: Colors.black.withValues(alpha: 0.7),
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Center(
-          child: Container(
-            margin: EdgeInsets.symmetric(
-              horizontal: isNarrowScreen ? 16 : 24,
-              vertical: isSmallScreen ? 20 : 40,
-            ),
-            constraints: BoxConstraints(
-              maxWidth: 400,
-              maxHeight: screenHeight * 0.7,
-            ),
-            child: Stack(
-              children: [
-                // Main popup container
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(isSmallScreen ? 20 : 24),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF2E5984), // Deep blue
-                        Color(0xFF1E3A5F), // Darker blue
-                        Color(0xFF0F1C2E), // Very dark blue
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
-                        blurRadius: 30,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Notification icon with glow
-                      _buildNotificationIcon(isSmallScreen),
-                      
-                      SizedBox(height: isSmallScreen ? 16 : 20),
-                      
-                      // Title
-                      _buildTitle(isSmallScreen),
-                      
-                      SizedBox(height: isSmallScreen ? 12 : 16),
-                      
-                      // Description
-                      _buildDescription(isSmallScreen),
-                      
-                      SizedBox(height: isSmallScreen ? 20 : 24),
-                      
-                      // Action buttons
-                      _buildActionButtons(isSmallScreen),
-                    ],
-                  ),
+    return BasePopup(
+      padding: EdgeInsets.zero,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        margin: EdgeInsets.symmetric(
+          horizontal: isNarrowScreen ? 16 : 24,
+          vertical: isSmallScreen ? 20 : 40,
+        ),
+        constraints: BoxConstraints(
+          maxWidth: 400,
+          maxHeight: screenHeight * 0.7,
+        ),
+        child: Stack(
+          children: [
+            // Main popup container
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(isSmallScreen ? 20 : 24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2E5984), // Deep blue
+                    Color(0xFF1E3A5F), // Darker blue
+                    Color(0xFF0F1C2E), // Very dark blue
+                  ],
                 ),
-                
-                // Close button
-                _buildCloseButton(),
-              ],
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+                    blurRadius: 30,
+                    offset: const Offset(0, 0),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Notification icon with glow
+                  _buildNotificationIcon(isSmallScreen),
+                  
+                  SizedBox(height: isSmallScreen ? 16 : 20),
+                  
+                  // Title
+                  _buildTitle(isSmallScreen),
+                  
+                  SizedBox(height: isSmallScreen ? 12 : 16),
+                  
+                  // Description
+                  _buildDescription(isSmallScreen),
+                  
+                  SizedBox(height: isSmallScreen ? 20 : 24),
+                  
+                  // Action buttons
+                  _buildActionButtons(isSmallScreen),
+                ],
+              ),
             ),
-          ),
+            
+            // Close button
+            _buildCloseButton(),
+          ],
         ),
       ),
     );
@@ -235,91 +214,60 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
   }
 
   Widget _buildAllowButton(bool isSmallScreen) {
-    return Container(
-      width: double.infinity,
-      height: isSmallScreen ? 45 : 50,
-      decoration: BoxDecoration(
-        gradient: _isProcessing
-            ? LinearGradient(
+    return _isProcessing
+        ? Container(
+            width: double.infinity,
+            height: isSmallScreen ? 45 : 50,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
                 colors: [
-                  const Color(0xFF95A5A6),
-                  const Color(0xFF7F8C8D),
-                ],
-              )
-            : const LinearGradient(
-                colors: [
-                  Color(0xFF27AE60), // Green
-                  Color(0xFF2ECC71), // Light green
-                  Color(0xFF229954), // Dark green
+                  Color(0xFF95A5A6),
+                  Color(0xFF7F8C8D),
                 ],
               ),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: (_isProcessing 
-                ? const Color(0xFF95A5A6) 
-                : const Color(0xFF27AE60)).withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(25),
-          onTap: _isProcessing ? null : _handleAllowNotifications,
-          child: Center(
-            child: _isProcessing
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'ENABLING...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isSmallScreen ? 14 : 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.notifications_active,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'YES, NOTIFY ME!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isSmallScreen ? 14 : 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ],
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF95A5A6).withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   ),
-          ),
-        ),
-      ),
-    );
+                  const SizedBox(width: 12),
+                  Text(
+                    'ENABLING...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isSmallScreen ? 14 : 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : ModernGameButton(
+            label: 'YES, NOTIFY ME!',
+            iconAsset: null,
+            onPressed: _handleAllowNotifications,
+            height: isSmallScreen ? 45 : 50,
+            style: ModernButtonStyle.success, // Green
+          );
   }
 
   Widget _buildMaybeLaterButton(bool isSmallScreen) {
@@ -442,13 +390,9 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
 
       // Close popup after brief delay
       await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        _slideController.reverse().then((_) {
-          if (mounted) {
-            Navigator.of(context).pop();
-            widget.onClose?.call();
-          }
-        });
+      if (mounted && context.mounted) {
+        Navigator.of(context).pop();
+        widget.onClose?.call();
       }
 
     } catch (e) {
@@ -482,13 +426,11 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
 
-    _slideController.reverse().then((_) {
-      if (mounted) {
-        Navigator.of(context).pop();
-        widget.onDismiss?.call();
-        widget.onClose?.call();
-      }
-    });
+    if (mounted && context.mounted) {
+      Navigator.of(context).pop();
+      widget.onDismiss?.call();
+      widget.onClose?.call();
+    }
   }
 
   void _handleClose() {
@@ -499,11 +441,9 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
 
-    _slideController.reverse().then((_) {
-      if (mounted) {
-        Navigator.of(context).pop();
-        widget.onClose?.call();
-      }
-    });
+    if (mounted && context.mounted) {
+      Navigator.of(context).pop();
+      widget.onClose?.call();
+    }
   }
 }
