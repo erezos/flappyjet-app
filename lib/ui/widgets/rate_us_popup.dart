@@ -1,11 +1,15 @@
 /// ⭐ Rate Us Popup - Beautiful & Engaging Rating Prompt
 /// Responsive design with FlappyJet theme and engaging copy
+/// Migrated to use BasePopup for consistent animations
 library;
 
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../game/systems/rate_us_manager.dart';
 import '../../game/systems/firebase_analytics_manager.dart';
+import 'popups/base_popup.dart';
+import 'buttons/modern_game_button.dart';
+import 'buttons/button_styles.dart';
 
 class RateUsPopup extends StatefulWidget {
   final VoidCallback? onRated;
@@ -22,12 +26,8 @@ class RateUsPopup extends StatefulWidget {
 }
 
 class _RateUsPopupState extends State<RateUsPopup> 
-    with TickerProviderStateMixin {
-  late AnimationController _slideController;
-  late AnimationController _scaleController;
+    with SingleTickerProviderStateMixin {
   late AnimationController _starController;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _scaleAnimation;
   late Animation<double> _starAnimation;
 
   final RateUsManager _rateUsManager = RateUsManager();
@@ -36,37 +36,11 @@ class _RateUsPopupState extends State<RateUsPopup>
   void initState() {
     super.initState();
     
-    // Initialize animations
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-    
+    // Only keep the star pulse animation (BasePopup handles entrance)
     _starController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.elasticOut,
-    ));
-
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
 
     _starAnimation = Tween<double>(
       begin: 0.0,
@@ -76,9 +50,7 @@ class _RateUsPopupState extends State<RateUsPopup>
       curve: Curves.easeInOut,
     ));
 
-    // Start animations
-    _slideController.forward();
-    _scaleController.forward();
+    // Start star animation
     _starController.repeat(reverse: true);
 
     // Track popup shown
@@ -90,8 +62,6 @@ class _RateUsPopupState extends State<RateUsPopup>
 
   @override
   void dispose() {
-    _slideController.dispose();
-    _scaleController.dispose();
     _starController.dispose();
     super.dispose();
   }
@@ -127,103 +97,72 @@ class _RateUsPopupState extends State<RateUsPopup>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
     final isSmallScreen = screenHeight < 700;
     final isVerySmallScreen = screenHeight < 600;
 
-    return Scaffold(
-      backgroundColor: Colors.black.withValues(alpha: 0.7),
-      body: SlideTransition(
-        position: _slideAnimation,
-        child: Center(
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: math.min(screenWidth * 0.9, 400),
-                maxHeight: screenHeight * 0.8,
-              ),
-              margin: const EdgeInsets.all(20),
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFFFFE082), // Light gold
-                        Color(0xFFFFC132), // FlappyJet gold
-                        Color(0xFFFFB000), // Deeper gold
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: const Color(0xFFFFE06A),
-                      width: 3,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                        offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFFFFD700).withValues(alpha: 0.5),
-                        blurRadius: 30,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(21),
-                    child: Stack(
-                      children: [
-                        // Background sparkles
-                        ..._buildSparkles(),
-                        
-                        // Main content
-                        Padding(
-                          padding: EdgeInsets.all(isVerySmallScreen ? 16 : 24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Animated stars header
-                              _buildStarsHeader(isVerySmallScreen),
-                              
-                              SizedBox(height: isVerySmallScreen ? 12 : 16),
-                              
-                              // Title
-                              _buildTitle(isVerySmallScreen),
-                              
-                              SizedBox(height: isVerySmallScreen ? 8 : 12),
-                              
-                              // Engaging message
-                              _buildMessage(isVerySmallScreen, isSmallScreen),
-                              
-                              SizedBox(height: isVerySmallScreen ? 16 : 24),
-                              
-                              // Action buttons
-                              _buildActionButtons(isVerySmallScreen),
-                            ],
-                          ),
-                        ),
-                        
-                        // Close button
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: _buildCloseButton(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+    return BasePopup(
+      maxWidthPixels: 400,
+      padding: EdgeInsets.zero, // Handle padding in child
+      backgroundColor: Colors.transparent, // Use custom gradient
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: screenHeight * 0.8,
+        ),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFE082), // Light gold
+              Color(0xFFFFC132), // FlappyJet gold
+              Color(0xFFFFB000), // Deeper gold
+            ],
+          ),
+          border: Border.all(
+            color: const Color(0xFFFFE06A),
+            width: 3,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Background sparkles
+            ..._buildSparkles(),
+            
+            // Main content
+            Padding(
+              padding: EdgeInsets.all(isVerySmallScreen ? 16 : 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Animated stars header
+                  _buildStarsHeader(isVerySmallScreen),
+                  
+                  SizedBox(height: isVerySmallScreen ? 12 : 16),
+                  
+                  // Title
+                  _buildTitle(isVerySmallScreen),
+                  
+                  SizedBox(height: isVerySmallScreen ? 8 : 12),
+                  
+                  // Engaging message
+                  _buildMessage(isVerySmallScreen, isSmallScreen),
+                  
+                  SizedBox(height: isVerySmallScreen ? 16 : 24),
+                  
+                  // Action buttons
+                  _buildActionButtons(isVerySmallScreen),
+                ],
               ),
             ),
-          ),
+            
+            // Close button
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _buildCloseButton(),
+            ),
+          ],
         ),
       ),
     );
@@ -320,36 +259,12 @@ class _RateUsPopupState extends State<RateUsPopup>
   Widget _buildActionButtons(bool isVerySmallScreen) {
     return Column(
       children: [
-        // Rate Us button (primary)
-        SizedBox(
-          width: double.infinity,
+        // Rate Us button (primary - gold)
+        ModernGameButton(
+          label: 'RATE FLAPPYJET ⭐',
+          onPressed: _handleRateUs,
           height: isVerySmallScreen ? 44 : 50,
-          child: ElevatedButton(
-            onPressed: _handleRateUs,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
-              foregroundColor: Colors.white,
-              elevation: 8,
-              shadowColor: Colors.black.withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.star, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Rate FlappyJet ⭐',
-                  style: TextStyle(
-                    fontSize: isVerySmallScreen ? 15 : 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          style: ModernButtonStyle.primary, // Gold
         ),
         
         SizedBox(height: isVerySmallScreen ? 8 : 12),
@@ -358,21 +273,11 @@ class _RateUsPopupState extends State<RateUsPopup>
         Row(
           children: [
             Expanded(
-              child: TextButton(
+              child: ModernGameButton(
+                label: 'MAYBE LATER',
                 onPressed: _handleMaybeLater,
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF1A237E),
-                  padding: EdgeInsets.symmetric(
-                    vertical: isVerySmallScreen ? 8 : 12,
-                  ),
-                ),
-                child: Text(
-                  'Maybe Later',
-                  style: TextStyle(
-                    fontSize: isVerySmallScreen ? 13 : 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                height: isVerySmallScreen ? 40 : 44,
+                style: ModernButtonStyle.secondary, // Sky blue
               ),
             ),
             

@@ -1,9 +1,13 @@
 /// 🔒 Privacy & Terms Popup - FlappyJet Premium Design Language
+/// Migrated to use BasePopup for consistent animations and styling
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'popups/base_popup.dart';
+import 'buttons/modern_game_button.dart';
+import 'buttons/button_styles.dart';
 
 class PrivacyTermsPopup extends StatefulWidget {
   const PrivacyTermsPopup({super.key});
@@ -13,37 +17,26 @@ class PrivacyTermsPopup extends StatefulWidget {
 }
 
 class _PrivacyTermsPopupState extends State<PrivacyTermsPopup>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-    _fadeController.forward();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _fadeController.dispose();
     super.dispose();
   }
 
   void _closePopup() {
     HapticFeedback.lightImpact();
-    _fadeController.reverse().then((_) {
-      if (mounted) Navigator.of(context).pop();
-    });
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _launchUrl(String url) async {
@@ -64,82 +57,47 @@ class _PrivacyTermsPopupState extends State<PrivacyTermsPopup>
     final isSmallScreen = screenSize.height < 700;
     final isVerySmallScreen = screenSize.height < 600;
 
-    return AnimatedBuilder(
-      animation: _fadeAnimation,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _fadeAnimation.value,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Container(
-                  constraints: BoxConstraints(
-                    maxHeight: constraints.maxHeight,
-                    maxWidth: constraints.maxWidth,
-                  ),
-                  decoration: BoxDecoration(
-                    // FlappyJet Sky Gradient - Premium Game Design
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFF87CEEB), // Sky blue top
-                        Color(0xFF4FC3F7), // Light blue middle
-                        Color(0xFF29B6F6), // Darker blue bottom
-                      ],
-                      stops: [0.0, 0.5, 1.0],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      width: 3,
-                    ),
-                    boxShadow: [
-                      // Premium game-style shadow
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        blurRadius: 25,
-                        offset: const Offset(0, 15),
-                        spreadRadius: 5,
-                      ),
-                      // Inner glow effect
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
-                        spreadRadius: -5,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Header with FlappyJet styling
-                        _buildGameStyleHeader(isSmallScreen),
-                        
-                        // Tab Bar with game design
-                        _buildGameStyleTabBar(isSmallScreen),
-                        
-                        // Content with proper scrolling
-                        Flexible(
-                          child: _buildGameStyleContent(isSmallScreen, isVerySmallScreen),
-                        ),
-                        
-                        // Footer with game buttons
-                        _buildGameStyleFooter(isSmallScreen),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+    return BasePopup(
+      maxWidthPercent: 0.95,
+      maxWidthPixels: 600,
+      padding: EdgeInsets.zero, // We'll handle padding in child
+      backgroundColor: Colors.transparent, // Use custom gradient background
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: screenSize.height * 0.8,
+        ),
+        decoration: const BoxDecoration(
+          // FlappyJet Sky Gradient - Premium Game Design
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF87CEEB), // Sky blue top
+              Color(0xFF4FC3F7), // Light blue middle
+              Color(0xFF29B6F6), // Darker blue bottom
+            ],
+            stops: [0.0, 0.5, 1.0],
           ),
-        );
-      },
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header with FlappyJet styling
+            _buildGameStyleHeader(isSmallScreen),
+            
+            // Tab Bar with game design
+            _buildGameStyleTabBar(isSmallScreen),
+            
+            // Content with proper scrolling
+            Flexible(
+              child: _buildGameStyleContent(isSmallScreen, isVerySmallScreen),
+            ),
+            
+            // Footer with game buttons
+            _buildGameStyleFooter(isSmallScreen),
+          ],
+        ),
+      ),
     );
   }
 
@@ -547,12 +505,12 @@ class _PrivacyTermsPopupState extends State<PrivacyTermsPopup>
       ),
       child: Column(
         children: [
-          // Contact Support Button - Game Style
-          _buildGameStyleFooterButton(
-            'Contact Support',
-            Icons.support_agent,
-            () => _launchUrl('mailto:flappyjet2025@gmail.com'),
-            isSmallScreen,
+          // Contact Support Button - Modern Game Style
+          ModernGameButton(
+            label: 'CONTACT SUPPORT',
+            onPressed: () => _launchUrl('mailto:flappyjet2025@gmail.com'),
+            height: isSmallScreen ? 48 : 54,
+            style: ModernButtonStyle.success,
           ),
           SizedBox(height: isSmallScreen ? 8 : 12),
           
@@ -573,82 +531,6 @@ class _PrivacyTermsPopupState extends State<PrivacyTermsPopup>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGameStyleFooterButton(
-    String label,
-    IconData icon,
-    VoidCallback onTap,
-    bool isSmallScreen,
-  ) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(
-          vertical: isSmallScreen ? 12 : 16,
-          horizontal: isSmallScreen ? 16 : 20,
-        ),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-          ),
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.4),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF2E7D32).withValues(alpha: 0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: Colors.white.withValues(alpha: 0.2),
-              blurRadius: 4,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: isSmallScreen ? 16 : 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: isSmallScreen ? 14 : 16,
-                fontWeight: FontWeight.w700,
-                shadows: [
-                  Shadow(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    offset: const Offset(0, 1),
-                    blurRadius: 2,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
