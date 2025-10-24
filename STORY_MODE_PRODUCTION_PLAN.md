@@ -1393,50 +1393,60 @@ This section tracks critical bugs discovered and fixed during production work.
 
 **Attempt #2** (2025-10-24, commit 2e0fbb6):
 - **Hypothesis**: Hitbox **positions** were fixed, but hitbox **sizes** still using world coordinates!
+- **Fix Applied**: Converted hitbox sizes to use local coordinate calculations
+- **Result**: ❌ **Failed** - Bug still persists, issue is more subtle
+
+**Attempt #3** (2025-10-24, commit bda0002):
+- **Hypothesis**: The obstacle component's **anchor point** was wrong!
 - **Root Cause Found**: 
+  - Obstacle spawned at `position.y = gapY` (gap **CENTER** in world space)
+  - But obstacle anchor was `Anchor.topLeft` (position represents top-left corner)
+  - This mismatch meant child hitboxes were relative to wrong origin!
+  - Visual rendering code assumed center anchor, collision used topLeft anchor
+  - Result: 365px offset in Y coordinate between visual and collision!
+  
+- **Fix Applied**: Changed obstacle anchor from `Anchor.topLeft` to `Anchor.center`
+  
   ```dart
   // BEFORE (WRONG):
-  final topHitbox = RectangleHitbox(
-    size: Vector2(_visualWidth, gapTop),  // ❌ gapTop is WORLD coord
-    position: Vector2(_visualXOffset, -position.y),  // ✅ Local coord
+  DynamicObstacle(...) : super(
+    position: position,  // position.y = gapY (gap center)
+    anchor: Anchor.topLeft  // ❌ Says position is top-left!
   );
   
   // AFTER (CORRECT):
-  final topPillarHeight = localGapTop - localTopOfScreen;  // ✅ Local height
-  final topHitbox = RectangleHitbox(
-    size: Vector2(_visualWidth, topPillarHeight),  // ✅ Local size
-    position: Vector2(_visualXOffset, localTopOfScreen),  // ✅ Local position
+  DynamicObstacle(...) : super(
+    position: position,  // position.y = gapY (gap center)  
+    anchor: Anchor.center  // ✅ Says position is center!
   );
+  
+  // Now child hitboxes use simple, symmetric coords:
+  final localGapTop = -gapSize / 2;  // Clean!
+  final localGapBottom = gapSize / 2;  // Symmetric!
   ```
 
-**The Real Bug:**
-In Flame's component system, **child components** (like hitboxes) use coordinates **relative to their parent**. Both the `position` AND `size` must be in the **same coordinate system** (local). 
+- **Why This Is The Real Fix**:
+  - Anchor point defines what `position` represents
+  - With `topLeft`: children at local (0,0) are at top-left corner
+  - With `center`: children at local (0,0) are at center
+  - Gap center math now matches anchor point!
+  
+- **Result**: ⏳ **Testing needed** - User to verify collisions are now accurate
 
-The previous fix only converted `position` to local coords, but `size` was still mixing world and local coordinates, causing misalignment between visual obstacles and collision hitboxes.
+---
 
-**Fix Applied:**
-1. Calculate local screen bounds: `localTopOfScreen`, `localBottomOfScreen`
-2. Calculate local pillar heights: `topPillarHeight = localGapTop - localTopOfScreen`
-3. Use local heights for hitbox sizes
+### **What We Learned:**
+
+1. **Flame anchor points matter!** They define the coordinate origin for children
+2. **Visual bugs can lie** - red debug lines used wrong coords too!
+3. **Always verify anchor matches positioning intent** - if you position at center, use `Anchor.center`!
+4. **Coordinate system consistency** - parent anchor affects all children's coordinate interpretation
+
+**The Real Bug:** 
+Mixing coordinate systems: obstacle positioned as center, but anchor said topLeft. This 365px offset (gap center to top) caused all hitboxes to be shifted vertically!
 
 **Files Changed:**
-- `lib/game/components/dynamic_obstacle.dart` (method `_addCollisionHitboxes`)
-
-**Impact:**
-- ✅ Top obstacle: No more phantom collisions
-- ✅ Bottom obstacle: No more passing through
-- ✅ Collision detection now pixel-perfect
-- ✅ Game feels fair and responsive
-
-**Lessons Learned:**
-- Flame coordinate systems require **full consistency** (position AND size)
-- Visual debugging (red lines) isn't enough - they can lie if using wrong coord system
-- Always verify coordinate system at **every level** of the calculation
-
-**Testing Verification Needed:**
-- [ ] User to test top obstacle collisions (no false positives)
-- [ ] User to test bottom obstacle collisions (no false negatives)
-- [ ] User to verify game feels fair and responsive
+- `lib/game/components/dynamic_obstacle.dart` (constructor anchor + hitbox calculation)
 
 ---
 
