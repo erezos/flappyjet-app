@@ -220,27 +220,33 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   }
   
   /// ✅ REFACTOR v1.7.0: Add Flame collision hitboxes for top and bottom pillars
-  /// ✅ FIX: Hitboxes use LOCAL coordinates (relative to obstacle component)
+  /// ✅ FIX v2: Hitboxes use FULLY LOCAL coordinates (both position AND size)
   Future<void> _addCollisionHitboxes(double gapTop, double gapBottom) async {
     // Calculate local positions (hitboxes are children, so relative to obstacle's origin)
     // The obstacle component is at position.y in world space, but children use local (0,0)
-    final localGapTop = gapTop - position.y;  // Local Y position of gap top
-    final localGapBottom = gapBottom - position.y;  // Local Y position of gap bottom
+    final localGapTop = gapTop - position.y;  // Local Y position of gap top = -gapSize/2
+    final localGapBottom = gapBottom - position.y;  // Local Y position of gap bottom = +gapSize/2
+    
+    // Calculate LOCAL heights (not world heights!)
+    final localTopOfScreen = -position.y;  // Top of screen in local coords
+    final localBottomOfScreen = game.size.y - position.y;  // Bottom of screen in local coords
+    
+    final topPillarHeight = localGapTop - localTopOfScreen;  // Height from top of screen to gap top
+    final bottomPillarHeight = localBottomOfScreen - localGapBottom;  // Height from gap bottom to bottom of screen
     
     // Top pillar hitbox (from top of screen to gap top)
     final topHitbox = RectangleHitbox(
-      size: Vector2(_visualWidth, gapTop),
-      position: Vector2(_visualXOffset, -position.y),  // Start from top of screen in local coords
+      size: Vector2(_visualWidth, topPillarHeight),  // ✅ FIX: Use LOCAL height
+      position: Vector2(_visualXOffset, localTopOfScreen),  // ✅ FIX: Start from top of screen in local coords
       anchor: Anchor.topLeft,
       collisionType: CollisionType.passive, // Obstacles don't check, only get checked
     );
     await add(topHitbox);
     
     // Bottom pillar hitbox (from gap bottom to bottom of screen)
-    final bottomHeight = game.size.y - gapBottom;
     final bottomHitbox = RectangleHitbox(
-      size: Vector2(_visualWidth, bottomHeight),
-      position: Vector2(_visualXOffset, localGapBottom),  // Local position of gap bottom
+      size: Vector2(_visualWidth, bottomPillarHeight),  // ✅ FIX: Use LOCAL height
+      position: Vector2(_visualXOffset, localGapBottom),  // ✅ FIX: Local position of gap bottom
       anchor: Anchor.topLeft,
       collisionType: CollisionType.passive, // Obstacles don't check, only get checked
     );
@@ -253,7 +259,7 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     );
     await add(_scoreZone!);
     
-    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$gapTop at local y=${-position.y}), Bottom(w=$_visualWidth, h=$bottomHeight at local y=$localGapBottom), ScoreZone(h=${localGapBottom - localGapTop} at local y=$localGapTop)');
+    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$topPillarHeight at local y=$localTopOfScreen), Bottom(w=$_visualWidth, h=$bottomPillarHeight at local y=$localGapBottom), ScoreZone(h=${localGapBottom - localGapTop} at local y=$localGapTop)');
   }
   
   /// Get the score zone (for Flame collision detection)
