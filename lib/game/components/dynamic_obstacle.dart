@@ -33,7 +33,11 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     required this.gapSize,
     required this.speed,
     required this.currentScore,
-  }) : super(position: position, size: Vector2(GameConfig.obstacleWidth, 150), anchor: Anchor.topLeft);
+  }) : super(
+      position: position, 
+      size: Vector2(GameConfig.obstacleWidth, 150), 
+      anchor: Anchor.center  // ✅ FIX v3: Anchor at center to match gapY (gap center position)
+    );
   
   @override
   Future<void> onLoad() async {
@@ -220,46 +224,47 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   }
   
   /// ✅ REFACTOR v1.7.0: Add Flame collision hitboxes for top and bottom pillars
-  /// ✅ FIX v2: Hitboxes use FULLY LOCAL coordinates (both position AND size)
+  /// ✅ FIX v3: Hitboxes use coordinates relative to obstacle CENTER (Anchor.center)
   Future<void> _addCollisionHitboxes(double gapTop, double gapBottom) async {
-    // Calculate local positions (hitboxes are children, so relative to obstacle's origin)
-    // The obstacle component is at position.y in world space, but children use local (0,0)
-    final localGapTop = gapTop - position.y;  // Local Y position of gap top = -gapSize/2
-    final localGapBottom = gapBottom - position.y;  // Local Y position of gap bottom = +gapSize/2
+    // Since obstacle anchor is now Anchor.center at position.y (gap center),
+    // child positions are relative to gap center
+    final localGapTop = -gapSize / 2;  // Gap top is half-gap above center
+    final localGapBottom = gapSize / 2;  // Gap bottom is half-gap below center
     
-    // Calculate LOCAL heights (not world heights!)
+    // Calculate screen bounds in local coords (relative to gap center)
     final localTopOfScreen = -position.y;  // Top of screen in local coords
     final localBottomOfScreen = game.size.y - position.y;  // Bottom of screen in local coords
     
-    final topPillarHeight = localGapTop - localTopOfScreen;  // Height from top of screen to gap top
-    final bottomPillarHeight = localBottomOfScreen - localGapBottom;  // Height from gap bottom to bottom of screen
+    // Calculate pillar heights
+    final topPillarHeight = localGapTop - localTopOfScreen;  // From top of screen to gap top
+    final bottomPillarHeight = localBottomOfScreen - localGapBottom;  // From gap bottom to bottom of screen
     
     // Top pillar hitbox (from top of screen to gap top)
     final topHitbox = RectangleHitbox(
-      size: Vector2(_visualWidth, topPillarHeight),  // ✅ FIX: Use LOCAL height
-      position: Vector2(_visualXOffset, localTopOfScreen),  // ✅ FIX: Start from top of screen in local coords
+      size: Vector2(_visualWidth, topPillarHeight),
+      position: Vector2(_visualXOffset, localTopOfScreen),  // Start from top of screen
       anchor: Anchor.topLeft,
-      collisionType: CollisionType.passive, // Obstacles don't check, only get checked
+      collisionType: CollisionType.passive,
     );
     await add(topHitbox);
     
     // Bottom pillar hitbox (from gap bottom to bottom of screen)
     final bottomHitbox = RectangleHitbox(
-      size: Vector2(_visualWidth, bottomPillarHeight),  // ✅ FIX: Use LOCAL height
-      position: Vector2(_visualXOffset, localGapBottom),  // ✅ FIX: Local position of gap bottom
+      size: Vector2(_visualWidth, bottomPillarHeight),
+      position: Vector2(_visualXOffset, localGapBottom),  // Start from gap bottom
       anchor: Anchor.topLeft,
-      collisionType: CollisionType.passive, // Obstacles don't check, only get checked
+      collisionType: CollisionType.passive,
     );
     await add(bottomHitbox);
     
     // ✅ REFACTOR v1.7.0: Add score trigger zone in the gap
     _scoreZone = ScoreZone(
-      position: Vector2(_visualXOffset, localGapTop),  // Local position of gap top
-      size: Vector2(_visualWidth, localGapBottom - localGapTop),
+      position: Vector2(_visualXOffset, localGapTop),
+      size: Vector2(_visualWidth, gapSize),  // Gap height
     );
     await add(_scoreZone!);
     
-    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$topPillarHeight at local y=$localTopOfScreen), Bottom(w=$_visualWidth, h=$bottomPillarHeight at local y=$localGapBottom), ScoreZone(h=${localGapBottom - localGapTop} at local y=$localGapTop)');
+    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$topPillarHeight at local y=$localTopOfScreen), Bottom(w=$_visualWidth, h=$bottomPillarHeight at local y=$localGapBottom), ScoreZone(h=$gapSize at local y=$localGapTop)');
   }
   
   /// Get the score zone (for Flame collision detection)
