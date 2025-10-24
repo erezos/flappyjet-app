@@ -220,21 +220,27 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   }
   
   /// ✅ REFACTOR v1.7.0: Add Flame collision hitboxes for top and bottom pillars
+  /// ✅ FIX: Hitboxes use LOCAL coordinates (relative to obstacle component)
   Future<void> _addCollisionHitboxes(double gapTop, double gapBottom) async {
-    // Top pillar hitbox
+    // Calculate local positions (hitboxes are children, so relative to obstacle's origin)
+    // The obstacle component is at position.y in world space, but children use local (0,0)
+    final localGapTop = gapTop - position.y;  // Local Y position of gap top
+    final localGapBottom = gapBottom - position.y;  // Local Y position of gap bottom
+    
+    // Top pillar hitbox (from top of screen to gap top)
     final topHitbox = RectangleHitbox(
       size: Vector2(_visualWidth, gapTop),
-      position: Vector2(_visualXOffset, -position.y),
+      position: Vector2(_visualXOffset, -position.y),  // Start from top of screen in local coords
       anchor: Anchor.topLeft,
       collisionType: CollisionType.passive, // Obstacles don't check, only get checked
     );
     await add(topHitbox);
     
-    // Bottom pillar hitbox
+    // Bottom pillar hitbox (from gap bottom to bottom of screen)
     final bottomHeight = game.size.y - gapBottom;
     final bottomHitbox = RectangleHitbox(
       size: Vector2(_visualWidth, bottomHeight),
-      position: Vector2(_visualXOffset, gapBottom - position.y),
+      position: Vector2(_visualXOffset, localGapBottom),  // Local position of gap bottom
       anchor: Anchor.topLeft,
       collisionType: CollisionType.passive, // Obstacles don't check, only get checked
     );
@@ -242,12 +248,12 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     
     // ✅ REFACTOR v1.7.0: Add score trigger zone in the gap
     _scoreZone = ScoreZone(
-      position: Vector2(_visualXOffset, gapTop - position.y),
-      size: Vector2(_visualWidth, gapBottom - gapTop),
+      position: Vector2(_visualXOffset, localGapTop),  // Local position of gap top
+      size: Vector2(_visualWidth, localGapBottom - localGapTop),
     );
     await add(_scoreZone!);
     
-    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$gapTop), Bottom(w=$_visualWidth, h=$bottomHeight), ScoreZone(h=${gapBottom - gapTop})');
+    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$gapTop at local y=${-position.y}), Bottom(w=$_visualWidth, h=$bottomHeight at local y=$localGapBottom), ScoreZone(h=${localGapBottom - localGapTop} at local y=$localGapTop)');
   }
   
   /// Get the score zone (for Flame collision detection)
