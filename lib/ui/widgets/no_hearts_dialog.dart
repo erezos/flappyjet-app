@@ -118,215 +118,175 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
     // Calculate responsive sizing based on screen dimensions
     final isVerySmallScreen = screenHeight < 600;
     final isSmallScreen = screenHeight < 700;
-    final isNarrowScreen = screenWidth < 400;
+    final isTablet = screenWidth > 600;
+    final isLargeTablet = screenWidth > 900;
     
-    return Container(
-      decoration: const BoxDecoration(
-        // Store background - same as store page
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF4FC3F7), // Light blue from store
-            Color(0xFF29B6F6), // Darker blue from store
-          ],
-        ),
-      ),
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.4),
-        child: BasePopup(
-          maxWidthPixels: isNarrowScreen ? screenWidth * 0.95 : 380,
-          padding: EdgeInsets.zero,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: screenHeight * 0.95,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                child: Container(
-                  padding: EdgeInsets.all(isVerySmallScreen ? 12 : (isSmallScreen ? 16 : 20)),
-                  decoration: BoxDecoration(
-                    // Glassmorphism effect - semi-transparent with subtle gradient
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.25),
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.white.withValues(alpha: 0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                        spreadRadius: 0,
-                      ),
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        blurRadius: 6,
-                        offset: const Offset(0, -2),
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Compact header
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isVerySmallScreen ? 8 : 12, 
-                        vertical: isVerySmallScreen ? 4 : 6,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF6B6B), Color(0xFFFF8E8E)],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        '💔 OUT OF HEARTS!',
-                        style: TextStyle(
-                          fontSize: isVerySmallScreen ? 16 : (isSmallScreen ? 18 : 20),
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 0.8,
-                          decoration: TextDecoration.none,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    
-                    SizedBox(height: isVerySmallScreen ? 12 : 16),
-                    
-                    // Countdown with exciting design
-                    StreamBuilder<int>(
-                      stream: _countdownStream,
-                      initialData: _secondsUntilNextHeart,
-                      builder: (context, snapshot) {
-                        final seconds = snapshot.data ?? 0;
-                        return Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 16)),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  AnimatedBuilder(
-                                    animation: _pulseAnimation,
-                                    builder: (context, child) {
-                                      return Transform.scale(
-                                        scale: _pulseAnimation.value,
-                                        child: Text(
-                                          '❤️',
-                                          style: TextStyle(
-                                            fontSize: isVerySmallScreen ? 16 : (isSmallScreen ? 18 : 20),
-                                            decoration: TextDecoration.none,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'FREE HEART IN',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14),
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1,
-                                      decoration: TextDecoration.none,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: isVerySmallScreen ? 4 : 6),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isVerySmallScreen ? 12 : 16, 
-                                  vertical: isVerySmallScreen ? 4 : 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  _formatTime(seconds),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 28),
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 2,
-                                    decoration: TextDecoration.none,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    
-                    SizedBox(height: isVerySmallScreen ? 8 : 12),
-                    
-                    // Compact purchase card
-                    _buildCompactPurchaseCard(isVerySmallScreen, isSmallScreen),
-                    
-                    SizedBox(height: isVerySmallScreen ? 8 : 10),
-                    
-                    // Compact close button
-                    ModernGameButton(
-                      label: 'BACK TO MENU',
-                      onPressed: widget.onClose,
-                      height: isVerySmallScreen ? 36 : (isSmallScreen ? 40 : 44),
-                      style: ModernButtonStyle.secondary,
-                    ),
-                    ],
+    // Responsive sizing
+    final maxWidth = isLargeTablet ? 480.0 : isTablet ? 420.0 : (screenWidth * 0.9).clamp(280.0, 400.0);
+    final padding = isVerySmallScreen ? 20.0 : (isSmallScreen ? 24.0 : 28.0);
+    final spacing = isVerySmallScreen ? 16.0 : (isSmallScreen ? 20.0 : 24.0);
+    
+    return BasePopup(
+      maxWidthPixels: maxWidth,
+      padding: EdgeInsets.all(padding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Large broken heart icon at top
+          AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _pulseAnimation.value,
+                child: Text(
+                  '💔',
+                  style: TextStyle(
+                    fontSize: isVerySmallScreen ? 48 : (isSmallScreen ? 56 : 64),
+                    decoration: TextDecoration.none,
                   ),
                 ),
-              ),
+              );
+            },
+          ),
+          
+          SizedBox(height: spacing * 0.5),
+          
+          // Title text (no box)
+          Text(
+            'Out of Hearts!',
+            style: TextStyle(
+              fontSize: isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32),
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFFFF6B6B),
+              letterSpacing: 0.5,
+              decoration: TextDecoration.none,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          SizedBox(height: spacing * 0.75),
+          
+          // Free heart countdown (no box, just text with icon)
+          StreamBuilder<int>(
+            stream: _countdownStream,
+            initialData: _secondsUntilNextHeart,
+            builder: (context, snapshot) {
+              final seconds = snapshot.data ?? 0;
+              return Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: 0.9 + (_pulseAnimation.value - 1.0) * 0.5,
+                            child: Text(
+                              '❤️',
+                              style: TextStyle(
+                                fontSize: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 28),
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(width: isVerySmallScreen ? 8 : 12),
+                      Text(
+                        'Free heart in',
+                        style: TextStyle(
+                          fontSize: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18),
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isVerySmallScreen ? 6 : 8),
+                  Text(
+                    _formatTime(seconds),
+                    style: TextStyle(
+                      fontSize: isVerySmallScreen ? 32 : (isSmallScreen ? 36 : 42),
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF3B82F6),
+                      letterSpacing: 2,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          
+          // Divider with "OR"
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: spacing * 0.75),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.2),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(
+                      fontSize: isVerySmallScreen ? 12 : 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black54,
+                      letterSpacing: 1.5,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withValues(alpha: 0.2),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
+          
+          // Refill button with inline gem cost (no box)
+          _buildRefillButton(isVerySmallScreen, isSmallScreen, isTablet),
+          
+          SizedBox(height: spacing * 0.5),
+          
+          // Back button
+          ModernGameButton(
+            label: 'BACK TO MENU',
+            onPressed: widget.onClose,
+            height: isVerySmallScreen ? 48 : (isSmallScreen ? 52 : 56),
+            style: ModernButtonStyle.secondary,
+          ),
+        ],
       ),
     );
   }
 
 
-  Widget _buildCompactPurchaseCard(bool isVerySmallScreen, bool isSmallScreen) {
+  Widget _buildRefillButton(bool isVerySmallScreen, bool isSmallScreen, bool isTablet) {
     final inventory = InventoryManager();
     final livesManager = LivesManager();
     final economy = EconomyConfig();
@@ -334,222 +294,176 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
     final maxHearts = livesManager.maxLives;
     final isAtMax = currentHearts >= maxHearts;
     final hasEnoughGems = inventory.gems >= economy.fullHeartsRefillGemCost;
+    final gemCost = economy.fullHeartsRefillGemCost;
     
+    // Responsive sizing
+    final fontSize = isVerySmallScreen ? 14.0 : (isSmallScreen ? 16.0 : 18.0);
+    final iconSize = isVerySmallScreen ? 16.0 : (isSmallScreen ? 18.0 : 20.0);
+    final buttonHeight = isVerySmallScreen ? 54.0 : (isSmallScreen ? 58.0 : 62.0);
+    
+    if (isAtMax) {
+      // Hearts are full - show success state
+      return Container(
+        width: double.infinity,
+        height: buttonHeight,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF10B981), Color(0xFF059669)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '✅',
+                style: TextStyle(fontSize: iconSize + 4, decoration: TextDecoration.none),
+              ),
+              SizedBox(width: isVerySmallScreen ? 8 : 10),
+              Text(
+                'Hearts Full!',
+                style: TextStyle(
+                  fontSize: fontSize + 2,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    if (!hasEnoughGems) {
+      // Not enough gems - show disabled state with current gems
+      return Container(
+        width: double.infinity,
+        height: buttonHeight,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.grey.shade400,
+              Colors.grey.shade500,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Gem3DIcon(size: iconSize),
+                  SizedBox(width: isVerySmallScreen ? 6 : 8),
+                  Text(
+                    'Need More Gems',
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.3,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 2),
+              Text(
+                'You have ${inventory.gems} / $gemCost gems',
+                style: TextStyle(
+                  fontSize: isVerySmallScreen ? 10 : 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Enough gems - show actionable button with pulsing animation
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
         return Transform.scale(
-          scale: (!isAtMax && hasEnoughGems) ? (0.98 + (_pulseAnimation.value - 1.0) * 0.02) : 1.0,
+          scale: 0.98 + (_pulseAnimation.value - 1.0) * 0.04,
           child: Container(
             width: double.infinity,
+            height: buttonHeight,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isAtMax
-                    ? [const Color(0xFFE5E7EB), const Color(0xFFD1D5DB)] // Gray for full hearts
-                    : !hasEnoughGems
-                        ? [const Color(0xFFEF4444), const Color(0xFFDC2626)] // Red for insufficient gems
-                        : [
-                            const Color(0xFF10B981), // Emerald green
-                            const Color(0xFF059669), // Darker emerald
-                            const Color(0xFF047857), // Even darker
-                          ],
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFFFD700), // Gold
+                  Color(0xFFFFA500), // Orange
+                ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isAtMax
-                    ? const Color(0xFFD1D5DB)
-                    : !hasEnoughGems
-                        ? const Color(0xFFEF4444)
-                        : const Color(0xFF34D399),
-                width: 2,
-              ),
               boxShadow: [
-                if (!isAtMax && hasEnoughGems) ...[
-                  BoxShadow(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                    spreadRadius: 1,
-                  ),
-                ] else ...[
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                BoxShadow(
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                  spreadRadius: 1,
+                ),
               ],
             ),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: (isAtMax || !hasEnoughGems) ? null : () => _purchaseHearts(),
-                child: Padding(
-                  padding: EdgeInsets.all(isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
-                  child: Column(
+                onTap: () => _purchaseHearts(),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Compact header
-                      if (!isAtMax) ...[
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isVerySmallScreen ? 6 : 8, 
-                            vertical: isVerySmallScreen ? 2 : 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '⚡ INSTANT REFILL ⚡',
-                            style: TextStyle(
-                              fontSize: isVerySmallScreen ? 9 : (isSmallScreen ? 10 : 11),
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: isVerySmallScreen ? 6 : 8),
-                      ],
-                      
-                      // Compact hearts icon
-                      Container(
-                        width: isVerySmallScreen ? 36 : (isSmallScreen ? 42 : 48),
-                        height: isVerySmallScreen ? 36 : (isSmallScreen ? 42 : 48),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            isAtMax ? '✅' : hasEnoughGems ? '💖' : '💎',
-                            style: TextStyle(fontSize: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 28)),
-                          ),
-                        ),
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _pulseAnimation.value,
+                            child: Gem3DIcon(size: iconSize),
+                          );
+                        },
                       ),
-                      
-                      SizedBox(height: isVerySmallScreen ? 6 : 8),
-                      
-                      // Compact title
+                      SizedBox(width: isVerySmallScreen ? 8 : 10),
                       Text(
-                        isAtMax 
-                            ? '❤️ HEARTS FULL!' 
-                            : hasEnoughGems 
-                                ? '🚀 GET ALL HEARTS!' 
-                                : '💎 NEED MORE GEMS!',
+                        'GET ALL HEARTS - $gemCost',
                         style: TextStyle(
-                          fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
+                          fontSize: fontSize,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
                           letterSpacing: 0.5,
+                          decoration: TextDecoration.none,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              offset: const Offset(0, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      
-                      SizedBox(height: isVerySmallScreen ? 2 : 4),
-                      
-                      // Compact subtitle
-                      Text(
-                        isAtMax 
-                            ? 'You\'re ready to play!' 
-                            : hasEnoughGems 
-                                ? 'Refill all hearts instantly!' 
-                                : 'Visit the store to get gems',
-                        style: TextStyle(
-                          fontSize: isVerySmallScreen ? 9 : (isSmallScreen ? 10 : 11),
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withValues(alpha: 0.9),
-                          letterSpacing: 0.2,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      
-                      SizedBox(height: isVerySmallScreen ? 8 : 10),
-                      
-                      // Compact price section with store-style gem icon
-                      if (!isAtMax) ...[
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14), 
-                            vertical: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: hasEnoughGems ? 0.2 : 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Store-style Gem3DIcon (no color tinting like in store)
-                              AnimatedBuilder(
-                                animation: _pulseAnimation,
-                                builder: (context, child) {
-                                  return Transform.scale(
-                                    scale: hasEnoughGems ? _pulseAnimation.value : 1.0,
-                                    child: Gem3DIcon(
-                                      size: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18),
-                                      // No color tinting - use natural gem colors like in store
-                                    ),
-                                  );
-                                },
-                              ),
-                              SizedBox(width: isVerySmallScreen ? 4 : 6),
-                              Text(
-                                '${economy.fullHeartsRefillGemCost}',
-                                style: TextStyle(
-                                  fontSize: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18),
-                                  fontWeight: FontWeight.w900,
-                                  color: hasEnoughGems ? Colors.white : Colors.white.withValues(alpha: 0.7),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              SizedBox(width: isVerySmallScreen ? 3 : 4),
-                              Text(
-                                'GEMS',
-                                style: TextStyle(
-                                  fontSize: isVerySmallScreen ? 9 : (isSmallScreen ? 10 : 11),
-                                  fontWeight: FontWeight.w700,
-                                  color: hasEnoughGems ? Colors.white : Colors.white.withValues(alpha: 0.7),
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        if (!hasEnoughGems) ...[
-                          SizedBox(height: isVerySmallScreen ? 4 : 6),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isVerySmallScreen ? 8 : 10, 
-                              vertical: isVerySmallScreen ? 3 : 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              'You have ${inventory.gems} gems',
-                              style: TextStyle(
-                                fontSize: isVerySmallScreen ? 8 : (isSmallScreen ? 9 : 10),
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
                     ],
                   ),
                 ),
