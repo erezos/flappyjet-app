@@ -1,4 +1,5 @@
 /// 💖 No Hearts Available Dialog - Heart regeneration, ads, and purchase options
+/// Migrated to use BasePopup + ModernGameButton
 library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,9 @@ import '../../game/core/economy_config.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/notification_permission_manager.dart';
 import 'gem_3d_icon.dart';
+import 'popups/base_popup.dart';
+import 'buttons/modern_game_button.dart';
+import 'buttons/button_styles.dart';
 
 class NoHeartsDialog extends StatefulWidget {
   final VoidCallback onClose;
@@ -25,10 +29,8 @@ class NoHeartsDialog extends StatefulWidget {
 }
 
 class _NoHeartsDialogState extends State<NoHeartsDialog>
-    with TickerProviderStateMixin {
-  late AnimationController _slideController;
+    with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
-  late Animation<Offset> _slideAnimation;
   late Animation<double> _pulseAnimation;
   
   int _secondsUntilNextHeart = 0;
@@ -38,23 +40,11 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
   void initState() {
     super.initState();
     
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
+    // Keep pulse animation (BasePopup handles entrance)
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.elasticOut,
-    ));
 
     _pulseAnimation = Tween<double>(
       begin: 1.0,
@@ -64,14 +54,9 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
       curve: Curves.easeInOut,
     ));
 
-    _startAnimations();
+    _pulseController.repeat(reverse: true);
     _setupCountdown();
     _maybeShowNotificationPermissionPopup();
-  }
-
-  void _startAnimations() {
-    _slideController.forward();
-    _pulseController.repeat(reverse: true);
   }
 
   void _setupCountdown() async {
@@ -98,7 +83,6 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
 
   @override
   void dispose() {
-    _slideController.dispose();
     _pulseController.dispose();
     super.dispose();
   }
@@ -149,56 +133,52 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
         ),
       ),
       child: Container(
-        color: Colors.black.withValues(alpha: 0.4), // Slightly darker overlay for better glassmorphism contrast
-        child: Center(
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: Container(
-              margin: EdgeInsets.symmetric(
-                horizontal: isNarrowScreen ? 12 : 16,
-                vertical: isVerySmallScreen ? 8 : (isSmallScreen ? 16 : 24),
-              ),
-              constraints: BoxConstraints(
-                maxHeight: screenHeight * 0.95, // Use 95% of screen height
-                maxWidth: isNarrowScreen ? screenWidth * 0.95 : 380,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: Container(
-                    padding: EdgeInsets.all(isVerySmallScreen ? 12 : (isSmallScreen ? 16 : 20)),
-                    decoration: BoxDecoration(
-                      // Glassmorphism effect - semi-transparent with subtle gradient
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.25), // More transparent
-                          Colors.white.withValues(alpha: 0.15), // Even more transparent
-                          Colors.white.withValues(alpha: 0.1),  // Most transparent
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3), // Subtle white border
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          blurRadius: 6,
-                          offset: const Offset(0, -2),
-                          spreadRadius: 0,
-                        ),
+        color: Colors.black.withValues(alpha: 0.4),
+        child: BasePopup(
+          maxWidthPixels: isNarrowScreen ? screenWidth * 0.95 : 380,
+          padding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: screenHeight * 0.95,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  padding: EdgeInsets.all(isVerySmallScreen ? 12 : (isSmallScreen ? 16 : 20)),
+                  decoration: BoxDecoration(
+                    // Glassmorphism effect - semi-transparent with subtle gradient
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.25),
+                        Colors.white.withValues(alpha: 0.15),
+                        Colors.white.withValues(alpha: 0.1),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                        spreadRadius: 0,
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        blurRadius: 6,
+                        offset: const Offset(0, -2),
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -328,21 +308,16 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
                     SizedBox(height: isVerySmallScreen ? 8 : 10),
                     
                     // Compact close button
-                    _buildCompactActionButton(
-                      'BACK TO MENU',
-                      Icons.home_rounded,
-                      const LinearGradient(
-                        colors: [Color(0xFF9CA3AF), Color(0xFF6B7280)],
-                      ),
-                      widget.onClose,
-                      isVerySmallScreen,
-                      isSmallScreen,
+                    ModernGameButton(
+                      label: 'BACK TO MENU',
+                      onPressed: widget.onClose,
+                      height: isVerySmallScreen ? 36 : (isSmallScreen ? 40 : 44),
+                      style: ModernButtonStyle.secondary,
                     ),
                     ],
                   ),
                 ),
               ),
-            ),
             ),
           ),
         ),
@@ -585,54 +560,6 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
       },
     );
   }
-
-  Widget _buildCompactActionButton(
-    String text,
-    IconData icon,
-    Gradient gradient,
-    VoidCallback onTap,
-    bool isVerySmallScreen,
-    bool isSmallScreen,
-  ) {
-    return Container(
-      width: double.infinity,
-      height: isVerySmallScreen ? 36 : (isSmallScreen ? 40 : 44),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onTap();
-          },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon, 
-                color: Colors.white, 
-                size: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18),
-              ),
-              SizedBox(width: isVerySmallScreen ? 4 : 6),
-              Text(
-                text,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: isVerySmallScreen ? 11 : (isSmallScreen ? 12 : 14),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
 
   void _purchaseHearts() async {
     final inventory = InventoryManager();
