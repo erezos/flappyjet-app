@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import '../popups/base_popup.dart';
+import '../buttons/modern_game_button.dart';
+import '../buttons/button_styles.dart';
+import '../gem_3d_icon.dart';
 
 /// Generic reward claim popup for Daily Missions and Achievements
 /// Displays a beautiful, animated popup when user claims rewards
@@ -29,49 +33,17 @@ class RewardClaimPopup extends StatefulWidget {
 }
 
 class _RewardClaimPopupState extends State<RewardClaimPopup>
-    with TickerProviderStateMixin {
-  late AnimationController _scaleController;
-  late AnimationController _slideController;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
+    with SingleTickerProviderStateMixin {
+  // No entrance animation controllers needed (BasePopup handles)
 
   @override
   void initState() {
     super.initState();
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _scaleAnimation = CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    );
-
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    _scaleController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        _slideController.forward();
-      }
-    });
     HapticFeedback.mediumImpact();
   }
 
   @override
   void dispose() {
-    _scaleController.dispose();
-    _slideController.dispose();
     super.dispose();
   }
 
@@ -81,82 +53,59 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
     final isVerySmallScreen = screenSize.height < 600;
     final isSmallScreen = screenSize.height < 700;
 
-    return Material(
-      color: Colors.transparent,
+    return BasePopup(
+      padding: EdgeInsets.zero,
+      backgroundColor: Colors.transparent,
       child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.7),
-              Colors.black.withValues(alpha: 0.9),
-            ],
-          ),
+        margin: EdgeInsets.symmetric(
+          horizontal: isSmallScreen ? 20 : 32,
+          vertical: isSmallScreen ? 40 : 60,
         ),
-        child: SafeArea(
-          child: Center(
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Container(
-                  margin: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 20 : 32,
-                    vertical: isSmallScreen ? 40 : 60,
-                  ),
-                  constraints: BoxConstraints(
-                    maxWidth: 400,
-                    maxHeight: screenSize.height * 0.8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Stack(
-                      children: [
-                        // Background sparkles
-                        ..._buildSparkles(),
+        constraints: BoxConstraints(
+          maxWidth: 400,
+          maxHeight: screenSize.height * 0.8,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 20,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Background sparkles
+              ..._buildSparkles(),
 
-                        // Main content
-                        Padding(
-                          padding: EdgeInsets.all(isVerySmallScreen ? 16 : 24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildHeader(isVerySmallScreen),
-                              SizedBox(height: isVerySmallScreen ? 12 : 16),
-                              _buildRewardName(isVerySmallScreen),
-                              SizedBox(height: isVerySmallScreen ? 12 : 16),
-                              _buildRewardIcons(isVerySmallScreen),
-                              SizedBox(height: isVerySmallScreen ? 16 : 20),
-                              _buildDescription(isVerySmallScreen),
-                              SizedBox(height: isVerySmallScreen ? 20 : 24),
-                              _buildActionButton(context, isSmallScreen),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              // Main content
+              Padding(
+                padding: EdgeInsets.all(isVerySmallScreen ? 16 : 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildHeader(isVerySmallScreen),
+                    SizedBox(height: isVerySmallScreen ? 12 : 16),
+                    _buildRewardName(isVerySmallScreen),
+                    SizedBox(height: isVerySmallScreen ? 12 : 16),
+                    _buildRewardIcons(isVerySmallScreen),
+                    SizedBox(height: isVerySmallScreen ? 16 : 20),
+                    _buildDescription(isVerySmallScreen),
+                    SizedBox(height: isVerySmallScreen ? 20 : 24),
+                    _buildActionButton(context, isSmallScreen),
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -255,18 +204,7 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
         if (hasGems) ...[
           Column(
             children: [
-              Image.asset(
-                'assets/images/icons/gem_icon.png',
-                height: iconSize,
-                width: iconSize,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.diamond,
-                    size: iconSize,
-                    color: Colors.purple,
-                  );
-                },
-              ),
+              Gem3DIcon(size: iconSize), // ✅ Real 3D gem image
               const SizedBox(height: 8),
               Text(
                 '+${widget.gemReward}',
@@ -303,44 +241,17 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
   }
 
   Widget _buildActionButton(BuildContext context, bool isSmallScreen) {
-    return SizedBox(
-      width: double.infinity,
+    return ModernGameButton(
+      label: 'AWESOME!',
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        widget.onClose();
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       height: isSmallScreen ? 48 : 56,
-      child: ElevatedButton(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          widget.onClose();
-          if (context.mounted) {
-            Navigator.of(context).pop();
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.4),
-              width: 2,
-            ),
-          ),
-        ).copyWith(
-          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-            if (states.contains(WidgetState.pressed)) {
-              return Colors.white.withValues(alpha: 0.2);
-            }
-            return Colors.white.withValues(alpha: 0.1);
-          }),
-        ),
-        child: Text(
-          'Awesome!',
-          style: TextStyle(
-            fontSize: isSmallScreen ? 16 : 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      style: ModernButtonStyle.primary, // Gold
     );
   }
 
