@@ -35,7 +35,7 @@ class BasePopup extends StatefulWidget {
   final bool barrierDismissible;
 
   /// Background color of the popup container
-  /// Default: Dark blue-gray (#1A1F2E)
+  /// Default: Clean white (Colors.white) for bright, casual game aesthetic
   final Color? backgroundColor;
 
   /// Border radius of the popup container
@@ -147,8 +147,8 @@ class _BasePopupState extends State<BasePopup>
     final maxWidth = widget.maxWidthPixels ??
         (screenWidth * widget.maxWidthPercent).clamp(300.0, 800.0);
 
-    // Default background color
-    final bgColor = widget.backgroundColor ?? const Color(0xFF1A1F2E);
+    // Default background color - bright white for casual game aesthetic
+    final bgColor = widget.backgroundColor ?? Colors.white;
 
     // Default padding
     final popupPadding = widget.padding ?? const EdgeInsets.all(24.0);
