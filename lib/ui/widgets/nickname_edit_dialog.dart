@@ -11,6 +11,9 @@ import 'package:flutter/material.dart';
 import 'nickname_input_widget.dart';
 import '../../game/systems/player_identity_manager.dart';
 import '../../core/debug_logger.dart';
+import 'popups/base_popup.dart';
+import 'buttons/modern_game_button.dart';
+import 'buttons/button_styles.dart';
 
 class NicknameEditDialog extends StatefulWidget {
   final String currentNickname;
@@ -141,14 +144,13 @@ class _NicknameEditDialogState extends State<NicknameEditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return BasePopup(
+      padding: EdgeInsets.zero,
+      backgroundColor: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -243,34 +245,42 @@ class _NicknameEditDialogState extends State<NicknameEditDialog> {
 
                 // Save button
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: (_isValid && !_isSaving) ? _saveNickname : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isValid ? Colors.blue.shade600 : Colors.grey.shade300,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: _isValid ? 2 : 0,
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  child: _isSaving
+                      ? Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
                             ),
-                          )
-                        : const Text(
-                            'Save',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0x66FFA500),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
                             ),
                           ),
-                  ),
+                        )
+                      : ModernGameButton(
+                          label: 'SAVE',
+                          onPressed: _isValid ? () => _saveNickname() : () {},
+                          style: ModernButtonStyle.primary,
+                          height: 48,
+                          enabled: _isValid,
+                        ),
                 ),
               ],
             ),
