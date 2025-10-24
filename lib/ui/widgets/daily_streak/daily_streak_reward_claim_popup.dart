@@ -1,10 +1,15 @@
 /// 🎁 Beautiful Daily Streak Reward Claim Popup - FlappyJet Design Language
 /// Premium UI/UX showing reward details with animations and explanations
+/// Migrated to use BasePopup + ModernGameButton + Gem3DIcon
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/systems/daily_streak_manager.dart';
+import '../popups/base_popup.dart';
+import '../buttons/modern_game_button.dart';
+import '../buttons/button_styles.dart';
+import '../gem_3d_icon.dart';
 
 class DailyStreakRewardClaimPopup extends StatefulWidget {
   final DailyStreakReward reward;
@@ -21,42 +26,15 @@ class DailyStreakRewardClaimPopup extends StatefulWidget {
 }
 
 class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopup>
-    with TickerProviderStateMixin {
-  late AnimationController _scaleController;
-  late AnimationController _slideController;
+    with SingleTickerProviderStateMixin {
   late AnimationController _rewardController;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
   late Animation<double> _rewardAnimation;
 
   @override
   void initState() {
     super.initState();
     
-    // Scale animation for popup entrance
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _scaleAnimation = CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    );
-
-    // Slide animation for content
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    // Reward animation
+    // Only keep reward bounce animation (BasePopup handles entrance)
     _rewardController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -66,12 +44,8 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
       curve: Curves.bounceOut,
     );
 
-    // Start animations
-    _scaleController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) _slideController.forward();
-    });
-    Future.delayed(const Duration(milliseconds: 600), () {
+    // Start reward animation after a delay
+    Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) _rewardController.forward();
     });
 
@@ -81,8 +55,6 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
 
   @override
   void dispose() {
-    _scaleController.dispose();
-    _slideController.dispose();
     _rewardController.dispose();
     super.dispose();
   }
@@ -93,111 +65,67 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     final isSmallScreen = screenSize.height < 700;
     final isVerySmallScreen = screenSize.height < 600;
 
-    return Material(
-      color: Colors.transparent,
+    return BasePopup(
+      maxWidthPixels: 400,
+      padding: EdgeInsets.zero,
+      backgroundColor: Colors.transparent,
       child: Container(
-        width: double.infinity,
-        height: double.infinity,
+        constraints: BoxConstraints(
+          maxHeight: screenSize.height * 0.75,
+        ),
         decoration: BoxDecoration(
-          // Glassmorphism background
+          // Premium glassmorphism effect
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Colors.black.withValues(alpha: 0.7),
-              Colors.black.withValues(alpha: 0.9),
+              Colors.white.withValues(alpha: 0.15),
+              Colors.white.withValues(alpha: 0.05),
             ],
           ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 2,
+          ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Container(
-                  margin: EdgeInsets.symmetric(
-                    horizontal: isVerySmallScreen ? 16 : isSmallScreen ? 20 : 32,
-                    vertical: isVerySmallScreen ? 32 : isSmallScreen ? 40 : 60,
-                  ),
-                  constraints: BoxConstraints(
-                    maxWidth: 400,
-                    maxHeight: screenSize.height * 0.75,
-                  ),
-                  decoration: BoxDecoration(
-                    // Premium glassmorphism effect
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.white.withValues(alpha: 0.05),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: _getRewardColor().withValues(alpha: 0.1),
-                        blurRadius: 40,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Header with reward icon
-                        _buildHeader(isSmallScreen, isVerySmallScreen),
-                        
-                        // Content
-                        Flexible(
-                          child: SingleChildScrollView(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isVerySmallScreen ? 16 : isSmallScreen ? 20 : 24,
-                              vertical: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Title
-                                _buildTitle(isVerySmallScreen, isSmallScreen),
-                                
-                                SizedBox(height: isVerySmallScreen ? 8 : isSmallScreen ? 12 : 16),
-                                
-                                // Reward display
-                                _buildRewardDisplay(isVerySmallScreen, isSmallScreen),
-                                
-                                SizedBox(height: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20),
-                                
-                                // Explanation text
-                                _buildExplanation(isVerySmallScreen, isSmallScreen),
-                                
-                                SizedBox(height: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 32),
-                                
-                                // Action button
-                                _buildActionButton(context, isVerySmallScreen, isSmallScreen),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header with reward icon
+            _buildHeader(isSmallScreen, isVerySmallScreen),
+            
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isVerySmallScreen ? 16 : isSmallScreen ? 20 : 24,
+                  vertical: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Title
+                    _buildTitle(isVerySmallScreen, isSmallScreen),
+                    
+                    SizedBox(height: isVerySmallScreen ? 8 : isSmallScreen ? 12 : 16),
+                    
+                    // Reward display
+                    _buildRewardDisplay(isVerySmallScreen, isSmallScreen),
+                    
+                    SizedBox(height: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20),
+                    
+                    // Explanation text
+                    _buildExplanation(isVerySmallScreen, isSmallScreen),
+                    
+                    SizedBox(height: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 32),
+                    
+                    // Action button
+                    _buildActionButton(context, isVerySmallScreen, isSmallScreen),
+                  ],
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -249,6 +177,8 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
   }
 
   Widget _buildRewardDisplay(bool isVerySmallScreen, bool isSmallScreen) {
+    final iconSize = (isVerySmallScreen ? 28 : isSmallScreen ? 32 : 36).toDouble();
+    
     return ScaleTransition(
       scale: _rewardAnimation,
       child: Container(
@@ -279,32 +209,35 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Reward icon
-            Container(
-              width: isVerySmallScreen ? 28 : isSmallScreen ? 32 : 36,
-              height: isVerySmallScreen ? 28 : isSmallScreen ? 32 : 36,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    _getRewardColor(),
-                    _getRewardColor().withValues(alpha: 0.8),
+            // Reward icon - Use Gem3DIcon for gems, regular icon for others
+            if (widget.reward.type == DailyStreakRewardType.gems)
+              Gem3DIcon(size: iconSize)
+            else
+              Container(
+                width: iconSize,
+                height: iconSize,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      _getRewardColor(),
+                      _getRewardColor().withValues(alpha: 0.8),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                child: Icon(
+                  _getRewardIcon(),
+                  color: Colors.white,
+                  size: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20,
+                ),
               ),
-              child: Icon(
-                _getRewardIcon(),
-                color: Colors.white,
-                size: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20,
-              ),
-            ),
             
             SizedBox(width: isVerySmallScreen ? 6 : isSmallScreen ? 8 : 12),
             
@@ -347,42 +280,14 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
   }
 
   Widget _buildActionButton(BuildContext context, bool isVerySmallScreen, bool isSmallScreen) {
-    return SizedBox(
-      width: double.infinity,
+    return ModernGameButton(
+      label: 'AWESOME!',
+      onPressed: () {
+        Navigator.of(context).pop();
+        widget.onClose?.call();
+      },
       height: isVerySmallScreen ? 44 : isSmallScreen ? 48 : 56,
-      child: ElevatedButton(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          Navigator.of(context).pop();
-          widget.onClose?.call();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.4),
-              width: 2,
-            ),
-          ),
-        ).copyWith(
-          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-            if (states.contains(WidgetState.pressed)) {
-              return Colors.white.withValues(alpha: 0.2);
-            }
-            return Colors.white.withValues(alpha: 0.1);
-          }),
-        ),
-        child: Text(
-          'Awesome!',
-          style: TextStyle(
-            fontSize: isVerySmallScreen ? 15 : isSmallScreen ? 16 : 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      style: ModernButtonStyle.primary, // Gold
     );
   }
 
