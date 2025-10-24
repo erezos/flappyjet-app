@@ -147,8 +147,9 @@ class _BasePopupState extends State<BasePopup>
     final maxWidth = widget.maxWidthPixels ??
         (screenWidth * widget.maxWidthPercent).clamp(300.0, 800.0);
 
-    // Default background color - bright white for casual game aesthetic
-    final bgColor = widget.backgroundColor ?? Colors.white;
+    // Default background color - soft cream for warm, casual game aesthetic
+    // Warmer than pure white, less clinical, more inviting and modern
+    final bgColor = widget.backgroundColor ?? const Color(0xFFFFF8E7);
 
     // Default padding
     final popupPadding = widget.padding ?? const EdgeInsets.all(24.0);

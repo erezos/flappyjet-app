@@ -437,6 +437,23 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      Text(
+                        '❤️ REFILL NOW - ',
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                          decoration: TextDecoration.none,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              offset: const Offset(0, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
                       AnimatedBuilder(
                         animation: _pulseAnimation,
                         builder: (context, child) {
@@ -446,9 +463,9 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
                           );
                         },
                       ),
-                      SizedBox(width: isVerySmallScreen ? 8 : 10),
+                      SizedBox(width: 6),
                       Text(
-                        'GET ALL HEARTS - $gemCost',
+                        '$gemCost',
                         style: TextStyle(
                           fontSize: fontSize,
                           fontWeight: FontWeight.w900,
