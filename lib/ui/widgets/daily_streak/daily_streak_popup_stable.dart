@@ -5,6 +5,8 @@ import '../../../game/systems/daily_streak_manager.dart';
 import '../../../game/core/jet_skins.dart';
 import '../gem_3d_icon.dart';
 import 'daily_streak_reward_claim_popup.dart';
+import '../buttons/modern_game_button.dart';
+import '../buttons/button_styles.dart';
 
 /// Stable Daily Streak Popup - Pure Flutter UI without complex animations
 class DailyStreakPopupStable extends StatefulWidget {
@@ -647,206 +649,123 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
       return const SizedBox.shrink();
     }
     
-    return Container(
-      width: double.infinity,
-      height: 50,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: widget.streakManager.currentState == DailyStreakState.claimed
-              ? [
-                  const Color(0xFF27AE60),
-                  const Color(0xFF2ECC71),
-                  const Color(0xFF229954),
-                ]
-              : _isClaiming
-                  ? [
-                      const Color(0xFF95A5A6),
-                      const Color(0xFF7F8C8D),
-                      const Color(0xFF6C7B7F),
-                    ]
-                  : [
-                      const Color(0xFF4A90E2),
-                      const Color(0xFF357ABD),
-                      const Color(0xFF2E5984),
-                    ],
-        ),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: (widget.streakManager.currentState == DailyStreakState.claimed
-                    ? const Color(0xFF27AE60)
-                    : _isClaiming
-                        ? const Color(0xFF95A5A6)
-                        : const Color(0xFF4A90E2))
-                .withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    // Show loading state while claiming
+    if (_isClaiming) {
+      return Container(
+        width: double.infinity,
+        height: 50,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF95A5A6),
+              Color(0xFF7F8C8D),
+              Color(0xFF6C7B7F),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
           borderRadius: BorderRadius.circular(25),
-          onTap: widget.streakManager.currentState == DailyStreakState.claimed || _isClaiming
-              ? null
-              : () async {
-                  if (_isClaiming) return;
-                  
-                  setState(() {
-                    _isClaiming = true;
-                  });
-                  
-                  HapticFeedback.lightImpact();
-                  final success = await widget.streakManager.claimTodayReward();
-                  
-                  if (mounted) {
-                    setState(() {
-                      _isClaiming = false;
-                    });
-                    
-                    if (success) {
-                      // Show beautiful reward claim popup
-                      if (mounted) {
-                        await showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (dialogContext) => DailyStreakRewardClaimPopup(
-                            reward: _currentReward,
-                            onClose: () {
-                              // Let the parent handle navigation
-                              widget.onClaim?.call();
-                            },
-                          ),
-                        );
-                      }
-                    } else {
-                      // Show error feedback
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.error, color: Colors.white),
-                              SizedBox(width: 8),
-                              Text('Failed to claim reward. Please try again.'),
-                            ],
-                          ),
-                          backgroundColor: Colors.red,
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  }
-                },
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_isClaiming) ...[
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'CLAIMING...',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ] else ...[
-                  Icon(
-                    widget.streakManager.currentState == DailyStreakState.claimed
-                        ? Icons.check_circle
-                        : Icons.card_giftcard,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.streakManager.currentState == DailyStreakState.claimed 
-                        ? 'CLAIMED'
-                        : 'COLLECT ${_currentReward.displayText}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF95A5A6).withValues(alpha: 0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
+          ],
+        ),
+        child: const Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              SizedBox(width: 8),
+              Text(
+                'CLAIMING...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
           ),
         ),
-      ),
+      );
+    }
+    
+    // Show collect button
+    return ModernGameButton(
+      label: 'COLLECT ${_currentReward.displayText}',
+      onPressed: () async {
+        if (_isClaiming) return;
+        
+        setState(() {
+          _isClaiming = true;
+        });
+        
+        HapticFeedback.lightImpact();
+        final success = await widget.streakManager.claimTodayReward();
+        
+        if (mounted) {
+          setState(() {
+            _isClaiming = false;
+          });
+          
+          if (success) {
+            // Show beautiful reward claim popup
+            if (mounted) {
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (dialogContext) => DailyStreakRewardClaimPopup(
+                  reward: _currentReward,
+                  onClose: () {
+                    // Let the parent handle navigation
+                    widget.onClaim?.call();
+                  },
+                ),
+              );
+            }
+          } else {
+            // Show error feedback
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.error, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('Failed to claim reward. Please try again.'),
+                  ],
+                ),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      },
+      height: 50,
+      style: ModernButtonStyle.primary, // Gold
     );
   }
   
 
   /// Build claimed button (already collected)
   Widget _buildClaimedButton() {
-    return Container(
-      width: double.infinity,
+    return ModernGameButton(
+      label: 'CLAIMED',
+      onPressed: () {}, // No action - already claimed
       height: 50,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF27AE60),
-            Color(0xFF2ECC71),
-            Color(0xFF229954),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF27AE60).withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: const Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'CLAIMED',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      style: ModernButtonStyle.success, // Green
+      enabled: false, // Disabled state
     );
   }
 
