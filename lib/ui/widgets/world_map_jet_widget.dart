@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../core/debug_logger.dart';
+import '../../game/core/jet_skins.dart';
 
 class WorldMapJetWidget extends StatefulWidget {
   final String jetSkinId;
@@ -191,6 +192,12 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
   }
 
   Widget _buildJetSprite() {
+    // Get the correct asset path from JetSkinCatalog
+    final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
+      (skin) => skin.id == widget.jetSkinId,
+      orElse: () => JetSkinCatalog.starterJet,
+    );
+    
     return Container(
       width: widget.jetSize,
       height: widget.jetSize,
@@ -210,11 +217,11 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
         ],
       ),
       child: Image.asset(
-        'assets/images/jets/${widget.jetSkinId}.png',
+        'assets/images/${jetSkin.assetPath}',
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
           // Fallback to icon if image fails to load
-          safePrint('⚠️ Failed to load jet image: ${widget.jetSkinId}, using icon fallback');
+          safePrint('⚠️ Failed to load jet image: ${widget.jetSkinId} (${jetSkin.assetPath}), using icon fallback');
           return const Icon(
             Icons.airplanemode_active,
             color: Colors.white,

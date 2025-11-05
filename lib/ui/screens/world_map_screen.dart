@@ -390,70 +390,45 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     final isUnlocked = _levelSystemManager.isLevelUnlocked(level.id);
     final isCompleted = _levelSystemManager.isLevelCompleted(level.id);
     final isCurrent = level.id == _levelSystemManager.currentLevel;
+    final isBotBattle = level.botBattle != null;
+
+    // VS nodes are larger and have special styling
+    final nodeSize = isBotBattle ? 85.0 : 60.0;
+    final nodeOffset = nodeSize / 2;
 
     return Positioned(
-      left: position.dx - 30, // Center the 60px node (smaller)
-      top: position.dy - 30,
+      left: position.dx - nodeOffset,
+      top: position.dy - nodeOffset,
       child: GestureDetector(
         onTap: isUnlocked ? () => _onLevelTap(level) : null,
         child: _HexagonalLevelNode(
           isUnlocked: isUnlocked,
           isCompleted: isCompleted,
           isCurrent: isCurrent,
+          isBotBattle: isBotBattle,
+          nodeSize: nodeSize,
           child: _buildLevelNumber(level),
         ),
       ),
     );
   }
-
+  
   Widget _buildLevelNumber(LevelData level) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Always show the level number
-        Text(
-          '${level.id}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            shadows: [
-              Shadow(
-                color: Colors.black45,
-                offset: Offset(0, 2),
-                blurRadius: 4,
-              ),
-            ],
-          ),
-        ),
-        // Show VS badge for bot battles
-        if (level.botBattle != null) ...[
-          const SizedBox(height: 2),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: const Text(
-              'VS',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+    // For all nodes, just show the level number centered
+    return Text(
+      '${level.id}',
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        shadows: [
+          Shadow(
+            color: Colors.black54,
+            offset: Offset(0, 3),
+            blurRadius: 6,
           ),
         ],
-      ],
+      ),
     );
   }
 
@@ -559,12 +534,16 @@ class _HexagonalLevelNode extends StatefulWidget {
   final bool isUnlocked;
   final bool isCompleted;
   final bool isCurrent;
+  final bool isBotBattle;
+  final double nodeSize;
   final Widget child;
 
   const _HexagonalLevelNode({
     required this.isUnlocked,
     required this.isCompleted,
     required this.isCurrent,
+    required this.isBotBattle,
+    required this.nodeSize,
     required this.child,
   });
 
@@ -623,15 +602,35 @@ class _HexagonalLevelNodeState extends State<_HexagonalLevelNode>
         return Transform.scale(
           scale: widget.isCurrent ? _pulseAnimation.value : 1.0,
           child: SizedBox(
-            width: 60,
-            height: 60,
+            width: widget.nodeSize,
+            height: widget.nodeSize,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Outer glow for current level
-                if (widget.isCurrent)
+                // 🔥 SPECIAL: Epic glow for VS Battle nodes (always visible)
+                if (widget.isBotBattle)
                   CustomPaint(
-                    size: const Size(70, 70),
+                    size: Size(widget.nodeSize + 20, widget.nodeSize + 20),
+                    painter: _HexagonGlowPainter(
+                      color: Colors.red.withValues(alpha: 0.6),
+                      blurRadius: 20,
+                    ),
+                  ),
+                
+                // 🔥 SPECIAL: Second glow layer for VS nodes (animated)
+                if (widget.isBotBattle)
+                  CustomPaint(
+                    size: Size(widget.nodeSize + 30, widget.nodeSize + 30),
+                    painter: _HexagonGlowPainter(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                      blurRadius: 25,
+                    ),
+                  ),
+                
+                // Outer glow for current level
+                if (widget.isCurrent && !widget.isBotBattle)
+                  CustomPaint(
+                    size: Size(widget.nodeSize + 10, widget.nodeSize + 10),
                     painter: _HexagonGlowPainter(
                       color: Colors.amber.withValues(alpha: 0.4),
                       blurRadius: 12,
@@ -640,41 +639,61 @@ class _HexagonalLevelNodeState extends State<_HexagonalLevelNode>
 
                 // Main hexagonal badge with 3D depth
                 CustomPaint(
-                  size: const Size(60, 60),
+                  size: Size(widget.nodeSize, widget.nodeSize),
                   painter: _HexagonBadgePainter(
                     isUnlocked: widget.isUnlocked,
                     isCompleted: widget.isCompleted,
                     isCurrent: widget.isCurrent,
+                    isBotBattle: widget.isBotBattle,
                   ),
                 ),
 
                 // Content
                 widget.child,
 
-                // Star icon for completed levels
-                if (widget.isCompleted)
+                // 🔥 SPECIAL: VS Badge at the bottom for battle nodes
+                if (widget.isBotBattle)
                   Positioned(
-                    top: -2,
-                    right: -2,
+                    bottom: 2,
                     child: Container(
-                      width: 18,
-                      height: 18,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.amber,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        gradient: LinearGradient(
+                          colors: [Colors.red.shade600, Colors.red.shade900],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.yellow.shade600, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
+                            color: Colors.red.withValues(alpha: 0.8),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                          const BoxShadow(
+                            color: Colors.black54,
                             blurRadius: 4,
-                            offset: const Offset(0, 2),
+                            offset: Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.star,
-                        size: 12,
-                        color: Colors.white,
+                      child: Text(
+                        'VS',
+                        style: TextStyle(
+                          color: Colors.yellow.shade300,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.0,
+                          height: 1.0,
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black87,
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -693,11 +712,13 @@ class _HexagonBadgePainter extends CustomPainter {
   final bool isUnlocked;
   final bool isCompleted;
   final bool isCurrent;
+  final bool isBotBattle;
 
   _HexagonBadgePainter({
     required this.isUnlocked,
     required this.isCompleted,
     required this.isCurrent,
+    this.isBotBattle = false,
   });
 
   @override
@@ -778,6 +799,22 @@ class _HexagonBadgePainter extends CustomPainter {
   }
 
   List<Color> _getColors() {
+    // 🔥 SPECIAL: Completed VS Battle nodes get emerald green (champion color)
+    if (isBotBattle && isCompleted) {
+      return const [
+        Color(0xFF00C853), // Bright emerald green top
+        Color(0xFF00695C), // Deep teal green bottom
+      ];
+    }
+    
+    // 🔥 SPECIAL: VS Battle nodes get epic red/orange gradient
+    if (isBotBattle && isUnlocked) {
+      return const [
+        Color(0xFFFF1744), // Bright red top
+        Color(0xFFD50000), // Deep red bottom
+      ];
+    }
+    
     if (!isUnlocked) {
       return const [
         Color(0xFF757575), // Gray top
@@ -807,6 +844,12 @@ class _HexagonBadgePainter extends CustomPainter {
   }
 
   Color _getBorderColor() {
+    // 🔥 SPECIAL: Completed VS battles get gold border (champion)
+    if (isBotBattle && isCompleted) return const Color(0xFFFFD700); // Gold
+    
+    // 🔥 SPECIAL: VS Battle nodes get golden border
+    if (isBotBattle && isUnlocked) return const Color(0xFFFFD700); // Gold
+    
     if (!isUnlocked) return const Color(0xFF616161);
     if (isCurrent) return const Color(0xFFFFEB3B);
     if (isCompleted) return const Color(0xFF81C784);
@@ -817,7 +860,8 @@ class _HexagonBadgePainter extends CustomPainter {
   bool shouldRepaint(_HexagonBadgePainter oldDelegate) =>
       isUnlocked != oldDelegate.isUnlocked ||
       isCompleted != oldDelegate.isCompleted ||
-      isCurrent != oldDelegate.isCurrent;
+      isCurrent != oldDelegate.isCurrent ||
+      isBotBattle != oldDelegate.isBotBattle;
 }
 
 /// 🎨 CustomPainter for glow effect around hexagon

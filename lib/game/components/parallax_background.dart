@@ -16,6 +16,9 @@ class ParallaxBackground extends Component with HasGameReference {
   RectangleComponent? _fadeOverlay;
   double _scrollSpeed = 220.0; // Fast but readable
   
+  // 🎯 STORY MODE: Override asset path for story mode levels
+  final String? storyModeBackgroundAsset;
+  
   // Base sky/horizon stacks
   ParallaxComponent? _currentParallax;
   ParallaxComponent? _nextParallax;
@@ -23,6 +26,8 @@ class ParallaxBackground extends Component with HasGameReference {
   // Persistent overlays (do not swap)
   ParallaxComponent? _cloudsOverlay; // legacy optional
   ParallaxComponent? _foregroundOverlay;
+  
+  ParallaxBackground({this.storyModeBackgroundAsset});
   
   /// Parallax layers with different scroll speeds for depth
   static const List<double> _layerSpeeds = [
@@ -49,7 +54,8 @@ class ParallaxBackground extends Component with HasGameReference {
   
   /// Load initial background for game start
   Future<void> _loadInitialBackground(int score) async {
-    final assetPath = VisualAssetManager.getBackgroundAsset(score);
+    // 🎯 STORY MODE: Use level's background asset if provided, otherwise use score-based asset
+    final assetPath = storyModeBackgroundAsset ?? VisualAssetManager.getBackgroundAsset(score);
     
     try {
       _currentParallax = await _createMainParallax(assetPath);
@@ -71,6 +77,11 @@ class ParallaxBackground extends Component with HasGameReference {
   
   /// Update background for new score with smooth transition
   Future<void> updateForScore(int score) async {
+    // 🎯 STORY MODE: Skip score-based transitions - each level has its own fixed background
+    if (storyModeBackgroundAsset != null) {
+      return;
+    }
+    
     if (score == _lastScore || _isTransitioning) return;
     
     // Check if we need to change backgrounds

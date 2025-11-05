@@ -19,6 +19,9 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   final double speed;
   final int currentScore;
   
+  // 🎯 STORY MODE: Override asset path for story mode levels
+  final String? storyModeObstacleAsset;
+  
   PositionComponent? _topObstacle;
   PositionComponent? _bottomObstacle;
   ScoreZone? _scoreZone; // ✅ REFACTOR v1.7.0: Flame collision-based scoring
@@ -33,10 +36,11 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     required this.gapSize,
     required this.speed,
     required this.currentScore,
+    this.storyModeObstacleAsset,
   }) : super(
       position: position, 
       size: Vector2(GameConfig.obstacleWidth, 150), 
-      anchor: Anchor.center  // ✅ FIX v3: Anchor at center to match gapY (gap center position)
+      anchor: Anchor.topLeft  // ✅ FIX v17: Revert to topLeft - center anchor breaks child positioning!
     );
   
   @override
@@ -55,7 +59,8 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   
   /// Load obstacle sprites based on current difficulty phase
   Future<void> _loadObstacleSprites() async {
-    final assetPath = VisualAssetManager.getObstacleAsset(currentScore);
+    // 🎯 STORY MODE: Use level's obstacle asset if provided, otherwise use score-based asset
+    final assetPath = storyModeObstacleAsset ?? VisualAssetManager.getObstacleAsset(currentScore);
     
     try {
       // Load the obstacle sprite
@@ -67,24 +72,48 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       _visualXOffset = 0.0;
       _visualWidth = GameConfig.obstacleWidth;
       
-      // Calculate gap positioning
-      final gapTop = position.y - gapSize / 2;
-      final gapBottom = position.y + gapSize / 2;
+      // Use local coordinates since anchor is Anchor.topLeft at position.y (gap top)
+      final localGapTop = 0.0;  // Gap top is at position (anchor point)
+      final localGapBottom = gapSize;  // Gap bottom is gapSize below top
+      final localTopOfScreen = -position.y;  // Top of screen in local coords (negative = above)
+      // Obstacles extend to ACTUAL SCREEN BOTTOM to cover visual ground terrain
+      // The visible ground (green grass/terrain) is baked into background images
+      // and extends from bottom upward, so obstacles must reach screen bottom to cover it
+      final localBottomOfScreen = game.size.y - position.y;  // Extend to actual bottom
+      
+      // 🐛 DEBUG: Log coordinate calculations
+      safePrint('🐛 OBSTACLE DEBUG: position.y=${position.y}, game.size.y=${game.size.y}');
+      safePrint('🐛 OBSTACLE DEBUG: gapSize=$gapSize, localGapBottom=$localGapBottom');
+      safePrint('🐛 OBSTACLE DEBUG: localBottomOfScreen=$localBottomOfScreen (extends to screen bottom)');
+      
+      // Calculate pillar heights
+      final topHeight = localGapTop - localTopOfScreen;  // From top of screen to gap top
+      final bottomHeight = localBottomOfScreen - localGapBottom;  // From gap bottom to bottom of screen
+      
+      safePrint('🐛 OBSTACLE DEBUG: topHeight=$topHeight, bottomHeight=$bottomHeight');
+      
+      // 🔍 DETAILED DEBUG: World coordinates for visual rendering
+      final worldGapTop = position.y + localGapTop;  // Gap top in world coords
+      final worldGapBottom = position.y + localGapBottom;  // Gap bottom in world coords
+      final worldVisualBottom = position.y + localBottomOfScreen;  // Visual bottom in world coords
+      safePrint('🔍 VISUAL DEBUG: Gap top (world)=$worldGapTop, Gap bottom (world)=$worldGapBottom');
+      safePrint('🔍 VISUAL DEBUG: Visual extends from $worldGapBottom to $worldVisualBottom (should be ${game.size.y})');
+      safePrint('🔍 VISUAL DEBUG: Visual bottom gap = ${game.size.y - worldVisualBottom} pixels');
       
       // Use slight overscan + clip to ensure image always fills collision width
       const overscanRatio = 0.0; // Disabled after robust trimming
       final expandedWidth = _visualWidth * (1 + overscanRatio);
       final xOffset = -(_visualWidth * overscanRatio) / 2;
 
-      // Top pillar
+      // Top pillar - extends from top of screen to gap top
       final topClip = ClipComponent.rectangle(
-        size: Vector2(_visualWidth, gapTop),
-        position: Vector2(_visualXOffset, -position.y),
-      );
+        size: Vector2(_visualWidth, topHeight),
+        position: Vector2(_visualXOffset, localTopOfScreen),
+      );  // ✅ FIX: Don't set anchor - use ClipComponent's default
       _topObstacle = topClip;
       final topSprite = SpriteComponent(
         sprite: trimmedSprite,
-        size: Vector2(expandedWidth, gapTop),
+        size: Vector2(expandedWidth, topHeight),
         position: Vector2(xOffset, 0),
         scale: Vector2(1, -1),
         anchor: Anchor.bottomLeft,
@@ -94,13 +123,17 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
         ..isAntiAlias = false);
       topClip.add(topSprite);
 
-      // Bottom pillar
-      final bottomHeight = game.size.y - gapBottom;
+      // Bottom pillar - extends from gap bottom to bottom of screen
       final bottomClip = ClipComponent.rectangle(
         size: Vector2(_visualWidth, bottomHeight),
-        position: Vector2(_visualXOffset, gapBottom - position.y),
-      );
+        position: Vector2(_visualXOffset, localGapBottom),
+      );  // ✅ FIX: Don't set anchor - use ClipComponent's default
       _bottomObstacle = bottomClip;
+      
+      // 🔍 DEBUG: Log ClipComponent details
+      safePrint('🔍 CLIP DEBUG: bottomClip position=(${bottomClip.position.x}, ${bottomClip.position.y})');
+      safePrint('🔍 CLIP DEBUG: bottomClip size=(${bottomClip.size.x}, ${bottomClip.size.y})');
+      safePrint('🔍 CLIP DEBUG: bottomClip anchor=${bottomClip.anchor}');
       final bottomSprite = SpriteComponent(
         sprite: trimmedSprite,
         size: Vector2(expandedWidth, bottomHeight),
@@ -116,7 +149,8 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       add(_bottomObstacle!);
       
       // ✅ REFACTOR v1.7.0: Add Flame collision hitboxes
-      await _addCollisionHitboxes(gapTop, gapBottom);
+      // Note: Pass world coordinates for reference (though method recalculates internally)
+      await _addCollisionHitboxes(worldGapTop, worldGapBottom);
       
       _isLoaded = true;
       
@@ -196,19 +230,26 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     final paint = Paint()..color = theme.colors.obstacle;
     // final accentPaint = Paint()..color = theme.colors.obstacleAccent;
     
-    final gapTop = position.y - gapSize / 2;
-    final gapBottom = position.y + gapSize / 2;
+    // Use local coordinates since anchor is now center
+    final localGapTop = -gapSize / 2;
+    final localGapBottom = gapSize / 2;
+    final localTopOfScreen = -position.y;
+    // Obstacles extend to ACTUAL SCREEN BOTTOM to cover visual ground terrain
+    final localBottomOfScreen = game.size.y - position.y;
+    
+    final topHeight = localGapTop - localTopOfScreen;
+    final bottomHeight = localBottomOfScreen - localGapBottom;
     
     // Create simple colored rectangles as fallback
     _topObstacle = RectangleComponent(
-      size: Vector2(GameConfig.obstacleWidth, gapTop),
-      position: Vector2(0, -position.y),
+      size: Vector2(GameConfig.obstacleWidth, topHeight),
+      position: Vector2(0, localTopOfScreen),
       paint: paint,
     );
     
     _bottomObstacle = RectangleComponent(
-      size: Vector2(GameConfig.obstacleWidth, game.size.y - gapBottom),
-      position: Vector2(0, gapBottom - position.y),
+      size: Vector2(GameConfig.obstacleWidth, bottomHeight),
+      position: Vector2(0, localGapBottom),
       paint: paint,
     );
     
@@ -216,7 +257,10 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     add(_bottomObstacle!);
     
     // ✅ REFACTOR v1.7.0: Add Flame collision hitboxes
-    await _addCollisionHitboxes(gapTop, gapBottom);
+    // Note: gapTop/gapBottom params not used, method calculates locally
+    final worldGapTop = position.y - gapSize / 2;
+    final worldGapBottom = position.y + gapSize / 2;
+    await _addCollisionHitboxes(worldGapTop, worldGapBottom);
     
     _isLoaded = true;
     
@@ -224,35 +268,40 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   }
   
   /// ✅ REFACTOR v1.7.0: Add Flame collision hitboxes for top and bottom pillars
-  /// ✅ FIX v3: Hitboxes use coordinates relative to obstacle CENTER (Anchor.center)
+  /// ✅ FIX v17: Hitboxes use coordinates relative to obstacle TOP-LEFT (Anchor.topLeft)
   Future<void> _addCollisionHitboxes(double gapTop, double gapBottom) async {
-    // Since obstacle anchor is now Anchor.center at position.y (gap center),
-    // child positions are relative to gap center
-    final localGapTop = -gapSize / 2;  // Gap top is half-gap above center
-    final localGapBottom = gapSize / 2;  // Gap bottom is half-gap below center
+    // Since obstacle anchor is now Anchor.topLeft at position.y (gap top),
+    // child positions are relative to gap top
+    final localGapTop = 0.0;  // Gap top is at position (anchor point)
+    final localGapBottom = gapSize;  // Gap bottom is gapSize below top
     
-    // Calculate screen bounds in local coords (relative to gap center)
-    final localTopOfScreen = -position.y;  // Top of screen in local coords
-    final localBottomOfScreen = game.size.y - position.y;  // Bottom of screen in local coords
+    // Calculate screen bounds in local coords (relative to gap top)
+    final localTopOfScreen = -position.y;  // Top of screen in local coords (negative = above)
+    // Hitboxes should match jet collision: ground at game.size.y - 50
+    // (But visual rendering extends to game.size.y to cover background terrain)
+    const groundCollisionOffset = 50.0;  // Jet collision boundary
+    final localBottomOfScreen = (game.size.y - groundCollisionOffset) - position.y;  // Collision bottom
     
     // Calculate pillar heights
     final topPillarHeight = localGapTop - localTopOfScreen;  // From top of screen to gap top
-    final bottomPillarHeight = localBottomOfScreen - localGapBottom;  // From gap bottom to bottom of screen
+    final bottomPillarHeight = localBottomOfScreen - localGapBottom;  // From gap bottom to collision bottom
     
     // Top pillar hitbox (from top of screen to gap top)
+    // ✅ FIX v17: With parent anchor=topLeft, child positions are relative to parent's top-left
     final topHitbox = RectangleHitbox(
       size: Vector2(_visualWidth, topPillarHeight),
-      position: Vector2(_visualXOffset, localTopOfScreen),  // Start from top of screen
-      anchor: Anchor.topLeft,
+      position: Vector2(_visualXOffset, localTopOfScreen),  // TOP-LEFT position
+      anchor: Anchor.topLeft,  // Explicit anchor
       collisionType: CollisionType.passive,
     );
     await add(topHitbox);
     
-    // Bottom pillar hitbox (from gap bottom to bottom of screen)
+    // Bottom pillar hitbox (from gap bottom to collision ground)
+    // ✅ FIX v17: With parent anchor=topLeft, child positions are relative to parent's top-left
     final bottomHitbox = RectangleHitbox(
       size: Vector2(_visualWidth, bottomPillarHeight),
-      position: Vector2(_visualXOffset, localGapBottom),  // Start from gap bottom
-      anchor: Anchor.topLeft,
+      position: Vector2(_visualXOffset, localGapBottom),  // TOP-LEFT position
+      anchor: Anchor.topLeft,  // Explicit anchor
       collisionType: CollisionType.passive,
     );
     await add(bottomHitbox);
@@ -263,8 +312,6 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       size: Vector2(_visualWidth, gapSize),  // Gap height
     );
     await add(_scoreZone!);
-    
-    safePrint('💎 Added Flame hitboxes: Top(w=$_visualWidth, h=$topPillarHeight at local y=$localTopOfScreen), Bottom(w=$_visualWidth, h=$bottomPillarHeight at local y=$localGapBottom), ScoreZone(h=$gapSize at local y=$localGapTop)');
   }
   
   /// Get the score zone (for Flame collision detection)

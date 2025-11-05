@@ -1,59 +1,53 @@
 {
   "zone": 3,
-  "zoneName": "Lava Mountains",
+  "zoneName": "Lava Peaks",
   "levels": [
     {
       "id": 21,
       "zone": 3,
-      "name": "Volcanic Ascent",
+      "name": "Ember Entry",
       "objective": {
-        "type": "beatBot",
-        "target": 12,
-        "description": "Race against Molten Devastator and win!"
+        "type": "passObstacles",
+        "target": 14,
+        "description": "Pass 14 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
-        "obstacleFrequency": 2.1
+        "speedMultiplier": 1.12,
+        "obstacleGap": 168,
+        "obstacleFrequency": 2.2
       },
       "reward": {
-        "coins": 60,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
-      "botBattle": {
-        "botName": "Molten Devastator",
-        "botJetSkin": "magma_fracture",
-        "skillLevel": 0.8,
-        "reactionTime": 0.25,
-        "mistakeRate": 0.1
-      }
+      "botBattle": null
     },
     {
       "id": 22,
       "zone": 3,
-      "name": "Lava Falls",
+      "name": "Lava Flows",
       "objective": {
-        "type": "passObstacles",
-        "target": 9,
-        "description": "Pass 9 obstacles to complete"
+        "type": "surviveTime",
+        "target": 20,
+        "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
-        "obstacleFrequency": 2.1
+        "speedMultiplier": 1.15,
+        "obstacleGap": 168,
+        "obstacleFrequency": 1.1
       },
       "reward": {
-        "coins": 60,
+        "coins": 40,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
       "botBattle": null
@@ -61,24 +55,24 @@
     {
       "id": 23,
       "zone": 3,
-      "name": "Molten River",
+      "name": "Magma Maze",
       "objective": {
         "type": "passObstacles",
-        "target": 10,
-        "description": "Pass 10 obstacles to complete"
+        "target": 15,
+        "description": "Pass 15 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
+        "speedMultiplier": 1.15,
+        "obstacleGap": 165,
         "obstacleFrequency": 2.1
       },
       "reward": {
-        "coins": 60,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
       "botBattle": null
@@ -86,24 +80,24 @@
     {
       "id": 24,
       "zone": 3,
-      "name": "Ember Valley",
+      "name": "Volcanic Path",
       "objective": {
         "type": "surviveTime",
-        "target": 20,
-        "description": "Survive for 20 seconds"
+        "target": 22,
+        "description": "Survive for 22 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
-        "obstacleFrequency": 2.1
+        "speedMultiplier": 1.15,
+        "obstacleGap": 165,
+        "obstacleFrequency": 1.0
       },
       "reward": {
-        "coins": 60,
+        "coins": 40,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
       "botBattle": null
@@ -111,49 +105,55 @@
     {
       "id": 25,
       "zone": 3,
-      "name": "Crater Crossing",
+      "name": "Stealth Fire Challenge",
       "objective": {
-        "type": "passObstacles",
-        "target": 10,
-        "description": "Pass 10 obstacles to complete"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Stealth Fire and win!"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
-        "obstacleFrequency": 2.1
+        "speedMultiplier": 1.18,
+        "obstacleGap": 163,
+        "obstacleFrequency": 2.0
       },
       "reward": {
         "coins": 60,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
-        "music": "storm_ace.mp3"
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
+        "music": "void_master.mp3"
       },
-      "botBattle": null
+      "botBattle": {
+        "botName": "Stealth Fire",
+        "botJetSkin": "stealth_fire",
+        "skillLevel": 0.75,
+        "reactionTime": 0.18,
+        "mistakeRate": 0.10
+      }
     },
     {
       "id": 26,
       "zone": 3,
-      "name": "Pyroclastic Peak",
+      "name": "Ash Cloud",
       "objective": {
         "type": "passObstacles",
-        "target": 11,
-        "description": "Pass 11 obstacles to complete"
+        "target": 16,
+        "description": "Pass 16 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
+        "speedMultiplier": 1.15,
+        "obstacleGap": 165,
         "obstacleFrequency": 2.1
       },
       "reward": {
-        "coins": 60,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
       "botBattle": null
@@ -161,24 +161,24 @@
     {
       "id": 27,
       "zone": 3,
-      "name": "Inferno Gauntlet",
+      "name": "Crater Run",
       "objective": {
         "type": "passObstacles",
-        "target": 11,
-        "description": "Pass 11 obstacles to complete"
+        "target": 17,
+        "description": "Pass 17 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
-        "obstacleFrequency": 2.1
+        "speedMultiplier": 1.15,
+        "obstacleGap": 163,
+        "obstacleFrequency": 2.0
       },
       "reward": {
-        "coins": 60,
+        "coins": 35,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
       "botBattle": null
@@ -186,55 +186,49 @@
     {
       "id": 28,
       "zone": 3,
-      "name": "Blaze Duel",
-      "objective": {
-        "type": "beatBot",
-        "target": 12,
-        "description": "Race against Blaze and win!"
-      },
-      "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
-        "obstacleFrequency": 2.1
-      },
-      "reward": {
-        "coins": 60,
-        "gems": 0
-      },
-      "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
-        "music": "storm_ace.mp3"
-      },
-      "botBattle": {
-        "botName": "Blaze",
-        "botJetSkin": "blaze",
-        "skillLevel": 0.85,
-        "reactionTime": 0.22,
-        "mistakeRate": 0.08
-      }
-    },
-    {
-      "id": 29,
-      "zone": 3,
-      "name": "Magma Chamber",
+      "name": "Inferno Corridor",
       "objective": {
         "type": "surviveTime",
         "target": 25,
         "description": "Survive for 25 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
-        "obstacleGap": 160,
-        "obstacleFrequency": 2.1
+        "speedMultiplier": 1.18,
+        "obstacleGap": 165,
+        "obstacleFrequency": 0.9
       },
       "reward": {
-        "coins": 60,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 29,
+      "zone": 3,
+      "name": "Molten Sprint",
+      "objective": {
+        "type": "passObstacles",
+        "target": 18,
+        "description": "Pass 18 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.18,
+        "obstacleGap": 163,
+        "obstacleFrequency": 2.0
+      },
+      "reward": {
+        "coins": 35,
+        "gems": 0
+      },
+      "theme": {
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
       "botBattle": null
@@ -242,28 +236,38 @@
     {
       "id": 30,
       "zone": 3,
-      "name": "Volcano Master",
+      "name": "Molten Devastator Challenge",
       "objective": {
-        "type": "passObstacles",
-        "target": 12,
-        "description": "Pass 12 obstacles to complete Zone 3!"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Molten Devastator to complete Zone 3!"
       },
       "difficulty": {
-        "speedMultiplier": 1.2,
+        "speedMultiplier": 1.20,
         "obstacleGap": 160,
-        "obstacleFrequency": 2.1
+        "obstacleFrequency": 1.9
       },
       "reward": {
         "coins": 60,
-        "gems": 20
+        "gems": 15
       },
       "theme": {
-        "background": "phase3_afternoon_complete.png",
-        "obstacles": "phase3_stone_pillars.png",
-        "music": "storm_ace.mp3"
+        "background": "lava_zone_bg.png",
+        "obstacles": "lava_obstacle.png",
+        "music": "void_master.mp3"
       },
-      "botBattle": null
+      "botBattle": {
+        "botName": "Molten Devastator",
+        "botJetSkin": "molten_devastator",
+        "skillLevel": 0.78,
+        "reactionTime": 0.165,
+        "mistakeRate": 0.09,
+        "firstAttemptOverride": {
+          "skillLevel": 0.98,
+          "reactionTime": 0.05,
+          "mistakeRate": 0.02
+        }
+      }
     }
   ]
 }
-

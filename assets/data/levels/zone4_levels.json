@@ -1,263 +1,273 @@
 {
   "zone": 4,
-  "zoneName": "Storm Valley",
+  "zoneName": "Lightning Storms",
   "levels": [
     {
       "id": 31,
       "zone": 4,
-      "name": "Thunder Entrance",
+      "name": "Thunder Entry",
       "objective": {
         "type": "passObstacles",
-        "target": 10,
-        "description": "Pass 10 obstacles to complete"
+        "target": 18,
+        "description": "Pass 18 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.18,
+        "obstacleGap": 163,
+        "obstacleFrequency": 2.0
       },
       "reward": {
-        "coins": 80,
+        "coins": 35,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 32,
       "zone": 4,
-      "name": "Lightning Corridor",
+      "name": "Electric Gauntlet",
       "objective": {
         "type": "surviveTime",
         "target": 22,
         "description": "Survive for 22 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.20,
+        "obstacleGap": 163,
+        "obstacleFrequency": 0.8
       },
       "reward": {
-        "coins": 80,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 33,
       "zone": 4,
-      "name": "Rain Rush",
+      "name": "Bolt Dodge",
       "objective": {
         "type": "passObstacles",
-        "target": 11,
-        "description": "Pass 11 obstacles to complete"
+        "target": 19,
+        "description": "Pass 19 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
+        "speedMultiplier": 1.20,
+        "obstacleGap": 160,
         "obstacleFrequency": 1.9
       },
       "reward": {
-        "coins": 80,
+        "coins": 35,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 34,
       "zone": 4,
-      "name": "Cyclone Chase",
+      "name": "Storm Circuit",
       "objective": {
-        "type": "passObstacles",
-        "target": 12,
-        "description": "Pass 12 obstacles to complete"
+        "type": "surviveTime",
+        "target": 20,
+        "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.20,
+        "obstacleGap": 160,
+        "obstacleFrequency": 0.9
       },
       "reward": {
-        "coins": 80,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 35,
       "zone": 4,
-      "name": "Storm Showdown",
+      "name": "Storm Chaser Challenge",
       "objective": {
         "type": "beatBot",
-        "target": 13,
-        "description": "Race against Storm and win!"
+        "target": 1,
+        "description": "Race against Storm Chaser and win!"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.22,
+        "obstacleGap": 158,
+        "obstacleFrequency": 1.8
       },
       "reward": {
-        "coins": 80,
+        "coins": 70,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "storm_ace.mp3"
       },
       "botBattle": {
-        "botName": "Storm",
-        "botJetSkin": "storm",
-        "skillLevel": 1.0,
-        "reactionTime": 0.18,
-        "mistakeRate": 0.05
+        "botName": "Storm Chaser",
+        "botJetSkin": "storm_chaser",
+        "skillLevel": 0.82,
+        "reactionTime": 0.15,
+        "mistakeRate": 0.08
       }
     },
     {
       "id": 36,
       "zone": 4,
-      "name": "Electric Avenue",
+      "name": "Tesla Dance",
       "objective": {
         "type": "passObstacles",
-        "target": 12,
-        "description": "Pass 12 obstacles to complete"
+        "target": 20,
+        "description": "Pass 20 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
+        "speedMultiplier": 1.20,
+        "obstacleGap": 160,
         "obstacleFrequency": 1.9
       },
       "reward": {
-        "coins": 80,
+        "coins": 40,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 37,
       "zone": 4,
-      "name": "Tempest Trial",
+      "name": "Lightning Tunnel",
       "objective": {
         "type": "surviveTime",
         "target": 25,
         "description": "Survive for 25 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.22,
+        "obstacleGap": 160,
+        "obstacleFrequency": 0.7
       },
       "reward": {
-        "coins": 80,
+        "coins": 50,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 38,
       "zone": 4,
-      "name": "Thunder Dome",
+      "name": "Voltage Valley",
       "objective": {
         "type": "passObstacles",
-        "target": 13,
-        "description": "Pass 13 obstacles to complete"
+        "target": 21,
+        "description": "Pass 21 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.22,
+        "obstacleGap": 158,
+        "obstacleFrequency": 1.8
       },
       "reward": {
-        "coins": 80,
+        "coins": 40,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 39,
       "zone": 4,
-      "name": "Hurricane Heights",
+      "name": "Thunder Sprint",
       "objective": {
         "type": "passObstacles",
-        "target": 13,
-        "description": "Pass 13 obstacles to complete"
+        "target": 22,
+        "description": "Pass 22 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.22,
+        "obstacleGap": 158,
+        "obstacleFrequency": 1.8
       },
       "reward": {
-        "coins": 80,
+        "coins": 40,
         "gems": 0
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "void_master.mp3"
       },
       "botBattle": null
     },
     {
       "id": 40,
       "zone": 4,
-      "name": "Storm Master",
+      "name": "Diamond Storm Challenge",
       "objective": {
-        "type": "surviveTime",
-        "target": 30,
-        "description": "Survive for 30 seconds to complete Zone 4!"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Diamond Storm to complete Zone 4!"
       },
       "difficulty": {
-        "speedMultiplier": 1.3,
-        "obstacleGap": 150,
-        "obstacleFrequency": 1.9
+        "speedMultiplier": 1.25,
+        "obstacleGap": 155,
+        "obstacleFrequency": 1.7
       },
       "reward": {
-        "coins": 80,
-        "gems": 25
+        "coins": 70,
+        "gems": 15
       },
       "theme": {
-        "background": "phase4_storm_complete.png",
-        "obstacles": "phase5_metal_lightning.png",
-        "music": "legend.mp3"
+        "background": "phase5_lightning_complete.png",
+        "obstacles": "tesla_tower.png",
+        "music": "storm_ace.mp3"
       },
-      "botBattle": null
+      "botBattle": {
+        "botName": "Diamond Storm",
+        "botJetSkin": "diamond_storm",
+        "skillLevel": 0.85,
+        "reactionTime": 0.135,
+        "mistakeRate": 0.07,
+        "firstAttemptOverride": {
+          "skillLevel": 0.98,
+          "reactionTime": 0.05,
+          "mistakeRate": 0.02
+        }
+      }
     }
   ]
 }
-

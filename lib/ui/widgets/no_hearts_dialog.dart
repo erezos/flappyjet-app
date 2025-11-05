@@ -515,66 +515,44 @@ class _NoHeartsDialogState extends State<NoHeartsDialog>
       return;
     }
     
-    // Show confirmation dialog
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Full Hearts Refill?'),
-        content: Text(
-          'Spend $price gems to fill all $heartsToRefill missing heart${heartsToRefill != 1 ? 's' : ''}?\n\nThis will give you $maxHearts hearts total.'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false), 
-            child: const Text('Cancel')
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true), 
-            child: const Text('Buy Hearts')
-          ),
-        ],
-      ),
-    );
-    
-    if (confirm == true) {
-      try {
-        // Spend gems
-        final success = await inventory.spendGems(price);
-        if (success) {
-          // Refill all hearts
-          await livesManager.refillToMax();
-          
-          if (mounted) {
-            // Close the dialog
-            Navigator.of(context).pop();
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('💖 All hearts refilled! (+$heartsToRefill heart${heartsToRefill != 1 ? 's' : ''})'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('💎 Not enough gems!'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
+    // Purchase immediately without confirmation (user already sees the cost on the button)
+    try {
+      // Spend gems
+      final success = await inventory.spendGems(price);
+      if (success) {
+        // Refill all hearts
+        await livesManager.refillToMax();
+        
         if (mounted) {
+          // Close the dialog
+          Navigator.of(context).pop();
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Purchase failed: $e'),
+              content: Text('💖 All hearts refilled! (+$heartsToRefill heart${heartsToRefill != 1 ? 's' : ''})'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('💎 Not enough gems!'),
               backgroundColor: Colors.red,
             ),
           );
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Purchase failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

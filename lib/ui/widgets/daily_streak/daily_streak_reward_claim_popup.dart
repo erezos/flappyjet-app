@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/systems/daily_streak_manager.dart';
+import '../../../game/core/jet_skins.dart';
 import '../popups/base_popup.dart';
 import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
@@ -132,6 +133,8 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
   }
 
   Widget _buildHeader(bool isSmallScreen, bool isVerySmallScreen) {
+    final headerIconSize = (isVerySmallScreen ? 28 : isSmallScreen ? 32 : 40).toDouble();
+    
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -149,10 +152,39 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
           topRight: Radius.circular(22),
         ),
       ),
-      child: Icon(
-        _getRewardIcon(),
-        size: isVerySmallScreen ? 28 : isSmallScreen ? 32 : 40,
-        color: Colors.white,
+      child: widget.reward.type == DailyStreakRewardType.jetSkin && widget.reward.jetSkinId != null
+          ? _buildJetSkinHeaderIcon(headerIconSize)
+          : Icon(
+              _getRewardIcon(),
+              size: headerIconSize,
+              color: Colors.white,
+            ),
+    );
+  }
+
+  /// Build jet skin icon for header with larger size
+  Widget _buildJetSkinHeaderIcon(double size) {
+    // Find the jet skin
+    final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
+      (skin) => skin.id == widget.reward.jetSkinId,
+      orElse: () => JetSkinCatalog.starterJet,
+    );
+
+    // Display the actual jet image (larger in header)
+    return Center(
+      child: Image.asset(
+        'assets/images/${jetSkin.assetPath}',
+        width: size * 1.5,  // Larger in header
+        height: size * 1.5,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to generic icon if image fails to load
+          return Icon(
+            Icons.flight,
+            size: size,
+            color: Colors.white,
+          );
+        },
       ),
     );
   }
@@ -209,9 +241,11 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Reward icon - Use Gem3DIcon for gems, regular icon for others
+            // Reward icon - Use Gem3DIcon for gems, jet image for jets, regular icon for others
             if (widget.reward.type == DailyStreakRewardType.gems)
               Gem3DIcon(size: iconSize)
+            else if (widget.reward.type == DailyStreakRewardType.jetSkin)
+              _buildJetSkinIcon(iconSize)
             else
               Container(
                 width: iconSize,
@@ -262,6 +296,91 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Build jet skin icon with actual jet image
+  Widget _buildJetSkinIcon(double size) {
+    if (widget.reward.jetSkinId == null) {
+      // Fallback to generic icon if no skin ID
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              _getRewardColor(),
+              _getRewardColor().withValues(alpha: 0.8),
+            ],
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.flight,
+          color: Colors.white,
+          size: size * 0.6,
+        ),
+      );
+    }
+
+    // Find the jet skin
+    final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
+      (skin) => skin.id == widget.reward.jetSkinId,
+      orElse: () => JetSkinCatalog.starterJet,
+    );
+
+    // Display the actual jet image
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(size / 6),
+        boxShadow: [
+          BoxShadow(
+            color: _getRewardColor().withValues(alpha: 0.4),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(size / 6),
+        child: Image.asset(
+          'assets/images/${jetSkin.assetPath}',
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            // Fallback to generic icon if image fails to load
+            return Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _getRewardColor(),
+                    _getRewardColor().withValues(alpha: 0.8),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.flight,
+                color: Colors.white,
+                size: size * 0.6,
+              ),
+            );
+          },
         ),
       ),
     );

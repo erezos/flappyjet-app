@@ -41,7 +41,7 @@ This document defines the JSON schema for FlappyJet Story Mode levels.
 
 ## **Bot Battle Structure**
 
-For levels with bot battles (every 7th level), add:
+For levels with bot battles (every 5th level), add:
 
 ```json
 "botBattle": {
@@ -49,9 +49,31 @@ For levels with bot battles (every 7th level), add:
   "botJetSkin": "green_lightning", // Jet skin ID
   "skillLevel": 0.6,             // 0.6-1.5 (60%-150% of perfect play)
   "reactionTime": 0.4,           // 0.1-0.5 seconds delay
-  "mistakeRate": 0.15            // 0.02-0.20 (2%-20% chance of mistakes)
+  "mistakeRate": 0.15,           // 0.02-0.20 (2%-20% chance of mistakes)
+  "firstAttemptOverride": {      // Optional: Make boss harder on first attempt
+    "skillLevel": 0.98,          // Near-perfect skill
+    "reactionTime": 0.05,        // Superhuman reaction (50ms)
+    "mistakeRate": 0.02          // Almost flawless (2% mistakes)
+  }
 }
 ```
+
+### **First Attempt Override**
+
+The `firstAttemptOverride` field is optional and creates memorable boss encounters:
+- Used for zone finale levels (10, 20, 30, 50)
+- Makes the boss unbeatable on first attempt (0-5% win rate)
+- After first attempt, normal parameters are used
+- Creates narrative impact: "That boss destroyed me! Time for a rematch!"
+
+**Example: Level 10 (Green Lightning)**
+- **First attempt:** skill=0.98, reaction=0.05s, mistakes=2% → Player cannot win
+- **All subsequent attempts:** skill=0.55, reaction=0.25s, mistakes=18% → 60% win rate
+
+**Benefits:**
+- Teaches players that bosses are real threats
+- Victory feels earned after defeat
+- Creates memorable moments players will share
 
 ---
 

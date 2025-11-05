@@ -7,6 +7,7 @@ import '../core/game_config.dart';
 import '../core/game_themes.dart';
 import '../core/jet_skins.dart';
 import '../../models/level_data_schema.dart';
+import '../flappy_game.dart'; // 🔥 Import for first-attempt logic
 
 /// FlappyWorld - Flame World component containing all game objects
 /// 
@@ -50,7 +51,13 @@ class FlappyWorld extends World {
     safePrint('🌍 FlappyWorld: Loading world components...');
     
     // 1. Create background (renders first)
-    background = ParallaxBackground();
+    // 🎯 STORY MODE: Use level's background asset if in story mode
+    final backgroundAsset = storyModeLevel != null 
+        ? 'backgrounds/${storyModeLevel!.theme.background}'
+        : null;
+    background = ParallaxBackground(
+      storyModeBackgroundAsset: backgroundAsset,
+    );
     background.priority = -100; // Render behind everything
     await add(background);
     await background.loaded; // ✅ FLAME BEST PRACTICE: Await loaded after add
@@ -79,14 +86,45 @@ class FlappyWorld extends World {
     if (isStoryMode && storyModeLevel?.objective.type == ObjectiveType.beatBot) {
       final botBattle = storyModeLevel!.botBattle;
       if (botBattle != null) {
-        // Calculate difficulty from bot parameters
-        final difficulty = ((botBattle.skillLevel - 0.6) / 0.9).clamp(0.0, 1.0);
+        // 🔥 Check if this is the first attempt and if there's an override
+        final flappyGame = parent as FlappyGame;
+        final levelSystemManager = flappyGame.levelSystemManager;
+        final isFirstAttempt = levelSystemManager.isFirstAttempt(storyModeLevel!.id);
         
-        safePrint('🌍 FlappyWorld: Creating bot opponent: ${botBattle.botName} (difficulty: $difficulty)');
+        // Determine which bot parameters to use
+        double botSkillLevel;
+        double botReactionTime;
+        double botMistakeRate;
+        
+        if (isFirstAttempt && botBattle.firstAttemptOverride != null) {
+          // 🔥 UNBEATABLE MODE: Use override parameters
+          final override = botBattle.firstAttemptOverride!;
+          botSkillLevel = override.skillLevel;
+          botReactionTime = override.reactionTime;
+          botMistakeRate = override.mistakeRate;
+          
+          safePrint('🔥 FIRST ATTEMPT: ${botBattle.botName} is UNBEATABLE!');
+          safePrint('🔥 Override stats: skill=$botSkillLevel, reaction=$botReactionTime, mistakes=$botMistakeRate');
+        } else {
+          // Normal mode: Use standard bot parameters
+          botSkillLevel = botBattle.skillLevel;
+          botReactionTime = botBattle.reactionTime;
+          botMistakeRate = botBattle.mistakeRate;
+          
+          if (isFirstAttempt) {
+            safePrint('🌍 FlappyWorld: Creating bot opponent (first attempt, no override)');
+          } else {
+            safePrint('🌍 FlappyWorld: Creating bot opponent (subsequent attempt)');
+          }
+        }
+        
+        safePrint('🌍 FlappyWorld: Bot: ${botBattle.botName} - skill=$botSkillLevel, reaction=$botReactionTime, mistakes=$botMistakeRate');
         
         bot = BotJetPlayer(
           skinId: botBattle.botJetSkin,
-          difficulty: difficulty,
+          skillLevel: botSkillLevel,
+          reactionTime: botReactionTime,
+          mistakeRate: botMistakeRate,
         );
         bot!.priority = 9; // Render below player
         await add(bot!);

@@ -49,27 +49,43 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
   
   // Removed legacy fire state manager (temporary)
   
-  JetPlayer(Vector2 position, this._environmentTheme, {JetSkin? jetSkin}) 
+  JetPlayer(Vector2 position, this._environmentTheme, {JetSkin? jetSkin})
     : _currentSkin = jetSkin ?? JetSkinCatalog.starterJet,
-      super(position: position, size: Vector2.all(GameConfig.jetSize)) {
-    anchor = Anchor.center;
-  }
+      super(
+        position: position,
+        size: Vector2.all(GameConfig.jetSize),
+        anchor: Anchor.center,
+      );
   
   @override
   Future<void> onLoad() async {
     _startY = position.y;
-    anchor = Anchor.center; // ✅ Proper anchor for collision detection
     
     // Fire system disabled temporarily
     await _loadJetSprite();
     await _loadDamageOverlays(); // Load universal damage effects
     
+    // ⚠️ NOTE: Anchor is set in super constructor to Anchor.center
+    // This ensures sprite rendering is properly centered from the start
+    
     // ✅ REFACTOR v1.7.0: Add Flame CircleHitbox for collision detection
-    // ✅ USER REQUEST: Hitbox reduced to 40% diameter for pixel-perfect collision accuracy
-    // Previously 70% (too large, early collisions), now 40% (jet must actually hit obstacle)
-    final hitboxRadius = size.x * 0.20; // 20% radius = 40% diameter (tight, accurate hitbox)
+    // ⚠️ FIX v19: Hitbox MUST be added AFTER sprite loads because sprite loading changes size!
+    // The sprite loading changes size from 84x84 to e.g. 120x84 based on aspect ratio
+    // If we add hitbox before sprite loads, it uses the old size and gets mispositioned!
+    // ⚠️ FIX v24: Increase hitbox to 42% radius (84% diameter) to match visual extent
+    // Previously 28% radius was too small, causing 18.5px gap between hitbox and ground collision
+    // ⚠️ FIX v26: Child position must be at size/2 to center on parent with anchor=center!
+    // Local coordinate system has (0,0) at top-left, not at anchor point!
+    final smallerDimension = size.x < size.y ? size.x : size.y;
+    final hitboxRadius = smallerDimension * 0.42; // 42% radius = 84% diameter (matches visual extent)
+    
+    // Child components are positioned in local coordinates (0,0 = top-left of bounds)
+    // To center on parent, position must be at size/2 when parent has anchor=center
+    final centerPosition = size / 2;
+    
     await add(CircleHitbox(
       radius: hitboxRadius,
+      position: centerPosition,  // Center of component bounds
       anchor: Anchor.center,
       collisionType: CollisionType.active, // Jet actively checks for collisions
     ));
@@ -130,6 +146,7 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
         sprite = await Sprite.load(p);
         _usingImageAssets = true;
         safePrint('🛒 Loaded purchased skin: ${_currentSkin.displayName} (path: $p, price: \$${_currentSkin.price})');
+        safePrint('🔍 SPRITE DEBUG: Before size change - size=${size.x}x${size.y}, anchor=$anchor');
         // Preserve aspect ratio of source sprite by using GameConfig.jetSize as target HEIGHT
         try {
           // If skin specifies explicit render size, use it
@@ -141,9 +158,18 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
               final targetHeight = GameConfig.jetSize;
               final targetWidth = (src.x / src.y) * targetHeight;
               size = Vector2(targetWidth, targetHeight);
+              safePrint('🔍 SPRITE DEBUG: After size change - size=${size.x}x${size.y}, src=${src.x}x${src.y}');
             }
           }
         } catch (_) {}
+        
+        // ⚠️ FIX v25: Force anchor update AFTER sprite loads to ensure sprite renders centered!
+        // SpriteComponent's internal rendering cache needs to be refreshed when sprite changes
+        final currentAnchor = anchor;
+        anchor = Anchor.topLeft;  // Temporarily change
+        anchor = currentAnchor;   // Change back to force update
+        safePrint('🔍 SPRITE DEBUG: Forced anchor refresh to $anchor');
+        
         return;
       } catch (e) {
         safePrint('⚠️ Failed to load sprite from "$p": $e');
@@ -652,7 +678,19 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
       return;
     }
     
+    // 🔍 COLLISION DEBUG: Log detailed collision information
     safePrint('💥 Flame collision detected: Jet collided with ${other.runtimeType}');
+    final jetSize = size.x / 2;  // Half size for bounds calculation
+    safePrint('🔍 JET COLLISION: Jet position=(${position.x}, ${position.y}), halfSize=$jetSize');
+    safePrint('🔍 JET COLLISION: Jet bounds: left=${position.x - jetSize}, right=${position.x + jetSize}, top=${position.y - jetSize}, bottom=${position.y + jetSize}');
+    if (other.runtimeType.toString() == 'DynamicObstacle') {
+      safePrint('🔍 OBSTACLE COLLISION: Obstacle position=(${other.position.x}, ${other.position.y})');
+      safePrint('🔍 OBSTACLE COLLISION: Obstacle anchor=${other.anchor}');
+    }
+    safePrint('🔍 COLLISION POINTS: ${intersectionPoints.length} intersection points:');
+    for (final point in intersectionPoints) {
+      safePrint('  - Intersection at world coords: (${point.x}, ${point.y})');
+    }
     
     // Handle collision through game (maintains existing game over logic)
     if (game is FlappyGame) {

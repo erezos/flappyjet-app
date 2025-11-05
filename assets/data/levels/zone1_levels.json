@@ -21,41 +21,42 @@
         "gems": 0
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "legend.mp3"
       },
       "botBattle": null
     },
     {
       "id": 2,
       "zone": 1,
-      "name": "Island Hopper",
+      "name": "Palm Paradise Path",
       "objective": {
-        "type": "passObstacles",
-        "target": 4,
-        "description": "Pass 4 obstacles to complete"
+        "type": "surviveTime",
+        "target": 25,
+        "description": "Survive for 25 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.0,
-        "obstacleGap": 180,
-        "obstacleFrequency": 2.5
+        "speedMultiplier": 0.9,
+        "obstacleGap": 380,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
-        "coins": 20,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "legend.mp3"
       },
       "botBattle": null
     },
     {
       "id": 3,
       "zone": 1,
-      "name": "Palm Paradise",
+      "name": "Island Hopping",
       "objective": {
         "type": "passObstacles",
         "target": 5,
@@ -63,17 +64,17 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 180,
-        "obstacleFrequency": 2.5
+        "obstacleGap": 185,
+        "obstacleFrequency": 2.8
       },
       "reward": {
         "coins": 20,
         "gems": 0
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "legend.mp3"
       },
       "botBattle": null
     },
@@ -83,83 +84,33 @@
       "name": "Wave Rider",
       "objective": {
         "type": "surviveTime",
-        "target": 15,
-        "description": "Survive for 15 seconds"
+        "target": 18,
+        "description": "Survive for 18 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 180,
-        "obstacleFrequency": 2.5
+        "obstacleGap": 185,
+        "obstacleFrequency": 1.5
       },
       "reward": {
-        "coins": 20,
+        "coins": 25,
         "gems": 0
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "legend.mp3"
       },
       "botBattle": null
     },
     {
       "id": 5,
       "zone": 1,
-      "name": "Coconut Challenge",
-      "objective": {
-        "type": "passObstacles",
-        "target": 6,
-        "description": "Pass 6 obstacles to complete"
-      },
-      "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 175,
-        "obstacleFrequency": 2.4
-      },
-      "reward": {
-        "coins": 20,
-        "gems": 0
-      },
-      "theme": {
-        "background": "phase1_dawn_complete.png",
-        "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
-      },
-      "botBattle": null
-    },
-    {
-      "id": 6,
-      "zone": 1,
-      "name": "Beach Breeze",
-      "objective": {
-        "type": "passObstacles",
-        "target": 7,
-        "description": "Pass 7 obstacles to complete"
-      },
-      "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 175,
-        "obstacleFrequency": 2.4
-      },
-      "reward": {
-        "coins": 20,
-        "gems": 0
-      },
-      "theme": {
-        "background": "phase1_dawn_complete.png",
-        "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
-      },
-      "botBattle": null
-    },
-    {
-      "id": 7,
-      "zone": 1,
-      "name": "Beach Buddy Showdown",
+      "name": "Police Patrol Showdown",
       "objective": {
         "type": "beatBot",
         "target": 1,
-        "description": "Beat Beach Buddy in a race!"
+        "description": "Race against Police Patrol and win!"
       },
       "difficulty": {
         "speedMultiplier": 1.05,
@@ -171,22 +122,72 @@
         "gems": 0
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "storm_ace.mp3"
       },
       "botBattle": {
-        "botName": "Beach Buddy",
-        "botJetSkin": "green_lightning",
+        "botName": "Police Patrol",
+        "botJetSkin": "police_patrol",
         "skillLevel": 0.6,
         "reactionTime": 0.4,
         "mistakeRate": 0.15
       }
     },
     {
+      "id": 6,
+      "zone": 1,
+      "name": "Beach Breeze",
+      "objective": {
+        "type": "passObstacles",
+        "target": 7,
+        "description": "Pass 7 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.0,
+        "obstacleGap": 180,
+        "obstacleFrequency": 2.6
+      },
+      "reward": {
+        "coins": 20,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase2_sunny_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "legend.mp3"
+      },
+      "botBattle": null
+    },
+    {
+      "id": 7,
+      "zone": 1,
+      "name": "Tropical Flow",
+      "objective": {
+        "type": "surviveTime",
+        "target": 20,
+        "description": "Survive for 20 seconds"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.05,
+        "obstacleGap": 180,
+        "obstacleFrequency": 1.4
+      },
+      "reward": {
+        "coins": 30,
+        "gems": 0
+      },
+      "theme": {
+        "background": "phase2_sunny_complete.png",
+        "obstacles": "phase1_wooden_pipes.png",
+        "music": "legend.mp3"
+      },
+      "botBattle": null
+    },
+    {
       "id": 8,
       "zone": 1,
-      "name": "Tropical Storm",
+      "name": "Coconut Run",
       "objective": {
         "type": "passObstacles",
         "target": 8,
@@ -195,23 +196,23 @@
       "difficulty": {
         "speedMultiplier": 1.05,
         "obstacleGap": 175,
-        "obstacleFrequency": 2.4
+        "obstacleFrequency": 2.5
       },
       "reward": {
         "coins": 20,
         "gems": 0
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "legend.mp3"
       },
       "botBattle": null
     },
     {
       "id": 9,
       "zone": 1,
-      "name": "Sunset Flight",
+      "name": "Sunset Sprint",
       "objective": {
         "type": "passObstacles",
         "target": 9,
@@ -227,20 +228,20 @@
         "gems": 0
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "legend.mp3"
       },
       "botBattle": null
     },
     {
       "id": 10,
       "zone": 1,
-      "name": "Island Master",
+      "name": "Green Lightning Challenge",
       "objective": {
-        "type": "passObstacles",
-        "target": 10,
-        "description": "Pass 10 obstacles to complete Zone 1!"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Green Lightning to complete Zone 1!"
       },
       "difficulty": {
         "speedMultiplier": 1.1,
@@ -248,15 +249,26 @@
         "obstacleFrequency": 2.3
       },
       "reward": {
-        "coins": 20,
+        "coins": 40,
         "gems": 10
       },
       "theme": {
-        "background": "phase1_dawn_complete.png",
+        "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
-        "music": "sky_rookie.mp3"
+        "music": "void_master.mp3"
       },
-      "botBattle": null
+      "botBattle": {
+        "botName": "Green Lightning",
+        "botJetSkin": "green_lightning",
+        "skillLevel": 0.55,
+        "reactionTime": 0.25,
+        "mistakeRate": 0.18,
+        "firstAttemptOverride": {
+          "skillLevel": 0.98,
+          "reactionTime": 0.05,
+          "mistakeRate": 0.02
+        }
+      }
     }
   ]
 }

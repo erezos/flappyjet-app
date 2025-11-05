@@ -28,6 +28,9 @@ class LevelSystemManager extends ChangeNotifier {
   int _currentZone = 1;
   Set<int> _completedZones = {};
   
+  // 🔥 First-attempt tracking for boss battles
+  Set<int> _firstAttemptCompleted = {}; // Track which levels have been attempted at least once
+  
   // Statistics
   int _totalCoinsEarned = 0;
   int _totalGemsEarned = 0;
@@ -44,6 +47,7 @@ class LevelSystemManager extends ChangeNotifier {
   static const String _keyTotalGems = 'story_mode_total_gems';
   static const String _keyBotWins = 'story_mode_bot_wins';
   static const String _keyBotLosses = 'story_mode_bot_losses';
+  static const String _keyFirstAttempts = 'story_mode_first_attempts'; // 🔥 NEW
 
   // Getters
   bool get isInitialized => _isInitialized;
@@ -59,6 +63,23 @@ class LevelSystemManager extends ChangeNotifier {
   int get botBattlesWon => _botBattlesWon;
   int get botBattlesLost => _botBattlesLost;
   int get totalLevelsCompleted => _completedLevels.length;
+
+  /// 🔥 Check if this is the player's first attempt at a level
+  bool isFirstAttempt(int levelId) {
+    return !_firstAttemptCompleted.contains(levelId);
+  }
+
+  /// 🔥 Mark a level as attempted (called when level starts)
+  Future<void> markLevelAttempted(int levelId) async {
+    if (_firstAttemptCompleted.contains(levelId)) {
+      return; // Already marked
+    }
+    
+    _firstAttemptCompleted.add(levelId);
+    await _saveProgress();
+    
+    safePrint('🔥 Level $levelId: First attempt marked');
+  }
 
   /// Initialize the level system
   Future<void> initialize() async {
@@ -187,6 +208,16 @@ class LevelSystemManager extends ChangeNotifier {
             .toSet();
       }
       
+      // 🔥 Load first attempts
+      final firstAttemptsStr = prefs.getString(_keyFirstAttempts) ?? '';
+      if (firstAttemptsStr.isNotEmpty) {
+        _firstAttemptCompleted = firstAttemptsStr
+            .split(',')
+            .map((s) => int.tryParse(s))
+            .whereType<int>()
+            .toSet();
+      }
+      
       safePrint('📖 Loaded progress: Level $_currentLevel, ${_completedLevels.length} completed');
     } catch (e) {
       safePrint('❌ Error loading progress: $e');
@@ -212,6 +243,9 @@ class LevelSystemManager extends ChangeNotifier {
       
       // Save completed zones
       await prefs.setString(_keyCompletedZones, _completedZones.join(','));
+      
+      // 🔥 Save first attempts
+      await prefs.setString(_keyFirstAttempts, _firstAttemptCompleted.join(','));
       
       safePrint('📖 💾 Progress saved');
     } catch (e) {
@@ -488,6 +522,7 @@ class LevelSystemManager extends ChangeNotifier {
     _totalGemsEarned = 0;
     _botBattlesWon = 0;
     _botBattlesLost = 0;
+    _firstAttemptCompleted.clear(); // 🔥 Clear first attempts
     
     await _saveProgress();
     notifyListeners();

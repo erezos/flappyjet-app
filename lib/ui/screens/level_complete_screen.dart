@@ -8,6 +8,7 @@ import 'package:confetti/confetti.dart';
 import '../../models/level_data_schema.dart';
 import '../../game/systems/level_reward_manager.dart';
 import '../../game/systems/level_system_manager.dart';
+import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import 'world_map_screen.dart';
 import 'level_objective_popup.dart';
@@ -15,21 +16,17 @@ import 'zone_completion_celebration_screen.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
 
-/// Map bot theme names to actual jet sprite files
-String _getBotJetSpritePath(String botJetSkin) {
-  // Direct mapping - bot skin names now match actual jet file names
-  const botToSpriteMap = {
-    'green_lightning': 'green_lightning',
-    'desert_storm': 'desert_storm',
-    'magma_fracture': 'magma_fracture',
-    'blaze': 'blaze',
-    'storm': 'storm',
-    'stealth_dragon': 'stealth_dragon',
-    'stealth_bomber': 'stealth_bomber',
-  };
+/// Get bot jet sprite path from JetSkinCatalog
+String _getBotJetSpritePath(String botJetSkinId) {
+  // Look up the jet skin in the catalog
+  final allSkins = JetSkinCatalog.getAllSkins();
+  final jetSkin = allSkins.firstWhere(
+    (skin) => skin.id == botJetSkinId,
+    orElse: () => JetSkinCatalog.starterJet, // Fallback to starter jet
+  );
   
-  final spriteName = botToSpriteMap[botJetSkin] ?? botJetSkin;  // Use skin name directly if not in map
-  return 'assets/images/jets/$spriteName.png';
+  // Return full asset path
+  return 'assets/images/${jetSkin.assetPath}';
 }
 
 class LevelCompleteScreen extends StatefulWidget {
@@ -51,11 +48,14 @@ class LevelCompleteScreen extends StatefulWidget {
 }
 
 class _LevelCompleteScreenState extends State<LevelCompleteScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late ConfettiController _confettiController;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  
+  // Smoke animation controller for VS battles
+  late AnimationController _smokeController;
 
   final LevelRewardManager _rewardManager = LevelRewardManager();
   final LevelSystemManager _levelSystemManager = LevelSystemManager();
@@ -76,7 +76,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       duration: const Duration(seconds: 3),
     );
 
-    // Setup animations
+    // Setup main animations
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -95,6 +95,12 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
         curve: Curves.easeIn,
       ),
     );
+    
+    // Setup smoke animation (repeating for VS battles)
+    _smokeController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
 
     // Start animations
     _animationController.forward();
@@ -132,6 +138,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
   void dispose() {
     _confettiController.dispose();
     _animationController.dispose();
+    _smokeController.dispose();
     super.dispose();
   }
 
@@ -179,8 +186,8 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
   Widget _buildContent() {
     return Container(
-      margin: const EdgeInsets.all(24),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -206,12 +213,12 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.amber,
-                fontSize: 32,
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Level info
             Text(
@@ -219,7 +226,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -231,136 +238,105 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               const SizedBox(height: 12),
             ],
 
-            // Stats
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+            // Stats - No container, just the rows
+            _buildStatRow(
+              'Objective',
+              '✅ ${widget.objectiveAchieved}/${widget.level.objective.target}',
             ),
-            child: Column(
-              children: [
-                _buildStatRow(
-                  'Objective',
-                  '✅ ${widget.objectiveAchieved}/${widget.level.objective.target}',
-                ),
-                const SizedBox(height: 8),
-                _buildStatRow(
-                  'Time',
-                  '${widget.timeTaken}s',
-                ),
-                const SizedBox(height: 8),
-                _buildStatRow(
-                  'Continues Used',
-                  '${widget.continuesUsed}',
-                ),
-              ],
+            const SizedBox(height: 6),
+            _buildStatRow(
+              'Time',
+              '${widget.timeTaken}s',
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-          // Rewards
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: (_isReplay ? Colors.lightBlue : Colors.amber).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
+            // Rewards - No container, just content
+            Text(
+              _isReplay ? '🔄 REPLAY REWARD' : 'REWARDS EARNED',
+              style: TextStyle(
                 color: _isReplay ? Colors.lightBlue : Colors.amber,
-                width: 2,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
               ),
             ),
-            child: Column(
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Coins
+                const Icon(Icons.monetization_on,
+                    color: Colors.amber, size: 24),
+                const SizedBox(width: 6),
                 Text(
-                  _isReplay ? '🔄 REPLAY REWARD' : 'REWARDS EARNED',
-                  style: TextStyle(
-                    color: _isReplay ? Colors.lightBlue : Colors.amber,
-                    fontSize: 16,
+                  _isReplay ? '+20' : '+${widget.level.reward.coins}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Coins
-                    const Icon(Icons.monetization_on,
-                        color: Colors.amber, size: 32),
-                    const SizedBox(width: 8),
-                    Text(
-                      _isReplay ? '+20' : '+${widget.level.reward.coins}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // Gems (only for first completion)
-                    if (!_isReplay && widget.level.reward.gems > 0) ...[
-                      const SizedBox(width: 32),
-                      Image.asset(
-                        'assets/images/icons/gem_icon.png',
-                        width: 32,
-                        height: 32,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '+${widget.level.reward.gems}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                if (_isReplay) ...[
-                  const SizedBox(height: 8),
+                // Gems (only for first completion)
+                if (!_isReplay && widget.level.reward.gems > 0) ...[
+                  const SizedBox(width: 24),
+                  Image.asset(
+                    'assets/images/icons/gem_icon.png',
+                    width: 24,
+                    height: 24,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
-                    'Original reward already earned',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
+                    '+${widget.level.reward.gems}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // Buttons
-          Column(
-            children: [
-              // ✅ FIX: Show "Next Level" button for replays too if next level exists
-              if (_hasNextLevel()) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ModernGameButton(
-                    label: 'NEXT LEVEL',
-                    onPressed: _onNextLevel,
-                    height: 56,
-                    style: ModernButtonStyle.success, // Green for success
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              // Back to Map button
-              SizedBox(
-                width: double.infinity,
-                child: ModernGameButton(
-                  label: 'BACK TO MAP',
-                  onPressed: _onBackToMap,
-                  height: 56,
-                  style: ModernButtonStyle.secondary, // Secondary blue
+            if (_isReplay) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Original reward already earned',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+
+            // Buttons
+            Column(
+              children: [
+                // ✅ FIX: Show "Next Level" button for replays too if next level exists
+                if (_hasNextLevel()) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ModernGameButton(
+                      label: 'NEXT LEVEL',
+                      onPressed: _onNextLevel,
+                      height: 50,
+                      style: ModernButtonStyle.success, // Green for success
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                // Back to Map button
+                SizedBox(
+                  width: double.infinity,
+                  child: ModernGameButton(
+                    label: 'BACK TO MAP',
+                    onPressed: _onBackToMap,
+                    height: 50,
+                    style: ModernButtonStyle.secondary, // Secondary blue
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -375,14 +351,14 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           label,
           style: const TextStyle(
             color: Colors.white70,
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
         Text(
           value,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -390,234 +366,311 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     );
   }
 
-  /// Build modern crashed rival jet visual for VS battles
+  /// Build modern crashed rival jet visual for VS battles with ANIMATED smoke
   Widget _buildCrashedRivalJet() {
     final bot = widget.level.botBattle!;
     final jetPath = _getBotJetSpritePath(bot.botJetSkin);
     
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.red.shade900.withValues(alpha: 0.3),
-            Colors.orange.shade900.withValues(alpha: 0.2),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.red.withValues(alpha: 0.5),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        children: [
-          // "DEFEATED!" badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF6B6B), Color(0xFFEE5A24)],
+    return Column(
+      children: [
+        // "VICTORY!" badge with gold/green colors
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD700), Color(0xFFFFA500)], // Gold gradient
+            ),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(
+              color: Colors.amber.shade200,
+              width: 3,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.amber.withValues(alpha: 0.6),
+                blurRadius: 20,
+                spreadRadius: 5,
               ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withValues(alpha: 0.5),
-                  blurRadius: 12,
-                  spreadRadius: 2,
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Text(
+            '🏆 VICTORY! 🏆',
+            style: TextStyle(
+              color: Color(0xFF1A237E), // Dark blue for contrast on gold
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.5,
+              shadows: [
+                Shadow(
+                  color: Colors.white54,
+                  blurRadius: 2,
                 ),
               ],
             ),
-            child: const Text(
-              '💥 DEFEATED! 💥',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
-            ),
           ),
-          const SizedBox(height: 16),
-          
-          // Crashed jet with smoke effects
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              // Smoke effect (background circles)
-              ..._buildSmokeEffects(),
-              
-              // Tilted crashed jet
-              Transform.rotate(
-                angle: -0.3, // Tilted crash angle
-                child: Container(
-                  padding: const EdgeInsets.all(12),
+        ),
+        
+        const SizedBox(height: 20),
+        
+        // Crashed jet with ANIMATED smoke/explosion effects
+        AnimatedBuilder(
+          animation: _smokeController,
+          builder: (context, child) {
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // Large background explosion glow (pulsing)
+                Container(
+                  width: 160 + (_smokeController.value * 20),
+                  height: 160 + (_smokeController.value * 20),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Colors.black.withValues(alpha: 0.4),
+                        Colors.orange.withValues(alpha: 0.3 + (_smokeController.value * 0.2)),
+                        Colors.red.withValues(alpha: 0.2 + (_smokeController.value * 0.15)),
+                        Colors.grey.withValues(alpha: 0.15),
                         Colors.transparent,
                       ],
+                      stops: const [0.0, 0.3, 0.6, 1.0],
                     ),
                   ),
-                  child: Image.asset(
-                    jetPath,
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey.shade700, // Darkened crashed jet
-                    colorBlendMode: BlendMode.modulate,
+                ),
+                
+                // Animated smoke puff 1 (top-left, rising and fading)
+                Positioned(
+                  top: 5 - (_smokeController.value * 15),
+                  left: 15 + (_smokeController.value * 10),
+                  child: Opacity(
+                    opacity: 0.8 - (_smokeController.value * 0.3),
+                    child: Container(
+                      width: 35 + (_smokeController.value * 10),
+                      height: 35 + (_smokeController.value * 10),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.grey.shade700.withValues(alpha: 0.6),
+                            Colors.grey.shade600.withValues(alpha: 0.3),
+                            Colors.transparent,
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              
-              // Fire/explosion particles
-              ..._buildExplosionParticles(),
-            ],
+                
+                // Animated smoke puff 2 (top-right, rising differently)
+                Positioned(
+                  top: 10 - (_smokeController.value * 20),
+                  right: 20 - (_smokeController.value * 5),
+                  child: Opacity(
+                    opacity: 0.7 - (_smokeController.value * 0.4),
+                    child: Container(
+                      width: 30 + (_smokeController.value * 12),
+                      height: 30 + (_smokeController.value * 12),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.grey.shade800.withValues(alpha: 0.5),
+                            Colors.grey.shade700.withValues(alpha: 0.2),
+                            Colors.transparent,
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 15,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Animated smoke puff 3 (middle-left, drifting)
+                Positioned(
+                  top: 40 - (_smokeController.value * 10),
+                  left: 25 - (_smokeController.value * 8),
+                  child: Opacity(
+                    opacity: 0.6 - (_smokeController.value * 0.3),
+                    child: Container(
+                      width: 25 + (_smokeController.value * 8),
+                      height: 25 + (_smokeController.value * 8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.grey.shade600.withValues(alpha: 0.7),
+                            Colors.grey.shade500.withValues(alpha: 0.3),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Animated fire sparks (flickering orange/red)
+                Positioned(
+                  top: 35 + (_smokeController.value * 5),
+                  left: 40,
+                  child: Opacity(
+                    opacity: 0.6 + (_smokeController.value * 0.4),
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.orange,
+                            Colors.deepOrange.withValues(alpha: 0.8),
+                            Colors.transparent,
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange.withValues(alpha: 0.8),
+                            blurRadius: 15,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Animated fire spark 2
+                Positioned(
+                  top: 45 + (_smokeController.value * 3),
+                  right: 35,
+                  child: Opacity(
+                    opacity: 0.7 + (_smokeController.value * 0.3),
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.red,
+                            Colors.deepOrange.withValues(alpha: 0.7),
+                            Colors.transparent,
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withValues(alpha: 0.9),
+                            blurRadius: 12,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Small flickering ember 3
+                Positioned(
+                  top: 30 - (_smokeController.value * 8),
+                  left: 55,
+                  child: Opacity(
+                    opacity: 0.5 + (_smokeController.value * 0.5),
+                    child: Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.orangeAccent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange.withValues(alpha: 0.7),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Small flickering ember 4
+                Positioned(
+                  top: 50,
+                  right: 45 + (_smokeController.value * 5),
+                  child: Opacity(
+                    opacity: 0.8 - (_smokeController.value * 0.4),
+                    child: Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.redAccent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withValues(alpha: 0.8),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Tilted crashed jet - FULL COLOR with slight tilt and shake
+                Transform.rotate(
+                  angle: -0.2 + (_smokeController.value * 0.05), // Slight shake effect
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      jetPath,
+                      fit: BoxFit.contain,
+                      // Keep full color - no color filter!
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Bot name with defeated styling
+        Text(
+          bot.botName,
+          style: TextStyle(
+            color: Colors.red.shade300,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.lineThrough,
+            decorationColor: Colors.red.shade300,
+            decorationThickness: 2,
           ),
-          const SizedBox(height: 8),
-          
-          // Rival name
-          Text(
-            bot.botName,
-            style: TextStyle(
-              color: Colors.red.shade300,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
-  }
-
-  /// Build animated smoke effects
-  List<Widget> _buildSmokeEffects() {
-    return [
-      // Smoke cloud 1
-      Positioned(
-        top: 0,
-        left: 20,
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                Colors.grey.withValues(alpha: 0.5),
-                Colors.grey.withValues(alpha: 0.1),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-      ),
-      // Smoke cloud 2
-      Positioned(
-        top: 10,
-        right: 30,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                Colors.grey.withValues(alpha: 0.4),
-                Colors.grey.withValues(alpha: 0.1),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-      ),
-      // Smoke cloud 3
-      Positioned(
-        bottom: 5,
-        left: 35,
-        child: Container(
-          width: 35,
-          height: 35,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                Colors.grey.withValues(alpha: 0.6),
-                Colors.grey.withValues(alpha: 0.2),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-      ),
-    ];
-  }
-
-  /// Build fire/explosion particle effects
-  List<Widget> _buildExplosionParticles() {
-    return [
-      // Orange spark 1
-      Positioned(
-        top: 15,
-        left: 15,
-        child: Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.orange,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.orange.withValues(alpha: 0.8),
-                blurRadius: 8,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-        ),
-      ),
-      // Red spark 2
-      Positioned(
-        top: 25,
-        right: 20,
-        child: Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.red,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.red.withValues(alpha: 0.8),
-                blurRadius: 6,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-        ),
-      ),
-      // Yellow spark 3
-      Positioned(
-        bottom: 20,
-        left: 25,
-        child: Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.yellow,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.yellow.withValues(alpha: 0.8),
-                blurRadius: 8,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-        ),
-      ),
-    ];
   }
 
   /// Check if there's a next level available

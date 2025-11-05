@@ -199,23 +199,17 @@ class StorePurchaseHandler {
     final pack = EconomyConfig.heartBoosterPack;
 
     if (inventory.gems >= pack.gemPrice) {
-      final bool? confirm = await _showConfirmDialog(
-        'Purchase Heart Booster?',
-        'Spend ${pack.gemPrice} gems for 24h Heart Booster?',
-      );
+      // Purchase immediately without confirmation (user can see the cost before clicking)
+      await inventory.spendGems(pack.gemPrice);
+      await inventory.activateHeartBooster(pack.duration);
 
-      if (confirm == true) {
-        await inventory.spendGems(pack.gemPrice);
-        await inventory.activateHeartBooster(pack.duration);
+      // 🔥 FIX: Refill hearts to new maximum (6) when booster is activated
+      await livesManager.refillToMax();
 
-        // 🔥 FIX: Refill hearts to new maximum (6) when booster is activated
-        await livesManager.refillToMax();
-
-        if (context.mounted) {
-          _showSuccessSnackBar(
-            'Heart Booster activated! Hearts refilled to 6!',
-          );
-        }
+      if (context.mounted) {
+        _showSuccessSnackBar(
+          'Heart Booster activated! Hearts refilled to 6!',
+        );
       }
     } else {
       if (context.mounted) {
@@ -327,34 +321,27 @@ class StorePurchaseHandler {
       return;
     }
 
-    // Show confirmation dialog
-    final bool? confirm = await _showConfirmDialog(
-      'Full Hearts Refill?',
-      'Spend $refillPrice gems to fill all $heartsToRefill missing heart${heartsToRefill != 1 ? 's' : ''}?',
-    );
+    // Purchase immediately without confirmation (user can see the cost before clicking)
+    try {
+      // Spend gems
+      final success = await inventory.spendGems(refillPrice);
+      if (success) {
+        // Refill all hearts
+        await livesManager.refillToMax();
 
-    if (confirm == true) {
-      try {
-        // Spend gems
-        final success = await inventory.spendGems(refillPrice);
-        if (success) {
-          // Refill all hearts
-          await livesManager.refillToMax();
-
-          if (context.mounted) {
-            _showSuccessSnackBar(
-              '💖 All hearts refilled! (+$heartsToRefill heart${heartsToRefill != 1 ? 's' : ''})',
-            );
-          }
-        } else {
-          if (context.mounted) {
-            _showErrorSnackBar('💎 Not enough gems!');
-          }
-        }
-      } catch (e) {
         if (context.mounted) {
-          _showErrorSnackBar('Purchase failed: $e');
+          _showSuccessSnackBar(
+            '💖 All hearts refilled! (+$heartsToRefill heart${heartsToRefill != 1 ? 's' : ''})',
+          );
         }
+      } else {
+        if (context.mounted) {
+          _showErrorSnackBar('💎 Not enough gems!');
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar('Purchase failed: $e');
       }
     }
   }

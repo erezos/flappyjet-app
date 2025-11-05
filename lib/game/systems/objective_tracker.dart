@@ -81,8 +81,8 @@ class ObjectiveTracker extends ChangeNotifier {
     }
   }
 
-  /// Update time progress based on game start time (for UI updates)
-  void updateTimeProgress(int gameStartTime) {
+  /// Update time progress based on elapsed game time in milliseconds (excluding pauses like ads)
+  void updateTimeProgress(int elapsedGameTimeMs) {
     if (_objective == null) {
       safePrint('🎯 TIME UPDATE: ❌ _objective is null');
       return;
@@ -98,14 +98,12 @@ class ObjectiveTracker extends ChangeNotifier {
       return;
     }
     
-    if (gameStartTime <= 0) {
-      safePrint('🎯 TIME UPDATE: ❌ Invalid gameStartTime: $gameStartTime');
+    if (elapsedGameTimeMs < 0) {
+      safePrint('🎯 TIME UPDATE: ❌ Invalid elapsedGameTimeMs: $elapsedGameTimeMs');
       return;
     }
     
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final elapsedMs = now - gameStartTime;
-    _elapsedSeconds = elapsedMs / 1000.0;
+    _elapsedSeconds = elapsedGameTimeMs / 1000.0;
     final oldProgress = _currentProgress;
     _currentProgress = _elapsedSeconds.floor();
     

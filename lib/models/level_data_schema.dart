@@ -108,11 +108,13 @@ class DifficultyConfig {
   final double speedMultiplier;    // 1.0 = normal, 1.5 = 50% faster
   final double obstacleGap;        // Pixels between top/bottom obstacles
   final double obstacleFrequency;  // Seconds between obstacles
+  final double? maxGapShift;       // Max vertical shift between consecutive gaps (pixels). Null = unlimited
 
   const DifficultyConfig({
     required this.speedMultiplier,
     required this.obstacleGap,
     required this.obstacleFrequency,
+    this.maxGapShift,
   });
 
   factory DifficultyConfig.fromJson(Map<String, dynamic> json) {
@@ -120,6 +122,9 @@ class DifficultyConfig {
       speedMultiplier: (json['speedMultiplier'] as num).toDouble(),
       obstacleGap: (json['obstacleGap'] as num).toDouble(),
       obstacleFrequency: (json['obstacleFrequency'] as num).toDouble(),
+      maxGapShift: json['maxGapShift'] != null 
+          ? (json['maxGapShift'] as num).toDouble() 
+          : null,
     );
   }
 
@@ -128,6 +133,7 @@ class DifficultyConfig {
       'speedMultiplier': speedMultiplier,
       'obstacleGap': obstacleGap,
       'obstacleFrequency': obstacleFrequency,
+      if (maxGapShift != null) 'maxGapShift': maxGapShift,
     };
   }
 }
@@ -203,6 +209,7 @@ class BotBattle {
   final double skillLevel;      // 0.6 - 1.5 (60% - 150% of perfect play)
   final double reactionTime;    // 0.1 - 0.5 seconds
   final double mistakeRate;     // 0.02 - 0.20 (2% - 20% chance of mistakes)
+  final BotOverride? firstAttemptOverride; // Optional: Make boss harder on first attempt
 
   const BotBattle({
     required this.botName,
@@ -210,6 +217,7 @@ class BotBattle {
     required this.skillLevel,
     required this.reactionTime,
     required this.mistakeRate,
+    this.firstAttemptOverride,
   });
 
   factory BotBattle.fromJson(Map<String, dynamic> json) {
@@ -219,6 +227,9 @@ class BotBattle {
       skillLevel: (json['skillLevel'] as num).toDouble(),
       reactionTime: (json['reactionTime'] as num).toDouble(),
       mistakeRate: (json['mistakeRate'] as num).toDouble(),
+      firstAttemptOverride: json['firstAttemptOverride'] != null
+          ? BotOverride.fromJson(json['firstAttemptOverride'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -229,11 +240,42 @@ class BotBattle {
       'skillLevel': skillLevel,
       'reactionTime': reactionTime,
       'mistakeRate': mistakeRate,
+      if (firstAttemptOverride != null) 'firstAttemptOverride': firstAttemptOverride!.toJson(),
     };
   }
 
   @override
   String toString() => 'Bot: $botName (Skill: ${(skillLevel * 100).toInt()}%)';
+}
+
+/// Bot override configuration for first-time encounters
+/// Used to make zone finale bosses unbeatable on first attempt
+class BotOverride {
+  final double skillLevel;
+  final double reactionTime;
+  final double mistakeRate;
+
+  const BotOverride({
+    required this.skillLevel,
+    required this.reactionTime,
+    required this.mistakeRate,
+  });
+
+  factory BotOverride.fromJson(Map<String, dynamic> json) {
+    return BotOverride(
+      skillLevel: (json['skillLevel'] as num).toDouble(),
+      reactionTime: (json['reactionTime'] as num).toDouble(),
+      mistakeRate: (json['mistakeRate'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'skillLevel': skillLevel,
+      'reactionTime': reactionTime,
+      'mistakeRate': mistakeRate,
+    };
+  }
 }
 
 /// Zone metadata (for world map display)

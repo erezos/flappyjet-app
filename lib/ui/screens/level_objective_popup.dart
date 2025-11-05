@@ -9,22 +9,19 @@ import '../../core/debug_logger.dart';
 import '../widgets/story_mode_game_wrapper.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
+import '../../game/core/jet_skins.dart';
 
-/// Map bot theme names to actual jet sprite files
-String _getBotJetSpritePath(String botJetSkin) {
-  // Direct mapping - bot skin names now match actual jet file names
-  const botToSpriteMap = {
-    'green_lightning': 'green_lightning',
-    'desert_storm': 'desert_storm',
-    'magma_fracture': 'magma_fracture',
-    'blaze': 'blaze',
-    'storm': 'storm',
-    'stealth_dragon': 'stealth_dragon',
-    'stealth_bomber': 'stealth_bomber',
-  };
+/// Get bot jet sprite path from JetSkinCatalog
+String _getBotJetSpritePath(String botJetSkinId) {
+  // Look up the jet skin in the catalog
+  final allSkins = JetSkinCatalog.getAllSkins();
+  final jetSkin = allSkins.firstWhere(
+    (skin) => skin.id == botJetSkinId,
+    orElse: () => JetSkinCatalog.starterJet, // Fallback to starter jet
+  );
   
-  final spriteName = botToSpriteMap[botJetSkin] ?? botJetSkin;  // Use skin name directly if not in map
-  return 'assets/images/jets/$spriteName.png';
+  // Return full asset path
+  return 'assets/images/${jetSkin.assetPath}';
 }
 
 class LevelObjectivePopup extends StatefulWidget {
@@ -185,61 +182,61 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
             ),
             child: Stack(
               children: [
-                // Main content (scrollable)
-                SingleChildScrollView(
+                // Main content (scrollable to handle overflow)
+                  SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                    // Level title with modern styling
-                    Text(
-                  'LEVEL ${widget.level.id}',
-                  style: TextStyle(
-                    color: Colors.amber.shade300,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        offset: const Offset(0, 2),
-                        blurRadius: 4,
+                      // Level title with modern styling
+                      Text(
+                        'LEVEL ${widget.level.id}',
+                        style: TextStyle(
+                          color: Colors.amber.shade300,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              offset: const Offset(0, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 4),
-                
-                Text(
-                  widget.level.name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
+                      
+                      const SizedBox(height: 2),
+                      
+                      Text(
+                        widget.level.name,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
 
-                // VS Battle Section with Enemy Jet
-                if (isVsBattle) ...[
-                  _buildVsBattleSection(),
-                  const SizedBox(height: 16),
-                ],
+                      // Objective card (comes first for VS battles)
+                      _buildObjectiveCard(),
+                      
+                      // VS Battle Section with Enemy Jet (comes after objective)
+                      if (isVsBattle) ...[
+                        const SizedBox(height: 12),
+                        _buildVsBattleSection(),
+                      ],
+                      
+                      const SizedBox(height: 12),
 
-                // Objective card
-                _buildObjectiveCard(),
-                
-                const SizedBox(height: 12),
+                      // Reward card
+                      _buildRewardCard(),
+                      
+                      const SizedBox(height: 12),
 
-                // Reward card
-                _buildRewardCard(),
-                
-                const SizedBox(height: 16),
-
-                // Start Button
-                _buildStartButton(),
+                      // Start Button
+                      _buildStartButton(),
                     ],
                   ),
                 ),
@@ -288,162 +285,154 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
     );
   }
 
-  /// 🆚 VS Battle Section with animated enemy jet
+  /// 🆚 VS Battle Section with animated enemy jet - COMPACT VERSION
   Widget _buildVsBattleSection() {
     final bot = widget.level.botBattle!;
     
-    return AnimatedBuilder(
-      animation: _vsAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _vsAnimation.value,
-          child: Container(
-            padding: const EdgeInsets.all(12), // ✅ FIX: Reduced from 16 to 12
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.red.shade600,
-                  Colors.red.shade800,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // ✅ FIX: Changed from spaceEvenly to spaceBetween
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: AnimatedBuilder(
+        animation: _jetBounceAnimation,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _jetBounceAnimation.value * 0.5), // Reduced bounce
+            child: Column(
               children: [
-                // VS Badge
+                // Compact jet display with glow
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // ✅ FIX: Reduced padding
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.red.withValues(alpha: 0.4),
+                        Colors.orange.withValues(alpha: 0.2),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.3, 0.6, 1.0],
+                    ),
                     boxShadow: [
                       BoxShadow(
+                        color: Colors.red.withValues(alpha: 0.5),
+                        blurRadius: 30,
+                        spreadRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    margin: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Colors.black.withValues(alpha: 0.6),
+                          Colors.black.withValues(alpha: 0.4),
+                        ],
+                      ),
+                      border: Border.all(
+                        color: Colors.red.shade400,
+                        width: 2.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      _getBotJetSpritePath(bot.botJetSkin),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 10),
+                
+                // Bot name with epic styling
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.red.shade700,
+                        Colors.red.shade900,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: Colors.red.shade300,
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
                         color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 4,
+                        blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: Text(
-                    'VS',
+                    bot.botName.toUpperCase(),
                     style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 24, // ✅ FIX: Reduced from 28 to 24
+                      color: Colors.yellow.shade200,
+                      fontSize: 14,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5, // ✅ FIX: Reduced from 2 to 1.5
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8), // ✅ FIX: Added spacing
-
-                // Enemy Jet with bounce animation
-                Flexible( // ✅ FIX: Wrapped in Flexible to prevent overflow
-                  child: AnimatedBuilder(
-                    animation: _jetBounceAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(0, _jetBounceAnimation.value),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min, // ✅ FIX: Added
-                          children: [
-                            // Enemy jet sprite - REAL jet image!
-                            Container(
-                              width: 90, // ✅ FIX: Reduced from 100 to 90
-                              height: 90, // ✅ FIX: Reduced from 100 to 90
-                              padding: const EdgeInsets.all(10), // ✅ FIX: Reduced from 12 to 10
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: RadialGradient(
-                                  colors: [
-                                    Colors.white.withValues(alpha: 0.3),
-                                    Colors.white.withValues(alpha: 0.1),
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.red.withValues(alpha: 0.5),
-                                    blurRadius: 12,
-                                    spreadRadius: 3,
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.4),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Image.asset(
-                                _getBotJetSpritePath(bot.botJetSkin),
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            const SizedBox(height: 10), // ✅ FIX: Reduced from 12 to 10
-                            // Bot name with dramatic styling
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // ✅ FIX: Reduced padding
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                bot.botName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14, // ✅ FIX: Reduced from 16 to 14
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5, // ✅ FIX: Reduced from 1 to 0.5
-                                ),
-                                textAlign: TextAlign.center, // ✅ FIX: Added center alignment
-                                maxLines: 1, // ✅ FIX: Ensure single line
-                                overflow: TextOverflow.ellipsis, // ✅ FIX: Handle overflow gracefully
-                              ),
-                            ),
-                          ],
+                      letterSpacing: 1.5,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.8),
+                          offset: const Offset(0, 1),
+                          blurRadius: 2,
                         ),
-                      );
-                    },
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
   /// 🎯 Modern objective card
   Widget _buildObjectiveCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+    final objectiveType = widget.level.objective.type;
+    
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 🎯 Use obstacle image for "pass obstacles" objective
+            if (objectiveType == ObjectiveType.passObstacles)
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 44,
+                height: 44,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(
+                  'assets/images/obstacles/${widget.level.theme.obstacles}',
+                  fit: BoxFit.contain,
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
@@ -451,91 +440,103 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                 child: Icon(
                   _getObjectiveIcon(),
                   color: Colors.amber.shade300,
-                  size: 28,
+                  size: 24,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'OBJECTIVE',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                ),
+            const SizedBox(width: 10),
+            const Text(
+              'OBJECTIVE',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            widget.level.objective.description,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
             ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          widget.level.objective.description,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            height: 1.2,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   /// 💰 Modern reward card
   Widget _buildRewardCard() {
-    final isVsBattle = widget.level.botBattle != null;
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: 0.15),
-            Colors.white.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'REWARD',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 2,
-            ),
+    return Column(
+      children: [
+        const Text(
+          'REWARD',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Coins
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Coins
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.amber.shade300,
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.monetization_on,
+                      color: Colors.amber, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${widget.level.reward.coins}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Gems (if any)
+            if (widget.level.reward.gems > 0) ...[
+              const SizedBox(width: 16),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
+                  color: Colors.cyan.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.amber.shade300,
+                    color: Colors.cyan,
                     width: 2,
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.monetization_on,
-                        color: Colors.amber, size: 24),
+                    Image.asset(
+                      'assets/images/icons/gem_icon.png',
+                      width: 24,
+                      height: 24,
+                    ),
                     const SizedBox(width: 6),
                     Text(
-                      '${widget.level.reward.coins}',
+                      '${widget.level.reward.gems}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -545,81 +546,10 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                   ],
                 ),
               ),
-              // Gems (if any)
-              if (widget.level.reward.gems > 0) ...[
-                const SizedBox(width: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.cyan.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.cyan,
-                      width: 2,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/images/icons/gem_icon.png',
-                        width: 24,
-                        height: 24,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${widget.level.reward.gems}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
-          ),
-          // Bot battle bonus
-          if (isVsBattle) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.red.shade600,
-                    Colors.orange.shade600,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.red.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.flash_on, color: Colors.white, size: 20),
-                  SizedBox(width: 6),
-                  Text(
-                    '2x COINS IF YOU WIN!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -674,7 +604,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
       case ObjectiveType.surviveTime:
         return Icons.timer_outlined;
       case ObjectiveType.beatBot:
-        return Icons.sports_esports_rounded;
+        return Icons.emoji_events_rounded; // Trophy icon for VS battles
     }
   }
 }

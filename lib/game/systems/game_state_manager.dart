@@ -21,6 +21,10 @@ class GameStateManager extends ChangeNotifier {
   int _gameStartTime = 0;
   bool _isInvulnerable = false;
   
+  // Pause tracking for accurate time measurement (e.g., during ads)
+  int _pauseStartTime = 0;
+  int _totalPauseDuration = 0;
+  
   // Continue tracking per run
   int _continuesUsedThisRun = 0;
   static const int _maxContinuesPerRun = 5;
@@ -148,10 +152,47 @@ class GameStateManager extends ChangeNotifier {
     _isInvulnerable = false;
     _currentTheme = GameThemes.skyRookie;
     _continuesUsedThisRun = 0;
+    _pauseStartTime = 0;
+    _totalPauseDuration = 0;
     // _timeSinceLastObstacle is managed by ObstacleManager
     _themeNotificationTime = 0.0;
     _showingThemeNotification = false;
     safePrint('🔄 Game reset to starting state');
+  }
+
+  /// Mark the start of a pause (e.g., for ad display)
+  void pauseGameTime() {
+    if (_pauseStartTime == 0) { // Only pause if not already paused
+      _pauseStartTime = DateTime.now().millisecondsSinceEpoch;
+      safePrint('⏸️ Game time paused at $_pauseStartTime');
+    }
+  }
+
+  /// Resume game time after a pause (e.g., after ad dismissal)
+  void resumeGameTime() {
+    if (_pauseStartTime > 0) {
+      final pauseDuration = DateTime.now().millisecondsSinceEpoch - _pauseStartTime;
+      _totalPauseDuration += pauseDuration;
+      safePrint('▶️ Game time resumed. Pause duration: ${pauseDuration}ms, Total pause: ${_totalPauseDuration}ms');
+      _pauseStartTime = 0;
+    }
+  }
+
+  /// Get elapsed game time (excluding pause durations like ads)
+  int getElapsedGameTime() {
+    if (_gameStartTime == 0) return 0;
+    
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    final totalElapsed = currentTime - _gameStartTime;
+    
+    // Subtract total pause duration to get actual playing time
+    final activePauseDuration = _pauseStartTime > 0 
+        ? (currentTime - _pauseStartTime) 
+        : 0;
+    
+    final actualGameTime = totalElapsed - _totalPauseDuration - activePauseDuration;
+    
+    return actualGameTime;
   }
 
   /// Update score and check for achievements

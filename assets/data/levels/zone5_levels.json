@@ -5,265 +5,269 @@
     {
       "id": 41,
       "zone": 5,
-      "name": "Frozen Gateway",
+      "name": "Frost Entry",
       "objective": {
         "type": "passObstacles",
-        "target": 12,
-        "description": "Pass 12 obstacles to complete"
+        "target": 22,
+        "description": "Pass 22 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
+        "speedMultiplier": 1.22,
+        "obstacleGap": 158,
         "obstacleFrequency": 1.8
       },
       "reward": {
-        "coins": 100,
+        "coins": 40,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
       "botBattle": null
     },
     {
       "id": 42,
       "zone": 5,
-      "name": "Stealth Dragon Battle",
+      "name": "Ice Tunnels",
       "objective": {
-        "type": "beatBot",
-        "target": 14,
-        "description": "Race against Stealth Dragon and win!"
+        "type": "surviveTime",
+        "target": 20,
+        "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.25,
+        "obstacleGap": 158,
+        "obstacleFrequency": 0.8
       },
       "reward": {
-        "coins": 100,
+        "coins": 50,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
-      "botBattle": {
-        "botName": "Stealth Dragon",
-        "botJetSkin": "stealth_dragon",
-        "skillLevel": 1.1,
-        "reactionTime": 0.15,
-        "mistakeRate": 0.03
-      }
+      "botBattle": null
     },
     {
       "id": 43,
       "zone": 5,
-      "name": "Blizzard Blast",
+      "name": "Blizzard Run",
       "objective": {
         "type": "passObstacles",
-        "target": 13,
-        "description": "Pass 13 obstacles to complete"
+        "target": 23,
+        "description": "Pass 23 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.25,
+        "obstacleGap": 155,
+        "obstacleFrequency": 1.7
       },
       "reward": {
-        "coins": 100,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
       "botBattle": null
     },
     {
       "id": 44,
       "zone": 5,
-      "name": "Glacier Gauntlet",
+      "name": "Frozen Gauntlet",
       "objective": {
         "type": "surviveTime",
         "target": 25,
         "description": "Survive for 25 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.25,
+        "obstacleGap": 155,
+        "obstacleFrequency": 0.7
       },
       "reward": {
-        "coins": 100,
+        "coins": 55,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
       "botBattle": null
     },
     {
       "id": 45,
       "zone": 5,
-      "name": "Avalanche Alley",
+      "name": "Stealth Dragon Challenge",
       "objective": {
-        "type": "passObstacles",
-        "target": 14,
-        "description": "Pass 14 obstacles to complete"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Stealth Dragon and win!"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.28,
+        "obstacleGap": 153,
+        "obstacleFrequency": 1.6
       },
       "reward": {
-        "coins": 100,
+        "coins": 80,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "storm_ace.mp3"
       },
-      "botBattle": null
+      "botBattle": {
+        "botName": "Stealth Dragon",
+        "botJetSkin": "stealth_dragon",
+        "skillLevel": 0.88,
+        "reactionTime": 0.12,
+        "mistakeRate": 0.06
+      }
     },
     {
       "id": 46,
       "zone": 5,
-      "name": "Frostbite Flight",
+      "name": "Avalanche Path",
       "objective": {
         "type": "passObstacles",
-        "target": 14,
-        "description": "Pass 14 obstacles to complete"
+        "target": 24,
+        "description": "Pass 24 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.25,
+        "obstacleGap": 155,
+        "obstacleFrequency": 1.7
       },
       "reward": {
-        "coins": 100,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
       "botBattle": null
     },
     {
       "id": 47,
       "zone": 5,
-      "name": "Icicle Inferno",
+      "name": "Crystal Canyon",
       "objective": {
         "type": "passObstacles",
-        "target": 14,
-        "description": "Pass 14 obstacles to complete"
+        "target": 25,
+        "description": "Pass 25 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.28,
+        "obstacleGap": 153,
+        "obstacleFrequency": 1.6
       },
       "reward": {
-        "coins": 100,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
       "botBattle": null
     },
     {
       "id": 48,
       "zone": 5,
-      "name": "Summit Sprint",
+      "name": "Summit Gauntlet",
       "objective": {
         "type": "surviveTime",
         "target": 28,
         "description": "Survive for 28 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.30,
+        "obstacleGap": 155,
+        "obstacleFrequency": 0.6
       },
       "reward": {
-        "coins": 100,
+        "coins": 60,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
       "botBattle": null
     },
     {
       "id": 49,
       "zone": 5,
-      "name": "Stealth Bomber Final",
+      "name": "Peak Sprint",
       "objective": {
-        "type": "beatBot",
-        "target": 15,
-        "description": "Race against Stealth Bomber and win!"
+        "type": "passObstacles",
+        "target": 26,
+        "description": "Pass 26 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.30,
+        "obstacleGap": 153,
+        "obstacleFrequency": 1.6
       },
       "reward": {
-        "coins": 100,
+        "coins": 50,
         "gems": 0
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
-        "music": "void_master.mp3"
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
+        "music": "space_cadet.mp3"
       },
-      "botBattle": {
-        "botName": "Stealth Bomber",
-        "botJetSkin": "stealth_bomber",
-        "skillLevel": 1.2,
-        "reactionTime": 0.12,
-        "mistakeRate": 0.02
-      }
+      "botBattle": null
     },
     {
       "id": 50,
       "zone": 5,
-      "name": "Frozen Peak Master",
+      "name": "Lord Of War - Final Battle",
       "objective": {
-        "type": "passObstacles",
-        "target": 15,
-        "description": "Pass 15 obstacles to conquer all zones!"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Lord Of War to conquer all zones!"
       },
       "difficulty": {
-        "speedMultiplier": 1.4,
-        "obstacleGap": 145,
-        "obstacleFrequency": 1.8
+        "speedMultiplier": 1.35,
+        "obstacleGap": 150,
+        "obstacleFrequency": 1.5
       },
       "reward": {
         "coins": 100,
-        "gems": 30
+        "gems": 20
       },
       "theme": {
-        "background": "phase6_altitude_complete.png",
-        "obstacles": "phase6_tech_structures.png",
+        "background": "frozen_peaks.png",
+        "obstacles": "ice_obstacles.png",
         "music": "void_master.mp3"
       },
-      "botBattle": null
+      "botBattle": {
+        "botName": "Lord Of War",
+        "botJetSkin": "lord_of_war",
+        "skillLevel": 0.92,
+        "reactionTime": 0.10,
+        "mistakeRate": 0.05,
+        "firstAttemptOverride": {
+          "skillLevel": 0.99,
+          "reactionTime": 0.03,
+          "mistakeRate": 0.01
+        }
+      }
     }
   ]
 }
-

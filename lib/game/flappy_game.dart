@@ -38,6 +38,7 @@ import 'systems/theme_manager.dart';
 
 // Story Mode
 import '../models/level_data_schema.dart';
+import 'systems/level_system_manager.dart';
 
 // ✅ PHASE 1 REFACTORING: World + Camera architecture
 import 'world/flappy_world.dart';
@@ -60,6 +61,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   final LevelData? storyModeLevel;
   final VoidCallback? onObstaclePassed;
   final VoidCallback? onGameOver;
+  final LevelSystemManager levelSystemManager; // 🔥 Track first attempts
 
   // Constructor now accepts monetization, missions, and story mode parameters
   FlappyGame({
@@ -69,7 +71,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.storyModeLevel,
     this.onObstaclePassed,
     this.onGameOver,
-  });
+    LevelSystemManager? levelSystemManager,
+  }) : levelSystemManager = levelSystemManager ?? LevelSystemManager();
   
   @override
   void onAttach() {
@@ -221,6 +224,17 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Initialize obstacle manager
     _obstacleManager = ObstacleManager();
+    
+    // 🎯 STORY MODE: Set story mode obstacle asset and difficulty settings if in story mode
+    if (isStoryMode && storyModeLevel != null) {
+      _obstacleManager.storyModeObstacleAsset = 'obstacles/${storyModeLevel!.theme.obstacles}';
+      _obstacleManager.storyModeObstacleFrequency = storyModeLevel!.difficulty.obstacleFrequency;
+      _obstacleManager.storyModeObstacleGap = storyModeLevel!.difficulty.obstacleGap;
+      _obstacleManager.storyModeSpeedMultiplier = storyModeLevel!.difficulty.speedMultiplier;
+      _obstacleManager.storyModeMaxGapShift = storyModeLevel!.difficulty.maxGapShift;
+      
+      safePrint('🎯 STORY MODE: Applying level difficulty - gap=${storyModeLevel!.difficulty.obstacleGap}, freq=${storyModeLevel!.difficulty.obstacleFrequency}s, speed=${storyModeLevel!.difficulty.speedMultiplier}x, maxShift=${storyModeLevel!.difficulty.maxGapShift ?? "unlimited"}');
+    }
 
     // Initialize celebration system (will be connected to hardware particle system later)
     _celebrationSystem = CelebrationSystem();
@@ -392,10 +406,19 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   /// Start theme music
   Future<void> _startThemeMusic() async {
-    safePrint('🎵 GAME: Starting theme music - ${_gameStateManager.currentTheme.displayName}');
-    final themeMusic = _themeManager.getThemeMusic(_gameStateManager.currentTheme);
-    await _audioManager.playMusic(themeMusic, volume: 0.7);
-    safePrint('🎵 GAME: Theme music started with Flame Audio');
+    // 🎯 STORY MODE: Use level's specific music if in story mode
+    if (isStoryMode && storyModeLevel != null) {
+      final levelMusic = storyModeLevel!.theme.music;
+      safePrint('🎵 GAME: Starting story mode level music - $levelMusic');
+      await _audioManager.playMusic(levelMusic, volume: 0.7);
+      safePrint('🎵 GAME: Story mode music started with Flame Audio');
+    } else {
+      // Endless mode: Use theme-based music
+      safePrint('🎵 GAME: Starting theme music - ${_gameStateManager.currentTheme.displayName}');
+      final themeMusic = _themeManager.getThemeMusic(_gameStateManager.currentTheme);
+      await _audioManager.playMusic(themeMusic, volume: 0.7);
+      safePrint('🎵 GAME: Theme music started with Flame Audio');
+    }
   }
 
   /// Start the game when user taps - transition from waiting to playing
@@ -498,29 +521,43 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // 🤖 BOT BATTLE: Check bot collisions (bot still uses manual collision for now)
     if (_botJet != null && _botJet!.isActive) {
       for (final obstacle in _obstacleManager.obstacles) {
-        // Check if bot collides with obstacle (same logic as player)
+        // Create bot hitbox (shrink slightly to be more forgiving)
+        final botHitboxSize = BotJetPlayer.botSize * 0.75; // 75% of visual size
         final botRect = Rect.fromCenter(
           center: Offset(_botJet!.position.x, _botJet!.position.y),
-          width: BotJetPlayer.botSize,
-          height: BotJetPlayer.botSize,
+          width: botHitboxSize,
+          height: botHitboxSize,
         );
         
+        // CORRECTED: obstacle.position.y is the TOP of the obstacle (Anchor.topLeft)
+        // The gap center is NOT at position.y
+        // We need to calculate actual obstacle heights from the DynamicObstacle logic
+        
+        // Calculate gap boundaries - the gap is CENTERED in the screen height
+        // The obstacle spawns with a random Y position which represents where the gap TOP starts
         final gapSize = obstacle.gapSize;
+        
+        // The actual hitboxes are:
+        // Top obstacle: from 0 to (position.y)
+        // Gap: from (position.y) to (position.y + gapSize)
+        // Bottom obstacle: from (position.y + gapSize) to screen bottom
+        
         final topRect = Rect.fromLTWH(
           obstacle.position.x,
           0,
           GameConfig.obstacleWidth,
-          obstacle.position.y - gapSize / 2,
+          obstacle.position.y, // Top obstacle ends at position.y
         );
         final bottomRect = Rect.fromLTWH(
           obstacle.position.x,
-          obstacle.position.y + gapSize / 2,
+          obstacle.position.y + gapSize, // Bottom obstacle starts after gap
           GameConfig.obstacleWidth,
-          size.y - (obstacle.position.y + gapSize / 2),
+          size.y - (obstacle.position.y + gapSize), // Extends to bottom
         );
         
         if (botRect.overlaps(topRect) || botRect.overlaps(bottomRect)) {
           safePrint('🤖 BOT COLLISION: Bot crashed into obstacle!');
+          safePrint('🤖   Bot Y: ${_botJet!.position.y}, Gap: ${obstacle.position.y} to ${obstacle.position.y + gapSize}');
           _botJet!.crash();
           return;
         }
@@ -764,6 +801,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   /// Check for theme transitions
   Future<void> _checkThemeTransition() async {
+    // 🎯 STORY MODE: Skip theme transitions - each level has its own fixed music
+    if (isStoryMode) {
+      return;
+    }
+    
     final themeChanged = await _themeManager.checkThemeTransition(
       _gameStateManager.score,
       jet: _jet,

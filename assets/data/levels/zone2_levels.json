@@ -1,263 +1,273 @@
 {
   "zone": 2,
-  "zoneName": "Desert Oasis",
+  "zoneName": "Desert Sands",
   "levels": [
     {
       "id": 11,
       "zone": 2,
-      "name": "Sand Dunes",
+      "name": "Dune Dancer",
       "objective": {
         "type": "passObstacles",
-        "target": 5,
-        "description": "Pass 5 obstacles to complete"
+        "target": 10,
+        "description": "Pass 10 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 170,
-        "obstacleFrequency": 2.3
+        "speedMultiplier": 1.05,
+        "obstacleGap": 175,
+        "obstacleFrequency": 2.4
       },
       "reward": {
-        "coins": 40,
+        "coins": 25,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
       "id": 12,
       "zone": 2,
-      "name": "Cactus Canyon",
+      "name": "Desert Winds",
       "objective": {
-        "type": "passObstacles",
-        "target": 6,
-        "description": "Pass 6 obstacles to complete"
+        "type": "surviveTime",
+        "target": 18,
+        "description": "Survive for 18 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 170,
-        "obstacleFrequency": 2.3
+        "speedMultiplier": 1.08,
+        "obstacleGap": 175,
+        "obstacleFrequency": 1.4
       },
       "reward": {
-        "coins": 40,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
       "id": 13,
       "zone": 2,
-      "name": "Pyramid Path",
+      "name": "Cactus Canyon",
       "objective": {
         "type": "passObstacles",
-        "target": 7,
-        "description": "Pass 7 obstacles to complete"
+        "target": 11,
+        "description": "Pass 11 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
+        "speedMultiplier": 1.08,
         "obstacleGap": 170,
         "obstacleFrequency": 2.3
       },
       "reward": {
-        "coins": 40,
+        "coins": 25,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
       "id": 14,
       "zone": 2,
-      "name": "Desert Storm Challenge",
-      "objective": {
-        "type": "beatBot",
-        "target": 10,
-        "description": "Race against Desert Storm and win!"
-      },
-      "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 170,
-        "obstacleFrequency": 2.3
-      },
-      "reward": {
-        "coins": 40,
-        "gems": 0
-      },
-      "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
-      },
-      "botBattle": {
-        "botName": "Desert Storm",
-        "botJetSkin": "desert_storm",
-        "skillLevel": 0.7,
-        "reactionTime": 0.3,
-        "mistakeRate": 0.15
-      }
-    },
-    {
-      "id": 15,
-      "zone": 2,
-      "name": "Oasis Sprint",
+      "name": "Sandstorm Path",
       "objective": {
         "type": "surviveTime",
         "target": 20,
         "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
+        "speedMultiplier": 1.10,
         "obstacleGap": 170,
-        "obstacleFrequency": 2.3
+        "obstacleFrequency": 1.2
       },
       "reward": {
-        "coins": 40,
+        "coins": 35,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
-      "id": 16,
+      "id": 15,
       "zone": 2,
-      "name": "Sandstorm",
+      "name": "Desert Storm Challenge",
       "objective": {
-        "type": "passObstacles",
-        "target": 8,
-        "description": "Pass 8 obstacles to complete"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Desert Storm and win!"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
+        "speedMultiplier": 1.12,
+        "obstacleGap": 165,
+        "obstacleFrequency": 2.2
+      },
+      "reward": {
+        "coins": 50,
+        "gems": 0
+      },
+      "theme": {
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "storm_ace.mp3"
+      },
+      "botBattle": {
+        "botName": "Desert Storm",
+        "botJetSkin": "desert_storm",
+        "skillLevel": 0.65,
+        "reactionTime": 0.22,
+        "mistakeRate": 0.15
+      }
+    },
+    {
+      "id": 16,
+      "zone": 2,
+      "name": "Oasis Flight",
+      "objective": {
+        "type": "passObstacles",
+        "target": 12,
+        "description": "Pass 12 obstacles to complete"
+      },
+      "difficulty": {
+        "speedMultiplier": 1.10,
         "obstacleGap": 170,
         "obstacleFrequency": 2.3
       },
       "reward": {
-        "coins": 40,
+        "coins": 25,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
       "id": 17,
       "zone": 2,
-      "name": "Ancient Ruins",
+      "name": "Mirage Runner",
       "objective": {
         "type": "passObstacles",
-        "target": 8,
-        "description": "Pass 8 obstacles to complete"
+        "target": 13,
+        "description": "Pass 13 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 170,
-        "obstacleFrequency": 2.3
+        "speedMultiplier": 1.10,
+        "obstacleGap": 168,
+        "obstacleFrequency": 2.2
       },
       "reward": {
-        "coins": 40,
+        "coins": 25,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
       "id": 18,
       "zone": 2,
-      "name": "Scorching Skies",
+      "name": "Canyon Rush",
       "objective": {
-        "type": "passObstacles",
-        "target": 8,
-        "description": "Pass 8 obstacles to complete"
+        "type": "surviveTime",
+        "target": 22,
+        "description": "Survive for 22 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 170,
-        "obstacleFrequency": 2.3
+        "speedMultiplier": 1.12,
+        "obstacleGap": 168,
+        "obstacleFrequency": 1.3
       },
       "reward": {
-        "coins": 40,
+        "coins": 35,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
       "id": 19,
       "zone": 2,
-      "name": "Mirage Master",
+      "name": "Scorpion Sprint",
       "objective": {
-        "type": "surviveTime",
-        "target": 25,
-        "description": "Survive for 25 seconds"
+        "type": "passObstacles",
+        "target": 14,
+        "description": "Pass 14 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 170,
-        "obstacleFrequency": 2.3
+        "speedMultiplier": 1.12,
+        "obstacleGap": 165,
+        "obstacleFrequency": 2.2
       },
       "reward": {
-        "coins": 40,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "sky_rookie.mp3"
       },
       "botBattle": null
     },
     {
       "id": 20,
       "zone": 2,
-      "name": "Desert Master",
+      "name": "Sky Prince Challenge",
       "objective": {
-        "type": "passObstacles",
-        "target": 10,
-        "description": "Pass 10 obstacles to complete Zone 2!"
+        "type": "beatBot",
+        "target": 1,
+        "description": "Race against Sky Prince to complete Zone 2!"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 170,
-        "obstacleFrequency": 2.3
+        "speedMultiplier": 1.15,
+        "obstacleGap": 165,
+        "obstacleFrequency": 2.1
       },
       "reward": {
-        "coins": 40,
-        "gems": 15
+        "coins": 50,
+        "gems": 10
       },
       "theme": {
-        "background": "phase2_sunny_complete.png",
-        "obstacles": "phase2_reinforced_wood.png",
-        "music": "space_cadet.mp3"
+        "background": "zone2_desert.png",
+        "obstacles": "desert_obstacles.png",
+        "music": "void_master.mp3"
       },
-      "botBattle": null
+      "botBattle": {
+        "botName": "Sky Prince",
+        "botJetSkin": "sky_prince",
+        "skillLevel": 0.70,
+        "reactionTime": 0.20,
+        "mistakeRate": 0.12,
+        "firstAttemptOverride": {
+          "skillLevel": 0.98,
+          "reactionTime": 0.05,
+          "mistakeRate": 0.02
+        }
+      }
     }
   ]
 }
-

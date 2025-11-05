@@ -14,6 +14,7 @@ import '../../game/systems/objective_tracker.dart';
 import '../../game/systems/inventory_manager.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../game/systems/monetization_manager.dart';
+import '../../game/systems/level_system_manager.dart'; // 🔥 NEW
 import '../screens/level_complete_screen.dart';
 import '../screens/level_failed_screen.dart';
 import '../screens/world_map_screen.dart';
@@ -47,6 +48,9 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
   void _initializeGame() {
     safePrint('🎮 Initializing story mode game for level ${widget.level.id}');
 
+    // 🔥 Mark this level as attempted (for first-attempt boss logic)
+    LevelSystemManager().markLevelAttempted(widget.level.id);
+
     // Start tracking objective
     _objectiveTracker.startTracking(widget.level.objective);
 
@@ -57,6 +61,7 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       storyModeLevel: widget.level,
       onObstaclePassed: _onObstaclePassed,
       onGameOver: _onGameOver,
+      levelSystemManager: LevelSystemManager(), // 🔥 Pass level system manager
     );
 
     // Listen to game state changes (use game's GameStateManager, not our own)
@@ -106,12 +111,13 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
 
       // Update progress based on objective type
       if (widget.level.objective.type == ObjectiveType.surviveTime) {
-        final gameStartTime = _game.gameStateManager.gameStartTime;
+        // ⏱️ FIX: Use getElapsedGameTime() to exclude ad pauses
+        final elapsedGameTimeMs = _game.gameStateManager.getElapsedGameTime();
         // Only log every second to avoid spam
         if (DateTime.now().millisecond < 200) {
-          safePrint('🎯 TIMER TICK: gameStartTime = $gameStartTime');
+          safePrint('🎯 TIMER TICK: elapsedGameTimeMs = $elapsedGameTimeMs');
         }
-        _objectiveTracker.updateTimeProgress(gameStartTime);
+        _objectiveTracker.updateTimeProgress(elapsedGameTimeMs);
       } else if (widget.level.objective.type == ObjectiveType.beatBot) {
         // Update bot battle scores from game
         final playerScore = _game.gameStateManager.score;
@@ -204,14 +210,22 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
 
     safePrint('🎮 ✅ Level ${widget.level.id} completed!');
 
+    // 🎵 STOP STORY MODE MUSIC: Stop level music before navigating away
+    try {
+      await _game.audioManager.stopMusic();
+      safePrint('🎵 Story mode music stopped on level completion');
+    } catch (e) {
+      safePrint('⚠️ Failed to stop story mode music: $e');
+    }
+
     // ✅ FIX: Refill hearts to max when level is completed successfully
     final livesManager = LivesManager();
     await livesManager.refillToMax();
     safePrint('💖 Story Mode: Hearts refilled to max after level completion (now: ${livesManager.currentLives})');
 
-    // Calculate time taken
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final timeTaken = ((now - _game.gameStateManager.gameStartTime) / 1000).round();
+    // Calculate time taken (excluding ad pauses)
+    final elapsedGameTimeMs = _game.gameStateManager.getElapsedGameTime();
+    final timeTaken = (elapsedGameTimeMs / 1000).round();
 
     // Navigate to level complete screen
     if (mounted) {
@@ -250,7 +264,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
             child: GameWidget(game: _game),
           ),
 
-          // Objective tracker overlay
+          // 🎯 NEW: Top-left objective indicator (replaces score display)
+          Positioned(
+            top: 40,
+            left: 16,
+            child: _buildTopObjectiveIndicator(),
+          ),
+
+          // Objective tracker overlay (bottom)
           Positioned(
             bottom: 20,
             left: 20,
@@ -270,6 +291,171 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
         ],
       ),
     );
+  }
+  
+  /// 🎯 Beautiful top-left objective indicator (replaces score display in story mode)
+  Widget _buildTopObjectiveIndicator() {
+    final objective = widget.level.objective;
+    final isCompleted = _objectiveTracker.isCompleted;
+    
+    // Get color scheme based on objective type
+    final Color primaryColor;
+    final Color secondaryColor;
+    final IconData icon;
+    
+    switch (objective.type) {
+      case ObjectiveType.passObstacles:
+        primaryColor = Colors.amber;
+        secondaryColor = Colors.orange;
+        icon = Icons.flag_rounded;
+        break;
+      case ObjectiveType.surviveTime:
+        primaryColor = Colors.cyan;
+        secondaryColor = Colors.blue;
+        icon = Icons.timer_outlined;
+        break;
+      case ObjectiveType.beatBot:
+        primaryColor = Colors.red;
+        secondaryColor = Colors.deepOrange;
+        icon = Icons.emoji_events_rounded;
+        break;
+    }
+    
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 500),
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.7 + (value * 0.3), // Animate from 70% to 100%
+          child: Opacity(
+            opacity: value,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    primaryColor.withValues(alpha: 0.9),
+                    secondaryColor.withValues(alpha: 0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.5),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Animated icon
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 1200),
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    builder: (context, rotateValue, child) {
+                      return Transform.rotate(
+                        angle: isCompleted ? 0 : (rotateValue * 6.28), // Full rotation
+                        child: Icon(
+                          isCompleted ? Icons.check_circle_rounded : icon,
+                          color: Colors.white,
+                          size: 28,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  // Progress text
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _getObjectiveTypeLabel(),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _getObjectiveProgress(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  String _getObjectiveTypeLabel() {
+    switch (widget.level.objective.type) {
+      case ObjectiveType.passObstacles:
+        return 'OBSTACLES';
+      case ObjectiveType.surviveTime:
+        return 'TIME';
+      case ObjectiveType.beatBot:
+        return 'VS BATTLE';
+    }
+  }
+  
+  String _getObjectiveProgress() {
+    final objective = widget.level.objective;
+    switch (objective.type) {
+      case ObjectiveType.passObstacles:
+        return '${_objectiveTracker.currentProgress}/${objective.target}';
+      case ObjectiveType.surviveTime:
+        final elapsed = _objectiveTracker.currentProgress;
+        final remaining = objective.target - elapsed;
+        return remaining > 0 ? '${remaining}s' : 'DONE!';
+      case ObjectiveType.beatBot:
+        final playerScore = _objectiveTracker.currentProgress;
+        // Bot score is tracked internally by the tracker
+        return 'You: $playerScore';
+    }
   }
 
   Widget _buildStoryModeGameOverMenu() {
@@ -313,11 +499,17 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                 // 🎯 CRITICAL: Pause Flame game engine when ad starts
                 _game.pauseForAd();
                 safePrint('⏸️ STORY MODE: Game engine paused for ad');
+                
+                // ⏱️ FIX: Pause game time tracking to exclude ad duration
+                _game.gameStateManager.pauseGameTime();
               },
               onAdEnd: () {
                 // 🎯 CRITICAL: Resume Flame game engine when ad ends
                 _game.resumeFromAd();
                 safePrint('▶️ STORY MODE: Game engine resumed after ad');
+                
+                // ⏱️ FIX: Resume game time tracking after ad dismissal
+                _game.gameStateManager.resumeGameTime();
               },
               onReward: () async {
                 safePrint('🎯 STORY MODE: Ad reward granted - continuing game');
@@ -341,6 +533,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                 
                 // NOW continue the game after the overlay is definitely gone
                 _game.continueGame();
+                
+                // 🎯 CRITICAL FIX: Restart update timer for time-based objectives after continue
+                if (widget.level.objective.type == ObjectiveType.surviveTime || 
+                    widget.level.objective.type == ObjectiveType.beatBot) {
+                  _updateTimer?.cancel();
+                  _startUpdateTimer();
+                  safePrint('🎯 TIMER: Restarted update timer after continue');
+                }
                 
                 safePrint('🎬 Game continued after ad - back in action! Lives=${livesManager.currentLives}, continues remaining: ${_game.continuesRemaining}');
               },
@@ -373,6 +573,13 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     _levelEnded = true;
 
     safePrint('🎯 STORY MODE: Back to map requested');
+    
+    // 🎵 STOP STORY MODE MUSIC: Stop level music before navigating away
+    _game.audioManager.stopMusic().then((_) {
+      safePrint('🎵 Story mode music stopped on back to map');
+    }).catchError((e) {
+      safePrint('⚠️ Failed to stop story mode music: $e');
+    });
     
     // Check if objective was completed
     final objectiveCompleted = _objectiveTracker.isCompleted;
@@ -428,6 +635,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       
       // NOW continue the game after the overlay is definitely gone
       _game.continueGame();
+      
+      // 🎯 CRITICAL FIX: Restart update timer for time-based objectives after continue
+      if (widget.level.objective.type == ObjectiveType.surviveTime || 
+          widget.level.objective.type == ObjectiveType.beatBot) {
+        _updateTimer?.cancel();
+        _startUpdateTimer();
+        safePrint('🎯 TIMER: Restarted update timer after gem continue');
+      }
       
       safePrint('🎯 STORY MODE: Purchased continue with 3 gems');
       safePrint('🎬 Game continued after gem purchase - back in action! Lives=${livesManager.currentLives}');
