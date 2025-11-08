@@ -13,7 +13,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.22,
-        "obstacleGap": 158,
+        "obstacleGap": 160,
         "obstacleFrequency": 1.8
       },
       "reward": {
@@ -38,8 +38,9 @@
       },
       "difficulty": {
         "speedMultiplier": 1.25,
-        "obstacleGap": 158,
-        "obstacleFrequency": 0.8
+        "obstacleGap": 190,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 70
       },
       "reward": {
         "coins": 50,
@@ -63,7 +64,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.25,
-        "obstacleGap": 155,
+        "obstacleGap": 157,
         "obstacleFrequency": 1.7
       },
       "reward": {
@@ -87,9 +88,10 @@
         "description": "Survive for 25 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.25,
-        "obstacleGap": 155,
-        "obstacleFrequency": 0.7
+        "speedMultiplier": 1.28,
+        "obstacleGap": 180,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 74
       },
       "reward": {
         "coins": 55,
@@ -113,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.28,
-        "obstacleGap": 153,
+        "obstacleGap": 220,
         "obstacleFrequency": 1.6
       },
       "reward": {
@@ -128,9 +130,9 @@
       "botBattle": {
         "botName": "Stealth Dragon",
         "botJetSkin": "stealth_dragon",
-        "skillLevel": 0.88,
+        "skillLevel": 0.96,
         "reactionTime": 0.12,
-        "mistakeRate": 0.06
+        "mistakeRate": 0.03
       }
     },
     {
@@ -194,8 +196,9 @@
       },
       "difficulty": {
         "speedMultiplier": 1.30,
-        "obstacleGap": 155,
-        "obstacleFrequency": 0.6
+        "obstacleGap": 170,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 80
       },
       "reward": {
         "coins": 60,
@@ -219,7 +222,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.30,
-        "obstacleGap": 153,
+        "obstacleGap": 150,
         "obstacleFrequency": 1.6
       },
       "reward": {
@@ -244,7 +247,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.35,
-        "obstacleGap": 150,
+        "obstacleGap": 220,
         "obstacleFrequency": 1.5
       },
       "reward": {
@@ -259,9 +262,9 @@
       "botBattle": {
         "botName": "Lord Of War",
         "botJetSkin": "lord_of_war",
-        "skillLevel": 0.92,
+        "skillLevel": 0.98,
         "reactionTime": 0.10,
-        "mistakeRate": 0.05,
+        "mistakeRate": 0.02,
         "firstAttemptOverride": {
           "skillLevel": 0.99,
           "reactionTime": 0.03,

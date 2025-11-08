@@ -13,7 +13,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 168,
+        "obstacleGap": 195,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -37,9 +37,10 @@
         "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.15,
-        "obstacleGap": 168,
-        "obstacleFrequency": 1.1
+        "speedMultiplier": 1.12,
+        "obstacleGap": 265,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
         "coins": 40,
@@ -63,7 +64,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 165,
+        "obstacleGap": 190,
         "obstacleFrequency": 2.1
       },
       "reward": {
@@ -88,8 +89,9 @@
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 165,
-        "obstacleFrequency": 1.0
+        "obstacleGap": 250,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
         "coins": 40,
@@ -113,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 163,
+        "obstacleGap": 225,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -128,9 +130,9 @@
       "botBattle": {
         "botName": "Stealth Fire",
         "botJetSkin": "stealth_fire",
-        "skillLevel": 0.75,
+        "skillLevel": 0.92,
         "reactionTime": 0.18,
-        "mistakeRate": 0.10
+        "mistakeRate": 0.05
       }
     },
     {
@@ -144,7 +146,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 165,
+        "obstacleGap": 188,
         "obstacleFrequency": 2.1
       },
       "reward": {
@@ -169,7 +171,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 163,
+        "obstacleGap": 185,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -194,8 +196,9 @@
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 165,
-        "obstacleFrequency": 0.9
+        "obstacleGap": 235,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
         "coins": 45,
@@ -219,7 +222,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 163,
+        "obstacleGap": 180,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -244,7 +247,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.20,
-        "obstacleGap": 160,
+        "obstacleGap": 220,
         "obstacleFrequency": 1.9
       },
       "reward": {
@@ -259,9 +262,9 @@
       "botBattle": {
         "botName": "Molten Devastator",
         "botJetSkin": "molten_devastator",
-        "skillLevel": 0.78,
+        "skillLevel": 0.93,
         "reactionTime": 0.165,
-        "mistakeRate": 0.09,
+        "mistakeRate": 0.04,
         "firstAttemptOverride": {
           "skillLevel": 0.98,
           "reactionTime": 0.05,

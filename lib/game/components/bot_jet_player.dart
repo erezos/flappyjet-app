@@ -10,6 +10,7 @@ import '../../core/debug_logger.dart';
 import '../core/game_config.dart';
 import '../behaviors/gravity_behavior.dart';
 import '../behaviors/jump_behavior.dart';
+import '../flappy_game.dart'; // For FlappyGame type cast
 
 /// Map bot theme names to actual jet sprite files
 String _getBotJetSpriteFileName(String botJetSkin) {
@@ -53,15 +54,15 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   double _targetY = 0;
   int _score = 0;
   bool _isActive = true;
+  bool _hasHitGround = false; // Track if bot already hit ground (for explosion)
+  
+  // Bot obstacle navigation
+  double? _nextObstacleGapY; // Target Y position of the next obstacle's gap center
+  double? _nextObstacleX; // X position of the next obstacle
   
   // Bot AI parameters - with human-like randomization
   double _timeSinceLastJump = 0;
   final Random _random = Random();
-  
-  // Human-like behavior parameters
-  double _nextJumpTime = 0; // When bot will jump next (with randomization)
-  bool _isHesitating = false; // Sometimes bot "hesitates" like a human
-  double _hesitationTimer = 0;
   
   // Visual parameters (slightly larger than player jet for better visibility)
   static const double botSize = 75.0; // Bigger than player jet (60)
@@ -112,9 +113,6 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
       _jumpBehavior,
     ]);
     
-    // Initialize human-like behavior - randomize first jump time
-    _calculateNextJumpTime();
-    
     safePrint('🤖 Bot jet loaded at position: $position');
     safePrint('🤖 Bot parameters: skill=$skillLevel, reaction=${reactionTime}s, mistakes=$mistakeRate');
   }
@@ -123,7 +121,35 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   void update(double dt) {
     super.update(dt);
     
-    if (!_isActive) return;
+    // If bot is not active (crashed), make it sink to bottom dramatically
+    if (!_isActive) {
+      // Apply increasing gravity for dramatic sinking effect
+      velocity.y += GameConfig.gravity * dt * 1.5; // 1.5x gravity for faster sink
+      position.y += velocity.y * dt;
+      
+      // Add slight rotation for more dramatic crash effect (tumbling)
+      angle += dt * 0.5; // Slow rotation as it sinks
+      
+      // 💥 GROUND IMPACT EXPLOSION - Check if bot hits the ground
+      final groundY = game.size.y - 50; // 50 = ground height
+      if (!_hasHitGround && position.y >= groundY) {
+        _hasHitGround = true; // Only trigger explosion once
+        
+        // Create massive ground impact explosion at ground level
+        if (game is FlappyGame) {
+          final groundPosition = Vector2(position.x, groundY);
+          (game as FlappyGame).createBotGroundExplosion(groundPosition);
+        }
+        
+        safePrint('💥 Bot hit the ground! Creating explosion at ground level');
+      }
+      
+      // Stop sinking when off-screen (performance optimization)
+      if (position.y > game.size.y + 100) {
+        velocity.y = 0; // Stop falling when far off screen
+      }
+      return; // Don't run AI when crashed
+    }
     
     // Update bot AI
     _updateBotAI(dt);
@@ -142,100 +168,120 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     } else if (position.y > maxY) {
       position.y = maxY;
       velocity.y = 0;
-      // Bot crashed into ground - deactivate
-      _isActive = false;
-      safePrint('🤖 Bot crashed! Final score: $_score');
+      // Bot crashed into ground - deactivate and start sinking
+      if (_isActive) {
+        crash(); // Call crash to trigger smoke and sinking
+      }
     }
   }
   
-  /// Bot AI logic - makes the bot jump in a more human-like way
+  /// Bot AI logic - THRESHOLD-BASED APPROACH (proven by ML research)
+  /// Key insight: Flappy Bird is about simple threshold reactions, not complex prediction
   void _updateBotAI(double dt) {
     _timeSinceLastJump += dt;
     
-    // Handle hesitation (sometimes humans pause before jumping)
-    if (_isHesitating) {
-      _hesitationTimer -= dt;
-      if (_hesitationTimer <= 0) {
-        _isHesitating = false;
-      }
-      return; // Don't jump while hesitating
-    }
+    // Find the next obstacle to target
+    _findNextObstacle();
     
-    // Calculate target Y position with some variation
-    // Human players don't fly perfectly in the center
-    final centerY = game.size.y / 2;
-    final variation = _random.nextDouble() * 60 - 30; // ±30 pixels from center
-    _targetY = centerY + variation;
-    
-    // Check if it's time to jump based on randomized timing
-    if (_timeSinceLastJump >= _nextJumpTime) {
-      // Sometimes humans react a bit late (20% chance)
-      if (_random.nextDouble() < 0.2) {
-        _isHesitating = true;
-        _hesitationTimer = 0.1 + _random.nextDouble() * 0.15; // 100-250ms delay
-        return;
-      }
+    // Calculate target Y position based on next obstacle or default to center
+    if (_nextObstacleGapY != null && _nextObstacleX != null) {
+      // We have an obstacle to navigate!
       
+      // Skill-based accuracy: how close to gap center the bot aims
+      // High skill = aims closer to center, low skill = more variation
+      final aimVariation = 30 * (1.0 - skillLevel); // 0.98 skill = ±0.6px, 0.6 skill = ±12px
+      final aimOffset = (_random.nextDouble() * aimVariation * 2) - aimVariation;
+      _targetY = _nextObstacleGapY! + aimOffset;
+      
+      final currentY = position.y;
+      
+      // 🎯 THRESHOLD-BASED DECISION (like successful ML models)
+      // Define a threshold based on skill level - higher skill = tighter control
+      final threshold = 15 + ((1.0 - skillLevel) * 25); // 0.98 skill = 15.5px, 0.6 skill = 25px
+      
+      // SIMPLE RULE: If we're BELOW target by more than threshold → JUMP
+      // This is exactly how successful Flappy Bird AIs work!
+      if (currentY > _targetY + threshold) {
+        // We're too low - need to jump!
+        if (_timeSinceLastJump >= reactionTime) {
+          // Apply mistake rate: sometimes the bot fails to jump
+          final jumpSuccess = _random.nextDouble() > mistakeRate;
+          if (jumpSuccess) {
+            safePrint('🤖 JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px)');
+            _jump();
+            return;
+          } else {
+            safePrint('🤖 MISTAKE: Missed jump (${(mistakeRate * 100).toStringAsFixed(0)}% rate)');
+          }
+        }
+      }
+      // Removed spammy "coast down" and "in target zone" logs
+      
+    } else {
+      // No obstacle found, maintain center height
+      final centerY = game.size.y / 2;
+      if (position.y > centerY + 50 && _timeSinceLastJump >= reactionTime) {
+        _jump();
+      }
+    }
+    
+    // Emergency: prevent hitting ground
+    if (position.y > game.size.y - 100 && velocity.y > 0) {
+      safePrint('🤖 EMERGENCY: Near ground at Y=${position.y.toStringAsFixed(0)} - JUMP!');
       _jump();
-      return;
-    }
-    
-    // Emergency jump if falling too low (human panic reaction)
-    final dangerZone = game.size.y - 150; // Close to ground
-    if (position.y > dangerZone && velocity.y > 0) {
-      // Quick reaction with slight randomness
-      if (_random.nextDouble() < 0.9) { // 90% chance to react
-        _jump();
-      }
-    }
-    
-    // Also jump if too high and still going up (human correction)
-    final tooHigh = 100.0;
-    if (position.y < tooHigh && velocity.y < -100) {
-      // Let it fall naturally (humans stop jumping when too high)
-      return;
-    }
-    
-    // Smart jump based on current velocity and position (human prediction)
-    // If falling and below target, jump with some randomness
-    if (position.y > _targetY + 40 && velocity.y > 50) {
-      // Not always perfect timing (80% accuracy)
-      if (_random.nextDouble() < 0.8) {
-        _jump();
-      }
     }
   }
   
-  /// Calculate next jump time with human-like variation
-  void _calculateNextJumpTime() {
-    // Use reactionTime as the base interval
-    // reactionTime: 0.05s (50ms) = superhuman, 0.5s (500ms) = slow
-    final baseInterval = reactionTime * 3; // Convert reaction time to jump interval
+  /// Find the next obstacle ahead of the bot and set target
+  void _findNextObstacle() {
+    if (game is! FlappyGame) return;
     
-    // Variation based on mistakeRate (more mistakes = more inconsistency)
-    final variationRange = mistakeRate * 2; // 0.02 = 4% variation, 0.20 = 40% variation
-    final variation = 1.0 - variationRange + (_random.nextDouble() * variationRange * 2);
+    final flappyGame = game as FlappyGame;
+    final obstacles = flappyGame.getObstacles();
     
-    _nextJumpTime = baseInterval * variation;
+    // Store previous state to detect changes
+    final hadObstacle = _nextObstacleGapY != null;
     
-    // Skilled bots (low reaction time) are more consistent
-    if (reactionTime < 0.2) {
-      _nextJumpTime = baseInterval * (0.9 + _random.nextDouble() * 0.2); // 90-110% consistency
+    // Find the closest obstacle ahead of us
+    double? closestX;
+    double? closestGapY;
+    
+    for (final obstacle in obstacles) {
+      final obstacleX = obstacle.position.x;
+      
+      // Only consider obstacles ahead of us (with some margin)
+      if (obstacleX > position.x - 50) {
+        if (closestX == null || obstacleX < closestX) {
+          closestX = obstacleX;
+          // Calculate gap center Y
+          // obstacle.position.y is the TOP of the gap (Anchor.topLeft)
+          closestGapY = obstacle.position.y + (obstacle.gapSize / 2);
+        }
+      }
+    }
+    
+    _nextObstacleX = closestX;
+    _nextObstacleGapY = closestGapY;
+    
+    // Only log when obstacle state changes (found new one or lost current one)
+    if (_nextObstacleGapY != null && !hadObstacle) {
+      safePrint('🤖 NEW TARGET: Gap at Y=${_nextObstacleGapY!.toStringAsFixed(0)}, dist=${(closestX! - position.x).toStringAsFixed(0)}px ahead');
+    } else if (_nextObstacleGapY == null && hadObstacle) {
+      safePrint('🤖 LOST TARGET: No obstacles ahead');
     }
   }
   
   /// Make the bot jump
+  /// NOW USES SKILL LEVEL for jump accuracy!
   void _jump() {
     // ✅ REFACTOR v2.0.0 Phase 2: Use JumpBehavior
     _jumpBehavior.jump();
     _timeSinceLastJump = 0;
     
-    // Calculate next jump time with variation (human-like inconsistency)
-    _calculateNextJumpTime();
-    
-    // Add velocity randomness based on mistakeRate
-    // Higher mistake rate = more random jumps
-    final randomness = mistakeRate * 150; // 0.02 = 3 pixels, 0.20 = 30 pixels
+    // Add velocity randomness based on mistakeRate AND skill level
+    // Higher skill = less random jumps, even with same mistakeRate
+    final skillFactor = 1.0 - (skillLevel * 0.4); // 0.98 skill = 0.608x, 0.6 skill = 0.76x
+    final randomness = mistakeRate * 150 * skillFactor; // High skill reduces randomness further
     velocity.y += (_random.nextDouble() * randomness) - (randomness / 2);
   }
   
@@ -243,7 +289,10 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   void incrementScore() {
     if (!_isActive) return;
     _score++;
-    safePrint('🤖 Bot scored! Current score: $_score');
+    // Only log milestone scores to reduce spam
+    if (_score % 5 == 0 || _score <= 3) {
+      safePrint('🤖 SCORE: $_score');
+    }
   }
   
   /// Get current bot score
@@ -256,7 +305,16 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   void crash() {
     if (!_isActive) return;
     _isActive = false;
-    safePrint('🤖 Bot crashed! Final score: $_score');
+    
+    // 💥 Create bot crash smoke effect (4x longer, more fire, less smoke than player)
+    if (game is FlappyGame) {
+      (game as FlappyGame).createBotCrashSmoke(position);
+    }
+    
+    // 🌊 Start sinking animation - bot falls to bottom of screen dramatically
+    velocity.y = 50.0; // Initial downward velocity (gentle start)
+    
+    safePrint('🤖 💥 CRASHED at Y=${position.y.toStringAsFixed(0)}, Final Score: $_score');
   }
   
   /// Reset bot for new level
@@ -265,9 +323,6 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     _isActive = true;
     velocity.setZero(); // ✅ REFACTOR v2.0.0 Phase 2: Reset velocity Vector2
     _timeSinceLastJump = 0;
-    _isHesitating = false;
-    _hesitationTimer = 0;
-    _calculateNextJumpTime(); // Reset jump timing
     position.y = game.size.y / 2;
   }
 }

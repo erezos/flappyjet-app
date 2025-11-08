@@ -14,47 +14,50 @@ class HUD extends Component {
   late TextComponent _bestScoreText;
   late TextComponent _livesText;
   final double _screenWidth;
-  final double _screenHeight;
+  final bool _hideScoreDisplay; // 🎯 Hide score in story mode
 
-  HUD(this._currentLives, this._maxLives, this._screenWidth, this._screenHeight);
+  HUD(this._currentLives, this._maxLives, this._screenWidth, double screenHeight, {bool hideScoreDisplay = false})
+      : _hideScoreDisplay = hideScoreDisplay;
 
   @override
   Future<void> onLoad() async {
-    // Score display (top left)
-    _scoreText = TextComponent(
-      text: '$_score',
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 48,
-          fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(2, 2)),
-          ],
+    // Score display (top left) - hidden in story mode
+    if (!_hideScoreDisplay) {
+      _scoreText = TextComponent(
+        text: '$_score',
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(2, 2)),
+            ],
+          ),
         ),
-      ),
-      position: Vector2(20, 20),
-      anchor: Anchor.topLeft,
-    );
-    add(_scoreText);
+        position: Vector2(20, 20),
+        anchor: Anchor.topLeft,
+      );
+      add(_scoreText);
 
-    // Best score display (under score, smaller font, gold color)
-    _bestScoreText = TextComponent(
-      text: 'Best: $_bestScore',
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFFFD700), // Gold color
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          shadows: [
-            Shadow(color: Colors.black54, blurRadius: 3, offset: Offset(1, 1)),
-          ],
+      // Best score display (under score, smaller font, gold color) - hidden in story mode
+      _bestScoreText = TextComponent(
+        text: 'Best: $_bestScore',
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xFFFFD700), // Gold color
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            shadows: [
+              Shadow(color: Colors.black54, blurRadius: 3, offset: Offset(1, 1)),
+            ],
+          ),
         ),
-      ),
-      position: Vector2(20, 76), // Under score text
-      anchor: Anchor.topLeft,
-    );
-    add(_bestScoreText);
+        position: Vector2(20, 76), // Under score text
+        anchor: Anchor.topLeft,
+      );
+      add(_bestScoreText);
+    }
 
     // Lives display (top right)
     _livesText = TextComponent(
@@ -78,7 +81,7 @@ class HUD extends Component {
   /// Update the score display
   void updateScore(int newScore) {
     _score = newScore;
-    if (hasChildren) {
+    if (!_hideScoreDisplay && hasChildren) {
       _scoreText.text = '$_score';
     }
   }
@@ -86,7 +89,7 @@ class HUD extends Component {
   /// Update the best score display
   void updateBestScore(int newBestScore) {
     _bestScore = newBestScore;
-    if (hasChildren) {
+    if (!_hideScoreDisplay && hasChildren) {
       _bestScoreText.text = 'Best: $_bestScore';
     }
   }

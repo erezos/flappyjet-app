@@ -13,7 +13,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 180,
+        "obstacleGap": 240,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -64,7 +64,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 185,
+        "obstacleGap": 235,
         "obstacleFrequency": 2.8
       },
       "reward": {
@@ -88,9 +88,10 @@
         "description": "Survive for 18 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.0,
-        "obstacleGap": 185,
-        "obstacleFrequency": 1.5
+        "speedMultiplier": 0.95,
+        "obstacleGap": 360,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
         "coins": 25,
@@ -114,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 175,
+        "obstacleGap": 240,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -129,9 +130,9 @@
       "botBattle": {
         "botName": "Police Patrol",
         "botJetSkin": "police_patrol",
-        "skillLevel": 0.6,
+        "skillLevel": 0.85,
         "reactionTime": 0.4,
-        "mistakeRate": 0.15
+        "mistakeRate": 0.08
       }
     },
     {
@@ -145,7 +146,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 180,
+        "obstacleGap": 230,
         "obstacleFrequency": 2.6
       },
       "reward": {
@@ -169,9 +170,10 @@
         "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 180,
-        "obstacleFrequency": 1.4
+        "speedMultiplier": 1.0,
+        "obstacleGap": 340,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
         "coins": 30,
@@ -195,7 +197,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 175,
+        "obstacleGap": 225,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -220,7 +222,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 175,
+        "obstacleGap": 220,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -245,7 +247,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.1,
-        "obstacleGap": 170,
+        "obstacleGap": 235,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -260,9 +262,9 @@
       "botBattle": {
         "botName": "Green Lightning",
         "botJetSkin": "green_lightning",
-        "skillLevel": 0.55,
+        "skillLevel": 0.87,
         "reactionTime": 0.25,
-        "mistakeRate": 0.18,
+        "mistakeRate": 0.07,
         "firstAttemptOverride": {
           "skillLevel": 0.98,
           "reactionTime": 0.05,

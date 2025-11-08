@@ -96,11 +96,14 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       ),
     );
     
-    // Setup smoke animation (repeating for VS battles)
+    // Setup smoke animation (one-time only - smoke rises and fades once)
     _smokeController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 2500),
       vsync: this,
-    )..repeat(reverse: true);
+    );
+    
+    // Start the smoke animation (runs once then stops)
+    _smokeController.forward();
 
     // Start animations
     _animationController.forward();
@@ -239,11 +242,14 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             ],
 
             // Stats - No container, just the rows
-            _buildStatRow(
-              'Objective',
-              '✅ ${widget.objectiveAchieved}/${widget.level.objective.target}',
-            ),
-            const SizedBox(height: 6),
+            // Hide objective for VS levels (beatBot) - it's always shown as player score vs bot score
+            if (widget.level.objective.type != ObjectiveType.beatBot) ...[
+              _buildStatRow(
+                'Objective',
+                '✅ ${widget.objectiveAchieved}/${widget.level.objective.target}',
+              ),
+              const SizedBox(height: 6),
+            ],
             _buildStatRow(
               'Time',
               '${widget.timeTaken}s',
@@ -366,7 +372,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     );
   }
 
-  /// Build modern crashed rival jet visual for VS battles with ANIMATED smoke
+  /// Build modern crashed rival jet visual for VS battles with REAL ANIMATED SMOKE
   Widget _buildCrashedRivalJet() {
     final bot = widget.level.botBattle!;
     final jetPath = _getBotJetSpritePath(bot.botJetSkin);
@@ -417,242 +423,236 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
         
         const SizedBox(height: 20),
         
-        // Crashed jet with ANIMATED smoke/explosion effects
-        AnimatedBuilder(
-          animation: _smokeController,
-          builder: (context, child) {
-            return Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                // Large background explosion glow (pulsing)
-                Container(
-                  width: 160 + (_smokeController.value * 20),
-                  height: 160 + (_smokeController.value * 20),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.orange.withValues(alpha: 0.3 + (_smokeController.value * 0.2)),
-                        Colors.red.withValues(alpha: 0.2 + (_smokeController.value * 0.15)),
-                        Colors.grey.withValues(alpha: 0.15),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.3, 0.6, 1.0],
+        // Crashed jet with REAL ANIMATED smoke particles
+        SizedBox(
+          width: 180,
+          height: 180,
+          child: AnimatedBuilder(
+            animation: _smokeController,
+            builder: (context, child) {
+              // Normalized animation value (0.0 to 1.0)
+              final t = _smokeController.value;
+              
+              // Different particles fade at different rates for layered effect
+              final smoke1Opacity = (1.0 - t).clamp(0.0, 0.9);
+              final smoke2Opacity = (1.0 - t * 0.9).clamp(0.0, 0.85);
+              final smoke3Opacity = (1.0 - t * 1.1).clamp(0.0, 0.8);
+              final smoke4Opacity = (1.0 - t * 0.85).clamp(0.0, 0.75);
+              
+              // Fire sparks flicker (sine wave for natural flicker)
+              final sparkFlicker1 = 0.6 + (0.3 * (1.0 - t));
+              final sparkFlicker2 = 0.7 + (0.3 * (1.0 - t * 0.8));
+              
+              return Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  // Large explosion smoke (background) - rotating and expanding
+                  Positioned(
+                    top: 20 - (t * 10), // Rises slightly
+                    child: Transform.rotate(
+                      angle: t * 1.2, // Slow rotation
+                      child: Opacity(
+                        opacity: (0.5 - t * 0.3).clamp(0.0, 0.5),
+                        child: Transform.scale(
+                          scale: 1.0 + (t * 0.4),
+                          child: Image.asset(
+                            'assets/images/effects/explosion_smoke.png',
+                            width: 140,
+                            height: 140,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                
-                // Animated smoke puff 1 (top-left, rising and fading)
-                Positioned(
-                  top: 5 - (_smokeController.value * 15),
-                  left: 15 + (_smokeController.value * 10),
-                  child: Opacity(
-                    opacity: 0.8 - (_smokeController.value * 0.3),
+                  
+                  // Rising smoke particle 1 (left side) - drifting up and left
+                  Positioned(
+                    top: 10 - (t * 35), // Rises upward
+                    left: 20 - (t * 15), // Drifts left
+                    child: Transform.rotate(
+                      angle: t * 2.0,
+                      child: Opacity(
+                        opacity: smoke1Opacity,
+                        child: Transform.scale(
+                          scale: 0.6 + (t * 0.6), // Expands
+                          child: Image.asset(
+                            'assets/images/effects/smoke_particle_2.png',
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Rising smoke particle 2 (right side) - drifting up and right
+                  Positioned(
+                    top: 15 - (t * 40), // Rises upward faster
+                    right: 15 + (t * 10), // Drifts right
+                    child: Transform.rotate(
+                      angle: -t * 1.8,
+                      child: Opacity(
+                        opacity: smoke2Opacity,
+                        child: Transform.scale(
+                          scale: 0.5 + (t * 0.7), // Expands more
+                          child: Image.asset(
+                            'assets/images/effects/smoke_particle_1.png',
+                            width: 45,
+                            height: 45,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Middle smoke puff (center-left) - rising and expanding
+                  Positioned(
+                    top: 30 - (t * 25), // Moderate rise
+                    left: 25 - (t * 8), // Slight drift
+                    child: Transform.rotate(
+                      angle: t * 2.5,
+                      child: Opacity(
+                        opacity: smoke3Opacity,
+                        child: Transform.scale(
+                          scale: 0.4 + (t * 0.5),
+                          child: Image.asset(
+                            'assets/images/effects/smoke_particle_3.png',
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Additional smoke wisp (top center) - quick dissipation
+                  Positioned(
+                    top: 5 - (t * 45), // Rises fastest
+                    left: 65 + (t * 5),
+                    child: Transform.rotate(
+                      angle: -t * 2.2,
+                      child: Opacity(
+                        opacity: smoke4Opacity,
+                        child: Transform.scale(
+                          scale: 0.3 + (t * 0.5),
+                          child: Image.asset(
+                            'assets/images/effects/smoke_particle_1.png',
+                            width: 35,
+                            height: 35,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Fire spark 1 (flickering, stays near crash site)
+                  Positioned(
+                    top: 65 + (t * 3), // Slight movement
+                    left: 35,
+                    child: Opacity(
+                      opacity: sparkFlicker1,
+                      child: Transform.scale(
+                        scale: 0.8 + (0.3 * (1.0 - t)),
+                        child: Image.asset(
+                          'assets/images/effects/fire_spark_1.png',
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Fire spark 2 (flickering, stays near crash site)
+                  Positioned(
+                    top: 70 + (t * 2),
+                    right: 30,
+                    child: Opacity(
+                      opacity: sparkFlicker2,
+                      child: Transform.scale(
+                        scale: 0.7 + (0.4 * (1.0 - t)),
+                        child: Image.asset(
+                          'assets/images/effects/fire_spark_2.png',
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Additional ember (rises up)
+                  Positioned(
+                    top: 35 - (t * 20),
+                    right: 40 - (t * 5),
+                    child: Opacity(
+                      opacity: (1.0 - t * 1.2).clamp(0.0, 0.9),
+                      child: Transform.scale(
+                        scale: 0.5 + (t * 0.4),
+                        child: Image.asset(
+                          'assets/images/effects/fire_spark_1.png',
+                          width: 18,
+                          height: 18,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Orange explosion glow overlay (pulsing gently)
+                  Positioned(
                     child: Container(
-                      width: 35 + (_smokeController.value * 10),
-                      height: 35 + (_smokeController.value * 10),
+                      width: 150 + (t * 10),
+                      height: 150 + (t * 10),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            Colors.grey.shade700.withValues(alpha: 0.6),
-                            Colors.grey.shade600.withValues(alpha: 0.3),
+                            Colors.orange.withValues(alpha: (0.3 - t * 0.2).clamp(0.0, 0.3)),
+                            Colors.red.withValues(alpha: (0.2 - t * 0.15).clamp(0.0, 0.2)),
                             Colors.transparent,
                           ],
+                          stops: const [0.0, 0.5, 1.0],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 20,
-                          ),
-                        ],
                       ),
                     ),
                   ),
-                ),
-                
-                // Animated smoke puff 2 (top-right, rising differently)
-                Positioned(
-                  top: 10 - (_smokeController.value * 20),
-                  right: 20 - (_smokeController.value * 5),
-                  child: Opacity(
-                    opacity: 0.7 - (_smokeController.value * 0.4),
-                    child: Container(
-                      width: 30 + (_smokeController.value * 12),
-                      height: 30 + (_smokeController.value * 12),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.grey.shade800.withValues(alpha: 0.5),
-                            Colors.grey.shade700.withValues(alpha: 0.2),
-                            Colors.transparent,
+                  
+                  // Tilted crashed jet - FULL COLOR (subtle shake only at beginning)
+                  Positioned(
+                    top: 60 + (t < 0.2 ? t * 3 : 0.6), // Small drop then stabilize
+                    child: Transform.rotate(
+                      angle: -0.25 + (t < 0.3 ? t * 0.1 : 0.03), // Shake at start then settle
+                      child: Container(
+                        width: 95,
+                        height: 95,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              blurRadius: 25,
+                              spreadRadius: 3,
+                              offset: const Offset(0, 8),
+                            ),
                           ],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 15,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Animated smoke puff 3 (middle-left, drifting)
-                Positioned(
-                  top: 40 - (_smokeController.value * 10),
-                  left: 25 - (_smokeController.value * 8),
-                  child: Opacity(
-                    opacity: 0.6 - (_smokeController.value * 0.3),
-                    child: Container(
-                      width: 25 + (_smokeController.value * 8),
-                      height: 25 + (_smokeController.value * 8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.grey.shade600.withValues(alpha: 0.7),
-                            Colors.grey.shade500.withValues(alpha: 0.3),
-                            Colors.transparent,
-                          ],
+                        child: Image.asset(
+                          jetPath,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
                   ),
-                ),
-                
-                // Animated fire sparks (flickering orange/red)
-                Positioned(
-                  top: 35 + (_smokeController.value * 5),
-                  left: 40,
-                  child: Opacity(
-                    opacity: 0.6 + (_smokeController.value * 0.4),
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.orange,
-                            Colors.deepOrange.withValues(alpha: 0.8),
-                            Colors.transparent,
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orange.withValues(alpha: 0.8),
-                            blurRadius: 15,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Animated fire spark 2
-                Positioned(
-                  top: 45 + (_smokeController.value * 3),
-                  right: 35,
-                  child: Opacity(
-                    opacity: 0.7 + (_smokeController.value * 0.3),
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.red,
-                            Colors.deepOrange.withValues(alpha: 0.7),
-                            Colors.transparent,
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.red.withValues(alpha: 0.9),
-                            blurRadius: 12,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Small flickering ember 3
-                Positioned(
-                  top: 30 - (_smokeController.value * 8),
-                  left: 55,
-                  child: Opacity(
-                    opacity: 0.5 + (_smokeController.value * 0.5),
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.orangeAccent,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orange.withValues(alpha: 0.7),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Small flickering ember 4
-                Positioned(
-                  top: 50,
-                  right: 45 + (_smokeController.value * 5),
-                  child: Opacity(
-                    opacity: 0.8 - (_smokeController.value * 0.4),
-                    child: Container(
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.redAccent,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.red.withValues(alpha: 0.8),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Tilted crashed jet - FULL COLOR with slight tilt and shake
-                Transform.rotate(
-                  angle: -0.2 + (_smokeController.value * 0.05), // Slight shake effect
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      jetPath,
-                      fit: BoxFit.contain,
-                      // Keep full color - no color filter!
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
         
         const SizedBox(height: 16),

@@ -190,6 +190,11 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
 
     // Stop update timer
     _updateTimer?.cancel();
+    
+    // ⏱️ CRITICAL FIX: Pause game time IMMEDIATELY when game over screen appears
+    // This prevents the timer from running while the player views the game over menu
+    _game.gameStateManager.pauseGameTime();
+    safePrint('⏸️ STORY MODE: Game time paused on game over (before ad)');
 
     // Check if objective was completed before game over
     final objectiveCompleted = _objectiveTracker.checkFinalCompletion();
@@ -197,11 +202,116 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     if (objectiveCompleted) {
       _onLevelCompleted();
     } else {
-      // ❌ Objective not completed - show game over menu with Continue/Quit options
-      // The game over menu will be shown automatically by the ValueListenableBuilder
-      // When the player clicks "Main Menu", _handleBackToMap() will navigate to Level Failed Screen
-      safePrint('🎮 ❌ Objective not completed. Showing game over menu with continue options.');
+      // ❌ Objective not completed - navigate DIRECTLY to beautiful game over popup
+      // Skip the GameOverMenu entirely for a cleaner, more engaging experience
+      safePrint('🎮 ❌ Objective not completed. Showing story mode game over popup.');
+      _showStoryModeGameOverPopup();
     }
+  }
+
+  /// 💀 Show beautiful story mode game over popup (bypasses endless game over menu)
+  void _showStoryModeGameOverPopup() {
+    final monetization = MonetizationManager();
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => LevelFailedScreen(
+          level: widget.level,
+          objectiveAchieved: _objectiveTracker.currentProgress,
+          objectiveTarget: widget.level.objective.target,
+          continuesUsed: _game.gameStateManager.continuesUsedThisRun,
+          continuesRemaining: _game.gameStateManager.continuesRemaining,
+          // Continue with ad callback
+          onContinueWithAd: _game.canContinueWithAd 
+            ? () async {
+                safePrint('🎯 STORY MODE: Continue with ad requested from popup');
+                
+                await monetization.showRewardedAdForExtraLife(
+                  onAdStart: () {
+                    _game.pauseForAd();
+                    safePrint('⏸️ STORY MODE: Game engine paused for ad');
+                    _game.gameStateManager.pauseGameTime();
+                  },
+                  onAdEnd: () {
+                    _game.resumeFromAd();
+                    safePrint('▶️ STORY MODE: Game engine resumed after ad');
+                    _game.gameStateManager.resumeGameTime();
+                  },
+                  onReward: () async {
+                    safePrint('🎯 STORY MODE: Ad reward granted - continuing game');
+                    
+                    // Restore 1 heart
+                    final livesManager = LivesManager();
+                    await livesManager.addLife(1);
+                    safePrint('💖 Story Mode: Restored 1 heart after ad (now: ${livesManager.currentLives})');
+                    
+                    // Close popup
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
+                    
+                    // Continue game
+                    _game.continueGame();
+                    
+                    // Restart timer for time-based levels
+                    if (widget.level.objective.type == ObjectiveType.surviveTime || 
+                        widget.level.objective.type == ObjectiveType.beatBot) {
+                      _updateTimer?.cancel();
+                      _startUpdateTimer();
+                      safePrint('🎯 TIMER: Restarted after ad continue');
+                    }
+                  },
+                  onAdFailure: () {
+                    safePrint('🎯 STORY MODE: Ad failed - staying on popup');
+                  },
+                );
+              }
+            : null,
+          // Continue with gems callback (3 gems)
+          onContinueWithGems: _game.canContinueWithAd
+            ? () async {
+                safePrint('🎯 STORY MODE: Continue with gems requested');
+                
+                final inventory = InventoryManager();
+                const gemCost = 3;
+                
+                if (inventory.gems >= gemCost) {
+                  // Deduct gems
+                  final success = await inventory.spendGems(gemCost);
+                  if (!success) {
+                    safePrint('⚠️ Failed to spend gems for continue');
+                    return;
+                  }
+                  safePrint('💎 Deducted $gemCost gems for continue');
+                  
+                  // Restore 1 heart
+                  final livesManager = LivesManager();
+                  await livesManager.addLife(1);
+                  safePrint('💖 Story Mode: Restored 1 heart after gem continue (now: ${livesManager.currentLives})');
+                  
+                  // Close popup
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+                  
+                  // Continue game
+                  _game.continueGame();
+                  
+                  // Restart timer for time-based levels
+                  if (widget.level.objective.type == ObjectiveType.surviveTime || 
+                      widget.level.objective.type == ObjectiveType.beatBot) {
+                    _updateTimer?.cancel();
+                    _startUpdateTimer();
+                    safePrint('🎯 TIMER: Restarted after gem continue');
+                  }
+                } else {
+                  safePrint('⚠️ Not enough gems for continue');
+                }
+              }
+            : null,
+        ),
+      ),
+    );
   }
 
   void _onLevelCompleted() async {
@@ -264,19 +374,11 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
             child: GameWidget(game: _game),
           ),
 
-          // 🎯 NEW: Top-left objective indicator (replaces score display)
+          // 🎯 Top-left objective indicator (only UI element for objectives)
           Positioned(
             top: 40,
             left: 16,
             child: _buildTopObjectiveIndicator(),
-          ),
-
-          // Objective tracker overlay (bottom)
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: _buildObjectiveTracker(),
           ),
 
           // 🎮 STORY MODE: Game Over Menu Overlay (same as endless mode)
@@ -565,6 +667,12 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
   
   void _handleStoryModeRestart() {
     safePrint('🎯 STORY MODE: Restart requested');
+    
+    // ⏱️ CRITICAL FIX: Resume game time if it was paused (player restart without continuing)
+    // This prevents the pause state from persisting into the restart
+    _game.gameStateManager.resumeGameTime();
+    safePrint('▶️ STORY MODE: Game time resumed (player restarting level)');
+    
     _game.resetGame();
   }
   
@@ -573,6 +681,11 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     _levelEnded = true;
 
     safePrint('🎯 STORY MODE: Back to map requested');
+    
+    // ⏱️ CRITICAL FIX: Resume game time if it was paused (player quit without continuing)
+    // This prevents the pause state from persisting into the next level attempt
+    _game.gameStateManager.resumeGameTime();
+    safePrint('▶️ STORY MODE: Game time resumed (player quit to map)');
     
     // 🎵 STOP STORY MODE MUSIC: Stop level music before navigating away
     _game.audioManager.stopMusic().then((_) {
@@ -663,49 +776,7 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     safePrint('🎯 STORY MODE: Share score on $platform');
     // TODO: Implement social sharing for story mode
   }
-
-  Widget _buildObjectiveTracker() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24, width: 2),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            _getObjectiveIcon(),
-            color: _objectiveTracker.isCompleted ? Colors.green : Colors.amber,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            _objectiveTracker.getProgressDescription(),
-            style: TextStyle(
-              color: _objectiveTracker.isCompleted ? Colors.green : Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          if (_objectiveTracker.isCompleted) ...[
-            const SizedBox(width: 8),
-            const Icon(Icons.check_circle, color: Colors.green, size: 24),
-          ],
-        ],
-      ),
-    );
-  }
-
-  IconData _getObjectiveIcon() {
-    switch (widget.level.objective.type) {
-      case ObjectiveType.passObstacles:
-        return Icons.flag;
-      case ObjectiveType.surviveTime:
-        return Icons.timer;
-      case ObjectiveType.beatBot:
-        return Icons.sports_esports;
-    }
-  }
+  
+  // 🎯 Removed _buildObjectiveTracker and _getObjectiveIcon - no longer displayed
+  // (story mode uses top indicator only)
 }

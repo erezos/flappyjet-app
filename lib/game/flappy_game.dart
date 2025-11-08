@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 // ✅ REFACTOR v1.7.0: Collision detection now handled by HasCollisionDetection mixin (removed unused import)
@@ -12,9 +13,10 @@ import 'systems/difficulty_system.dart';
 import 'systems/leaderboard_manager.dart';
 import 'systems/lightweight_performance_timer.dart';
 import 'components/parallax_background.dart';
-// ✅ REFACTOR v1.7.0: DynamicObstacle import removed - not used in this file (managed by ObstacleManager)
-import 'systems/jet_effects_system.dart'; // 🔥 EPIC ENGINE FIRE EFFECTS
 import 'components/jet_player.dart';
+import 'components/dynamic_obstacle.dart'; // Needed for bot AI navigation
+import 'systems/jet_effects_system.dart'; // 🔥 EPIC ENGINE FIRE EFFECTS
+import 'components/crash_smoke_component.dart';
 import 'components/bot_jet_player.dart'; // 🤖 BOT OPPONENT
 import 'systems/monetization_manager.dart';
 import 'systems/hardware_particle_system.dart'; // 🚀 HARDWARE-ACCELERATED PARTICLES
@@ -99,6 +101,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   late ObstacleManager _obstacleManager;
   late CelebrationSystem _celebrationSystem;
   late ThemeManager _themeManager;
+  
+  // 💨 Pre-loaded smoke/fire sprites for on-demand particle creation (performance optimization)
+  late List<Sprite> _smokeSprites;
+  late List<Sprite> _fireSprites;
 
   // Public getter for story mode wrapper
   GameStateManager get gameStateManager => _gameStateManager;
@@ -108,6 +114,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   int get botScore => _world.botScore;
   /// Public getter for bot active state (via World)
   bool get botIsActive => _world.botIsActive;
+  /// Public getter for obstacles (for bot AI navigation)
+  List<DynamicObstacle> getObstacles() => _obstacleManager.obstacles;
 
   // ✅ PHASE 1: Legacy component references (for gradual migration in Task 1.4)
   // These will be replaced with world.player, world.background, etc. in Task 1.4
@@ -282,6 +290,20 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Initialize hardware particle system synchronously
     await _hardwareParticleSystem.preRenderParticles();
     safePrint('🚀 HardwareParticleSystem initialized - Ready for crash effects!');
+    
+    // 💨 Pre-load crash smoke sprites (best practice: load assets early, create particles lazily)
+    _smokeSprites = [
+      await loadSprite('effects/smoke_particle_1.png'),
+      await loadSprite('effects/smoke_particle_2.png'),
+      await loadSprite('effects/smoke_particle_3.png'),
+    ];
+    
+    _fireSprites = [
+      await loadSprite('effects/fire_spark_1.png'),
+      await loadSprite('effects/fire_spark_2.png'),
+    ];
+    
+    safePrint('💨 Crash smoke sprites pre-loaded (particles will be created on-demand)');
 
     // Initialize missions and events tracking (lightweight)
     _missionsManager = missions ?? MissionsManager();
@@ -356,6 +378,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       maxLives: livesManager.maxLives,
       width: gameWidth,
       height: gameHeight,
+      hideScoreDisplay: isStoryMode, // 🎯 Hide score/best score in story mode
     );
     
     // ✅ Step 5: Add Camera to game
@@ -556,8 +579,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
         );
         
         if (botRect.overlaps(topRect) || botRect.overlaps(bottomRect)) {
-          safePrint('🤖 BOT COLLISION: Bot crashed into obstacle!');
-          safePrint('🤖   Bot Y: ${_botJet!.position.y}, Gap: ${obstacle.position.y} to ${obstacle.position.y + gapSize}');
+          final gapTop = obstacle.position.y;
+          final gapBottom = obstacle.position.y + gapSize;
+          final botY = _botJet!.position.y;
+          final crashType = botRect.overlaps(topRect) ? 'TOP' : 'BOTTOM';
+          safePrint('🤖 💥 COLLISION: Hit $crashType pipe! Bot Y=$botY, Gap: $gapTop-$gapBottom');
           _botJet!.crash();
           return;
         }
@@ -593,8 +619,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // ✅ SIMPLIFIED: Removed setDamageStateFromLives() - jet always looks normal
     // Health is tracked by GameStateManager.lives and displayed in HUD
 
-    // Impact particles (crash-specific, not celebratory)
-    _celebrationSystem.createCrashBurst(_jet.position);
+    // 💨 Create realistic smoke effect on-demand (lazy instantiation = better performance)
+    _createCrashSmokeEffect(_jet.position);
 
     if (!isGameOver) {
       // Continue with invulnerability - JetPlayer manages its own timing
@@ -613,6 +639,198 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       // Game over
       _gameOver();
     }
+  }
+
+  /// 💨 Create crash smoke effect on-demand (Flame + Mobile best practice)
+  /// 
+  /// Performance optimizations:
+  /// 1. Lazy instantiation - particles created only when needed
+  /// 2. Sprites pre-loaded during initialization
+  /// 3. Particles auto-remove when done (no memory leaks)
+  /// 4. Uses Flame's Component system for efficient rendering
+  void _createCrashSmokeEffect(Vector2 crashPosition) {
+    final random = math.Random();
+    
+    // === SMOKE PARTICLES (6-10 particles) ===
+    final numSmokeParticles = 6 + random.nextInt(5);
+    for (int i = 0; i < numSmokeParticles; i++) {
+      final smokeSprite = _smokeSprites[random.nextInt(_smokeSprites.length)];
+      final initialSize = 20.0 + random.nextDouble() * 15.0; // 20-35px
+      final angle = (random.nextDouble() - 0.5) * math.pi * 0.6; // Spread angle
+      final speed = 50 + random.nextDouble() * 80; // Initial upward speed
+      final lateralVelocity = math.sin(angle) * speed;
+      final upwardVelocity = -math.cos(angle) * speed; // Negative for upward
+      
+      final smoke = SmokeParticleComponent(
+        sprite: smokeSprite,
+        position: crashPosition.clone(),
+        size: Vector2.all(initialSize),
+        velocity: Vector2(lateralVelocity, upwardVelocity),
+        lifetime: 1.5 + random.nextDouble() * 1.0,
+        rotationSpeed: (random.nextDouble() - 0.5) * 2.0,
+        expansionRate: 15 + random.nextDouble() * 10,
+      );
+      
+      // Set initial opacity
+      smoke.paint.color = Colors.white.withValues(alpha: 0.6 + random.nextDouble() * 0.3);
+      
+      _world.add(smoke); // Add to world for in-game rendering
+    }
+    
+    // === FIRE SPARKS (4-8 particles) ===
+    final numFireSparks = 4 + random.nextInt(5);
+    for (int i = 0; i < numFireSparks; i++) {
+      final fireSprite = _fireSprites[random.nextInt(_fireSprites.length)];
+      final initialSize = 8.0 + random.nextDouble() * 6.0; // 8-14px
+      final angle = random.nextDouble() * 2 * math.pi; // Full circle spread
+      final speed = 80 + random.nextDouble() * 120; // Initial outward speed
+      
+      final spark = FireSparkComponent(
+        sprite: fireSprite,
+        position: crashPosition.clone(),
+        size: Vector2.all(initialSize),
+        velocity: Vector2(math.cos(angle) * speed, math.sin(angle) * speed - 30), // Upward bias
+        lifetime: 0.6 + random.nextDouble() * 0.4,
+        gravity: 150.0, // Sparks fall faster
+      );
+      _world.add(spark); // Add to world for in-game rendering
+    }
+  }
+  
+  /// 🤖 Create bot crash smoke effect (more fire, less smoke, 4x longer)
+  /// Public method so BotJetPlayer can call it on crash
+  void createBotCrashSmoke(Vector2 crashPosition) {
+    final random = math.Random();
+    
+    // === BOT SMOKE (Less smoke, more transparent, 4x longer duration) ===
+    final numSmokeParticles = 3 + random.nextInt(3); // Less smoke than player
+    for (int i = 0; i < numSmokeParticles; i++) {
+      final smokeSprite = _smokeSprites[random.nextInt(_smokeSprites.length)];
+      final initialSize = 15.0 + random.nextDouble() * 10.0; // Smaller than player
+      final angle = (random.nextDouble() - 0.5) * math.pi * 0.6;
+      final speed = 50 + random.nextDouble() * 80;
+      final lateralVelocity = math.sin(angle) * speed;
+      final upwardVelocity = -math.cos(angle) * speed;
+
+      final smoke = SmokeParticleComponent(
+        sprite: smokeSprite,
+        position: crashPosition.clone(),
+        size: Vector2.all(initialSize),
+        velocity: Vector2(lateralVelocity, upwardVelocity),
+        lifetime: 4.0 + random.nextDouble() * 2.4, // 4x longer (was 1.0-1.6, now 4.0-6.4)
+        rotationSpeed: (random.nextDouble() - 0.5) * 2.0,
+        expansionRate: 15 + random.nextDouble() * 10,
+      );
+
+      // Set initial opacity - more transparent for bot
+      smoke.paint.color = Colors.white.withValues(alpha: 0.4); // More transparent
+      _world.add(smoke);
+    }
+
+    // === BOT FIRE SPARKS (More fire than player! 4x longer) ===
+    final numFireSparks = 8 + random.nextInt(6); // MORE fire for dramatic bot crash
+    for (int i = 0; i < numFireSparks; i++) {
+      final fireSprite = _fireSprites[random.nextInt(_fireSprites.length)];
+      final initialSize = 10.0 + random.nextDouble() * 8.0;
+      final angle = random.nextDouble() * 2 * math.pi;
+      final speed = 100 + random.nextDouble() * 140; // Faster/more energetic
+
+      final spark = FireSparkComponent(
+        sprite: fireSprite,
+        position: crashPosition.clone(),
+        size: Vector2.all(initialSize),
+        velocity: Vector2(math.cos(angle) * speed, math.sin(angle) * speed - 30),
+        lifetime: 2.0 + random.nextDouble() * 1.6, // 4x longer (was 0.5-0.9, now 2.0-3.6)
+        gravity: 180.0, // Slightly more gravity
+      );
+      
+      // Set initial opacity with ORANGE tint for enemy fire
+      spark.paint.color = Colors.deepOrange.withValues(alpha: 1.0); // Full opacity, orange
+      _world.add(spark);
+    }
+    
+    safePrint('💥 Bot crash smoke created at $crashPosition (4x longer, more fire, less smoke)');
+  }
+
+  /// 💥 Create massive ground explosion when bot hits the ground
+  /// Public method so BotJetPlayer can call it on ground impact
+  void createBotGroundExplosion(Vector2 groundPosition) {
+    final random = math.Random();
+    
+    // === MASSIVE SMOKE CLOUD (10-15 large particles for ground impact) ===
+    final numSmokeParticles = 10 + random.nextInt(6); // Big smoke cloud
+    for (int i = 0; i < numSmokeParticles; i++) {
+      final smokeSprite = _smokeSprites[random.nextInt(_smokeSprites.length)];
+      final initialSize = 30.0 + random.nextDouble() * 25.0; // Large particles (30-55px)
+      
+      // Spread particles horizontally more than vertically (ground explosion pattern)
+      final horizontalAngle = (random.nextDouble() - 0.5) * math.pi * 0.8; // Wide spread
+      final speed = 80 + random.nextDouble() * 100; // Faster initial burst
+      final lateralVelocity = math.sin(horizontalAngle) * speed * 1.5; // More horizontal movement
+      final upwardVelocity = -math.cos(horizontalAngle) * speed * 0.7; // Less vertical movement
+      
+      final smoke = SmokeParticleComponent(
+        sprite: smokeSprite,
+        position: groundPosition.clone(),
+        size: Vector2.all(initialSize),
+        velocity: Vector2(lateralVelocity, upwardVelocity),
+        lifetime: 2.5 + random.nextDouble() * 2.0, // Long-lasting smoke (2.5-4.5s)
+        rotationSpeed: (random.nextDouble() - 0.5) * 1.5,
+        expansionRate: 25 + random.nextDouble() * 15, // Expands more
+      );
+      
+      // Dense smoke with varied opacity
+      smoke.paint.color = Colors.grey.shade700.withValues(alpha: 0.6 + random.nextDouble() * 0.3);
+      _world.add(smoke);
+    }
+
+    // === MASSIVE FIRE EXPLOSION (15-20 fire sparks shooting upward) ===
+    final numFireSparks = 15 + random.nextInt(6); // HUGE fire burst
+    for (int i = 0; i < numFireSparks; i++) {
+      final fireSprite = _fireSprites[random.nextInt(_fireSprites.length)];
+      final initialSize = 12.0 + random.nextDouble() * 10.0; // Larger fire sparks (12-22px)
+      final angle = random.nextDouble() * 2 * math.pi; // Full circle burst
+      final speed = 150 + random.nextDouble() * 180; // Very fast explosion
+      
+      final spark = FireSparkComponent(
+        sprite: fireSprite,
+        position: groundPosition.clone(),
+        size: Vector2.all(initialSize),
+        velocity: Vector2(math.cos(angle) * speed, math.sin(angle) * speed - 50), // Strong upward bias
+        lifetime: 1.5 + random.nextDouble() * 1.2, // Long-lasting (1.5-2.7s)
+        gravity: 200.0, // Gravity pulls them down
+      );
+      
+      // Bright orange/red fire with full opacity
+      final fireColor = random.nextBool() ? Colors.deepOrange : Colors.red.shade700;
+      spark.paint.color = fireColor.withValues(alpha: 1.0); // Full opacity
+      _world.add(spark);
+    }
+
+    // === ADDITIONAL DEBRIS PARTICLES (small smoke puffs) ===
+    final numDebris = 8 + random.nextInt(5); // 8-12 debris particles
+    for (int i = 0; i < numDebris; i++) {
+      final smokeSprite = _smokeSprites[random.nextInt(_smokeSprites.length)];
+      final initialSize = 10.0 + random.nextDouble() * 8.0; // Small debris (10-18px)
+      final angle = random.nextDouble() * 2 * math.pi;
+      final speed = 50 + random.nextDouble() * 70;
+      
+      final debris = SmokeParticleComponent(
+        sprite: smokeSprite,
+        position: groundPosition.clone(),
+        size: Vector2.all(initialSize),
+        velocity: Vector2(math.cos(angle) * speed, math.sin(angle) * speed - 20),
+        lifetime: 1.0 + random.nextDouble() * 1.0,
+        rotationSpeed: (random.nextDouble() - 0.5) * 3.0, // Fast rotation
+        expansionRate: 10 + random.nextDouble() * 8,
+      );
+      
+      // Dark smoke/debris
+      debris.paint.color = Colors.grey.shade800.withValues(alpha: 0.7);
+      _world.add(debris);
+    }
+    
+    safePrint('💥💥 MASSIVE GROUND EXPLOSION at $groundPosition! (${numSmokeParticles} smoke, ${numFireSparks} fire, ${numDebris} debris)');
   }
 
   /// Handle game over
@@ -710,8 +928,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Flame Audio: Play game over sound
     _audioManager.playGameOver();
 
-    // Crash-specific effect
-    _celebrationSystem.createCrashBurst(_jet.position);
+    // 💨 Create realistic smoke effect for game over crash
+    _createCrashSmokeEffect(_jet.position);
 
     // 📊 Track game over analytics
     final sessionDuration = (DateTime.now().millisecondsSinceEpoch - _gameStateManager.gameStartTime) ~/ 1000;

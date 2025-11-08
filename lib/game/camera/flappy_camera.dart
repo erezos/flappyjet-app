@@ -1,5 +1,4 @@
 import 'package:flame/components.dart';
-import '../../core/debug_logger.dart';
 import '../world/flappy_world.dart';
 import '../components/hud.dart';
 
@@ -29,6 +28,7 @@ class FlappyCamera {
     required int maxLives,
     required double width,
     required double height,
+    bool hideScoreDisplay = false, // 🎯 Hide score in story mode
   }) {
     // ✅ Standard CameraComponent with viewfinder positioned at world origin
     // The default viewfinder is centered at (0,0) with anchor.center
@@ -40,7 +40,7 @@ class FlappyCamera {
     camera.viewfinder.position = Vector2.zero();
     
     // Add HUD to viewport (renders in screen space, not world space)
-    final hud = HUD(currentLives, maxLives, width, height);
+    final hud = HUD(currentLives, maxLives, width, height, hideScoreDisplay: hideScoreDisplay);
     hud.priority = 100; // Render above everything
     
     camera.viewport.add(hud);

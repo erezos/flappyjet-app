@@ -294,10 +294,13 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
             child: Stack(
               children: [
                 // Background image (zone-specific)
+                // ✅ FIX: Use BoxFit.cover to ensure image ALWAYS fills the screen
+                // This prevents nodes from appearing outside the image on different aspect ratios
                 Image.asset(
                   'assets/images/backgrounds/world_map_zone${_levelSystemManager.currentZone}.png',
                   width: screenSize.width,
-                  fit: BoxFit.contain,
+                  height: minMapHeight,
+                  fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       color: const Color(0xFF1A237E),

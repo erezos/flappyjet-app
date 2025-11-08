@@ -13,7 +13,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 163,
+        "obstacleGap": 175,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -38,8 +38,9 @@
       },
       "difficulty": {
         "speedMultiplier": 1.20,
-        "obstacleGap": 163,
-        "obstacleFrequency": 0.8
+        "obstacleGap": 220,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
         "coins": 45,
@@ -63,7 +64,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.20,
-        "obstacleGap": 160,
+        "obstacleGap": 172,
         "obstacleFrequency": 1.9
       },
       "reward": {
@@ -87,9 +88,10 @@
         "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.20,
-        "obstacleGap": 160,
-        "obstacleFrequency": 0.9
+        "speedMultiplier": 1.22,
+        "obstacleGap": 210,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 62
       },
       "reward": {
         "coins": 45,
@@ -113,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.22,
-        "obstacleGap": 158,
+        "obstacleGap": 220,
         "obstacleFrequency": 1.8
       },
       "reward": {
@@ -128,9 +130,9 @@
       "botBattle": {
         "botName": "Storm Chaser",
         "botJetSkin": "storm_chaser",
-        "skillLevel": 0.82,
+        "skillLevel": 0.94,
         "reactionTime": 0.15,
-        "mistakeRate": 0.08
+        "mistakeRate": 0.04
       }
     },
     {
@@ -144,7 +146,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.20,
-        "obstacleGap": 160,
+        "obstacleGap": 170,
         "obstacleFrequency": 1.9
       },
       "reward": {
@@ -168,9 +170,10 @@
         "description": "Survive for 25 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.22,
-        "obstacleGap": 160,
-        "obstacleFrequency": 0.7
+        "speedMultiplier": 1.25,
+        "obstacleGap": 200,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 66
       },
       "reward": {
         "coins": 50,
@@ -194,7 +197,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.22,
-        "obstacleGap": 158,
+        "obstacleGap": 168,
         "obstacleFrequency": 1.8
       },
       "reward": {
@@ -219,7 +222,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.22,
-        "obstacleGap": 158,
+        "obstacleGap": 165,
         "obstacleFrequency": 1.8
       },
       "reward": {
@@ -244,7 +247,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.25,
-        "obstacleGap": 155,
+        "obstacleGap": 220,
         "obstacleFrequency": 1.7
       },
       "reward": {
@@ -259,9 +262,9 @@
       "botBattle": {
         "botName": "Diamond Storm",
         "botJetSkin": "diamond_storm",
-        "skillLevel": 0.85,
+        "skillLevel": 0.95,
         "reactionTime": 0.135,
-        "mistakeRate": 0.07,
+        "mistakeRate": 0.03,
         "firstAttemptOverride": {
           "skillLevel": 0.98,
           "reactionTime": 0.05,

@@ -138,6 +138,25 @@ class GameStateManager extends ChangeNotifier {
       },
     );
 
+    // 🎯 STORY MODE TIME FIX: Adjust game start time to exclude game-over-to-continue duration
+    // When user crashes and watches an ad, the time spent on game over screen should not count
+    // We do this by shifting the start time forward by (actual elapsed - playing time)
+    if (_gameStartTime > 0) {
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      final actualElapsedBeforeContinue = getElapsedGameTime(); // This is the REAL playing time
+      final newStartTime = currentTime - actualElapsedBeforeContinue;
+      
+      safePrint('⏱️ TIME FIX: Adjusting game start time for continue');
+      safePrint('⏱️ Old start time: $_gameStartTime');
+      safePrint('⏱️ New start time: $newStartTime (shifted by ${newStartTime - _gameStartTime}ms)');
+      safePrint('⏱️ Preserved playing time: ${actualElapsedBeforeContinue}ms');
+      
+      _gameStartTime = newStartTime;
+      // Reset pause tracking since we've already accounted for it in the new start time
+      _totalPauseDuration = 0;
+      _pauseStartTime = 0;
+    }
+
     safePrint(
       '🎬 Game continued after ad - back in action! Lives=$_lives, continues used: $_continuesUsedThisRun/$_maxContinuesPerRun',
     );
