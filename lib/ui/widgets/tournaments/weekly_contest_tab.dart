@@ -143,18 +143,17 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Header
           _buildHeader(),
           
-          // Content
-          Expanded(
-            child: _isLoading
-                ? _buildLoadingState()
-                : _error != null
-                    ? _buildErrorState()
-                    : _buildTournamentContent(),
-          ),
+          // Content (without Expanded to work in SingleChildScrollView)
+          _isLoading
+              ? _buildLoadingState()
+              : _error != null
+                  ? _buildErrorState()
+                  : _buildTournamentContent(),
         ],
       ),
     );
@@ -263,9 +262,7 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tournament info card
-          _buildTournamentInfoCard(),
-          const SizedBox(height: 20),
+          // Removed tournament info card - now shown in tournaments_page.dart header
           
           // Prize pool
           _buildPrizePoolCard(),
@@ -273,6 +270,7 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
           
           // Leaderboard
           _buildTournamentLeaderboard(),
+          const SizedBox(height: 20), // Bottom padding
         ],
       ),
     );
@@ -309,111 +307,6 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
         ],
       ),
     );
-  }
-
-  Widget _buildTournamentInfoCard() {
-    final tournament = _currentTournament!;
-    final name = tournament.name;
-    final startTime = _formatDate(tournament.startDate);
-    final endTime = _formatDate(tournament.endDate);
-    final status = tournament.status;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.emoji_events,
-                color: Colors.black,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  name,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: status == TournamentStatus.active ? Colors.green : Colors.orange,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  status.name.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Duration: $startTime - $endTime',
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.8, 0.8));
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final dateOnly = DateTime(date.year, date.month, date.day);
-    
-    // Check if it's today, tomorrow, or yesterday
-    final difference = dateOnly.difference(today).inDays;
-    
-    if (difference == 0) {
-      // Today - show time only
-      return 'Today ${_formatTime(date)}';
-    } else if (difference == 1) {
-      // Tomorrow
-      return 'Tomorrow ${_formatTime(date)}';
-    } else if (difference == -1) {
-      // Yesterday
-      return 'Yesterday ${_formatTime(date)}';
-    } else {
-      // Other dates - show month/day and time
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return '${months[date.month - 1]} ${date.day} ${_formatTime(date)}';
-    }
-  }
-  
-  String _formatTime(DateTime date) {
-    final hour = date.hour == 0 ? 12 : (date.hour > 12 ? date.hour - 12 : date.hour);
-    final minute = date.minute.toString().padLeft(2, '0');
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $period';
   }
 
   Widget _buildPrizePoolCard() {

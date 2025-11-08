@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 2.0.2+52
+version: 2.0.3+53
 
 environment:
   sdk: '^3.8.0'

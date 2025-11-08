@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'ui/screens/homepage.dart';
+import 'ui/screens/home_navigator_screen.dart';
 
 // Platform optimization system - Now using AAA adaptive quality system
 import 'core/debug_manager.dart';
@@ -208,12 +208,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
         _isComplete = true;
       });
 
-      // Navigate to homepage after brief delay
+      // Navigate to home navigator screen after brief delay
       await Future.delayed(Duration(milliseconds: 500));
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => Homepage(
+            builder: (context) => HomeNavigatorScreen(
               firebaseEnabled: widget.firebaseEnabled,
               monetization: _monetization,
               missions: _missions,
@@ -226,11 +226,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
       safePrint('🚀 MAIN: All systems initialization completed successfully');
     } catch (e) {
       safePrint('🚀 MAIN: ❌ System initialization error: $e');
-      // Even on error, show the homepage (production safety)
+      // Even on error, show the home navigator screen (production safety)
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => Homepage(
+            builder: (context) => HomeNavigatorScreen(
               firebaseEnabled: widget.firebaseEnabled,
               monetization: _monetization,
               missions: _missions,
@@ -460,7 +460,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   onPressed: () {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) => Homepage(
+                        builder: (context) => HomeNavigatorScreen(
                           firebaseEnabled: widget.firebaseEnabled,
                           monetization: _monetization,
                           missions: _missions,
