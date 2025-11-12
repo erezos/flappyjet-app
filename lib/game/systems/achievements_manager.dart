@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'inventory_manager.dart';
 import '../../core/debug_logger.dart';
+import '../../core/events/event_bus.dart';
 
 /// Achievement categories for organization
 enum AchievementCategory {
@@ -486,6 +487,150 @@ class AchievementsManager extends ChangeNotifier {
       gemReward: 30,
       iconPath: 'achievements/platform_master.png',
     ));
+
+    // === STORY MODE ACHIEVEMENTS ===
+    // Level Completion Achievements
+    _registerAchievement(Achievement(
+      id: 'first_steps',
+      title: 'First Steps',
+      description: 'Complete your first story level',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.bronze,
+      target: 1,
+      coinReward: 50,
+      iconPath: 'achievements/first_steps.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'story_beginner',
+      title: 'Story Beginner',
+      description: 'Complete 5 story levels',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.silver,
+      target: 5,
+      coinReward: 150,
+      iconPath: 'achievements/story_beginner.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'story_expert',
+      title: 'Story Expert',
+      description: 'Complete 15 story levels',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 15,
+      coinReward: 400,
+      gemReward: 10,
+      iconPath: 'achievements/story_expert.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'story_master',
+      title: 'Story Master',
+      description: 'Complete all story levels (30 total)',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.platinum,
+      target: 30,
+      coinReward: 1000,
+      gemReward: 25,
+      iconPath: 'achievements/story_master.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'flawless_victory',
+      title: 'Flawless Victory',
+      description: 'Complete a level without using continue',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.silver,
+      target: 1,
+      coinReward: 200,
+      gemReward: 5,
+      iconPath: 'achievements/flawless_victory.png',
+    ));
+
+    // Zone Completion Achievements
+    _registerAchievement(Achievement(
+      id: 'sky_pioneer',
+      title: 'Sky Pioneer',
+      description: 'Complete Zone 1 - Sky Kingdom',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.silver,
+      target: 1,
+      coinReward: 200,
+      iconPath: 'achievements/sky_pioneer.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'cloud_conqueror',
+      title: 'Cloud Conqueror',
+      description: 'Complete Zone 2 - Cloud Castle',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 1,
+      coinReward: 300,
+      gemReward: 5,
+      iconPath: 'achievements/cloud_conqueror.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'storm_breaker',
+      title: 'Storm Breaker',
+      description: 'Complete Zone 3 - Storm Citadel',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 1,
+      coinReward: 400,
+      gemReward: 10,
+      iconPath: 'achievements/storm_breaker.png',
+    ));
+
+    // Challenge Achievements
+    _registerAchievement(Achievement(
+      id: 'speed_demon',
+      title: 'Speed Demon',
+      description: 'Complete a timed level in under 30 seconds',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.silver,
+      target: 1,
+      coinReward: 250,
+      iconPath: 'achievements/speed_demon.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'obstacle_master',
+      title: 'Obstacle Master',
+      description: 'Complete 10 obstacle-based levels',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 10,
+      coinReward: 350,
+      gemReward: 8,
+      iconPath: 'achievements/obstacle_master.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'survivor_champion',
+      title: 'Survivor Champion',
+      description: 'Complete 10 survival-based levels',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 10,
+      coinReward: 350,
+      gemReward: 8,
+      iconPath: 'achievements/survivor_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'no_continues_hero',
+      title: 'No Continues Hero',
+      description: 'Complete 5 levels without using continue',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.platinum,
+      target: 5,
+      coinReward: 500,
+      gemReward: 15,
+      iconPath: 'achievements/no_continues_hero.png',
+    ));
   }
 
   /// Register a single achievement
@@ -598,6 +743,19 @@ class AchievementsManager extends ChangeNotifier {
     safePrint('🏅 Achievement unlocked: ${achievement.title}');
     safePrint('🏅 Rewards: ${achievement.coinReward} coins, ${achievement.gemReward} gems');
     
+    // Fire achievement_unlocked event for analytics
+    final eventBus = EventBus();
+    eventBus.fire('achievement_unlocked', {
+      'achievement_id': achievement.id,
+      'achievement_name': achievement.title,
+      'achievement_tier': achievement.rarity.toString(),
+      'achievement_category': achievement.category.toString(),
+      'reward_coins': achievement.coinReward,
+      'reward_gems': achievement.gemReward,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+    safePrint('🏆 achievement_unlocked event fired for "${achievement.title}"');
+    
     // Grant rewards (will be integrated with InventoryManager)
     // await InventoryManager().grantSoftCurrency(achievement.coinReward);
     // if (achievement.gemReward > 0) {
@@ -631,6 +789,53 @@ class AchievementsManager extends ChangeNotifier {
     await setProgress('endurance_rookie', survivalTimeSeconds);
     await setProgress('marathon_flyer', survivalTimeSeconds);
     await setProgress('iron_wings', survivalTimeSeconds);
+  }
+
+  /// Check story mode level completion achievements
+  Future<void> checkStoryModeAchievements({
+    required bool levelCompleted,
+    required int totalLevelsCompleted,
+    required int zoneCompleted,
+    required bool wasFlawless,
+    required String objectiveType,
+    required int timeTaken,
+  }) async {
+    if (!levelCompleted) return;
+    
+    // Level completion achievements
+    await updateProgress('first_steps', 1);
+    await setProgress('story_beginner', totalLevelsCompleted);
+    await setProgress('story_expert', totalLevelsCompleted);
+    await setProgress('story_master', totalLevelsCompleted);
+    
+    // Flawless victory
+    if (wasFlawless) {
+      await updateProgress('flawless_victory', 1);
+      await updateProgress('no_continues_hero', 1);
+    }
+    
+    // Zone completion achievements
+    if (zoneCompleted == 1) {
+      await updateProgress('sky_pioneer', 1);
+    } else if (zoneCompleted == 2) {
+      await updateProgress('cloud_conqueror', 1);
+    } else if (zoneCompleted == 3) {
+      await updateProgress('storm_breaker', 1);
+    }
+    
+    // Challenge achievements based on objective type
+    if (objectiveType == 'ObjectiveType.passObstacles') {
+      await updateProgress('obstacle_master', 1);
+    } else if (objectiveType == 'ObjectiveType.surviveTime') {
+      await updateProgress('survivor_champion', 1);
+      
+      // Speed demon for timed levels under 30s
+      if (timeTaken < 30) {
+        await updateProgress('speed_demon', 1);
+      }
+    }
+    
+    safePrint('🏅 Story mode achievements checked');
   }
 
   /// Check and update collection achievements

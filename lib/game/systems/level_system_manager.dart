@@ -2,19 +2,24 @@
 /// 
 /// Central manager for all story mode level data and player progress.
 /// Handles level loading, unlocking, progress tracking, and persistence.
+/// 
+/// ✅ MIGRATED: Now uses LevelProgressRepository for persistence (no SharedPreferences)
 library;
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/level_data_schema.dart';
 import '../../core/debug_logger.dart';
+import '../../core/repositories/level_progress_repository.dart';
 
 class LevelSystemManager extends ChangeNotifier {
   static final LevelSystemManager _instance = LevelSystemManager._internal();
   factory LevelSystemManager() => _instance;
   LevelSystemManager._internal();
+
+  // Dependencies
+  LevelProgressRepository? _levelProgress;
 
   // State
   bool _isInitialized = false;
@@ -31,23 +36,11 @@ class LevelSystemManager extends ChangeNotifier {
   // 🔥 First-attempt tracking for boss battles
   Set<int> _firstAttemptCompleted = {}; // Track which levels have been attempted at least once
   
-  // Statistics
+  // Statistics (not persisted here - tracked in UserStatsRepository)
   int _totalCoinsEarned = 0;
   int _totalGemsEarned = 0;
   int _botBattlesWon = 0;
   int _botBattlesLost = 0;
-
-  // SharedPreferences keys
-  static const String _keyCurrentLevel = 'story_mode_current_level';
-  static const String _keyHighestUnlocked = 'story_mode_highest_unlocked';
-  static const String _keyCompletedLevels = 'story_mode_completed_levels';
-  static const String _keyCurrentZone = 'story_mode_current_zone';
-  static const String _keyCompletedZones = 'story_mode_completed_zones';
-  static const String _keyTotalCoins = 'story_mode_total_coins';
-  static const String _keyTotalGems = 'story_mode_total_gems';
-  static const String _keyBotWins = 'story_mode_bot_wins';
-  static const String _keyBotLosses = 'story_mode_bot_losses';
-  static const String _keyFirstAttempts = 'story_mode_first_attempts'; // 🔥 NEW
 
   // Getters
   bool get isInitialized => _isInitialized;
@@ -69,14 +62,25 @@ class LevelSystemManager extends ChangeNotifier {
     return !_firstAttemptCompleted.contains(levelId);
   }
 
+  /// Set level progress repository (call before initialize)
+  void setLevelProgressRepository(LevelProgressRepository repository) {
+    _levelProgress = repository;
+    safePrint('📖 LevelProgressRepository injected into LevelSystemManager');
+  }
+
   /// 🔥 Mark a level as attempted (called when level starts)
+  /// ✅ MIGRATED: Now uses LevelProgressRepository
   Future<void> markLevelAttempted(int levelId) async {
     if (_firstAttemptCompleted.contains(levelId)) {
       return; // Already marked
     }
     
     _firstAttemptCompleted.add(levelId);
-    await _saveProgress();
+    
+    // Save to repository
+    if (_levelProgress != null) {
+      await _levelProgress!.markFirstAttemptCompleted(levelId);
+    }
     
     safePrint('🔥 Level $levelId: First attempt marked');
   }
@@ -97,7 +101,7 @@ class LevelSystemManager extends ChangeNotifier {
       // Load zones metadata
       await _loadZoneData();
       
-      // Load player progress from SharedPreferences
+      // Load player progress from LevelProgressRepository
       await _loadProgress();
 
       // ✅ FIX: Validate and fix zone unlock states (repair any inconsistencies from previous bugs)
@@ -175,81 +179,63 @@ class LevelSystemManager extends ChangeNotifier {
     }
   }
 
-  /// Load player progress from SharedPreferences
+  /// Load player progress from LevelProgressRepository
+  /// ✅ MIGRATED: Now uses LevelProgressRepository instead of SharedPreferences
   Future<void> _loadProgress() async {
+    if (_levelProgress == null) {
+      safePrint('⚠️ LevelProgressRepository not set, using default values');
+      return;
+    }
+
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final progress = await _levelProgress!.getLevelProgress();
       
-      _currentLevel = prefs.getInt(_keyCurrentLevel) ?? 1;
-      _highestLevelUnlocked = prefs.getInt(_keyHighestUnlocked) ?? 1;
-      _currentZone = prefs.getInt(_keyCurrentZone) ?? 1;
-      _totalCoinsEarned = prefs.getInt(_keyTotalCoins) ?? 0;
-      _totalGemsEarned = prefs.getInt(_keyTotalGems) ?? 0;
-      _botBattlesWon = prefs.getInt(_keyBotWins) ?? 0;
-      _botBattlesLost = prefs.getInt(_keyBotLosses) ?? 0;
+      _currentLevel = progress.currentLevel;
+      _highestLevelUnlocked = progress.highestUnlocked;
+      _currentZone = progress.currentZone;
       
-      // Load completed levels (stored as comma-separated string)
-      final completedLevelsStr = prefs.getString(_keyCompletedLevels) ?? '';
-      if (completedLevelsStr.isNotEmpty) {
-        _completedLevels = completedLevelsStr
-            .split(',')
-            .map((s) => int.tryParse(s))
-            .whereType<int>()
-            .toSet();
-      }
+      // Parse completed levels from JSON
+      _completedLevels = progress.completedLevels.toSet();
       
-      // Load completed zones
-      final completedZonesStr = prefs.getString(_keyCompletedZones) ?? '';
-      if (completedZonesStr.isNotEmpty) {
-        _completedZones = completedZonesStr
-            .split(',')
-            .map((s) => int.tryParse(s))
-            .whereType<int>()
-            .toSet();
-      }
+      // Parse completed zones from JSON
+      _completedZones = progress.completedZones.toSet();
       
-      // 🔥 Load first attempts
-      final firstAttemptsStr = prefs.getString(_keyFirstAttempts) ?? '';
-      if (firstAttemptsStr.isNotEmpty) {
-        _firstAttemptCompleted = firstAttemptsStr
-            .split(',')
-            .map((s) => int.tryParse(s))
-            .whereType<int>()
-            .toSet();
-      }
+      // Parse first attempts from JSON
+      _firstAttemptCompleted = progress.firstAttemptCompleted.toSet();
       
-      safePrint('📖 Loaded progress: Level $_currentLevel, ${_completedLevels.length} completed');
+      safePrint('📖 Loaded progress from SQLite: Level $_currentLevel, ${_completedLevels.length} completed');
     } catch (e) {
-      safePrint('❌ Error loading progress: $e');
-      // Don't rethrow - use default values if loading fails
+      safePrint('❌ Error loading progress from repository: $e');
+      // Use default values if loading fails
     }
   }
 
-  /// Save player progress to SharedPreferences
+  /// Save player progress to LevelProgressRepository
+  /// ✅ MIGRATED: Now uses LevelProgressRepository instead of SharedPreferences
+  /// This method updates all progress fields in one go
   Future<void> _saveProgress() async {
+    if (_levelProgress == null) {
+      safePrint('⚠️ LevelProgressRepository not set, skipping save');
+      return;
+    }
+
     try {
-      final prefs = await SharedPreferences.getInstance();
+      // Update current level and zone
+      await _levelProgress!.setCurrentLevel(_currentLevel);
+      await _levelProgress!.setCurrentZone(_currentZone);
       
-      await prefs.setInt(_keyCurrentLevel, _currentLevel);
-      await prefs.setInt(_keyHighestUnlocked, _highestLevelUnlocked);
-      await prefs.setInt(_keyCurrentZone, _currentZone);
-      await prefs.setInt(_keyTotalCoins, _totalCoinsEarned);
-      await prefs.setInt(_keyTotalGems, _totalGemsEarned);
-      await prefs.setInt(_keyBotWins, _botBattlesWon);
-      await prefs.setInt(_keyBotLosses, _botBattlesLost);
+      // Ensure highest unlocked is up to date
+      if (_highestLevelUnlocked > _currentLevel) {
+        await _levelProgress!.unlockLevel(_highestLevelUnlocked);
+      }
       
-      // Save completed levels as comma-separated string
-      await prefs.setString(_keyCompletedLevels, _completedLevels.join(','));
+      // Note: Completed levels/zones/first attempts are already tracked
+      // via completeLevel(), completeZone(), and markFirstAttemptCompleted()
+      // So we don't need to bulk update them here
       
-      // Save completed zones
-      await prefs.setString(_keyCompletedZones, _completedZones.join(','));
-      
-      // 🔥 Save first attempts
-      await prefs.setString(_keyFirstAttempts, _firstAttemptCompleted.join(','));
-      
-      safePrint('📖 💾 Progress saved');
+      safePrint('📖 💾 Progress saved to SQLite');
     } catch (e) {
-      safePrint('❌ Error saving progress: $e');
+      safePrint('❌ Error saving progress to repository: $e');
     }
   }
 
@@ -452,6 +438,7 @@ class LevelSystemManager extends ChangeNotifier {
   }
 
   /// Mark a level as completed
+  /// ✅ MIGRATED: Now uses LevelProgressRepository
   Future<void> completeLevel({
     required int levelId,
     required int coinsEarned,
@@ -461,11 +448,16 @@ class LevelSystemManager extends ChangeNotifier {
     // Add to completed levels
     _completedLevels.add(levelId);
     
-    // Update totals
+    // Save completed level to repository
+    if (_levelProgress != null) {
+      await _levelProgress!.completeLevel(levelId);
+    }
+    
+    // Update totals (these are tracked locally for display, not persisted in LevelProgress)
     _totalCoinsEarned += coinsEarned;
     _totalGemsEarned += gemsEarned;
     
-    // Update bot battle stats
+    // Update bot battle stats (also local display only)
     if (botDefeated != null) {
       if (botDefeated) {
         _botBattlesWon++;
@@ -482,6 +474,12 @@ class LevelSystemManager extends ChangeNotifier {
       
       if (allZoneLevelsCompleted && !_completedZones.contains(level.zone)) {
         _completedZones.add(level.zone);
+        
+        // Save completed zone to repository
+        if (_levelProgress != null) {
+          await _levelProgress!.completeZone(level.zone);
+        }
+        
         safePrint('📖 🏆 Zone ${level.zone} completed!');
         
         // Auto-advance to next zone if available
@@ -512,6 +510,7 @@ class LevelSystemManager extends ChangeNotifier {
   }
 
   /// Reset all progress (for testing)
+  /// ✅ MIGRATED: Now uses LevelProgressRepository
   Future<void> resetProgress() async {
     _currentLevel = 1;
     _highestLevelUnlocked = 1;
@@ -524,7 +523,11 @@ class LevelSystemManager extends ChangeNotifier {
     _botBattlesLost = 0;
     _firstAttemptCompleted.clear(); // 🔥 Clear first attempts
     
-    await _saveProgress();
+    // Reset in repository
+    if (_levelProgress != null) {
+      await _levelProgress!.resetProgress();
+    }
+    
     notifyListeners();
     
     safePrint('📖 🔄 Progress reset to Level 1');

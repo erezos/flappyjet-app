@@ -99,10 +99,10 @@ class PerformanceOptimizedLauncher {
     });
 
     _initializeSystemAsync('inventory', () async {
-      // Inventory system initialization
-      final inventory = InventoryManager();
-      await inventory.initialize();
-      return inventory;
+      // Inventory system initialization now requires repositories
+      // This will be initialized in main.dart instead
+      safePrint('🎒 InventoryManager initialization moved to main.dart');
+      return null;
     });
 
     _initializeSystemAsync('lives', () async {

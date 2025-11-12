@@ -1,230 +1,251 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flappy_jet_pro/game/systems/game_state_manager.dart';
+import 'package:flappy_jet_pro/game/core/game_config.dart';
+import 'package:flappy_jet_pro/game/core/game_themes.dart';
 
 void main() {
-  group('GameStateManager High Score Sync Tests', () {
-    late GameStateManager gameStateManager;
+  TestWidgetsFlutterBinding.ensureInitialized();
+  
+  group('GameStateManager - Collision & Game Over', () {
+    late GameStateManager manager;
 
     setUp(() {
-      // Initialize SharedPreferences for testing
-      SharedPreferences.setMockInitialValues({});
+      manager = GameStateManager();
+    });
+
+    test('should start in waiting state', () {
+      expect(manager.isWaitingToStart, isTrue);
+      expect(manager.isGameOver, isFalse);
+      expect(manager.isPlaying, isFalse);
+      expect(manager.lives, equals(GameConfig.maxLives));
+    });
+
+    test('startGame() should transition to playing state', () {
+      manager.startGame();
       
-      gameStateManager = GameStateManager();
+      expect(manager.isWaitingToStart, isFalse);
+      expect(manager.isGameOver, isFalse);
+      expect(manager.isPlaying, isTrue);
+      expect(manager.gameStartTime, greaterThan(0));
     });
 
-    tearDown(() {
-      // Clean up
-    });
-
-    test('saveBestScore should update in-memory value immediately', () async {
-      // Arrange
-      const testScore = 100;
-
-      // Act
-      await gameStateManager.saveBestScore(testScore);
-
-      // Assert
-      expect(gameStateManager.bestScore, equals(testScore));
-    });
-
-    test('saveBestScore should not update if score is not higher', () async {
-      // Arrange
-      const initialScore = 100;
-      const lowerScore = 50;
+    test('handleCollision() should reduce lives and continue playing', () {
+      manager.startGame();
       
-      // Set initial score
-      await gameStateManager.saveBestScore(initialScore);
-
-      // Act
-      await gameStateManager.saveBestScore(lowerScore);
-
-      // Assert
-      expect(gameStateManager.bestScore, equals(initialScore));
+      final isGameOver = manager.handleCollision();
+      
+      expect(isGameOver, isFalse);
+      expect(manager.lives, equals(GameConfig.maxLives - 1));
+      expect(manager.isInvulnerable, isTrue);
+      expect(manager.isGameOver, isFalse);
     });
 
-    test('saveBestStreak should update in-memory value for clean runs', () async {
-      // Arrange
-      const testScore = 50;
-      // Ensure no continues used (clean run)
-      gameStateManager.resetGame();
-
-      // Act
-      await gameStateManager.saveBestStreak(testScore);
-
-      // Assert
-      expect(gameStateManager.bestStreak, equals(testScore));
-    });
-
-    test('saveBestStreak should not update if continues were used', () async {
-      // Arrange
-      const testScore = 50;
-      // First set a streak, then try to update with continues used
-      gameStateManager.resetGame();
-      await gameStateManager.saveBestStreak(25); // Set initial streak
+    test('handleCollision() at 1 life should trigger game over', () {
+      manager.startGame();
       
-      // Simulate using continues by calling saveBestStreak again
-      // (in real game, continues would be tracked separately)
-      // For this test, we'll verify that the streak logic works correctly
-
-      // Act
-      await gameStateManager.saveBestStreak(testScore);
-
-      // Assert - Since no continues were actually used, it should update
-      // This test verifies the clean run logic works
-      expect(gameStateManager.bestStreak, equals(testScore));
-    });
-
-    test('saveBestScore should persist to SharedPreferences asynchronously', () async {
-      // Arrange
-      const testScore = 150;
-
-      // Act
-      await gameStateManager.saveBestScore(testScore);
-      
-      // Wait for async operations to complete
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Assert
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('best_score'), equals(testScore));
-    });
-
-    test('saveBestStreak should persist to SharedPreferences asynchronously', () async {
-      // Arrange
-      const testScore = 75;
-      gameStateManager.resetGame(); // Ensure clean run
-
-      // Act
-      await gameStateManager.saveBestStreak(testScore);
-      
-      // Wait for async operations to complete
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Assert
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('best_streak'), equals(testScore));
-    });
-
-    test('saveBestScore should handle SharedPreferences errors gracefully', () async {
-      // Arrange
-      const testScore = 200;
-      // Mock SharedPreferences to throw an error
-      SharedPreferences.setMockInitialValues({});
-      
-      // Act & Assert - should not throw
-      expect(() async {
-        await gameStateManager.saveBestScore(testScore);
-        await Future.delayed(const Duration(milliseconds: 100));
-      }, returnsNormally);
-      
-      // In-memory value should still be updated
-      expect(gameStateManager.bestScore, equals(testScore));
-    });
-
-    test('saveBestStreak should handle SharedPreferences errors gracefully', () async {
-      // Arrange
-      const testScore = 80;
-      gameStateManager.resetGame(); // Ensure clean run
-      
-      // Act & Assert - should not throw
-      expect(() async {
-        await gameStateManager.saveBestStreak(testScore);
-        await Future.delayed(const Duration(milliseconds: 100));
-      }, returnsNormally);
-      
-      // In-memory value should still be updated
-      expect(gameStateManager.bestStreak, equals(testScore));
-    });
-
-    test('multiple rapid saveBestScore calls should handle correctly', () async {
-      // Arrange
-      const scores = [50, 100, 75, 150, 125];
-
-      // Act
-      for (final score in scores) {
-        await gameStateManager.saveBestScore(score);
+      // Reduce to 1 life
+      for (int i = 0; i < GameConfig.maxLives - 1; i++) {
+        manager.handleCollision();
       }
       
-      // Wait for async operations to complete
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      // Assert
-      expect(gameStateManager.bestScore, equals(150)); // Highest score
+      expect(manager.lives, equals(1));
+      expect(manager.isGameOver, isFalse);
       
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('best_score'), equals(150));
+      // Final collision
+      final isGameOver = manager.handleCollision();
+      
+      expect(isGameOver, isTrue);
+      expect(manager.lives, equals(0));
+      expect(manager.isGameOver, isTrue);
     });
 
-    test('game state should be consistent after score updates', () async {
-      // Arrange
-      const testScore = 300;
+    test('setGameOver() should update internal state immediately', () {
+      // Start game
+      manager.startGame();
+      
+      // Initial state
+      expect(manager.isGameOver, isFalse);
+      
+      // Call setGameOver
+      manager.setGameOver();
+      
+      // Internal state should be updated immediately (critical for game logic)
+      expect(manager.isGameOver, isTrue);
+      
+      // Note: gameOverNotifier.value update is deferred to next frame to avoid
+      // "setState during build" errors, which is the correct behavior.
+      // This cannot be reliably tested in unit tests.
+    });
 
-      // Act
-      await gameStateManager.saveBestScore(testScore);
-      await Future.delayed(const Duration(milliseconds: 100));
+    test('addExtraLife() should restore game state', () {
+      // Start game and trigger game over
+      manager.startGame();
+      for (int i = 0; i < GameConfig.maxLives; i++) {
+        manager.handleCollision();
+      }
+      
+      expect(manager.isGameOver, isTrue);
+      expect(manager.lives, equals(0));
+      
+      // Add extra life
+      manager.addExtraLife();
+      
+      // Internal state should update immediately (critical for game logic)
+      expect(manager.isGameOver, isFalse);
+      expect(manager.lives, equals(1));
+      expect(manager.isInvulnerable, isTrue);
+      
+      // Note: gameOverNotifier.value update is deferred to next frame to avoid
+      // "setState during build" errors, which is the correct behavior.
+      // This cannot be reliably tested in unit tests.
+    });
 
-      // Assert
-      final gameState = gameStateManager.getGameState();
-      expect(gameState['persistence']['best_score'], equals(testScore));
+    test('continueGame() should restore playing state', () {
+      // Start game and trigger game over
+      manager.startGame();
+      for (int i = 0; i < GameConfig.maxLives; i++) {
+        manager.handleCollision();
+      }
+      
+      expect(manager.isGameOver, isTrue);
+      expect(manager.lives, equals(0));
+      
+      // Continue game
+      manager.continueGame();
+      
+      // Internal state should update immediately (critical for game logic)
+      expect(manager.isGameOver, isFalse);
+      expect(manager.continuesUsedThisRun, equals(1));
+      expect(manager.isPlaying, isTrue);
+      expect(manager.lives, greaterThan(0));
+      
+      // Note: gameOverNotifier.value update is deferred to next frame to avoid
+      // "setState during build" errors, which is the correct behavior.
+      // This cannot be reliably tested in unit tests.
+    });
+
+    test('resetGame() should return to initial state', () {
+      // Start game and trigger game over
+      manager.startGame();
+      manager.updateScore(10);
+      manager.setGameOver();
+      
+      expect(manager.isGameOver, isTrue);
+      expect(manager.score, equals(10));
+      
+      // Reset game
+      manager.resetGame();
+      
+      // Internal state should update immediately (critical for game logic)
+      expect(manager.isWaitingToStart, isTrue);
+      expect(manager.isGameOver, isFalse);
+      expect(manager.score, equals(0));
+      expect(manager.continuesUsedThisRun, equals(0));
+      
+      // Note: gameOverNotifier.value update is deferred to next frame to avoid
+      // "setState during build" errors, which is the correct behavior.
+      // This cannot be reliably tested in unit tests.
+    });
+
+    test('updateScore() should transition themes correctly', () {
+      manager.startGame();
+      
+      expect(manager.currentTheme, equals(GameThemes.skyRookie));
+      
+      // Score for theme transitions
+      manager.updateScore(10);
+      expect(manager.currentTheme, equals(GameThemes.getThemeForScore(10)));
+      
+      manager.updateScore(50);
+      expect(manager.currentTheme, equals(GameThemes.getThemeForScore(50)));
+    });
+
+    test('continue system should track usage correctly', () {
+      manager.startGame();
+      
+      expect(manager.continuesUsedThisRun, equals(0));
+      expect(manager.canContinueWithAd, isTrue);
+      expect(manager.continuesRemaining, equals(5));
+      
+      // Use 3 continues
+      for (int i = 0; i < 3; i++) {
+        manager.continueGame();
+      }
+      
+      expect(manager.continuesUsedThisRun, equals(3));
+      expect(manager.canContinueWithAd, isTrue);
+      expect(manager.continuesRemaining, equals(2));
+    });
+
+    test('continue system should cap at 5 continues', () {
+      manager.startGame();
+      
+      // Use max continues
+      for (int i = 0; i < 5; i++) {
+        manager.continueGame();
+      }
+      
+      expect(manager.continuesUsedThisRun, equals(5));
+      expect(manager.canContinueWithAd, isFalse);
+      expect(manager.continuesRemaining, equals(0));
+      
+      // Try one more (should still count, just canContinue returns false)
+      manager.continueGame();
+      expect(manager.continuesUsedThisRun, equals(6));
+    });
+
+    test('invulnerability should be set correctly', () {
+      manager.startGame();
+      
+      expect(manager.isInvulnerable, isFalse);
+      
+      manager.setInvulnerable(true);
+      expect(manager.isInvulnerable, isTrue);
+      
+      manager.setInvulnerable(false);
+      expect(manager.isInvulnerable, isFalse);
     });
   });
 
-  group('GameStateManager Performance Tests', () {
-    late GameStateManager gameStateManager;
+  group('GameStateManager - Time Tracking', () {
+    late GameStateManager manager;
 
     setUp(() {
-      SharedPreferences.setMockInitialValues({});
-      gameStateManager = GameStateManager();
+      manager = GameStateManager();
     });
 
-    test('saveBestScore should be non-blocking', () async {
-      // Arrange
-      const testScore = 500;
-      final stopwatch = Stopwatch()..start();
-
-      // Act
-      await gameStateManager.saveBestScore(testScore);
-      final elapsed = stopwatch.elapsedMilliseconds;
-
-      // Assert
-      expect(elapsed, lessThan(50)); // Should complete in under 50ms
-      expect(gameStateManager.bestScore, equals(testScore));
+    test('getElapsedGameTime() should return 0 before game starts', () {
+      expect(manager.getElapsedGameTime(), equals(0));
     });
 
-    test('saveBestStreak should be non-blocking', () async {
-      // Arrange
-      const testScore = 250;
-      gameStateManager.resetGame(); // Ensure clean run
-      final stopwatch = Stopwatch()..start();
-
-      // Act
-      await gameStateManager.saveBestStreak(testScore);
-      final elapsed = stopwatch.elapsedMilliseconds;
-
-      // Assert
-      expect(elapsed, lessThan(50)); // Should complete in under 50ms
-      expect(gameStateManager.bestStreak, equals(testScore));
-    });
-
-    test('concurrent score updates should handle correctly', () async {
-      // Arrange
-      final scores = List.generate(10, (index) => (index + 1) * 10);
-
-      // Act
-      final futures = scores.map((score) => gameStateManager.saveBestScore(score));
-      await Future.wait(futures);
+    test('getElapsedGameTime() should track time after game starts', () async {
+      manager.startGame();
       
-      // Wait for async operations to complete
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      // Assert - The final score should be one of the scores (due to concurrent updates)
-      expect(gameStateManager.bestScore, greaterThanOrEqualTo(10));
-      expect(gameStateManager.bestScore, lessThanOrEqualTo(100));
+      await Future.delayed(const Duration(milliseconds: 100));
       
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('best_score'), greaterThanOrEqualTo(10));
-      expect(prefs.getInt('best_score'), lessThanOrEqualTo(100));
+      final elapsed = manager.getElapsedGameTime();
+      expect(elapsed, greaterThan(90)); // Allow some margin
+      expect(elapsed, lessThan(150));
+    });
+
+    test('pauseGameTime() and resumeGameTime() should exclude pause duration', () async {
+      manager.startGame();
+      
+      await Future.delayed(const Duration(milliseconds: 50));
+      
+      manager.pauseGameTime();
+      
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      manager.resumeGameTime();
+      
+      await Future.delayed(const Duration(milliseconds: 50));
+      
+      final elapsed = manager.getElapsedGameTime();
+      
+      // Should be ~100ms (50ms + 50ms), not 200ms
+      expect(elapsed, greaterThan(80));
+      expect(elapsed, lessThan(150));
     });
   });
 }

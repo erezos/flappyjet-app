@@ -161,10 +161,6 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final position = _controller.isAnimating
-            ? _positionAnimation.value
-            : _currentAnimatedPosition;
-        
         final rotation = _controller.isAnimating
             ? _rotationAnimation.value
             : _currentRotation;
@@ -173,17 +169,14 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
             ? _scaleAnimation.value
             : _currentScale;
         
-        return Positioned(
-          left: position.dx - (widget.jetSize / 2),
-          top: position.dy - (widget.jetSize / 2) - 40, // ✈️ Position jet ABOVE the node (40px higher)
-          // ✅ FIX: Allow pointer events to pass through the jet to level nodes underneath
-          child: IgnorePointer(
-            child: Transform.scale(
-              scale: scale,
-              child: Transform.rotate(
-                angle: rotation,
-                child: _buildJetSprite(),
-              ),
+        // ✅ FIX: Remove Positioned - parent is responsible for positioning
+        // This widget just renders the jet with rotation and scale
+        return IgnorePointer(
+          child: Transform.scale(
+            scale: scale,
+            child: Transform.rotate(
+              angle: rotation,
+              child: _buildJetSprite(),
             ),
           ),
         );

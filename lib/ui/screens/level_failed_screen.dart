@@ -235,11 +235,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
 
                     // Encouragement message - clean and motivating
                     Text(
-                      progress > 0.7 
-                        ? 'Almost there! You can do this! 💪'
-                        : progress > 0.4
-                          ? 'Don\'t give up! Keep trying! 🚀'
-                          : 'Learn the pattern and try again! 🎯',
+                      _getEncouragementMessage(progress),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
@@ -291,9 +287,52 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     return _livesManager.currentLives > 0;
   }
 
+  String _getEncouragementMessage(double progress) {
+    final isVsMode = widget.level.objective.type == ObjectiveType.beatBot;
+    
+    if (isVsMode) {
+      // VS Mode: Competitive messaging
+      final obstacles = widget.objectiveAchieved;
+      if (obstacles >= 10) {
+        return 'So close! One more try could win it! 🏆';
+      } else if (obstacles >= 5) {
+        return 'You can beat the Police Patrol! Try again! 🚀';
+      } else {
+        return 'Race smarter, not harder! You got this! 💪';
+      }
+    } else {
+      // Story Mode: Progress-based messaging
+      if (progress > 0.7) {
+        return 'Almost there! You can do this! 💪';
+      } else if (progress > 0.4) {
+        return 'Don\'t give up! Keep trying! 🚀';
+      } else {
+        return 'Learn the pattern and try again! 🎯';
+      }
+    }
+  }
+
   // Beautiful circular progress indicator (compact version)
   Widget _buildProgressSection(double progress) {
-    final percentage = (progress * 100).toInt();
+    final isVsMode = widget.level.objective.type == ObjectiveType.beatBot;
+    
+    // 🎮 VS MODE: Show random 80-95% to create urgency
+    // 🎯 STORY MODE: Show actual progress percentage (capped at 100%)
+    final int percentage;
+    final double displayProgress;
+    
+    if (isVsMode) {
+      // Generate consistent random percentage (80-95%) based on achieved score
+      // This creates urgency: "You were SO close!"
+      final seed = widget.objectiveAchieved % 16; // 0-15
+      percentage = 80 + seed; // 80-95%
+      displayProgress = percentage / 100;
+    } else {
+      // Story mode: Cap at 100% max
+      final cappedProgress = progress.clamp(0.0, 1.0);
+      percentage = (cappedProgress * 100).toInt();
+      displayProgress = cappedProgress;
+    }
     
     return Column(
       children: [
@@ -306,13 +345,13 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               width: 120,
               height: 120,
               child: CircularProgressIndicator(
-                value: progress,
+                value: displayProgress,
                 strokeWidth: 10,
                 backgroundColor: Colors.white.withValues(alpha: 0.1),
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  progress > 0.7 
+                  displayProgress > 0.7 
                     ? Colors.amber 
-                    : progress > 0.4 
+                    : displayProgress > 0.4 
                       ? Colors.orange 
                       : Colors.red,
                 ),
@@ -332,7 +371,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Complete',
+                  isVsMode ? 'There!' : 'Complete',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 13,
@@ -346,7 +385,9 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
         const SizedBox(height: 16),
         // Objective details
         Text(
-          widget.level.objective.description,
+          isVsMode 
+            ? '🏆 You dodged ${widget.objectiveAchieved} obstacles!'
+            : widget.level.objective.description,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.8),
@@ -354,15 +395,18 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          '${widget.objectiveAchieved} / ${widget.objectiveTarget}',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+        // Only show X/Y for story mode
+        if (!isVsMode) ...[
+          const SizedBox(height: 8),
+          Text(
+            '${widget.objectiveAchieved} / ${widget.objectiveTarget}',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

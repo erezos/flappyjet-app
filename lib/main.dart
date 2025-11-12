@@ -14,13 +14,31 @@ import 'ui/screens/home_navigator_screen.dart';
 import 'core/debug_manager.dart';
 import 'core/debug_logger.dart';
 
+// Hybrid architecture - Event-driven system
+import 'core/identity/device_identity_manager.dart';
+import 'core/events/event_bus.dart';
+
+// Phase 2: Local database system
+import 'core/database/local_database_manager.dart';
+import 'core/repositories/user_stats_repository.dart';
+import 'core/repositories/inventory_repository.dart';
+import 'core/repositories/level_progress_repository.dart';
+import 'core/repositories/leaderboard_repository.dart';
+
+// Phase 3: Hybrid leaderboard system
+import 'services/hybrid_leaderboard_service.dart';
+
+// Phase 4: Prize distribution system
+import 'core/repositories/prize_repository.dart';
+import 'services/prize_service.dart';
+
 import 'game/systems/monetization_manager.dart';
 import 'game/systems/player_identity_manager.dart';
 import 'game/systems/anonymous_identity_manager.dart';
 import 'game/systems/leaderboard_manager.dart';
 import 'game/systems/inventory_manager.dart';
 import 'game/systems/lives_manager.dart';
-import 'game/systems/game_state_manager.dart';
+import 'game/systems/level_system_manager.dart';
 import 'game/systems/global_leaderboard_service.dart';
 import 'game/systems/firebase_analytics_manager.dart';
 import 'game/systems/missions_manager.dart';
@@ -35,11 +53,9 @@ import 'game/systems/rate_us_manager.dart';
 import 'core/network/network_manager.dart';
 import 'core/data/game_data_manager.dart';
 import 'core/analytics/user_analytics_manager.dart';
-import 'core/analytics/comprehensive_analytics_manager.dart';
 
 // Services
 import 'services/fcm_service.dart';
-import 'services/inventory_sync_service.dart';
 
 // Integrations
 import 'ui/widgets/daily_streak/daily_streak_integration.dart';
@@ -120,6 +136,22 @@ class _LoadingScreenState extends State<LoadingScreen> {
   late MissionsManager _missions;
   late AchievementsManager _achievements;
   late AnonymousIdentityManager _anonymousIdentity;
+  
+  // Hybrid architecture managers
+  late DeviceIdentityManager _deviceIdentity;
+  late EventBus _eventBus;
+  
+  // Phase 2: Local database managers
+  late LocalDatabaseManager _database;
+  late UserStatsRepository _userStats;
+  late InventoryRepository _inventory;
+  late LevelProgressRepository _levelProgress;
+  
+  // Phase 3: Hybrid leaderboard system
+  late LeaderboardRepository _leaderboard;
+  late HybridLeaderboardService _leaderboardService;
+  late PrizeRepository _prizeRepository;
+  late PrizeService _prizeService;
 
   @override
   void initState() {
@@ -137,14 +169,95 @@ class _LoadingScreenState extends State<LoadingScreen> {
       _missions = MissionsManager();
       _achievements = AchievementsManager();
       _anonymousIdentity = AnonymousIdentityManager();
+      _deviceIdentity = DeviceIdentityManager();
+      _eventBus = EventBus();
+      _database = LocalDatabaseManager();
 
       // Phase 1: INSTANT systems (must complete quickly)
       final instantTasks = [
+        // NEW: Hybrid architecture foundation (must be first!)
+        _initTask('Device Identity', () => _deviceIdentity.initialize()), // < 50ms
+        _initTask('Event Bus', () => _eventBus.initialize(_deviceIdentity)), // < 100ms
+        _initTask('Local Database', () => _database.initialize()), // < 100ms
+        
+        // Existing instant tasks
         _initTask('Anonymous Identity', () => _anonymousIdentity.initializeInstant()), // < 100ms
         _initTask('Audio Settings', () => AudioSettingsManager().initialize()),
         _initTask('Game Data', () => GameDataManager().initialize()),
-        _initTask('Game State', () => GameStateManager().loadPersistedData()),
+        // ✅ MIGRATED: GameStateManager now loads persisted data in its constructor
       ];
+
+      // Execute instant tasks first (blocking)
+      for (int i = 0; i < instantTasks.length; i++) {
+        await instantTasks[i]();
+        setState(() {
+          _loadingProgress = (i + 1) / (instantTasks.length + 10); // +10 for background tasks estimate
+        });
+      }
+
+      // NOW initialize repositories after database is ready
+      _userStats = UserStatsRepository(_database);
+      _inventory = InventoryRepository(_database);
+      _levelProgress = LevelProgressRepository(_database);
+      _leaderboard = LeaderboardRepository(_database); // Phase 3
+      
+      // Set user ID in database
+      await _userStats.setUserId(_deviceIdentity.userId);
+      await _levelProgress.setUserId(_deviceIdentity.userId);
+      
+      safePrint('📊 User stats initialized: ${await _userStats.getUserStats()}');
+      safePrint('🎒 Inventory initialized');
+      safePrint('🎮 Level progress initialized: ${await _levelProgress.getLevelProgress()}');
+      safePrint('🏆 Leaderboard repository initialized');
+      
+      // Initialize Phase 3: Hybrid Leaderboard Service
+      _leaderboardService = HybridLeaderboardService(
+        repository: _leaderboard,
+        identity: _deviceIdentity,
+        eventBus: _eventBus,
+        backendUrl: 'https://flappyjet-backend.railway.app', // Railway backend
+      );
+      await _leaderboardService.initialize();
+      safePrint('🏆 Hybrid leaderboard service initialized');
+
+      // Phase 4: Initialize prize system
+      _prizeRepository = PrizeRepository(_database);
+      safePrint('🏆 Prize repository initialized');
+      
+      _prizeService = PrizeService(
+        prizeRepository: _prizeRepository,
+        inventory: InventoryManager(),
+        eventBus: _eventBus,
+        identity: _deviceIdentity,
+      );
+      await _prizeService.initialize();
+      safePrint('🏆 Prize service initialized');
+
+      // ✅ MIGRATED: Inject repositories into managers
+      // GameStateManager injection happens via constructor in flappy_game.dart
+      LevelSystemManager().setLevelProgressRepository(_levelProgress);
+      safePrint('📖 LevelSystemManager repository injected');
+
+      // Fire user_installed or app_launched event
+      if (_deviceIdentity.isFirstLaunch) {
+        _eventBus.fire('user_installed', _deviceIdentity.getDeviceMetadata());
+        safePrint('📤 Fired user_installed event');
+      } else {
+        _eventBus.fire('app_launched', {
+          ..._deviceIdentity.getDeviceMetadata(),
+          ..._deviceIdentity.getSessionMetadata(),
+        });
+        safePrint('📤 Fired app_launched event');
+      }
+
+      // Initialize InventoryManager with repositories
+      final inventoryManager = InventoryManager();
+      await inventoryManager.initialize(
+        userStats: _userStats,
+        inventory: _inventory,
+        eventBus: _eventBus,
+      );
+      safePrint('🎒 ✅ InventoryManager initialized with SQLite');
 
       // Phase 2: Background systems (non-blocking)
       final backgroundTasks = [
@@ -166,13 +279,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
         _initTask('Daily Streak', () => DailyStreakIntegration.initialize()),
         _initTask('Notifications', () => LocalNotificationManager().initialize()),
         _initTask('Rate Us', () => RateUsManager().initialize()),
-        _initTask('Inventory Sync', () => InventorySyncService().initialize()),
+        // Removed: Inventory Sync Service (no longer needed with SQLite)
         _initTask('Lives Manager', () => LivesManager().initialize()),
         _initTask('Monetization', () => _monetization.initialize(
-          inventory: InventoryManager(),
+          inventory: inventoryManager,
           lives: LivesManager(),
         )),
-        _initTask('Comprehensive Analytics', () => ComprehensiveAnalyticsManager().initialize()),
+        // OLD: Comprehensive Analytics removed - now using EventBus for all analytics
       ];
 
       // Execute instant tasks first (blocking)

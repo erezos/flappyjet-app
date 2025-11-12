@@ -1,13 +1,19 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/scheduler.dart';
 import '../../core/debug_logger.dart';
+import '../../core/events/event_bus.dart';
 import '../core/game_config.dart';
 import '../core/game_themes.dart';
-import '../../core/data/game_data_manager.dart';
+import '../../core/repositories/user_stats_repository.dart';
 
 /// Manages the core game state and transitions
 /// Separated from FlappyGame for better testability and maintainability
+/// 
+/// ✅ MIGRATED: Now uses UserStatsRepository for persistence (no SharedPreferences/backend sync)
+/// ✅ PHASE 3: Fires game_ended events to EventBus for leaderboard sync
 class GameStateManager extends ChangeNotifier {
+  final UserStatsRepository? _userStats;
+  final EventBus? _eventBus;
   // Game state
   bool _isWaitingToStart = true;
   bool _isGameOver = false;
@@ -29,12 +35,37 @@ class GameStateManager extends ChangeNotifier {
   int _continuesUsedThisRun = 0;
   static const int _maxContinuesPerRun = 5;
   
+  // Currency tracking per run
+  int _coinsCollectedThisRun = 0;
+  int _gemsCollectedThisRun = 0;
+  
+  // Death tracking
+  String _causeOfDeath = 'unknown';
+  
   // Theme notification state
   double _themeNotificationTime = 0.0;
   bool _showingThemeNotification = false;
   
   // Game over notifier for UI
   final ValueNotifier<bool> gameOverNotifier = ValueNotifier<bool>(false);
+
+  /// Constructor - optionally accepts UserStatsRepository for persistence and EventBus for events
+  GameStateManager({
+    UserStatsRepository? userStats,
+    EventBus? eventBus,
+  })  : _userStats = userStats,
+        _eventBus = eventBus {
+    // Load persisted best score/streak from repository
+    if (_userStats != null) {
+      _userStats.getUserStats().then((stats) {
+        _bestScore = stats.highScore;
+        _bestStreak = stats.bestStreak;
+        safePrint('📊 Loaded persisted data from SQLite - Best: $_bestScore, Streak: $_bestStreak');
+      }).catchError((e) {
+        safePrint('⚠️ Failed to load persisted data from repository: $e');
+      });
+    }
+  }
 
   // PUBLIC GETTERS for UI integration
   bool get isWaitingToStart => _isWaitingToStart;
@@ -50,6 +81,9 @@ class GameStateManager extends ChangeNotifier {
   int get gameStartTime => _gameStartTime;
   double get themeNotificationTime => _themeNotificationTime;
   bool get showingThemeNotification => _showingThemeNotification;
+  int get coinsCollectedThisRun => _coinsCollectedThisRun;
+  int get gemsCollectedThisRun => _gemsCollectedThisRun;
+  String get causeOfDeath => _causeOfDeath;
 
   // Continue system getters
   bool get canContinueWithAd => _continuesUsedThisRun < _maxContinuesPerRun;
@@ -66,8 +100,12 @@ class GameStateManager extends ChangeNotifier {
     _isGameOver = false;
     _gameStartTime = DateTime.now().millisecondsSinceEpoch;
 
-    // Reset continue counter for new run
+    // Reset counters for new run
     _continuesUsedThisRun = 0;
+    _coinsCollectedThisRun = 0;
+    _gemsCollectedThisRun = 0;
+    _causeOfDeath = 'unknown';
+
 
     safePrint('🚀 Game is now in playing state - tap to make the jet jump!');
     safePrint('🎯 GAME START TIME SET: $_gameStartTime (should be non-zero!)');
@@ -90,9 +128,20 @@ class GameStateManager extends ChangeNotifier {
   }
 
   /// Set game over state (public so FlappyGame can trigger it)
-  void setGameOver() {
+  /// [causeOfDeath] - Reason for game over ('obstacle_collision', 'quit', 'out_of_bounds', etc.)
+  /// 
+  /// NOTE: This method ONLY sets the game over state. The game_ended event
+  /// should be fired by FlappyGame._gameOver() to maintain single source of truth.
+  void setGameOver({String causeOfDeath = 'unknown'}) {
     _isGameOver = true;
-    gameOverNotifier.value = true; // Notify UI
+    _causeOfDeath = causeOfDeath;
+    
+    // 🔥 FIX: Defer ValueNotifier update to avoid setState() during build
+    // This can be called during FlappyGame.update() which is part of the build cycle
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      gameOverNotifier.value = true; // Notify UI after build completes
+    });
+    
     safePrint('💀 Game Over! Final Score: $_score in ${_currentTheme.displayName} theme');
   }
 
@@ -102,18 +151,35 @@ class GameStateManager extends ChangeNotifier {
       _lives = 1; // Restore one life
       _isGameOver = false;
       _isInvulnerable = true;
-      gameOverNotifier.value = false;
+      
+      // 🔥 FIX: Defer ValueNotifier update to avoid setState() during build
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        gameOverNotifier.value = false;
+      });
+      
       safePrint('💰 Extra life granted via rewarded ad! Lives: $_lives');
     }
   }
 
   /// Continue game after watching ad
-  void continueGame() {
+  /// Continue game after death (via ad or purchase)
+  /// [continueType] - How the continue was obtained ('ad_watch', 'coin_purchase', 'gem_purchase')
+  /// [costCoins] - Coins spent (0 if ad or gems)
+  /// [costGems] - Gems spent (0 if ad or coins)
+  void continueGame({
+    String continueType = 'ad_watch',
+    int costCoins = 0,
+    int costGems = 0,
+  }) {
     // Track continue usage
     _continuesUsedThisRun++;
 
     _isGameOver = false;
-    gameOverNotifier.value = false;
+    
+    // 🔥 FIX: Defer ValueNotifier update to avoid setState() during build
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      gameOverNotifier.value = false;
+    });
     
     // ✅ CRITICAL FIX: Resume playing state (not waiting!)
     _isWaitingToStart = false;
@@ -157,6 +223,17 @@ class GameStateManager extends ChangeNotifier {
       _pauseStartTime = 0;
     }
 
+    // Fire continue_used event for analytics
+    _eventBus?.fire('continue_used', {
+      'game_mode': 'endless', // TODO: Get actual game mode from context
+      'score_at_death': score,
+      'continue_type': continueType,
+      'cost_coins': costCoins,
+      'cost_gems': costGems,
+      'lives_restored': 1,
+      'continues_used_this_run': _continuesUsedThisRun,
+    });
+
     safePrint(
       '🎬 Game continued after ad - back in action! Lives=$_lives, continues used: $_continuesUsedThisRun/$_maxContinuesPerRun',
     );
@@ -166,7 +243,12 @@ class GameStateManager extends ChangeNotifier {
   void resetGame() {
     _isWaitingToStart = true;
     _isGameOver = false;
-    gameOverNotifier.value = false;
+    
+    // 🔥 FIX: Defer ValueNotifier update to avoid setState() during build
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      gameOverNotifier.value = false;
+    });
+    
     _score = 0;
     _isInvulnerable = false;
     _currentTheme = GameThemes.skyRookie;
@@ -252,50 +334,50 @@ class GameStateManager extends ChangeNotifier {
     _showingThemeNotification = showing;
   }
 
-  /// Load persisted best score and streak from SharedPreferences
-  Future<void> loadPersistedData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _bestScore = prefs.getInt('best_score') ?? 0;
-      _bestStreak = prefs.getInt('best_streak') ?? 0;
-      safePrint('📊 Loaded persisted data - Best: $_bestScore, Streak: $_bestStreak');
-    } catch (e) {
-      safePrint('⚠️ Failed to load persisted data: $e');
-      _bestScore = 0;
-      _bestStreak = 0;
-    }
-  }
-
-  /// Save best score and streak (async, non-blocking)
+  /// Save best score (async, non-blocking)
+  /// ✅ MIGRATED: Now uses UserStatsRepository instead of SharedPreferences
   Future<void> saveBestScore(int score) async {
     if (score > _bestScore) {
       _bestScore = score;
       safePrint('🏆 New best score: $_bestScore');
       
-      // 🚀 ASYNC: Persist to SharedPreferences (non-blocking)
-      _persistBestScoreAsync(score);
+      // Save to SQLite via UserStatsRepository
+      if (_userStats != null) {
+        try {
+          final isNewRecord = await _userStats.updateHighScore(score);
+          if (isNewRecord) {
+            safePrint('🏆 ✅ Best score saved to SQLite: $score');
+          }
+        } catch (e) {
+          safePrint('🏆 ❌ Failed to save best score: $e');
+        }
+      }
       
-      // 🚀 ASYNC: Sync to backend via GameDataManager (non-blocking)
-      _syncBestScoreToBackendAsync(score);
-      
-      // 🚀 NOTIFY: Update UI listeners
+      // Notify UI listeners
       notifyListeners();
     }
   }
 
   /// Save best streak (only for clean runs) (async, non-blocking)
+  /// ✅ MIGRATED: Now uses UserStatsRepository instead of SharedPreferences
   Future<void> saveBestStreak(int score) async {
     if (_continuesUsedThisRun == 0 && score > _bestStreak) {
       _bestStreak = score;
       safePrint('🏆 New best streak (clean run): $_bestStreak');
       
-      // 🚀 ASYNC: Persist to SharedPreferences (non-blocking)
-      _persistBestStreakAsync(score);
+      // Save to SQLite via UserStatsRepository
+      if (_userStats != null) {
+        try {
+          final isNewRecord = await _userStats.updateBestStreak(score);
+          if (isNewRecord) {
+            safePrint('🏆 ✅ Best streak saved to SQLite: $score');
+          }
+        } catch (e) {
+          safePrint('🏆 ❌ Failed to save best streak: $e');
+        }
+      }
       
-      // 🚀 ASYNC: Sync to backend via GameDataManager (non-blocking)
-      _syncBestStreakToBackendAsync(score);
-      
-      // 🚀 NOTIFY: Update UI listeners
+      // Notify UI listeners
       notifyListeners();
     } else if (_continuesUsedThisRun > 0) {
       safePrint(
@@ -304,70 +386,28 @@ class GameStateManager extends ChangeNotifier {
     }
   }
 
-  /// 🚀 ASYNC: Persist best score to SharedPreferences (non-blocking)
-  void _persistBestScoreAsync(int score) {
-    Future.microtask(() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('best_score', score);
-        safePrint('🏆 ✅ Best score persisted: $score');
-      } catch (e) {
-        safePrint('🏆 ❌ Failed to persist best score: $e');
-      }
-    });
-  }
-
-  /// 🚀 ASYNC: Persist best streak to SharedPreferences (non-blocking)
-  void _persistBestStreakAsync(int score) {
-    Future.microtask(() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('best_streak', score);
-        safePrint('🏆 ✅ Best streak persisted: $score');
-      } catch (e) {
-        safePrint('🏆 ❌ Failed to persist best streak: $e');
-      }
-    });
-  }
-
-  /// 🚀 ASYNC: Sync best score to backend via GameDataManager (non-blocking)
-  void _syncBestScoreToBackendAsync(int score) {
-    Future.microtask(() async {
-      try {
-        final gameDataManager = GameDataManager();
-        await gameDataManager.updatePlayerStats(bestScore: score);
-        safePrint('🏆 ✅ Best score synced to backend: $score');
-      } catch (e) {
-        safePrint('🏆 ❌ Failed to sync best score to backend: $e');
-      }
-    });
-  }
-
-  /// 🚀 ASYNC: Sync best streak to backend via GameDataManager (non-blocking)
-  void _syncBestStreakToBackendAsync(int score) {
-    Future.microtask(() async {
-      try {
-        final gameDataManager = GameDataManager();
-        await gameDataManager.updatePlayerStats(bestStreak: score);
-        safePrint('🏆 ✅ Best streak synced to backend: $score');
-      } catch (e) {
-        safePrint('🏆 ❌ Failed to sync best streak to backend: $e');
-      }
-    });
-  }
-
-  /// 🔄 SET: Best score (for restoration from backend)
+  /// 🔄 SET: Best score (for restoration from repository)
   void setBestScore(int score) {
     _bestScore = score;
     safePrint('🔄 🏆 Best score set from restoration: $score');
     notifyListeners();
   }
 
-  /// 🔄 SET: Best streak (for restoration from backend)
+  /// 🔄 SET: Best streak (for restoration from repository)
   void setBestStreak(int score) {
     _bestStreak = score;
     safePrint('🔄 🏆 Best streak set from restoration: $score');
     notifyListeners();
+  }
+
+  /// 📊 Track currency collected during this run (for analytics)
+  void addCoinCollected() {
+    _coinsCollectedThisRun++;
+  }
+
+  /// 📊 Track currency collected during this run (for analytics)
+  void addGemCollected() {
+    _gemsCollectedThisRun++;
   }
 
   /// Get comprehensive game state for debugging/analytics

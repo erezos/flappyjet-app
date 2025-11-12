@@ -7,7 +7,6 @@ import 'dart:math' as math;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/user_restoration_service.dart';
 import 'package:http/http.dart' as http;
 import 'profile_manager.dart';
 import 'leaderboard_manager.dart';
@@ -17,7 +16,6 @@ import 'game_events_tracker.dart';
 import '../../core/network/network_manager.dart';
 import '../../services/nickname_validation_service.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
-import '../../services/inventory_sync_service.dart';
 import 'inventory_manager.dart';
 import '../../core/identity/unified_id_manager.dart';
 // Removed railway_leaderboard_service import - consumers will initialize as needed
@@ -448,15 +446,8 @@ class PlayerIdentityManager extends ChangeNotifier {
 
   /// Trigger user state restoration in background (non-blocking)
   void _triggerUserStateRestoration() {
-    // Run restoration in background to avoid blocking authentication flow
-    Future.delayed(Duration(milliseconds: 500), () async {
-      try {
-        final restorationService = UserRestorationService();
-        await restorationService.restoreUserState();
-      } catch (e) {
-        safePrint('🔄 ⚠️ Failed to run user restoration service: $e');
-      }
-    });
+    // No longer needed - user state is managed locally with SQLite
+    safePrint('🔄 ℹ️ User state restoration disabled (using local SQLite storage)');
   }
 
   /// Save player data to storage
@@ -593,20 +584,8 @@ class PlayerIdentityManager extends ChangeNotifier {
       // Notify analytics system about player ID change
       UnifiedAnalyticsManager().updatePlayerId(_playerId);
 
-      // 🔥 NEW: Sync all local skins to backend after authentication
-      try {
-        final inventorySyncService = InventorySyncService();
-        // Get inventory manager instance
-        final inventoryManager = InventoryManager();
-        await inventorySyncService.syncAllSkins(
-          inventoryManager.ownedSkinIds, 
-          inventoryManager.equippedSkinId
-        );
-        safePrint('🔐 🔄 All skins synced to backend after authentication');
-      } catch (syncError) {
-        safePrint('🔐 ⚠️ Failed to sync skins to backend: $syncError');
-        // Don't fail authentication if sync fails
-      }
+      // Skin sync is now handled automatically by InventoryManager via EventBus
+      // No need for manual backend sync
 
       notifyListeners();
 

@@ -7,7 +7,6 @@ import 'gem_3d_icon.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import '../../game/systems/social_sharing_manager.dart';
-import '../../core/analytics/comprehensive_analytics_manager.dart';
 import '../../core/debug_logger.dart';
 
 class GameOverMenu extends StatefulWidget {
@@ -690,16 +689,9 @@ class _GameOverMenuState extends State<GameOverMenu>
           onTap: () async {
             HapticFeedback.selectionClick();
             
-            // 📊 Track share button click
-            try {
-              await ComprehensiveAnalyticsManager().trackEvent('click_share', {
-                'platform': (social['platform'] as SocialPlatform).name,
-                'score': widget.score,
-                'timestamp': DateTime.now().millisecondsSinceEpoch,
-              });
-            } catch (e) {
-              safePrint('⚠️ Failed to track share click: $e');
-            }
+            // 📊 Track share button click (OLD ANALYTICS REMOVED)
+            // OLD: ComprehensiveAnalyticsManager().trackEvent('click_share', {...})
+            // Now using EventBus for analytics
             
             await _handleSocialShare(social['platform'] as SocialPlatform);
           },

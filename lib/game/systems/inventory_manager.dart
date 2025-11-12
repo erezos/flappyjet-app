@@ -1,60 +1,54 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import '../core/jet_skins.dart';
 import '../../core/debug_logger.dart';
+import '../../core/repositories/user_stats_repository.dart';
+import '../../core/repositories/inventory_repository.dart';
+import '../../core/events/event_bus.dart';
 import 'auto_refill_manager.dart';
-import '../../services/inventory_sync_service.dart';
-import 'player_identity_manager.dart';
 
 /// Enhanced inventory for jet skins, soft currency (coins), gems, and boosters
+/// 
+/// ✅ Phase 2: Migrated to SQLite-based storage
+/// ✅ Removed backend restoration (no longer needed)
+/// ✅ Event-driven analytics (fire-and-forget)
 class InventoryManager extends ChangeNotifier {
   static final InventoryManager _instance = InventoryManager._internal();
   factory InventoryManager() => _instance;
   InventoryManager._internal();
 
-  static const String _keyOwnedSkins = 'inv_owned_skins';
-  static const String _keyEquippedSkin = 'inv_equipped_skin';
-  static const String _keySoftCurrency = 'inv_soft_currency';
-  static const String _keyGems = 'inv_gems';
-  static const String _keyHeartBoosterExpiry = 'inv_heart_booster_expiry';
+  // Dependencies
+  UserStatsRepository? _userStats;
+  InventoryRepository? _inventory;
+  EventBus? _eventBus;
+  bool _isInitialized = false;
 
+  // Cached state (loaded from database)
   Set<String> _ownedSkinIds = {JetSkinCatalog.starterJet.id};
   String _equippedSkinId = JetSkinCatalog.starterJet.id;
-  int _softCurrency = 500; // Production: New players start with 500 coins
-  int _gems = 25; // Production: New players start with 25 gems
-  DateTime? _heartBoosterExpiry; // when Heart Booster expires
+  int _softCurrency = 500;
+  int _gems = 25;
+  DateTime? _heartBoosterExpiry;
 
-  // 🎁 Prize distribution properties
-  String? _playerId;
-  String? _authToken;
-
-  final ValueNotifier<int> _softCurrencyNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<int> _gemsNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<bool> _heartBoosterActiveNotifier = ValueNotifier<bool>(
-    false,
-  );
+  // UI notifiers
+  final ValueNotifier<int> _softCurrencyNotifier = ValueNotifier<int>(500);
+  final ValueNotifier<int> _gemsNotifier = ValueNotifier<int>(25);
+  final ValueNotifier<bool> _heartBoosterActiveNotifier = ValueNotifier<bool>(false);
   
   // Auto-refill manager instance
   final AutoRefillManager _autoRefillManager = AutoRefillManager();
 
+  // Public getters
   Set<String> get ownedSkinIds => _ownedSkinIds;
   String get equippedSkinId => _equippedSkinId;
   int get softCurrency => _softCurrency;
   int get gems => _gems;
   bool get isHeartBoosterActive =>
-      _heartBoosterExpiry != null &&
-      DateTime.now().isBefore(_heartBoosterExpiry!);
+      _heartBoosterExpiry != null && DateTime.now().isBefore(_heartBoosterExpiry!);
   DateTime? get heartBoosterExpiry => _heartBoosterExpiry;
   
   // Auto-refill booster properties
   bool get isAutoRefillActive => _autoRefillManager.isAutoRefillActive;
   DateTime? get autoRefillExpiry => _autoRefillManager.autoRefillExpiry;
-
-  // 🎁 Prize distribution properties
-  String? get playerId => _playerId;
-  String? get authToken => _authToken;
 
   /// Get remaining time for Heart Booster (null if not active)
   Duration? get heartBoosterTimeRemaining {
@@ -66,163 +60,203 @@ class InventoryManager extends ChangeNotifier {
 
   ValueListenable<int> get softCurrencyNotifier => _softCurrencyNotifier;
   ValueListenable<int> get gemsNotifier => _gemsNotifier;
-  ValueListenable<bool> get heartBoosterActiveNotifier =>
-      _heartBoosterActiveNotifier;
-  ValueListenable<bool> get autoRefillActiveNotifier =>
-      _autoRefillManager.autoRefillActiveNotifier;
+  ValueListenable<bool> get heartBoosterActiveNotifier => _heartBoosterActiveNotifier;
+  ValueListenable<bool> get autoRefillActiveNotifier => _autoRefillManager.autoRefillActiveNotifier;
 
-  Future<void> initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ownedJson = prefs.getString(_keyOwnedSkins);
-    if (ownedJson != null) {
-      final List<dynamic> list = jsonDecode(ownedJson);
-      _ownedSkinIds = list.map((e) => e.toString()).toSet();
+  /// Initialize with repositories
+  Future<void> initialize({
+    required UserStatsRepository userStats,
+    required InventoryRepository inventory,
+    required EventBus eventBus,
+  }) async {
+    if (_isInitialized) {
+      safePrint('🎒 InventoryManager already initialized');
+      return;
     }
-    _equippedSkinId =
-        prefs.getString(_keyEquippedSkin) ?? JetSkinCatalog.starterJet.id;
-    _softCurrency =
-        prefs.getInt(_keySoftCurrency) ??
-        500; // Production: New players start with 500 coins
-    _gems =
-        prefs.getInt(_keyGems) ??
-        25; // Production: New players start with 25 gems
 
-    // Load Heart Booster expiry
-    final boosterExpiryMs = prefs.getInt(_keyHeartBoosterExpiry);
-    if (boosterExpiryMs != null) {
-      _heartBoosterExpiry = DateTime.fromMillisecondsSinceEpoch(
-        boosterExpiryMs,
-      );
-      // Check if it's expired
+    _userStats = userStats;
+    _inventory = inventory;
+    _eventBus = eventBus;
+
+    await _loadFromDatabase();
+    await _autoRefillManager.initialize();
+    
+    _isInitialized = true;
+    safePrint('🎒 InventoryManager initialized (SQLite-based)');
+    notifyListeners();
+  }
+
+  /// Check if initialized (for safe access from UI)
+  bool get isInitialized => _isInitialized;
+
+  /// Load current state from database
+  Future<void> _loadFromDatabase() async {
+    if (_userStats == null || _inventory == null) {
+      throw StateError('InventoryManager not initialized. Call initialize() first.');
+    }
+
+    // Load from user_stats
+    final stats = await _userStats!.getUserStats();
+    _softCurrency = stats.coins;
+    _gems = stats.gems;
+    _equippedSkinId = stats.equippedSkinId ?? JetSkinCatalog.starterJet.id;
+    
+    // Load heart booster expiry
+    if (stats.heartBoosterExpiry != null) {
+      _heartBoosterExpiry = stats.heartBoosterExpiry;
+      // Check if expired
       if (DateTime.now().isAfter(_heartBoosterExpiry!)) {
         _heartBoosterExpiry = null;
-        await prefs.remove(_keyHeartBoosterExpiry);
+        // Clear from database
+        await _userStats!.setHeartBoosterExpiry(null);
       }
     }
 
+    // Load from inventory
+    final items = await _inventory!.getAllItems();
+    _ownedSkinIds = items
+        .where((item) => item.itemType == 'skin')
+        .map((item) => item.itemId)
+        .toSet();
+    
+    // Ensure starter skin is always owned
+    if (!_ownedSkinIds.contains(JetSkinCatalog.starterJet.id)) {
+      _ownedSkinIds.add(JetSkinCatalog.starterJet.id);
+      await _inventory!.addItem('skin', JetSkinCatalog.starterJet.id);
+    }
+
+    // Update notifiers
     _softCurrencyNotifier.value = _softCurrency;
     _gemsNotifier.value = _gems;
     _heartBoosterActiveNotifier.value = isHeartBoosterActive;
-    
-    // Initialize auto-refill manager
-    await _autoRefillManager.initialize();
-    
-    notifyListeners();
   }
 
-  Future<void> grantSoftCurrency(int amount) async {
+  /// Grant coins to user
+  /// Grant soft currency (coins) to user
+  /// [source] - Where the coins came from (e.g., 'mission_completed', 'level_completed', 'ad_watched')
+  /// [sourceId] - Specific ID of the source (e.g., 'daily_mission_3', 'level_13')
+  Future<void> grantSoftCurrency(int amount, {String source = 'game_reward', String? sourceId}) async {
+    if (amount <= 0) return;
+
+    final balanceBefore = _softCurrency;
+    await _userStats!.addCoins(amount);
     _softCurrency += amount;
-    await _persistCurrency();
     _softCurrencyNotifier.value = _softCurrency;
+    
+    // Fire event for analytics
+    _eventBus?.fire('currency_earned', {
+      'currency_type': 'coins',
+      'amount': amount,
+      'source': source,
+      'source_id': sourceId ?? source,
+      'balance_before': balanceBefore,
+      'balance_after': _softCurrency,
+    });
+    
     notifyListeners();
   }
 
-  /// 🔄 Restore currency from backend (for user restoration after reinstall)
-  Future<void> setCurrency(int coins, int gems) async {
-    _softCurrency = coins;
-    _gems = gems;
-    await _persistCurrency();
-    await _persistGems();
+  /// Add coins with animation (legacy method for compatibility)
+  Future<void> addCoinsWithAnimation(int amount) async {
+    return grantSoftCurrency(amount);
+  }
+
+  /// Spend coins
+  /// [spentOn] - What the coins were spent on (e.g., 'skin_purchase', 'booster_purchase', 'continue')
+  /// [itemId] - Specific item ID (e.g., 'skin_gold', 'booster_shield')
+  Future<bool> spendSoftCurrency(int amount, {String spentOn = 'purchase', String? itemId}) async {
+    if (amount <= 0) return false;
+
+    final balanceBefore = _softCurrency;
+    final success = await _userStats!.spendCoins(amount);
+    if (!success) {
+      return false;
+    }
+
+    _softCurrency -= amount;
     _softCurrencyNotifier.value = _softCurrency;
+    
+    // Fire event for analytics
+    _eventBus?.fire('currency_spent', {
+      'currency_type': 'coins',
+      'amount': amount,
+      'spent_on': spentOn,
+      'item_id': itemId ?? spentOn,
+      'balance_before': balanceBefore,
+      'balance_after': _softCurrency,
+    });
+    
+    notifyListeners();
+    return true;
+  }
+
+  /// Grant gems to user
+  /// [source] - Where the gems came from (e.g., 'mission_completed', 'purchase', 'prize_claimed')
+  /// [sourceId] - Specific ID of the source
+  Future<void> grantGems(int amount, {String source = 'game_reward', String? sourceId}) async {
+    if (amount <= 0) return;
+
+    final balanceBefore = _gems;
+    await _userStats!.addGems(amount);
+    _gems += amount;
     _gemsNotifier.value = _gems;
+    
+    // Fire event for analytics
+    _eventBus?.fire('currency_earned', {
+      'currency_type': 'gems',
+      'amount': amount,
+      'source': source,
+      'source_id': sourceId ?? source,
+      'balance_before': balanceBefore,
+      'balance_after': _gems,
+    });
+    
     notifyListeners();
-    safePrint('💰 Currency restored: $coins coins, $gems gems');
   }
 
-  /// 🔄 Restore owned skins from backend (MERGE with local skins)
-  Future<void> restoreOwnedSkins(Set<String> ownedSkins) async {
-    final previousSkins = Set<String>.from(_ownedSkinIds);
+  /// Spend gems
+  /// [spentOn] - What the gems were spent on (e.g., 'skin_purchase', 'booster_purchase', 'continue')
+  /// [itemId] - Specific item ID
+  Future<bool> spendGems(int amount, {String spentOn = 'purchase', String? itemId}) async {
+    if (amount <= 0) return false;
+
+    final balanceBefore = _gems;
+    final success = await _userStats!.spendGems(amount);
+    if (!success) {
+      return false;
+    }
+
+    _gems -= amount;
+    _gemsNotifier.value = _gems;
     
-    // 🔥 CRITICAL FIX: Merge backend skins with local skins instead of replacing
-    _ownedSkinIds = _ownedSkinIds.union(ownedSkins);
+    // Fire event for analytics
+    _eventBus?.fire('currency_spent', {
+      'currency_type': 'gems',
+      'amount': amount,
+      'spent_on': spentOn,
+      'item_id': itemId ?? spentOn,
+      'balance_before': balanceBefore,
+      'balance_after': _gems,
+    });
     
-    await _persistOwned();
     notifyListeners();
-    
-    safePrint('✈️ Skin restoration details:');
-    safePrint('   Previous skins: ${previousSkins.toList()}');
-    safePrint('   Backend skins: ${ownedSkins.toList()}');
-    safePrint('   Added skins: ${ownedSkins.difference(previousSkins).toList()}');
-    safePrint('   Final skins: ${_ownedSkinIds.toList()}');
-    safePrint('✈️ Owned skins restored: ${_ownedSkinIds.length} skins (merged)');
-  }
-
-  /// 🎁 Add coins with animation support (for prize distribution)
-  Future<int> addCoinsWithAnimation(int amount) async {
-    _softCurrency += amount;
-    await _persistCurrency();
-
-    // Trigger coin animation event
-    _triggerCoinAnimation(amount);
-
-    _softCurrencyNotifier.value = _softCurrency;
-    notifyListeners();
-
-    safePrint(
-      '💰 Coins added with animation: +$amount (Total: $_softCurrency)',
-    );
-    return _softCurrency;
-  }
-
-  /// Trigger coin collection animation
-  void _triggerCoinAnimation(int amount) {
-    // This would trigger celebration animation in the UI
-    // Implementation depends on the animation system used
-    safePrint('🎊 Coin animation triggered: $amount coins');
+    return true;
   }
 
   /// Ensure player has at least [min] coins (useful for development/testing)
   Future<void> ensureMinSoftCurrency(int min) async {
     if (_softCurrency < min) {
-      _softCurrency = min;
-      await _persistCurrency();
-      _softCurrencyNotifier.value = _softCurrency;
-      notifyListeners();
+      final needed = min - _softCurrency;
+      await grantSoftCurrency(needed);
     }
-  }
-
-  Future<bool> spendSoftCurrency(int amount) async {
-    if (_softCurrency < amount) return false;
-    _softCurrency -= amount;
-    await _persistCurrency();
-    _softCurrencyNotifier.value = _softCurrency;
-    notifyListeners();
-    
-    // 🚨 CRITICAL FIX: Immediately sync coin spending to backend to prevent restoration issues
-    await _syncCoinsToBackend();
-    
-    return true;
-  }
-
-  /// Grant gems (premium currency)
-  Future<void> grantGems(int amount) async {
-    _gems += amount;
-    await _persistGems();
-    _gemsNotifier.value = _gems;
-    notifyListeners();
   }
 
   /// Ensure player has at least [min] gems (useful for development/testing)
   Future<void> ensureMinGems(int min) async {
     if (_gems < min) {
-      _gems = min;
-      await _persistGems();
-      _gemsNotifier.value = _gems;
-      notifyListeners();
+      final needed = min - _gems;
+      await grantGems(needed);
     }
-  }
-
-  Future<bool> spendGems(int amount) async {
-    if (_gems < amount) return false;
-    _gems -= amount;
-    await _persistGems();
-    _gemsNotifier.value = _gems;
-    notifyListeners();
-    
-    // 🚨 CRITICAL FIX: Immediately sync gem spending to backend to prevent restoration issues
-    await _syncGemsToBackend();
-    
-    return true;
   }
 
   /// Activate Heart Booster for the specified duration
@@ -237,10 +271,17 @@ class InventoryManager extends ChangeNotifier {
       _heartBoosterExpiry = newExpiry;
     }
 
-    await _persistHeartBooster();
+    await _userStats!.setHeartBoosterExpiry(_heartBoosterExpiry);
     _heartBoosterActiveNotifier.value = isHeartBoosterActive;
+    
+    // Fire event for analytics
+    _eventBus?.fire('powerup_activated', {
+      'powerup_type': 'heart_booster',
+      'duration_hours': duration.inHours,
+      'expiry': _heartBoosterExpiry!.toIso8601String(),
+    });
+    
     notifyListeners();
-
     safePrint('💖 Heart Booster activated! Duration: ${duration.inHours}h');
   }
 
@@ -252,9 +293,14 @@ class InventoryManager extends ChangeNotifier {
     if (wasActive && !isActive) {
       // Booster just expired, clean up
       _heartBoosterExpiry = null;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyHeartBoosterExpiry);
+      await _userStats!.setHeartBoosterExpiry(null);
       _heartBoosterActiveNotifier.value = false;
+      
+      // Fire event for analytics
+      _eventBus?.fire('powerup_expired', {
+        'powerup_type': 'heart_booster',
+      });
+      
       notifyListeners();
     } else if (wasActive != isActive) {
       _heartBoosterActiveNotifier.value = isActive;
@@ -265,6 +311,13 @@ class InventoryManager extends ChangeNotifier {
   /// Activate Auto-Refill booster for the specified duration
   Future<void> activateAutoRefill(AutoRefillDuration duration) async {
     await _autoRefillManager.activateAutoRefill(duration);
+    
+    // Fire event for analytics
+    _eventBus?.fire('powerup_activated', {
+      'powerup_type': 'auto_refill',
+      'duration_hours': duration.hours,
+    });
+    
     notifyListeners();
   }
 
@@ -276,168 +329,68 @@ class InventoryManager extends ChangeNotifier {
   /// Get remaining time for Auto-Refill (null if not active)
   Duration? get autoRefillTimeRemaining => _autoRefillManager.autoRefillTimeRemaining;
 
+  /// Unlock a skin
   Future<void> unlockSkin(String skinId) async {
-    _ownedSkinIds.add(skinId);
-    await _persistOwned();
-    
-    // 🔥 NEW: Sync to backend if authenticated
-    if (_playerId != null) {
-      try {
-        final inventorySyncService = InventorySyncService();
-        await inventorySyncService.syncSkin(skinId, acquiredMethod: 'coin_purchase');
-        safePrint('✈️ 🔄 Skin synced to backend: $skinId');
-      } catch (syncError) {
-        safePrint('✈️ ⚠️ Failed to sync skin to backend: $syncError');
-        // Don't fail the unlock if sync fails - skin is still unlocked locally
-      }
+    if (_ownedSkinIds.contains(skinId)) {
+      safePrint('✈️ Skin $skinId already owned');
+      return;
     }
+
+    _ownedSkinIds.add(skinId);
+    await _inventory!.addItem('skin', skinId);
     
+    // Fire event for analytics
+    _eventBus?.fire('item_unlocked', {
+      'item_type': 'skin',
+      'item_id': skinId,
+      'acquisition_method': 'purchase',
+    });
+    
+    safePrint('✈️ ✅ Skin unlocked: $skinId');
     notifyListeners();
   }
 
+  /// Equip a skin
   Future<bool> equipSkin(String skinId) async {
-    if (!_ownedSkinIds.contains(skinId)) return false;
+    if (!_ownedSkinIds.contains(skinId)) {
+      safePrint('✈️ ❌ Cannot equip skin $skinId - not owned');
+      return false;
+    }
     
-    // 🔥 OPTIMIZATION: Skip if already equipped
+    // Skip if already equipped
     if (_equippedSkinId == skinId) {
       safePrint('✈️ ⚡ Skin $skinId already equipped - skipping');
       return true;
     }
     
-    _equippedSkinId = skinId;
-    await _persistEquipped();
-    
-    // 🔥 NEW: Sync equipped status to backend (async, non-blocking)
-    if (_playerId != null) {
-      try {
-        final inventorySyncService = InventorySyncService();
-        // Don't await - let it sync in background for better performance
-        inventorySyncService.syncSkin(skinId, equipped: true);
-        safePrint('✈️ 🔄 Equipped skin synced to backend: $skinId');
-      } catch (syncError) {
-        safePrint('✈️ ⚠️ Failed to sync equipped skin to backend: $syncError');
-        // Don't fail the equip if sync fails - skin is still equipped locally
-      }
+    // Unequip old skin
+    if (_equippedSkinId.isNotEmpty) {
+      await _inventory!.unequipItem('skin', _equippedSkinId);
     }
     
+    // Equip new skin
+    _equippedSkinId = skinId;
+    await _inventory!.equipItem('skin', skinId);
+    await _userStats!.setEquippedSkin(skinId);
+    
+    // Fire event for analytics
+    _eventBus?.fire('item_equipped', {
+      'item_type': 'skin',
+      'item_id': skinId,
+    });
+    
+    safePrint('✈️ ✅ Skin equipped: $skinId');
     notifyListeners();
     return true;
   }
 
+  /// Check if a skin is owned
   bool isOwned(String skinId) => _ownedSkinIds.contains(skinId);
 
-  Future<void> _persistOwned() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyOwnedSkins, jsonEncode(_ownedSkinIds.toList()));
-  }
-
-  Future<void> _persistEquipped() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyEquippedSkin, _equippedSkinId);
-  }
-
-  Future<void> _persistCurrency() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keySoftCurrency, _softCurrency);
-  }
-
-  Future<void> _persistGems() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyGems, _gems);
-  }
-
-  Future<void> _persistHeartBooster() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (_heartBoosterExpiry != null) {
-      await prefs.setInt(
-        _keyHeartBoosterExpiry,
-        _heartBoosterExpiry!.millisecondsSinceEpoch,
-      );
-    } else {
-      await prefs.remove(_keyHeartBoosterExpiry);
-    }
-  }
-
-  /// 🎁 Set player ID for prize distribution
-  void setPlayerId(String playerId) {
-    _playerId = playerId;
-    safePrint('🎁 Player ID set for prize distribution: $playerId');
-  }
-
-  /// 🎁 Set auth token for prize distribution
-  void setAuthToken(String authToken) {
-    _authToken = authToken;
-    safePrint('🎁 Auth token set for prize distribution');
-  }
-
-  /// 🚨 CRITICAL: Sync gems to backend immediately after spending to prevent restoration issues
-  Future<void> _syncGemsToBackend() async {
-    try {
-      final playerIdentityManager = PlayerIdentityManager();
-      if (!playerIdentityManager.isAuthenticated) {
-        safePrint('🔄 ⚠️ Cannot sync gems to backend - not authenticated');
-        return;
-      }
-
-      final token = playerIdentityManager.authToken;
-      if (token.isEmpty) return;
-
-      final response = await http.put(
-        Uri.parse('https://flappyjet-backend-production.up.railway.app/api/player/sync-currency'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'coins': _softCurrency,
-          'gems': _gems,
-          'syncReason': 'gem_spending',
-        }),
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        safePrint('🔄 ✅ Gems synced to backend after spending: $_gems gems');
-      } else {
-        safePrint('🔄 ⚠️ Failed to sync gems to backend: ${response.statusCode}');
-      }
-    } catch (e) {
-      safePrint('🔄 ❌ Error syncing gems to backend: $e');
-      // Don't throw - local functionality should work even if backend sync fails
-    }
-  }
-  /// 🚨 CRITICAL: Sync coins to backend immediately after spending to prevent restoration issues
-  Future<void> _syncCoinsToBackend() async {
-    try {
-      final playerIdentityManager = PlayerIdentityManager();
-      if (!playerIdentityManager.isAuthenticated) {
-        safePrint('🔄 ⚠️ Cannot sync coins to backend - not authenticated');
-        return;
-      }
-
-      final token = playerIdentityManager.authToken;
-      if (token.isEmpty) return;
-
-      final response = await http.put(
-        Uri.parse('https://flappyjet-backend-production.up.railway.app/api/player/sync-currency'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'coins': _softCurrency,
-          'gems': _gems,
-          'syncReason': 'coin_spending',
-        }),
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        safePrint('🔄 ✅ Coins synced to backend after spending: $_softCurrency coins');
-      } else {
-        safePrint('🔄 ⚠️ Failed to sync coins to backend: ${response.statusCode}');
-      }
-    } catch (e) {
-      safePrint('🔄 ❌ Error syncing coins to backend: $e');
-      // Don't throw - local functionality should work even if backend sync fails
-    }
+  /// Refresh state from database (useful after external updates)
+  Future<void> refresh() async {
+    await _loadFromDatabase();
+    notifyListeners();
   }
 }
+

@@ -15,7 +15,6 @@ import 'firebase_analytics_manager.dart';
 import 'missions_manager.dart';
 import 'achievements_manager.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
-import '../../core/analytics/comprehensive_analytics_manager.dart';
 
 /// Supported social platforms
 enum SocialPlatform {
@@ -233,11 +232,11 @@ class SocialSharingManager extends ChangeNotifier {
         
         // Track comprehensive analytics for successful share
         try {
-          await ComprehensiveAnalyticsManager().trackEvent('share_done', {
-            'platform': platform.name,
-            'score': score,
-            'timestamp': DateTime.now().millisecondsSinceEpoch,
-          });
+          // OLD:           await ComprehensiveAnalyticsManager().trackEvent('share_done', {
+          // OLD:             'platform': platform.name,
+          // OLD:             'score': score,
+          // OLD:             'timestamp': DateTime.now().millisecondsSinceEpoch,
+          // OLD:           });
         } catch (e) {
           safePrint('⚠️ Failed to track share completion: $e');
         }

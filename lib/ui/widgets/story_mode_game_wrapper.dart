@@ -15,11 +15,17 @@ import '../../game/systems/inventory_manager.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/level_system_manager.dart'; // 🔥 NEW
+import '../../game/systems/game_events_tracker.dart'; // 🎯 For mission/achievement tracking
+import '../../game/systems/achievements_manager.dart'; // 🏅 For story mode achievements
 import '../screens/level_complete_screen.dart';
 import '../screens/level_failed_screen.dart';
 import '../screens/world_map_screen.dart';
+import '../screens/zone_completion_screen.dart'; // 🏆 Zone celebration
 import '../widgets/game_over_menu.dart';
 import '../../core/debug_logger.dart';
+import '../../core/events/event_bus.dart';
+import '../../core/repositories/user_stats_repository.dart';
+import '../../core/database/local_database_manager.dart';
 
 class StoryModeGameWrapper extends StatefulWidget {
   final LevelData level;
@@ -48,11 +54,36 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
   void _initializeGame() {
     safePrint('🎮 Initializing story mode game for level ${widget.level.id}');
 
+    // Phase 3: Get EventBus and UserStatsRepository for game_ended events
+    final eventBus = EventBus();
+    final database = LocalDatabaseManager();
+    final userStats = UserStatsRepository(database);
+
+    // Get LivesManager to track hearts
+    final livesManager = LivesManager();
+
+    // Check if this is first attempt (check if level was already attempted)
+    final levelManager = LevelSystemManager();
+    final isFirstAttempt = !levelManager.isLevelCompleted(widget.level.id);
+    final attemptNumber = isFirstAttempt ? 1 : 2; // 1 for first, 2+ for retries (we don't track exact count yet)
+
     // 🔥 Mark this level as attempted (for first-attempt boss logic)
-    LevelSystemManager().markLevelAttempted(widget.level.id);
+    levelManager.markLevelAttempted(widget.level.id);
 
     // Start tracking objective
     _objectiveTracker.startTracking(widget.level.objective);
+
+    // Fire level_started event for analytics
+    eventBus.fire('level_started', {
+      'level_id': widget.level.id,
+      'zone_id': widget.level.zone,
+      'level_name': widget.level.name,
+      'difficulty': widget.level.difficulty.toString(),
+      'objective_type': widget.level.objective.type.toString(),
+      'attempt_number': attemptNumber,
+      'hearts_remaining': livesManager.currentLives,
+      'is_first_attempt': isFirstAttempt,
+    });
 
     // Create game instance with story mode configuration
     _game = FlappyGame(
@@ -62,6 +93,8 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       onObstaclePassed: _onObstaclePassed,
       onGameOver: _onGameOver,
       levelSystemManager: LevelSystemManager(), // 🔥 Pass level system manager
+      userStatsRepository: userStats,  // Phase 2: For persistence
+      eventBus: eventBus,               // Phase 3: For game_ended events
     );
 
     // Listen to game state changes (use game's GameStateManager, not our own)
@@ -205,13 +238,50 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       // ❌ Objective not completed - navigate DIRECTLY to beautiful game over popup
       // Skip the GameOverMenu entirely for a cleaner, more engaging experience
       safePrint('🎮 ❌ Objective not completed. Showing story mode game over popup.');
-      _showStoryModeGameOverPopup();
+      
+      // ✅ FIX: Defer popup showing until after current frame completes
+      // This prevents "Navigator is locked" errors when called during Flame's update loop
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showStoryModeGameOverPopup();
+        }
+      });
     }
   }
 
   /// 💀 Show beautiful story mode game over popup (bypasses endless game over menu)
   void _showStoryModeGameOverPopup() {
     final monetization = MonetizationManager();
+    
+    // 🎯 Track story mode failure for missions/achievements (still counts as playing)
+    final gameEventsTracker = GameEventsTracker();
+    final finalScore = _objectiveTracker.currentProgress;
+    final usedContinue = _game.gameStateManager.continuesUsedThisRun > 0;
+    final elapsedGameTimeMs = _game.gameStateManager.getElapsedGameTime();
+    
+    gameEventsTracker.onGameEnd(
+      finalScore: finalScore,
+      survivalTimeMs: elapsedGameTimeMs.toInt(),
+      coinsEarned: 0,
+      usedContinue: usedContinue,
+      cause: 'story_level_failed',
+    );
+    safePrint('🎯 Story mode: Mission progress updated (level failed)');
+    
+    // Fire level_failed event for analytics
+    final eventBus = EventBus();
+    eventBus.fire('level_failed', {
+      'level_id': widget.level.id,
+      'zone_id': widget.level.zone,
+      'level_name': widget.level.name,
+      'score': _objectiveTracker.currentProgress,
+      'objective_target': widget.level.objective.target,
+      'objective_type': widget.level.objective.type.toString(),
+      'cause_of_death': 'obstacle_collision', // TODO: Get actual cause from game
+      'time_survived_seconds': _game.gameStateManager.getElapsedGameTime() ~/ 1000,
+      'hearts_remaining': LivesManager().currentLives,
+      'continues_used': _game.gameStateManager.continuesUsedThisRun,
+    });
     
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -245,9 +315,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                     await livesManager.addLife(1);
                     safePrint('💖 Story Mode: Restored 1 heart after ad (now: ${livesManager.currentLives})');
                     
-                    // Close popup
+                    // ✅ FIX: Defer popup closing until after current frame completes
+                    // This prevents "Navigator is locked" errors when called during animations
                     if (mounted) {
-                      Navigator.of(context).pop();
+                      SchedulerBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      });
                     }
                     
                     // Continue game
@@ -289,9 +364,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                   await livesManager.addLife(1);
                   safePrint('💖 Story Mode: Restored 1 heart after gem continue (now: ${livesManager.currentLives})');
                   
-                  // Close popup
+                  // ✅ FIX: Defer popup closing until after current frame completes
+                  // This prevents "Navigator is locked" errors when called during animations
                   if (mounted) {
-                    Navigator.of(context).pop();
+                    SchedulerBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    });
                   }
                   
                   // Continue game
@@ -328,28 +408,168 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       safePrint('⚠️ Failed to stop story mode music: $e');
     }
 
-    // ✅ FIX: Refill hearts to max when level is completed successfully
+    // 🔥 CRITICAL FIX: Sync LivesManager with in-game heart count
+    // The game's _gameStateManager.lives reflects the actual hearts remaining after crashes
     final livesManager = LivesManager();
-    await livesManager.refillToMax();
-    safePrint('💖 Story Mode: Hearts refilled to max after level completion (now: ${livesManager.currentLives})');
+    final actualHeartsRemaining = _game.gameStateManager.lives;
+    await livesManager.setLives(actualHeartsRemaining);
+    safePrint('💖 Story Mode: Level completed with ${actualHeartsRemaining} hearts remaining (synced to LivesManager)');
+    
+    // Hearts are NOT refilled - they persist across levels (Option 2)
+    // Hearts regenerate naturally over time via LivesManager
 
     // Calculate time taken (excluding ad pauses)
     final elapsedGameTimeMs = _game.gameStateManager.getElapsedGameTime();
     final timeTaken = (elapsedGameTimeMs / 1000).round();
+    
+    // 🎯 CRITICAL: Track story mode completion for missions/achievements
+    // Use objective progress as "score" for mission tracking
+    final gameEventsTracker = GameEventsTracker();
+    final finalScore = _objectiveTracker.currentProgress;
+    final usedContinue = _game.gameStateManager.continuesUsedThisRun > 0;
+    
+    await gameEventsTracker.onGameEnd(
+      finalScore: finalScore,
+      survivalTimeMs: elapsedGameTimeMs.toInt(),
+      coinsEarned: 0, // Story mode rewards handled separately
+      usedContinue: usedContinue,
+      cause: 'story_level_completed',
+    );
+    safePrint('🎯 Story mode: Mission/achievement progress updated');
+    
+    // 🏅 Check story mode achievements
+    final achievementsManager = AchievementsManager(); // Use singleton
+    final levelManager = LevelSystemManager();
+    
+    // Calculate total completed levels (count all completed levels in level manager)
+    int totalCompleted = 0;
+    for (int i = 1; i <= 100; i++) { // Check up to 100 levels (adjust as needed)
+      if (levelManager.isLevelCompleted(i)) {
+        totalCompleted++;
+      }
+    }
+    
+    // Check if zone is completed (current level is the last in zone)
+    final zoneCompleted = levelManager.isZoneCompleted(widget.level.zone) ? widget.level.zone : 0;
+    final wasFlawless = _game.gameStateManager.continuesUsedThisRun == 0;
+    
+    await achievementsManager.checkStoryModeAchievements(
+      levelCompleted: true,
+      totalLevelsCompleted: totalCompleted,
+      zoneCompleted: zoneCompleted,
+      wasFlawless: wasFlawless,
+      objectiveType: widget.level.objective.type.toString(),
+      timeTaken: timeTaken,
+    );
+    safePrint('🏅 Story mode achievements checked');
 
-    // Navigate to level complete screen
+    // ✅ CRITICAL FIX: Check replay status BEFORE showing dialog
+    // This must be done BEFORE rewards are granted (which marks level as complete)
+    // (Reusing levelManager from above - already declared at line 441)
+    final isReplay = levelManager.isLevelReplay(widget.level.id);
+    safePrint('🎉 Level Complete Screen: isReplay = $isReplay (cached BEFORE dialog)');
+    
+    // ✅ CRITICAL FIX: Pause game engine before showing popup
+    // This prevents crashes/collisions from happening while popup is visible
+    _game.pauseEngine();
+    safePrint('⏸️ Game paused - showing level complete popup');
+
+    // ✅ NEW FLOW: Show popup instead of pushing new screen
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => LevelCompleteScreen(
-            level: widget.level,
-            objectiveAchieved: _objectiveTracker.currentProgress,
-            timeTaken: timeTaken,
-            continuesUsed: _game.gameStateManager.continuesUsedThisRun,
-          ),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => LevelCompleteScreen(
+          level: widget.level,
+          objectiveAchieved: _objectiveTracker.currentProgress,
+          timeTaken: timeTaken,
+          continuesUsed: _game.gameStateManager.continuesUsedThisRun,
+          onContinue: () {
+            // Close the popup
+            Navigator.of(context).pop();
+            
+            // ✅ FIX: Use cached replay status (checked BEFORE rewards were granted)
+            if (isReplay) {
+              safePrint('🔄 Replay completed - returning to world map (no animation)');
+              _navigateToWorldMapNoAnimation();
+            } else {
+              // 🏆 CRITICAL: Check if zone was just completed (last level in zone)
+              final wasZoneCompleted = levelManager.wasZoneJustCompleted(widget.level.id);
+              
+              if (wasZoneCompleted) {
+                safePrint('🏆 ZONE COMPLETED! Showing celebration, then switching to next zone');
+                _navigateToZoneCompletionCelebration();
+              } else {
+                safePrint('🎉 First completion - navigating with jet animation');
+                _navigateToWorldMapWithAnimation();
+              }
+            }
+            
+            // Note: No need to resumeEngine() - we're navigating away and game will be disposed
+          },
         ),
       );
     }
+  }
+  
+  /// ✅ NEW: Navigate to world map with jet animation (first completion only)
+  void _navigateToWorldMapWithAnimation() {
+    if (!mounted) return;
+    
+    final currentLevel = widget.level.id;
+    final nextLevel = currentLevel + 1;
+    
+    safePrint('✈️ Navigating to world map with animation: $currentLevel → $nextLevel');
+    
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => WorldMapScreen(
+          shouldAnimateJet: true,
+          fromLevel: currentLevel,
+          toLevel: nextLevel,
+        ),
+      ),
+    );
+  }
+  
+  /// 🏆 NEW: Navigate to zone completion celebration (no jet animation, zone switches)
+  void _navigateToZoneCompletionCelebration() {
+    if (!mounted) return;
+    
+    final completedZone = widget.level.zone;
+    final nextZone = completedZone + 1;
+    
+    safePrint('🏆 Navigating to zone completion celebration for Zone $completedZone');
+    
+    // Calculate zone stats
+    final levelManager = LevelSystemManager();
+    final zoneStats = levelManager.getZoneStats(completedZone);
+    final zoneLevels = levelManager.getLevelsByZone(completedZone);
+    
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => ZoneCompletionScreen(
+          completedZone: completedZone,
+          nextZone: nextZone,
+          coinsEarned: zoneStats['coins'] ?? 0,
+          gemsEarned: zoneStats['gems'] ?? 0,
+          levelsCompleted: zoneLevels.length,
+        ),
+      ),
+    );
+  }
+  
+  /// ✅ NEW: Navigate to world map without animation (for replays)
+  void _navigateToWorldMapNoAnimation() {
+    if (!mounted) return;
+    
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => const WorldMapScreen(
+          shouldAnimateJet: false,
+        ),
+      ),
+    );
   }
 
   @override
@@ -709,6 +929,22 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     } else {
       // Objective NOT completed - show level failed screen
       safePrint('🎯 STORY MODE: Objective NOT completed, showing level failed screen');
+      
+      // Fire level_failed event for analytics
+      final eventBus = EventBus();
+      eventBus.fire('level_failed', {
+        'level_id': widget.level.id,
+        'zone_id': widget.level.zone,
+        'level_name': widget.level.name,
+        'score': _objectiveTracker.currentProgress,
+        'objective_target': widget.level.objective.target,
+        'objective_type': widget.level.objective.type.toString(),
+        'cause_of_death': 'gave_up', // Player chose to quit
+        'time_survived_seconds': _game.gameStateManager.getElapsedGameTime() ~/ 1000,
+        'hearts_remaining': LivesManager().currentLives,
+        'continues_used': _game.gameStateManager.continuesUsedThisRun,
+      });
+      
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => LevelFailedScreen(

@@ -14,10 +14,8 @@ import '../game/systems/inventory_manager.dart';
 import '../game/systems/lives_manager.dart';
 import '../game/systems/firebase_analytics_manager.dart';
 import '../game/systems/player_identity_manager.dart';
-import '../core/analytics/comprehensive_analytics_manager.dart';
 import '../config/iap_config.dart';
 import 'iap_receipt_validator.dart';
-import 'inventory_sync_service.dart';
 
 /// Purchase result enumeration
 enum PurchaseResultStatus {
@@ -456,13 +454,13 @@ class EnhancedIAPManager extends ChangeNotifier {
 
       // Track comprehensive analytics for IAP purchase
       try {
-        await ComprehensiveAnalyticsManager().trackIAPPurchase(
-          productId: iapProduct.id,
-          productType: iapProduct.type.name,
-          priceUsd: iapProduct.priceUSD,
-          currency: 'USD',
-          success: true,
-        );
+        // OLD:         await ComprehensiveAnalyticsManager().trackIAPPurchase(
+        // OLD:           productId: iapProduct.id,
+        // OLD:           productType: iapProduct.type.name,
+        // OLD:           priceUsd: iapProduct.priceUSD,
+        // OLD:           currency: 'USD',
+        // OLD:           success: true,
+        // OLD:         );
       } catch (e) {
         safePrint('⚠️ Failed to track comprehensive IAP analytics: $e');
       }
@@ -537,19 +535,8 @@ class EnhancedIAPManager extends ChangeNotifier {
         await _inventory!.unlockSkin(product.jetSkinId!);
         safePrint('💳 🚁 Unlocked jet skin: ${product.jetSkinId}');
         
-        // 🔥 NEW: Sync skin to backend
-        try {
-          final inventorySyncService = InventorySyncService();
-          await inventorySyncService.syncSkin(
-            product.jetSkinId!,
-            equipped: false,
-            acquiredMethod: 'iap_purchase',
-          );
-          safePrint('💳 🔄 Jet skin synced to backend: ${product.jetSkinId}');
-        } catch (syncError) {
-          safePrint('💳 ⚠️ Failed to sync jet skin to backend: $syncError');
-          // Don't fail the purchase if sync fails - skin is still unlocked locally
-        }
+        // Skin sync is now handled automatically by InventoryManager via EventBus
+        // No need for manual backend sync
       }
 
     } catch (e) {

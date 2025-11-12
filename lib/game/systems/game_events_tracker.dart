@@ -41,13 +41,17 @@ class GameEventsTracker extends ChangeNotifier {
     // Use provided instances or create new ones
     _missionsManager = missionsManager ?? MissionsManager();
     _achievementsManager = achievementsManager ?? AchievementsManager();
-    _inventory = inventoryManager ?? InventoryManager();
+    // Note: InventoryManager now requires repository dependencies, must be passed in
+    _inventory = inventoryManager; // Will be null if not provided
     _networkManager = networkManager ?? NetworkManager();
     _analytics = UnifiedAnalyticsManager();
 
     await _missionsManager!.initialize();
     await _achievementsManager!.initialize();
-    await _inventory!.initialize();
+    if (_inventory != null) {
+      // InventoryManager is already initialized in main.dart
+      safePrint('🎒 Using pre-initialized InventoryManager');
+    }
     await _networkManager!.initialize();
     // Analytics already initialized in main.dart
 

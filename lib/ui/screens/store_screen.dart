@@ -27,6 +27,7 @@ class StoreScreen extends StatefulWidget {
 
 class _StoreScreenState extends State<StoreScreen> {
   late String selectedCategory;
+  // Use singleton instance (initialized in main.dart)
   final inv = InventoryManager();
   final monetization = MonetizationManager();
   final economy = EconomyConfig();
@@ -62,8 +63,7 @@ class _StoreScreenState extends State<StoreScreen> {
   }
 
   Future<void> _initializeStore() async {
-    // Ensure inventory and dynamic catalog are loaded before first frame
-    await inv.initialize();
+    // InventoryManager is already initialized in main.dart
     // REMOVED: Development currency boosting for true new player experience
     // Only boost in debug mode if explicitly needed
     await JetSkinCatalog.initializeFromAssets();
@@ -72,8 +72,10 @@ class _StoreScreenState extends State<StoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
+    return WillPopScope(
+      onWillPop: () async => false, // Disable back button for bottom nav screen
+      child: Scaffold(
+        body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -87,9 +89,8 @@ class _StoreScreenState extends State<StoreScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header
+              // Header (without back button - this is a bottom nav screen)
               StoreHeader(
-                onBackPressed: () => Navigator.pop(context),
                 inventory: inv,
               ),
 
@@ -112,6 +113,7 @@ class _StoreScreenState extends State<StoreScreen> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

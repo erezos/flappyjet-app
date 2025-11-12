@@ -19,13 +19,25 @@ import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
 
 class WorldMapScreen extends StatefulWidget {
-  const WorldMapScreen({super.key});
+  /// ✅ NEW: Parameters for jet animation flow
+  final bool shouldAnimateJet;
+  final int? fromLevel;
+  final int? toLevel;
+  final bool fromCenter; // ✅ NEW: Start jet from center (zone completion)
+  
+  const WorldMapScreen({
+    super.key,
+    this.shouldAnimateJet = false,
+    this.fromLevel,
+    this.toLevel,
+    this.fromCenter = false,
+  });
 
   @override
   State<WorldMapScreen> createState() => _WorldMapScreenState();
 }
 
-class _WorldMapScreenState extends State<WorldMapScreen> {
+class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStateMixin {
   final LevelSystemManager _levelSystemManager = LevelSystemManager();
   final LivesManager _livesManager = LivesManager();
   final InventoryManager _inventoryManager = InventoryManager();
@@ -35,6 +47,17 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   List<Offset> _nodePath = [];
   Offset? _jetTargetPosition;
   bool _isJetAnimating = false;
+  
+  // ✅ NEW: Jet movement animation system
+  AnimationController? _jetAnimationController;
+  Animation<Offset>? _jetPositionAnimation;
+  Animation<double>? _jetScaleAnimation;
+  bool _isAnimatingToNextLevel = false;
+  
+  // ✅ NEW: Unlock animation system
+  AnimationController? _unlockAnimationController;
+  bool _showUnlockAnimation = false;
+  int? _unlockingLevelIndex; // Index in the current zone's level list
 
   @override
   void initState() {
@@ -56,6 +79,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   @override
   void dispose() {
     _levelSystemManager.removeListener(_onLevelSystemChanged);
+    _jetAnimationController?.dispose();
+    _unlockAnimationController?.dispose();
     super.dispose();
   }
 
@@ -82,6 +107,19 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _calculateNodePositions();
+          
+          // ✅ NEW: Start jet animation if requested
+          if (widget.shouldAnimateJet) {
+            // ✅ FIX: Longer delay to ensure:
+            // 1. Screen is fully painted and visible
+            // 2. User can see the world map
+            // 3. Brief moment to orient before animation starts
+            Future.delayed(const Duration(milliseconds: 1200), () {
+              if (mounted) {
+                _animateJetToNextLevel();
+              }
+            });
+          }
         }
       });
     }
@@ -100,12 +138,175 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
         zoneId: _levelSystemManager.currentZone,
         levelCount: currentZoneLevels.length,
         screenSize: screenSize,
-        topPadding: 180, // Account for header
-        bottomPadding: 180, // Account for footer
+        topPadding: 200, // Space for header + zone selector
+        bottomPadding: 280, // ✅ INCREASED: More space for bottom nav bar + first level visibility
       );
     });
     
     safePrint('📍 Calculated ${_nodePath.length} node positions for zone ${_levelSystemManager.currentZone}');
+  }
+  
+  /// ✅ NEW: Animate jet from completed level to next level (or from center)
+  Future<void> _animateJetToNextLevel() async {
+    if (!widget.shouldAnimateJet) {
+      return;
+    }
+    
+    // Ensure node path is calculated
+    if (_nodePath.isEmpty) {
+      safePrint('⚠️ Node path not ready for animation, skipping');
+      return;
+    }
+    
+    // Determine starting position
+    Offset fromPos;
+    
+    if (widget.fromCenter) {
+      // 🏆 ZONE COMPLETION: Start from screen center
+      final screenSize = MediaQuery.of(context).size;
+      fromPos = Offset(screenSize.width / 2, screenSize.height / 2);
+      safePrint('✈️ Animating jet from CENTER to first level of new zone');
+    } else {
+      // 🎮 NORMAL FLOW: Start from previous level
+      if (widget.fromLevel == null || widget.toLevel == null) {
+        return;
+      }
+      
+      final fromLevel = widget.fromLevel!;
+      
+      // Get current zone levels to find the correct indices
+      final currentZoneLevels = _levelSystemManager.allLevels
+          .where((level) => level.zone == _levelSystemManager.currentZone)
+          .toList();
+      
+      // Find index in the current zone's level list
+      final fromIndex = currentZoneLevels.indexWhere((l) => l.id == fromLevel);
+      
+      if (fromIndex == -1 || fromIndex >= _nodePath.length) {
+        safePrint('⚠️ From level not found in current zone for animation');
+        return;
+      }
+      
+      fromPos = _nodePath[fromIndex];
+      safePrint('✈️ Animating jet from level $fromLevel (index $fromIndex)');
+    }
+    
+    // Determine ending position
+    final toLevel = widget.toLevel!;
+    final currentZoneLevels = _levelSystemManager.allLevels
+        .where((level) => level.zone == _levelSystemManager.currentZone)
+        .toList();
+    
+    final toIndex = currentZoneLevels.indexWhere((l) => l.id == toLevel);
+    
+    if (toIndex == -1 || toIndex >= _nodePath.length) {
+      safePrint('⚠️ To level not found in current zone for animation');
+      return;
+    }
+    
+    final toPos = _nodePath[toIndex];
+    
+    safePrint('✈️ Target: level $toLevel (index $toIndex)');
+    
+    // Block interactions during animation
+    setState(() {
+      _isAnimatingToNextLevel = true;
+    });
+    
+    // Create animation controller
+    _jetAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500), // 1.5 seconds
+      vsync: this,
+    );
+    
+    // Position animation (smooth movement)
+    _jetPositionAnimation = Tween<Offset>(
+      begin: fromPos,
+      end: toPos,
+    ).animate(CurvedAnimation(
+      parent: _jetAnimationController!,
+      curve: Curves.easeInOut,
+    ));
+    
+    // Scale animation (subtle grow/shrink for polish)
+    _jetScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.15),
+        weight: 50.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.15, end: 1.0),
+        weight: 50.0,
+      ),
+    ]).animate(CurvedAnimation(
+      parent: _jetAnimationController!,
+      curve: Curves.easeInOut,
+    ));
+    
+    // Start animation
+    await _jetAnimationController!.forward();
+    
+    // ✅ NEW: Show unlock animation on the target node
+    await _playUnlockAnimation(toIndex);
+    
+    // Wait a moment after animation completes
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    // Auto-open next level preview
+    if (mounted) {
+      final nextLevel = _levelSystemManager.getLevelById(toLevel);
+      if (nextLevel != null) {
+        safePrint('🎯 Auto-opening preview for level $toLevel');
+        _showLevelPreview(nextLevel);
+      }
+    }
+    
+    // Unblock interactions
+    setState(() {
+      _isAnimatingToNextLevel = false;
+    });
+  }
+  
+  /// ✅ NEW: Play unlock animation on a level node
+  Future<void> _playUnlockAnimation(int levelIndex) async {
+    if (!mounted) return;
+    
+    safePrint('🔓 Playing unlock animation for level index $levelIndex');
+    
+    // Set up unlock animation state
+    setState(() {
+      _showUnlockAnimation = true;
+      _unlockingLevelIndex = levelIndex;
+    });
+    
+    // Create unlock animation controller
+    _unlockAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Play the animation
+    await _unlockAnimationController!.forward();
+    
+    // Clear unlock animation state
+    if (mounted) {
+      setState(() {
+        _showUnlockAnimation = false;
+        _unlockingLevelIndex = null;
+      });
+    }
+    
+    _unlockAnimationController?.dispose();
+    _unlockAnimationController = null;
+  }
+  
+  /// ✅ NEW: Show level preview (used after jet animation)
+  void _showLevelPreview(LevelData level) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => LevelObjectivePopup(level: level),
+    );
   }
 
   @override
@@ -337,23 +538,9 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                   return _buildLevelNode(level, position, context);
                 }),
                 
-                // Animated jet sprite
+                // ✅ FIXED: Animated jet sprite using AnimatedBuilder
                 if (_nodePath.isNotEmpty)
-                  WorldMapJetWidget(
-                    jetSkinId: _inventoryManager.equippedSkinId,
-                    currentPosition: _getCurrentJetPosition(),
-                    targetPosition: _jetTargetPosition,
-                    animationDuration: const Duration(seconds: 2),
-                    onAnimationComplete: () {
-                      if (mounted) {
-                        setState(() {
-                          _isJetAnimating = false;
-                          _jetTargetPosition = null;
-                        });
-                      }
-                    },
-                    jetSize: 70.0,
-                  ),
+                  _buildAnimatedJet(),
               ],
             ),
           ),
@@ -389,11 +576,93 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     return WorldMapPathCalculator.getLevelPosition(_nodePath, jetIndex);
   }
 
+  /// ✅ NEW: Build animated jet sprite with smooth movement
+  Widget _buildAnimatedJet() {
+    // If animating to next level, use AnimatedBuilder
+    if (_jetAnimationController != null && _jetPositionAnimation != null) {
+      return AnimatedBuilder(
+        animation: _jetAnimationController!,
+        builder: (context, child) {
+          final currentPos = _jetPositionAnimation!.value;
+          final scale = _jetScaleAnimation?.value ?? 1.0;
+          
+          return Positioned(
+            left: currentPos.dx - 35, // Center the 70px jet
+            top: currentPos.dy - 75,  // Position jet ABOVE the node (40px higher + half jet size)
+            child: SizedBox(
+              width: 70,
+              height: 70,
+              child: Transform.scale(
+                scale: scale,
+                child: WorldMapJetWidget(
+                  jetSkinId: _inventoryManager.equippedSkinId,
+                  currentPosition: currentPos,
+                  targetPosition: null, // No additional animation
+                  animationDuration: Duration.zero,
+                  onAnimationComplete: () {},
+                  jetSize: 70.0,
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+    
+    // ✅ FIX: If animation is pending (shouldAnimateJet=true but controller not created yet),
+    // position jet at the FROM level, not the current level
+    Offset staticPosition = _getCurrentJetPosition();
+    if (widget.shouldAnimateJet && widget.fromLevel != null) {
+      // Animation is pending - position jet at the FROM level
+      final currentZoneLevels = _levelSystemManager.allLevels
+          .where((level) => level.zone == _levelSystemManager.currentZone)
+          .toList();
+      
+      final fromIndex = currentZoneLevels.indexWhere((l) => l.id == widget.fromLevel);
+      if (fromIndex != -1 && fromIndex < _nodePath.length) {
+        staticPosition = _nodePath[fromIndex];
+        safePrint('✈️ Animation pending - jet positioned at FROM level ${widget.fromLevel}');
+      }
+    }
+    
+    // Otherwise, use static position (no animation)
+    return Positioned(
+      left: staticPosition.dx - 35, // Center the 70px jet
+      top: staticPosition.dy - 75,  // Position jet ABOVE the node (40px higher + half jet size)
+      child: SizedBox(
+        width: 70,
+        height: 70,
+        child: WorldMapJetWidget(
+          jetSkinId: _inventoryManager.equippedSkinId,
+          currentPosition: staticPosition,
+          targetPosition: _jetTargetPosition,
+          animationDuration: const Duration(seconds: 2),
+          onAnimationComplete: () {
+            if (mounted) {
+              setState(() {
+                _isJetAnimating = false;
+                _jetTargetPosition = null;
+              });
+            }
+          },
+          jetSize: 70.0,
+        ),
+      ),
+    );
+  }
+
   Widget _buildLevelNode(LevelData level, Offset position, BuildContext context) {
     final isUnlocked = _levelSystemManager.isLevelUnlocked(level.id);
     final isCompleted = _levelSystemManager.isLevelCompleted(level.id);
     final isCurrent = level.id == _levelSystemManager.currentLevel;
     final isBotBattle = level.botBattle != null;
+    
+    // ✅ NEW: Check if this node should show unlock animation
+    final currentZoneLevels = _levelSystemManager.allLevels
+        .where((l) => l.zone == _levelSystemManager.currentZone)
+        .toList();
+    final levelIndexInZone = currentZoneLevels.indexWhere((l) => l.id == level.id);
+    final isUnlocking = _showUnlockAnimation && _unlockingLevelIndex == levelIndexInZone;
 
     // VS nodes are larger and have special styling
     final nodeSize = isBotBattle ? 85.0 : 60.0;
@@ -410,6 +679,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
           isCurrent: isCurrent,
           isBotBattle: isBotBattle,
           nodeSize: nodeSize,
+          isUnlocking: isUnlocking,
+          unlockProgress: _unlockAnimationController?.value ?? 0.0,
           child: _buildLevelNumber(level),
         ),
       ),
@@ -487,7 +758,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
 
   void _onLevelTap(LevelData level) {
     // Prevent tapping during jet animation
-    if (_isJetAnimating) {
+    if (_isJetAnimating || _isAnimatingToNextLevel) {
       safePrint('🚫 Cannot tap level during jet animation');
       return;
     }
@@ -540,6 +811,10 @@ class _HexagonalLevelNode extends StatefulWidget {
   final bool isBotBattle;
   final double nodeSize;
   final Widget child;
+  
+  /// ✅ NEW: Unlock animation state
+  final bool isUnlocking;
+  final double unlockProgress;
 
   const _HexagonalLevelNode({
     required this.isUnlocked,
@@ -548,6 +823,8 @@ class _HexagonalLevelNode extends StatefulWidget {
     required this.isBotBattle,
     required this.nodeSize,
     required this.child,
+    this.isUnlocking = false,
+    this.unlockProgress = 0.0,
   });
 
   @override
@@ -563,11 +840,12 @@ class _HexagonalLevelNodeState extends State<_HexagonalLevelNode>
   void initState() {
     super.initState();
     _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000), // ✅ Faster for more attention
       vsync: this,
     );
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+    // ✅ ENHANCED: Much bigger pulse (1.0 -> 1.3) to make current level VERY obvious
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
       CurvedAnimation(
         parent: _pulseController,
         curve: Curves.easeInOut,
@@ -654,12 +932,77 @@ class _HexagonalLevelNodeState extends State<_HexagonalLevelNode>
                 // Content
                 widget.child,
 
+                // ✅ ENHANCED: Lock icon with unlock animation
+                if (!widget.isUnlocked || widget.isUnlocking)
+                  Opacity(
+                    // Fade out during unlock animation
+                    opacity: widget.isUnlocking ? (1.0 - widget.unlockProgress) : 1.0,
+                    child: Transform.scale(
+                      // Shrink during unlock
+                      scale: widget.isUnlocking ? (1.0 - widget.unlockProgress * 0.5) : 1.0,
+                      child: Transform.rotate(
+                        // Rotate during unlock
+                        angle: widget.isUnlocking ? (widget.unlockProgress * 0.5) : 0.0,
+                        child: Container(
+                          width: widget.nodeSize * 0.45, // 45% of node size
+                          height: widget.nodeSize * 0.45,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.85),
+                                Colors.black.withValues(alpha: 0.95),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: const Color(0xFFFFD700).withValues(alpha: 0.4), // Gold border
+                              width: 2.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.lock_rounded,
+                            color: const Color(0xFFFFD700).withValues(alpha: 0.9), // Gold lock
+                            size: widget.nodeSize * 0.28,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black87,
+                                offset: Offset(0, 2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                
+                // ✅ NEW: Unlock glow effect during animation
+                if (widget.isUnlocking)
+                  CustomPaint(
+                    size: Size(widget.nodeSize + 40 * widget.unlockProgress, widget.nodeSize + 40 * widget.unlockProgress),
+                    painter: _HexagonGlowPainter(
+                      color: const Color(0xFFFFD700).withValues(alpha: 0.6 * widget.unlockProgress),
+                      blurRadius: 30 * widget.unlockProgress,
+                    ),
+                  ),
+
                 // 🔥 SPECIAL: VS Badge at the bottom for battle nodes
+                // ✅ FIX: Wrap in Align instead of Positioned to avoid ParentDataWidget errors
                 if (widget.isBotBattle)
-                  Positioned(
-                    bottom: 2,
+                  Align(
+                    alignment: Alignment.bottomCenter,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      margin: const EdgeInsets.only(bottom: 2),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Colors.red.shade600, Colors.red.shade900],

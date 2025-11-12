@@ -15,6 +15,9 @@ import '../../game/core/economy_config.dart';
 import '../widgets/game_over_menu.dart';
 import '../widgets/no_hearts_dialog.dart';
 import 'store_screen.dart';
+import '../../core/events/event_bus.dart';
+import '../../core/repositories/user_stats_repository.dart';
+import '../../core/database/local_database_manager.dart';
 
 class GameScreen extends StatefulWidget {
   final MonetizationManager monetization;
@@ -41,9 +44,17 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Phase 3: Get EventBus and UserStatsRepository for game_ended events
+    final eventBus = EventBus();
+    final database = LocalDatabaseManager();
+    final userStats = UserStatsRepository(database);
+    
     game = FlappyGame(
       monetization: widget.monetization,
       missions: widget.missions,
+      userStatsRepository: userStats,  // Phase 2: For persistence
+      eventBus: eventBus,               // Phase 3: For game_ended events
     );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     
@@ -135,7 +146,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                   // Show rewarded ad and continue game
                   await widget.monetization.showRewardedAdForExtraLife(
                     onReward: () {
-                      game.continueGame();
+                      game.continueGame(continueType: 'ad_watch');
                     },
                   );
                 },
@@ -217,14 +228,21 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
     if (inventory.gems >= price) {
       // Spend gems
-      final success = await inventory.spendGems(price);
+      final success = await inventory.spendGems(
+        price,
+        spentOn: 'continue_purchase',
+        itemId: 'continue_gems',
+      );
       if (success) {
         // Add 1 heart
         final livesManager = LivesManager();
         await livesManager.addLife(1);
 
         // Continue the game
-        game.continueGame();
+        game.continueGame(
+          continueType: 'gem_purchase',
+          costGems: price,
+        );
 
         // Show success feedback
         if (mounted) {

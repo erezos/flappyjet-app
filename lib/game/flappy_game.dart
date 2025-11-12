@@ -29,7 +29,6 @@ import 'core/jet_skins.dart';
 import '../services/tournament_service.dart';
 import 'systems/firebase_analytics_manager.dart';
 import 'systems/player_identity_manager.dart';
-import '../core/analytics/comprehensive_analytics_manager.dart';
 
 // Extracted modules
 import 'systems/game_state_manager.dart';
@@ -41,6 +40,8 @@ import 'systems/theme_manager.dart';
 // Story Mode
 import '../models/level_data_schema.dart';
 import 'systems/level_system_manager.dart';
+import '../core/repositories/user_stats_repository.dart';
+import '../core/events/event_bus.dart'; // Phase 3
 
 // ✅ PHASE 1 REFACTORING: World + Camera architecture
 import 'world/flappy_world.dart';
@@ -65,7 +66,13 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   final VoidCallback? onGameOver;
   final LevelSystemManager levelSystemManager; // 🔥 Track first attempts
 
-  // Constructor now accepts monetization, missions, and story mode parameters
+  // REPOSITORY INTEGRATION (for persistence)
+  final UserStatsRepository? userStatsRepository;
+  
+  // EVENT BUS INTEGRATION (Phase 3)
+  final EventBus? eventBus;
+
+  // Constructor now accepts monetization, missions, story mode, repository, and eventBus parameters
   FlappyGame({
     this.monetization,
     this.missions,
@@ -74,6 +81,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.onObstaclePassed,
     this.onGameOver,
     LevelSystemManager? levelSystemManager,
+    this.userStatsRepository,
+    this.eventBus,
   }) : levelSystemManager = levelSystemManager ?? LevelSystemManager();
   
   @override
@@ -96,7 +105,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   late CameraComponent _camera;  // FlappyCamera is now a factory, not a class
   
   // Extracted modules - Initialize immediately to avoid late initialization errors
-  final GameStateManager _gameStateManager = GameStateManager();
+  late final GameStateManager _gameStateManager = GameStateManager(
+    userStats: userStatsRepository,
+    eventBus: eventBus, // Phase 3: Enable game_ended events
+  );
   // ✅ AUDIT FIX: CollisionSystem removed - using Flame's HasCollisionDetection mixin
   late ObstacleManager _obstacleManager;
   late CelebrationSystem _celebrationSystem;
@@ -200,8 +212,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       // Ensure dynamic skin catalog is ready before reading equipped skin
       await JetSkinCatalog.initializeFromAssets();
 
-      // Load persisted data
-      await _gameStateManager.loadPersistedData();
+      // ✅ MIGRATED: GameStateManager now loads persisted data in its constructor
+      // No need to call loadPersistedData() manually
 
       // Initialize monetization integration
       if (monetization != null) {
@@ -224,8 +236,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   /// Initialize extracted modules
   Future<void> _initializeModules() async {
-    // Game state manager is already initialized, just load persisted data
-    await _gameStateManager.loadPersistedData();
+    // ✅ MIGRATED: GameStateManager now loads persisted data in its constructor
+    // No need to call loadPersistedData() manually
 
     // ✅ AUDIT FIX: CollisionSystem initialization removed - using Flame's HasCollisionDetection mixin
     // Collision detection is now automatic via the mixin added to FlappyGame class
@@ -458,8 +470,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       totalGems: InventoryManager().gems,
     );
 
-    // 📊 Track comprehensive analytics
-    ComprehensiveAnalyticsManager().trackGameStart();
+    // OLD: ComprehensiveAnalyticsManager().trackGameStart() removed - now using EventBus
 
     // Start the jet
     _jet.startPlaying();
@@ -838,8 +849,25 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // 🎯 STORY MODE: Call the onGameOver callback if provided
     onGameOver?.call();
     
-    // 🔥 CRITICAL: Set game over state and notify UI (triggers game over menu)
-    _gameStateManager.setGameOver();
+    // 🏆 Fire game_ended event for backend analytics (single source of truth)
+    if (eventBus != null) {
+      // Determine game mode - backend accepts 'endless' or 'story'
+      final String gameMode = isStoryMode ? 'story' : 'endless';
+      
+      eventBus!.fire('game_ended', {
+        'game_mode': gameMode,
+        'score': _gameStateManager.score,
+        'duration_seconds': (_gameStateManager.getElapsedGameTime() / 1000).round(),
+        'obstacles_dodged': _gameStateManager.score,
+        'coins_collected': _gameStateManager.coinsCollectedThisRun,
+        'gems_collected': _gameStateManager.gemsCollectedThisRun,
+        'hearts_remaining': _gameStateManager.lives,
+        'cause_of_death': _gameStateManager.causeOfDeath,
+        'max_combo': 0,
+        'powerups_used': <String>[],
+      });
+      safePrint('🏆 game_ended event fired (mode: $gameMode, score: ${_gameStateManager.score}, duration: ${_gameStateManager.getElapsedGameTime() / 1000}s)');
+    }
     
     // 🔥 CRITICAL FIX: Sync LivesManager with game's final life count (should be 0)
     () async {
@@ -867,19 +895,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       }
     }();
 
-    // 📊 Track comprehensive analytics for game end
-    () async {
-      try {
-        await ComprehensiveAnalyticsManager().trackGameEnd(
-          score: _gameStateManager.score,
-          lives: _gameStateManager.lives,
-          isHighScore: _gameStateManager.score > _gameStateManager.bestScore,
-          endReason: 'collision',
-        );
-      } catch (e) {
-        safePrint('⚠️ Failed to track comprehensive analytics: $e');
-      }
-    }();
+    // OLD: ComprehensiveAnalyticsManager().trackGameEnd() removed - now using EventBus
 
     // 🏆 Add score to local leaderboard
     () async {
@@ -987,8 +1003,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
               return;
             }
 
-            inventoryManager.setAuthToken(authToken);
-            inventoryManager.setPlayerId(playerIdentity.playerId);
+            // Auth token and player ID are no longer needed for InventoryManager
+            // (Prize distribution will be handled differently in Phase 4)
 
             final sessionResult = await tournamentService.handleTournamentSession(
                   tournamentId: tournament.id,
@@ -1218,21 +1234,19 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   }
 
   /// PUBLIC METHOD: Continue game after watching ad
-  void continueGame() {
-    _gameStateManager.continueGame();
+  /// Continue game after watching ad or purchasing continue
+  void continueGame({
+    String continueType = 'ad_watch',
+    int costCoins = 0,
+    int costGems = 0,
+  }) {
+    _gameStateManager.continueGame(
+      continueType: continueType,
+      costCoins: costCoins,
+      costGems: costGems,
+    );
 
-    // 📊 Track comprehensive analytics for continue usage
-    () async {
-      try {
-        await ComprehensiveAnalyticsManager().trackContinueUsed(
-          continueType: 'ad',
-          gemsSpent: 0,
-          success: true,
-        );
-      } catch (e) {
-        safePrint('⚠️ Failed to track continue analytics: $e');
-      }
-    }();
+    // OLD: ComprehensiveAnalyticsManager().trackContinueUsed() removed - now using EventBus
 
     // ✅ Move jet to safe starting position FIRST!
     // This prevents immediate collision after continue

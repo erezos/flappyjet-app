@@ -287,20 +287,7 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
       padding: EdgeInsets.all(isTablet ? 24.0 : 16.0),
       child: Row(
         children: [
-          // Back button with premium styling
-          _buildPremiumButton(
-            onTap: () => Navigator.of(context).pop(),
-            child: Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-              size: isTablet ? 28 : 24,
-            ),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF00bcd4), Color(0xFF0097a7)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          // Removed back button - this is a bottom nav screen
 
           const Spacer(),
 

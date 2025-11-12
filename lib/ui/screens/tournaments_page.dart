@@ -7,10 +7,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:math' as math;
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
+import '../../game/systems/lives_manager.dart';
 import '../../services/tournament_service.dart';
 import '../../models/tournament.dart';
 import '../widgets/tournaments/global_leaderboard_tab.dart';
 import '../widgets/tournaments/weekly_contest_tab.dart';
+import '../widgets/no_hearts_dialog.dart';
 import 'game_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -32,10 +34,6 @@ class _TournamentsPageState extends State<TournamentsPage>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late final TabController _tabController;
   late final AnimationController _backgroundController;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-  late AnimationController _glowController;
-  late Animation<double> _glowAnimation;
   
   final TournamentService _tournamentService = TournamentService(
     baseUrl: 'https://flappyjet-backend-production.up.railway.app',
@@ -56,24 +54,6 @@ class _TournamentsPageState extends State<TournamentsPage>
       duration: const Duration(seconds: 20),
       vsync: this,
     )..repeat();
-
-    // Pulse animation for PLAY button
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    // Glow animation
-    _glowController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    )..repeat(reverse: true);
-    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
-    );
     
     // Load tournament data
     _loadTournamentData();
@@ -93,19 +73,38 @@ class _TournamentsPageState extends State<TournamentsPage>
   void dispose() {
     _tabController.dispose();
     _backgroundController.dispose();
-    _pulseController.dispose();
-    _glowController.dispose();
     _tournamentService.dispose();
     super.dispose();
   }
 
   void _launchEndlessMode() {
+    // Check if player has hearts available
+    final livesManager = LivesManager();
+    if (livesManager.currentLives <= 0) {
+      // Show no hearts dialog
+      _showNoHeartsDialog();
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => GameScreen(
           monetization: widget.monetization,
           missions: widget.missions,
         ),
+      ),
+    );
+  }
+
+  void _showNoHeartsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => NoHeartsDialog(
+        monetization: widget.monetization,
+        onClose: () {
+          Navigator.of(context).pop();
+        },
       ),
     );
   }
@@ -121,7 +120,9 @@ class _TournamentsPageState extends State<TournamentsPage>
     final playButtonGlow = isSmallScreen ? 30.0 : 40.0;
     final playTextSize = isSmallScreen ? 44.0 : 54.0;
 
-    return AnimatedBuilder(
+    return WillPopScope(
+      onWillPop: () async => false, // Disable back button for bottom nav screen
+      child: AnimatedBuilder(
       animation: _backgroundController,
       builder: (context, child) {
         return Container(
@@ -157,118 +158,103 @@ class _TournamentsPageState extends State<TournamentsPage>
           ),
         );
       },
+      ),
     );
   }
 
   Widget _buildWeeklyTabWithPlayButton(double playButtonSize, double playButtonGlow, double playTextSize) {
-    // Make PLAY button smaller - 60% of original size
-    final smallerPlayButtonSize = playButtonSize * 0.6;
-    final smallerPlayTextSize = playTextSize * 0.7;
-    final smallerGlow = playButtonGlow * 0.6;
+    // Play button sizing - BIGGER and more prominent
+    final screenWidth = MediaQuery.of(context).size.width;
     
     // Everything in one scrollable area
     return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Top spacing
-          SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
 
-          // PLAY Button (60% of original)
-          AnimatedBuilder(
-            animation: _pulseAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _pulseAnimation.value,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Glow effect
-                    AnimatedBuilder(
-                      animation: _glowAnimation,
-                      builder: (context, child) {
-                        return Container(
-                          width: smallerPlayButtonSize + smallerGlow,
-                          height: smallerPlayButtonSize + smallerGlow,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF4ECDC4)
-                                    .withOpacity(_glowAnimation.value * 0.5),
-                                blurRadius: 30,
-                                spreadRadius: 15,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+            // Tournament details (dynamic from tournament data)
+            _buildTournamentInfo(),
 
-                    // Main button
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _launchEndlessMode,
-                        borderRadius: BorderRadius.circular(smallerPlayButtonSize / 2),
-                        child: Container(
-                          width: smallerPlayButtonSize,
-                          height: smallerPlayButtonSize,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF4ECDC4),
-                                Color(0xFF44A08D),
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              'PLAY',
-                              style: TextStyle(
-                                fontSize: smallerPlayTextSize,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 2,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.5),
-                                    offset: const Offset(0, 2),
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
+            const SizedBox(height: 20),
+
+            // ✅ NEW LAYOUT: Play button + Prizes side by side
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // ✅ LEFT: Prize badges
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.emoji_events, color: Color(0xFFFFD700), size: 18),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'PRIZES',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 1,
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      _buildPrizeBadges(),
+                    ],
+                  ),
                 ),
-              );
-            },
-          ),
 
-          SizedBox(height: MediaQuery.of(context).size.height * 0.015),
+                const SizedBox(width: 16),
 
-          // Tournament details (dynamic from tournament data)
-          _buildTournamentInfo(),
+                // ✅ RIGHT: BIGGER Play button (no background, no shadow)
+                Expanded(
+                  flex: 6,
+                  child: GestureDetector(
+                    onTap: _launchEndlessMode,
+                    child: Image.asset(
+                      'assets/images/buttons/tournament_play_button.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
-          SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+            const SizedBox(height: 24),
 
-          // Tournament table (WeeklyContestTab content - without its own Expanded)
-          // We need to create a custom method to get the WeeklyContestTab's content without Expanded wrapper
-          const WeeklyContestTab(),
-        ],
+            // ✅ Weekly Ranking Section
+            Row(
+              children: [
+                const Icon(Icons.leaderboard, color: Color(0xFF4ECDC4), size: 18),
+                const SizedBox(width: 6),
+                const Text(
+                  'WEEKLY RANKING',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // ✅ Leaderboard (Clean, no boxes)
+            _buildCompactLeaderboard(),
+
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
@@ -540,4 +526,52 @@ class _TournamentsPageState extends State<TournamentsPage>
         .fadeIn(duration: 800.ms, delay: 400.ms)
         .slideY(begin: -0.3, end: 0);
   }
+
+  /// ✅ NEW: Clean Prizes & Leaderboard Section (NO BOXES, NO BORDERS)
+  /// ✅ CLEAN Prize Badges (NO SQUARES, NO BOXES)
+  Widget _buildPrizeBadges() {
+    final prizes = [
+      {'place': '1st', 'amount': '1000', 'emoji': '🥇', 'color': Color(0xFFFFD700)},
+      {'place': '2nd', 'amount': '500', 'emoji': '🥈', 'color': Color(0xFFC0C0C0)},
+      {'place': '3rd', 'amount': '250', 'emoji': '🥉', 'color': Color(0xFFCD7F32)},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: prizes.map((prize) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            children: [
+              // Medal emoji
+              Text(
+                prize['emoji'] as String,
+                style: const TextStyle(fontSize: 28),
+              ),
+              
+              const SizedBox(width: 10),
+              
+              // Amount text
+              Text(
+                '${prize['amount']} Coins',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: prize['color'] as Color,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// ✅ Compact Leaderboard (Nickname and Score closer)
+  Widget _buildCompactLeaderboard() {
+    // This will be replaced with actual data from WeeklyContestTab
+    // For now, using placeholder that will be populated
+    return const WeeklyContestTab();
+  }
 }
+

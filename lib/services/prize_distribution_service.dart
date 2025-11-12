@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flappy_jet_pro/game/systems/inventory_manager.dart';
+import 'package:flappy_jet_pro/game/systems/player_identity_manager.dart';
 import 'package:flappy_jet_pro/services/tournament_service.dart';
 import 'package:flappy_jet_pro/models/tournament.dart';
 import 'package:flappy_jet_pro/game/core/error_handler.dart';
@@ -91,10 +92,13 @@ class PrizeDistributionService extends ChangeNotifier {
   /// Handle tournament ended event
   Future<void> _handleTournamentEnded(Tournament tournament) async {
     try {
+      // Get player identity for prize claims
+      final playerIdentity = PlayerIdentityManager();
+      
       // Check if user has a prize in this tournament
       final prizeHistoryResult = await tournamentService.getPlayerPrizeHistory(
-        playerId: inventoryManager.playerId ?? 'unknown',
-        authToken: inventoryManager.authToken ?? '',
+        playerId: playerIdentity.playerId,
+        authToken: playerIdentity.authToken,
       );
 
       if (prizeHistoryResult.isSuccess && prizeHistoryResult.data != null) {

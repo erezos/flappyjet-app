@@ -27,6 +27,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final PlayerIdentityManager _playerIdentity = PlayerIdentityManager();
   final ProfileManager _profile = ProfileManager();
+  // Use singleton instance (initialized in main.dart)
   final InventoryManager _inventory = InventoryManager();
   final AudioSettingsManager _audioSettings = AudioSettingsManager();
   final TextEditingController _nameCtrl = TextEditingController();
@@ -60,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       safePrint('🏗️ ProfileScreen JetSkinCatalog initialized');
       await _profile.initialize();
       safePrint('🏗️ ProfileScreen ProfileManager initialized');
-      await _inventory.initialize();
+      // InventoryManager is already initialized in main.dart
       safePrint('🏗️ ProfileScreen InventoryManager initialized');
     });
 
@@ -103,70 +104,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
         JetSkinCatalog.starterJet;
     safePrint('🏗️ ProfileScreen equippedSkin: ${equippedSkin.displayName}');
 
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async => false, // Disable back button for bottom nav screen
+      child: Scaffold(
       body: Stack(
         children: [
           // 1. Background Image Component
           const ProfileBackgroundComponent(),
 
-          // 2. Nickname Banner Component (image+text) - HEADER AT TOP RED RECTANGLE POSITION
+          // 2. ✅ REDESIGNED: Nickname Banner - Full width at top (RED SQUARE AREA)
           Positioned(
-            top: 20, // 20px from the top of SafeArea (red rectangle position)
+            top: 50, // Top position
             left: 0,
             right: 0,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5.0,
-                  ), // 5px margins from edges
-                  child: ProfileNicknameBannerComponent(
-                    controller: _nameCtrl,
-                    onSave: _handleNicknameSave,
-                    alignment: const Alignment(
-                      0,
-                      0,
-                    ), // Center within the positioned container
-                    width:
-                        null, // Let it fill the available space (screenWidth - 10px from padding)
-                    height: 253, // Keep the same height
-                  ),
-                );
-              },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: ProfileNicknameBannerComponent(
+                controller: _nameCtrl,
+                onSave: _handleNicknameSave,
+                alignment: Alignment.center,
+                width: null, // Full width
+                height: 200, // Compact height for banner
+              ),
             ),
           ),
 
-          // 4. High Score Widget Component (image+text) - Responsive positioning
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final screenHeight = MediaQuery.of(context).size.height;
-              final isSmallScreen = screenHeight < 700;
-              
-              return ProfileHighScoreComponent(
-                alignment: Alignment(
-                  -0.55,
-                  isSmallScreen ? -0.35 : -0.25, // Higher on small screens
+          // 3. ✅ REDESIGNED: High Score & Hottest Streak - Side by side (BLUE SQUARE AREA)
+          Positioned(
+            top: 280, // Below nickname banner
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // High Score (Left)
+                Expanded(
+                  child: ProfileHighScoreComponent(
+                    alignment: Alignment.center,
+                  ),
                 ),
-              );
-            },
+                
+                const SizedBox(width: 16),
+                
+                // Hottest Streak (Right)
+                Expanded(
+                  child: ProfileHottestStreakComponent(
+                    alignment: Alignment.center,
+                  ),
+                ),
+              ],
+            ),
           ),
 
-          // 5. Hottest Streak Widget Component (image+text) - Responsive positioning
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final screenHeight = MediaQuery.of(context).size.height;
-              final isSmallScreen = screenHeight < 700;
-              
-              return ProfileHottestStreakComponent(
-                alignment: Alignment(
-                  0.55,
-                  isSmallScreen ? -0.35 : -0.25, // Higher on small screens
-                ),
-              );
-            },
-          ),
-
-          // 6. Unified Jet Section (image + name + button) - Positioned in the gap
+          // 4. ✅ REDESIGNED: Jet Section - Centered below stats (GREEN SQUARE AREA)
           LayoutBuilder(
             builder: (context, constraints) {
               final screenHeight = MediaQuery.of(context).size.height;
@@ -177,36 +167,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               return Align(
                 alignment: Alignment(
                   0,
-                  // Position in the gap between high score/streak and footer
-                  isVerySmallScreen ? 0.4 : isSmallScreen ? 0.45 : 0.55,
+                  isVerySmallScreen ? 0.4 : isSmallScreen ? 0.45 : 0.5,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Jet Image - BIGGER as the main subject
+                    // Jet Image
                     SizedBox(
-                      height: isVerySmallScreen ? 90 : isSmallScreen ? 110 : 130, // Much bigger!
+                      height: isVerySmallScreen ? 100 : isSmallScreen ? 120 : 140,
                       child: Image.asset(
                         'assets/images/${equippedSkin.assetPath}',
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
                           return Icon(
                             Icons.flight,
-                            size: isVerySmallScreen ? 80 : isSmallScreen ? 100 : 120,
+                            size: isVerySmallScreen ? 90 : isSmallScreen ? 110 : 130,
                             color: Colors.white,
                           );
                         },
                       ),
                     ),
                     
-                    // Small gap between jet and name
-                    SizedBox(height: isVerySmallScreen ? 6 : 8),
+                    SizedBox(height: isVerySmallScreen ? 8 : 10),
                     
                     // Jet Name
                     Text(
                       equippedSkin.displayName,
                       style: TextStyle(
-                        fontSize: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20, // Slightly bigger text too
+                        fontSize: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.orange.shade300,
                         shadows: const [
@@ -219,16 +207,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     
-                    // Gap between name and button
-                    SizedBox(height: isVerySmallScreen ? 10 : isSmallScreen ? 12 : 14),
+                    SizedBox(height: isVerySmallScreen ? 12 : isSmallScreen ? 14 : 16),
                     
-                    // Original Custom Choose Jet Button - Restored!
+                    // Choose Jet Button
                     ProfileActionButtonComponent(
                       onPressed: _openOwnedJetsSheet,
-                      alignment: Alignment.center, // Already positioned by parent
-                      width: isSmallScreen ? screenWidth * 0.8 : screenWidth * 0.85, // Much bigger
-                      height: isVerySmallScreen ? 80 : isSmallScreen ? 90 : 100, // Much bigger
-                      text: '', // Empty since the button image contains the text
+                      alignment: Alignment.center,
+                      width: isSmallScreen ? screenWidth * 0.75 : screenWidth * 0.8,
+                      height: isVerySmallScreen ? 70 : isSmallScreen ? 80 : 90,
+                      text: '',
                     ),
                   ],
                 ),
@@ -324,9 +311,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // Back Button Component (overlay)
-          const ProfileBackButtonComponent(),
+          // Back Button Component removed - this is a bottom nav screen
         ],
+      ),
       ),
     );
   }

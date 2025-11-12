@@ -8,7 +8,6 @@ import '../core/iap_products.dart';
 import 'inventory_manager.dart';
 import 'lives_manager.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
-import '../../core/analytics/comprehensive_analytics_manager.dart';
 
 /// 🚀 PRODUCTION MONETIZATION SYSTEM - AdMob Mediation + IAP
 /// 
@@ -146,7 +145,7 @@ class MonetizationManager extends ChangeNotifier {
       // Set up callbacks for ad events
       _adService.onAdShown = () {
         safePrint('📺 🎬 Ad showing...');
-        ComprehensiveAnalyticsManager().trackAdShown(adType: 'rewarded');
+        // OLD:         ComprehensiveAnalyticsManager().trackAdShown(adType: 'rewarded');
       };
       
       _adService.onAdFailedToLoad = (error) {
@@ -171,11 +170,11 @@ class MonetizationManager extends ChangeNotifier {
         // ✅ Ad completed successfully - grant reward
         safePrint('📺 ✅ Ad completed - Reward granted!');
         
-        ComprehensiveAnalyticsManager().trackAdCompleted(
-          adType: 'rewarded',
-          rewardType: 'heart',
-          rewardAmount: 1,
-        );
+        // OLD:         ComprehensiveAnalyticsManager().trackAdCompleted(
+        // OLD:           adType: 'rewarded',
+        // OLD:           rewardType: 'heart',
+        // OLD:           rewardAmount: 1,
+        // OLD:         );
         
         trackPlayerEngagement({
           'event': 'rewarded_ad_reward_granted',
@@ -188,10 +187,10 @@ class MonetizationManager extends ChangeNotifier {
         // Ad was skipped early or failed
         safePrint('📺 ⚠️ Ad skipped early - NO REWARD');
         
-        ComprehensiveAnalyticsManager().trackAdAbandoned(
-          adType: 'rewarded',
-          reason: 'User exited before completion',
-        );
+        // OLD:         ComprehensiveAnalyticsManager().trackAdAbandoned(
+        // OLD:           adType: 'rewarded',
+        // OLD:           reason: 'User exited before completion',
+        // OLD:         );
         
         trackPlayerEngagement({
           'event': 'rewarded_ad_early_exit',

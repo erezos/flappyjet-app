@@ -9,7 +9,7 @@ import 'lives_manager.dart';
 import 'inventory_manager.dart';
 import 'game_events_tracker.dart';
 import '../../core/debug_logger.dart';
-import '../../core/analytics/comprehensive_analytics_manager.dart';
+import '../../core/events/event_bus.dart';
 
 /// Mission types that adapt to player skill level
 enum MissionType {
@@ -261,8 +261,12 @@ class MissionsManager extends ChangeNotifier {
     final now = DateTime.now();
     final lastReset = _lastResetDate ?? DateTime.now().subtract(const Duration(days: 1));
     
-    // Check if it's a new day (24 hours passed)
-    if (now.difference(lastReset).inHours >= 24) {
+    // Check if it's a new day (24 hours passed) OR if we have no missions
+    final needsReset = now.difference(lastReset).inHours >= 24;
+    final noMissions = _dailyMissions.isEmpty;
+    
+    if (needsReset || noMissions) {
+      safePrint('🎯 Daily missions reset triggered: needsReset=$needsReset, noMissions=$noMissions');
       await _generateNewDailyMissions();
       await _saveDailyMissions();
       
@@ -273,17 +277,22 @@ class MissionsManager extends ChangeNotifier {
       _lastResetDate = now;
       await prefs.setInt(_keyLastResetDate, now.millisecondsSinceEpoch);
       
-      safePrint('🎯 Daily missions reset completed');
+      safePrint('🎯 Daily missions reset completed: ${_dailyMissions.length} missions generated');
     }
   }
 
   /// Generate new adaptive daily missions based on player skill
   Future<void> _generateNewDailyMissions() async {
-    if (_playerStats == null) return;
+    if (_playerStats == null) {
+      safePrint('🎯 ⚠️ Cannot generate missions: player stats not loaded');
+      return;
+    }
 
     final random = math.Random();
     final missions = <Mission>[];
     final now = DateTime.now();
+
+    safePrint('🎯 Generating missions for skill level: ${_playerStats!.skillLevel}');
 
     // Generate 4 missions: 2 easy, 1 medium, 1 hard/expert
     missions.add(_generatePlayGamesMission(_playerStats!, MissionDifficulty.easy, now));
@@ -299,6 +308,7 @@ class MissionsManager extends ChangeNotifier {
     missions.add(_generateMissionByType(randomType, _playerStats!, difficulty, now));
 
     _dailyMissions = missions;
+    safePrint('🎯 Generated ${missions.length} new daily missions');
   }
 
   /// Generate play games mission
@@ -334,7 +344,7 @@ class MissionsManager extends ChangeNotifier {
       type: MissionType.playGames,
       difficulty: difficulty,
       title: 'Take Flight',
-      description: 'Play $target games today',
+      description: 'Play $target games today (any mode)', // ✅ Added "any mode"
       target: target,
       reward: reward,
       createdAt: createdAt,
@@ -562,13 +572,9 @@ class MissionsManager extends ChangeNotifier {
     completedMissions.add('${mission.id}:${mission.reward}:${DateTime.now().millisecondsSinceEpoch}');
     await prefs.setStringList(_keyCompletedMissions, completedMissions);
     
-    // 📊 Track mission completion in ComprehensiveAnalyticsManager
-    await ComprehensiveAnalyticsManager().trackMissionComplete(
-      missionType: mission.type.toString(),
-      missionId: mission.id,
-      progress: mission.target, // Use target as progress (mission is completed)
-      isDailyMission: true,
-    );
+    // 📊 Track mission completion (OLD ANALYTICS REMOVED)
+    // OLD: ComprehensiveAnalyticsManager().trackMissionComplete(...)
+    // Now using EventBus for analytics
   }
 
   /// Check if all daily missions are completed and track the event
@@ -580,12 +586,9 @@ class MissionsManager extends ChangeNotifier {
     if (allCompleted) {
       safePrint('🎯 🏆 ALL DAILY MISSIONS COMPLETED! $completedMissions/$totalMissions');
       
-      // Track daily mission cycle completion
-      await ComprehensiveAnalyticsManager().trackDailyMissionCycleComplete(
-        missionsCompleted: completedMissions,
-        totalMissions: totalMissions,
-        allMissionsCompleted: true,
-      );
+      // Track daily mission cycle completion (OLD ANALYTICS REMOVED)
+      // OLD: ComprehensiveAnalyticsManager().trackDailyMissionCycleComplete(...)
+      // Now using EventBus for analytics
     }
   }
 
@@ -735,12 +738,31 @@ class MissionsManager extends ChangeNotifier {
       // 1. Grant reward (async but don't wait)
       final inventory = InventoryManager();
       batchOperations.add(
-        inventory.grantSoftCurrency(mission.reward).then((_) {
+        inventory.grantSoftCurrency(
+          mission.reward,
+          source: 'mission_completed',
+          sourceId: mission.id,
+        ).then((_) {
           safePrint('🎯 💰 Mission reward claimed: ${mission.reward} coins for "${mission.title}"');
         })
       );
       
-      // 2. Track mission completion for achievements (async but don't wait)
+      // 2. Fire mission_completed event for analytics
+      final eventBus = EventBus();
+      final completionTime = mission.completedAt != null
+          ? DateTime.now().difference(mission.completedAt!).inSeconds
+          : 0;
+      
+      eventBus.fire('mission_completed', {
+        'mission_id': mission.id,
+        'mission_type': mission.type.toString(),
+        'mission_difficulty': mission.difficulty.toString(),
+        'reward_coins': mission.reward,
+        'completion_time_seconds': completionTime,
+      });
+      safePrint('🏆 mission_completed event fired for "${mission.title}"');
+      
+      // 3. Track mission completion for achievements (async but don't wait)
       final gameEventsTracker = GameEventsTracker();
       batchOperations.add(
         gameEventsTracker.onMissionCompleted(

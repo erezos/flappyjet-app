@@ -130,32 +130,19 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF2D1B69),
-            Color(0xFF11998E),
-            Color(0xFF0F3460),
-          ],
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          _buildHeader(),
-          
-          // Content (without Expanded to work in SingleChildScrollView)
-          _isLoading
-              ? _buildLoadingState()
-              : _error != null
-                  ? _buildErrorState()
-                  : _buildTournamentContent(),
-        ],
-      ),
+    // ✅ REMOVED: Background gradient - now blends with tournaments_page.dart
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ✅ REMOVED: Header with "Weekly Contest" text - now using "Weekly Ranking" in tournaments_page.dart
+        
+        // Content (without Expanded to work in SingleChildScrollView)
+        _isLoading
+            ? _buildLoadingState()
+            : _error != null
+                ? _buildErrorState()
+                : _buildTournamentContent(),
+      ],
     );
   }
 
@@ -264,9 +251,9 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
         children: [
           // Removed tournament info card - now shown in tournaments_page.dart header
           
-          // Prize pool
-          _buildPrizePoolCard(),
-          const SizedBox(height: 20),
+          // ✅ REMOVED: Prize pool card - already shown in tournaments_page.dart
+          // _buildPrizePoolCard(),
+          // const SizedBox(height: 20),
           
           // Leaderboard
           _buildTournamentLeaderboard(),
@@ -468,15 +455,8 @@ class _WeeklyContestTabState extends State<WeeklyContestTab>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Tournament Leaderboard',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
+        // ✅ REMOVED: "Tournament Leaderboard" title - now using "Weekly Ranking" in tournaments_page.dart
+        
         ...List.generate(_tournamentLeaderboard.length, (index) {
           final entry = _tournamentLeaderboard[index];
           final isUserEntry = entry.playerId == _playerIdentityManager.playerId;

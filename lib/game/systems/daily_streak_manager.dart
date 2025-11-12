@@ -492,7 +492,11 @@ class DailyStreakManager extends ChangeNotifier {
     try {
       switch (reward.type) {
         case DailyStreakRewardType.coins:
-          await _inventory.addCoinsWithAnimation(reward.amount);
+          await _inventory.grantSoftCurrency(
+            reward.amount,
+            source: 'daily_streak',
+            sourceId: 'day_${_currentStreak + 1}_cycle_$_currentCycle',
+          );
           break;
           
         case DailyStreakRewardType.gems:
