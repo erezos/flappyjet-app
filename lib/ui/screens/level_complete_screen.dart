@@ -15,6 +15,7 @@ import 'level_objective_popup.dart';
 import 'zone_completion_celebration_screen.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
+import '../../integrations/interstitial_ad_manager.dart';
 
 /// Get bot jet sprite path from JetSkinCatalog
 String _getBotJetSpritePath(String botJetSkinId) {
@@ -63,6 +64,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
   final LevelRewardManager _rewardManager = LevelRewardManager();
   final LevelSystemManager _levelSystemManager = LevelSystemManager();
+  final InterstitialAdManager _interstitialAdManager = InterstitialAdManager();
 
   bool _rewardsGranted = false;
   late bool _isReplay;
@@ -978,7 +980,22 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     return nextLevel != null;
   }
 
-  void _onNextLevel() {
+  void _onNextLevel() async {
+    // ✅ Track level win for interstitial ad frequency
+    await _interstitialAdManager.onLevelWon();
+    
+    // ✅ Check and show interstitial ad if conditions are met
+    final adShown = await _interstitialAdManager.checkAndShowAd(
+      onAdClosed: () => _proceedToNextLevel(),
+    );
+    
+    // If no ad was shown, proceed immediately
+    if (!adShown) {
+      _proceedToNextLevel();
+    }
+  }
+  
+  void _proceedToNextLevel() {
     // Check if zone was just completed
     if (!_isReplay && _levelSystemManager.wasZoneJustCompleted(widget.level.id)) {
       _navigateToZoneCompletionCelebration();
@@ -1024,7 +1041,22 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     );
   }
 
-  void _onBackToMap() {
+  void _onBackToMap() async {
+    // ✅ Track level win for interstitial ad frequency
+    await _interstitialAdManager.onLevelWon();
+    
+    // ✅ Check and show interstitial ad if conditions are met
+    final adShown = await _interstitialAdManager.checkAndShowAd(
+      onAdClosed: () => _proceedToWorldMap(),
+    );
+    
+    // If no ad was shown, proceed immediately
+    if (!adShown) {
+      _proceedToWorldMap();
+    }
+  }
+  
+  void _proceedToWorldMap() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => const WorldMapScreen(),

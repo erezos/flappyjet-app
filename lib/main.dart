@@ -59,6 +59,7 @@ import 'services/fcm_service.dart';
 
 // Integrations
 import 'ui/widgets/daily_streak/daily_streak_integration.dart';
+import 'integrations/interstitial_ad_manager.dart';
 // Removed: ftue_integration.dart import (no longer needed - tutorial triggers directly from Level 1)
 
 void main() async {
@@ -286,6 +287,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
           inventory: inventoryManager,
           lives: LivesManager(),
         )),
+        _initTask('Interstitial Ads', () => InterstitialAdManager().initialize()),
         // OLD: Comprehensive Analytics removed - now using EventBus for all analytics
       ];
 
