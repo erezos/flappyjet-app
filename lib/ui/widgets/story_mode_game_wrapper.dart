@@ -486,19 +486,23 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
           timeTaken: timeTaken,
           continuesUsed: _game.gameStateManager.continuesUsedThisRun,
           onContinue: () async {
-            // Close the popup
-            Navigator.of(context).pop();
+            // ✅ DON'T close popup yet - keep celebration visible during ad
             
             // ✅ Track level win for interstitial ad frequency (for ALL wins, including replays)
             await InterstitialAdManager().onLevelWon();
             
             // ✅ Check and show interstitial ad if conditions are met
             final adShown = await InterstitialAdManager().checkAndShowAd(
-              onAdClosed: () => _proceedAfterAd(isReplay, levelManager),
+              onAdClosed: () {
+                // ✅ NOW close the popup after ad finishes
+                if (mounted) Navigator.of(context).pop();
+                _proceedAfterAd(isReplay, levelManager);
+              },
             );
             
-            // If no ad was shown, proceed immediately
+            // If no ad was shown, close popup and proceed immediately
             if (!adShown) {
+              if (mounted) Navigator.of(context).pop();
               _proceedAfterAd(isReplay, levelManager);
             }
             

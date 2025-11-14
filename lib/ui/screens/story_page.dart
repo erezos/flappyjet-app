@@ -154,20 +154,23 @@ class _StoryPageState extends State<StoryPage>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Left side: Coins/Gems + Daily Streak (flexible to prevent overflow)
-                        Flexible(
+                        // ✅ Left side: Coins/Gems + Daily Streak (flexible to prevent overflow)
+                        // Using Expanded with shrinkWrap to allow proper shrinking
+                        Expanded(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CoinsGemsDisplay(),
-                              SizedBox(width: isTablet ? 12 : 8),
+                              Flexible(
+                                child: CoinsGemsDisplay(),
+                              ),
+                              SizedBox(width: isTablet ? 8 : 6),
                               DailyStreakButton(),
                             ],
                           ),
                         ),
-                        // Spacing between left and right
-                        SizedBox(width: isTablet ? 12 : 8),
-                        // Right side: Hearts (always visible)
+                        // ✅ Spacing between left and right (responsive)
+                        SizedBox(width: isTablet ? 8 : 6),
+                        // ✅ Right side: Hearts (fixed, always visible)
                         HeartsDisplay(),
                       ],
                     ),

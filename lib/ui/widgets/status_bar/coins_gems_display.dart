@@ -55,52 +55,68 @@ class CoinsGemsDisplay extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Coins
-          Icon(Icons.monetization_on, color: Colors.amber, size: iconSize),
-          SizedBox(width: spacing),
-          ValueListenableBuilder<int>(
-            valueListenable: _inventory.softCurrencyNotifier,
-            builder: (context, _, __) {
-              return Text(
-                _numFmt.format(_inventory.softCurrency),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: fontSize,
-                ),
-              );
-            },
-          ),
+      child: IntrinsicWidth(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Coins
+            Icon(Icons.monetization_on, color: Colors.amber, size: iconSize),
+            SizedBox(width: spacing),
+            Flexible(
+              child: ValueListenableBuilder<int>(
+                valueListenable: _inventory.softCurrencyNotifier,
+                builder: (context, _, __) {
+                  return FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _numFmt.format(_inventory.softCurrency),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: fontSize,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                    ),
+                  );
+                },
+              ),
+            ),
 
-          // Divider
-          SizedBox(width: dividerSpacing),
-          Container(
-            width: 1,
-            height: dividerHeight,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
-          SizedBox(width: dividerSpacing),
+            // Divider
+            SizedBox(width: dividerSpacing),
+            Container(
+              width: 1,
+              height: dividerHeight,
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
+            SizedBox(width: dividerSpacing),
 
-          // Gems
-          Gem3DIcon(size: iconSize),
-          SizedBox(width: spacing),
-          ValueListenableBuilder<int>(
-            valueListenable: _inventory.gemsNotifier,
-            builder: (context, _, __) {
-              return Text(
-                _numFmt.format(_inventory.gems),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: fontSize,
-                ),
-              );
-            },
-          ),
-        ],
+            // Gems
+            Gem3DIcon(size: iconSize),
+            SizedBox(width: spacing),
+            Flexible(
+              child: ValueListenableBuilder<int>(
+                valueListenable: _inventory.gemsNotifier,
+                builder: (context, _, __) {
+                  return FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _numFmt.format(_inventory.gems),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: fontSize,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
     

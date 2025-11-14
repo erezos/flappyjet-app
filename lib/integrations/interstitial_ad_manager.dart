@@ -44,6 +44,9 @@ class InterstitialAdManager {
   bool _isAdLoading = false;
   bool _isAdReady = false;
   
+  /// ✅ FIX: Store callback to call when ad is ACTUALLY dismissed
+  VoidCallback? _pendingOnAdClosed;
+  
   /// Last time an ad was shown
   DateTime? _lastAdShownTime;
   
@@ -153,6 +156,13 @@ class InterstitialAdManager {
         _isAdReady = false;
         _loadAd(); // Load next ad
         
+        // ✅ FIX: Call the stored callback when ad is ACTUALLY dismissed
+        if (_pendingOnAdClosed != null) {
+          safePrint('✅ Calling onAdClosed callback after ad dismissed');
+          _pendingOnAdClosed!();
+          _pendingOnAdClosed = null; // Clear the callback
+        }
+        
         // Track analytics
         UnifiedAnalyticsManager().trackEvent('interstitial_dismissed', {
           'wins_this_session': _winsThisSession,
@@ -163,6 +173,13 @@ class InterstitialAdManager {
         ad.dispose();
         _isAdReady = false;
         _loadAd();
+        
+        // ✅ FIX: Call the stored callback even if ad fails
+        if (_pendingOnAdClosed != null) {
+          safePrint('✅ Calling onAdClosed callback after ad failed');
+          _pendingOnAdClosed!();
+          _pendingOnAdClosed = null; // Clear the callback
+        }
         
         // Track analytics
         UnifiedAnalyticsManager().trackEvent('interstitial_show_failed', {
@@ -228,6 +245,9 @@ class InterstitialAdManager {
     }
 
     try {
+      // ✅ FIX: Store callback to call when ad is ACTUALLY dismissed
+      _pendingOnAdClosed = onAdClosed;
+      
       // Mark that user has seen an interstitial (no longer first session after first ad)
       if (_isFirstSession) {
         final prefs = await SharedPreferences.getInstance();
@@ -236,16 +256,11 @@ class InterstitialAdManager {
         safePrint('📺 First interstitial shown - future sessions will skip grace period');
       }
 
-      // Show the ad
+      // Show the ad (callback will be called by onAdDismissedFullScreenContent)
       await _interstitialAd!.show();
-      
-      // Callback will be called by onAdDismissedFullScreenContent
-      if (onAdClosed != null) {
-        // Wait a bit to ensure ad is dismissed before calling callback
-        Future.delayed(const Duration(milliseconds: 500), onAdClosed);
-      }
     } catch (e) {
       safePrint('❌ Exception showing interstitial ad: $e');
+      _pendingOnAdClosed = null; // Clear stored callback on error
       onAdClosed?.call();
     }
   }

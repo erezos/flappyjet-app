@@ -242,8 +242,10 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
       
       // 🎯 THRESHOLD-BASED DECISION (like successful ML models)
       // ✅ UPDATED: Use dynamic skill level for threshold calculation
-      // Define a threshold based on skill level - higher skill = tighter control
-      final threshold = 15 + ((1.0 - currentSkillLevel) * 25); // 0.99 skill = 15.25px, 0.87 skill = 18.25px
+      // ✅ NEW: During minimum obstacle guarantee, use MUCH tighter threshold
+      final threshold = (minObstaclesToPass > 0 && _score < minObstaclesToPass)
+        ? 8.0 // 🎯 VERY TIGHT during guarantee phase (bot stays close to target)
+        : 15 + ((1.0 - currentSkillLevel) * 25); // Normal threshold after guarantee
       
       // SIMPLE RULE: If we're BELOW target by more than threshold → JUMP
       // This is exactly how successful Flappy Bird AIs work!
@@ -260,6 +262,17 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
           } else {
             safePrint('🤖 MISTAKE: Missed jump (${(currentMistakeRate * 100).toStringAsFixed(0)}% rate)');
           }
+        }
+      }
+      
+      // ✅ NEW: During minimum obstacle guarantee, jump MORE AGGRESSIVELY to maintain position
+      // This ensures bot stays in gap without falling too far down
+      if (minObstaclesToPass > 0 && _score < minObstaclesToPass) {
+        if (currentY > _targetY && _timeSinceLastJump >= (reactionTime * 0.6)) {
+          // Jump if below target by ANY amount (with faster reaction time)
+          safePrint('🤖 GUARANTEE CORRECTION: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (maintaining position)');
+          _jump();
+          return;
         }
       }
       // Removed spammy "coast down" and "in target zone" logs
