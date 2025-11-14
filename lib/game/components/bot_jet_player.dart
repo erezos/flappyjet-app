@@ -243,20 +243,28 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
       // 🎯 THRESHOLD-BASED DECISION (like successful ML models)
       // ✅ UPDATED: Use dynamic skill level for threshold calculation
       // ✅ NEW: During minimum obstacle guarantee, use MUCH tighter threshold
-      final threshold = (minObstaclesToPass > 0 && _score < minObstaclesToPass)
-        ? 8.0 // 🎯 VERY TIGHT during guarantee phase (bot stays close to target)
+      final isInGuaranteePhase = minObstaclesToPass > 0 && _score < minObstaclesToPass;
+      final threshold = isInGuaranteePhase
+        ? 5.0 // 🎯 EXTREMELY TIGHT during guarantee phase (bot stays VERY close to target)
         : 15 + ((1.0 - currentSkillLevel) * 25); // Normal threshold after guarantee
+      
+      // ✅ NEW: During guarantee phase, use much faster reaction time
+      final effectiveReactionTime = isInGuaranteePhase ? (reactionTime * 0.3) : reactionTime;
       
       // SIMPLE RULE: If we're BELOW target by more than threshold → JUMP
       // This is exactly how successful Flappy Bird AIs work!
       if (currentY > _targetY + threshold) {
         // We're too low - need to jump!
-        if (_timeSinceLastJump >= reactionTime) {
+        if (_timeSinceLastJump >= effectiveReactionTime) {
           // ✅ UPDATED: Use dynamic mistake rate (0% at start, ramps up to base)
           // Apply mistake rate: sometimes the bot fails to jump
           final jumpSuccess = _random.nextDouble() > currentMistakeRate;
           if (jumpSuccess) {
-            safePrint('🤖 JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px) [Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
+            if (isInGuaranteePhase) {
+              safePrint('🤖 GUARANTEE JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px)');
+            } else {
+              safePrint('🤖 JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px) [Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
+            }
             _jump();
             return;
           } else {
@@ -265,12 +273,11 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
         }
       }
       
-      // ✅ NEW: During minimum obstacle guarantee, jump MORE AGGRESSIVELY to maintain position
-      // This ensures bot stays in gap without falling too far down
-      if (minObstaclesToPass > 0 && _score < minObstaclesToPass) {
-        if (currentY > _targetY && _timeSinceLastJump >= (reactionTime * 0.6)) {
-          // Jump if below target by ANY amount (with faster reaction time)
-          safePrint('🤖 GUARANTEE CORRECTION: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (maintaining position)');
+      // ✅ NEW: During minimum obstacle guarantee, add emergency recovery
+      // If bot is falling and below target, jump immediately
+      if (isInGuaranteePhase && velocity.y > 0 && currentY > _targetY) {
+        if (_timeSinceLastJump >= (effectiveReactionTime * 0.5)) {
+          safePrint('🤖 GUARANTEE RECOVERY: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (emergency)');
           _jump();
           return;
         }
