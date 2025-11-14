@@ -13,8 +13,6 @@ import '../../core/debug_logger.dart';
 import 'world_map_screen.dart';
 import 'level_objective_popup.dart';
 import 'zone_completion_celebration_screen.dart';
-import '../widgets/buttons/modern_game_button.dart';
-import '../widgets/buttons/button_styles.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 
 /// Get bot jet sprite path from JetSkinCatalog
@@ -972,14 +970,6 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
   }
 
   /// Check if there's a next level available
-  /// ✅ FIX: Just check if next level exists, not if it's unlocked
-  /// (it will be unlocked after completing the current level)
-  bool _hasNextLevel() {
-    final nextLevelId = widget.level.id + 1;
-    final nextLevel = _levelSystemManager.getLevelById(nextLevelId);
-    return nextLevel != null;
-  }
-
   void _onNextLevel() async {
     // ✅ Track level win for interstitial ad frequency
     await _interstitialAdManager.onLevelWon();
