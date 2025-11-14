@@ -63,12 +63,16 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     // Get LivesManager to track hearts
     final livesManager = LivesManager();
 
-    // Check if this is first attempt (check if level was already attempted)
+    // 🔥 CRITICAL: Check first attempt status BEFORE marking level as attempted
+    // This ensures FlappyWorld can see the correct first-attempt status for bot override
     final levelManager = LevelSystemManager();
-    final isFirstAttempt = !levelManager.isLevelCompleted(widget.level.id);
+    final isFirstAttempt = levelManager.isFirstAttempt(widget.level.id); // ✅ Use isFirstAttempt() method
     final attemptNumber = isFirstAttempt ? 1 : 2; // 1 for first, 2+ for retries (we don't track exact count yet)
+    
+    safePrint('🔥 Level ${widget.level.id}: isFirstAttempt=$isFirstAttempt');
 
-    // 🔥 Mark this level as attempted (for first-attempt boss logic)
+    // 🔥 Mark this level as attempted (AFTER checking status)
+    // This must happen AFTER checking isFirstAttempt but BEFORE game initialization
     levelManager.markLevelAttempted(widget.level.id);
 
     // Start tracking objective

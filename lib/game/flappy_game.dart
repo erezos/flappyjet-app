@@ -566,56 +566,62 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     
     // 🤖 BOT BATTLE: Check bot collisions (bot still uses manual collision for now)
     if (_botJet != null && _botJet!.isActive) {
-      for (final obstacle in _obstacleManager.obstacles) {
-        // Create bot hitbox (shrink slightly to be more forgiving)
-        final botHitboxSize = BotJetPlayer.botSize * 0.75; // 75% of visual size
-        final botRect = Rect.fromCenter(
-          center: Offset(_botJet!.position.x, _botJet!.position.y),
-          width: botHitboxSize,
-          height: botHitboxSize,
-        );
-        
-        // CORRECTED: obstacle.position.y is the TOP of the obstacle (Anchor.topLeft)
-        // The gap center is NOT at position.y
-        // We need to calculate actual obstacle heights from the DynamicObstacle logic
-        
-        // Calculate gap boundaries - the gap is CENTERED in the screen height
-        // The obstacle spawns with a random Y position which represents where the gap TOP starts
-        final gapSize = obstacle.gapSize;
-        
-        // The actual hitboxes are:
-        // Top obstacle: from 0 to (position.y)
-        // Gap: from (position.y) to (position.y + gapSize)
-        // Bottom obstacle: from (position.y + gapSize) to screen bottom
-        
-        final topRect = Rect.fromLTWH(
-          obstacle.position.x,
-          0,
-          GameConfig.obstacleWidth,
-          obstacle.position.y, // Top obstacle ends at position.y
-        );
-        final bottomRect = Rect.fromLTWH(
-          obstacle.position.x,
-          obstacle.position.y + gapSize, // Bottom obstacle starts after gap
-          GameConfig.obstacleWidth,
-          size.y - (obstacle.position.y + gapSize), // Extends to bottom
-        );
-        
-        if (botRect.overlaps(topRect) || botRect.overlaps(bottomRect)) {
-          final gapTop = obstacle.position.y;
-          final gapBottom = obstacle.position.y + gapSize;
-          final botY = _botJet!.position.y;
-          final crashType = botRect.overlaps(topRect) ? 'TOP' : 'BOTTOM';
-          safePrint('🤖 💥 COLLISION: Hit $crashType pipe! Bot Y=$botY, Gap: $gapTop-$gapBottom');
-          _botJet!.crash();
-          return;
-        }
-      }
+      // ✅ FIX: Skip collision detection if bot is in minimum obstacle guarantee phase
+      // This ensures the bot can skillfully navigate through guaranteed obstacles without dying
+      final isInGuaranteePhase = _botJet!.minObstaclesToPass > 0 && _botJet!.score < _botJet!.minObstaclesToPass;
       
-      // Check ground collision for bot
-      if (_botJet!.position.y > size.y - 50 - (BotJetPlayer.botSize / 2)) {
-        safePrint('🤖 BOT COLLISION: Bot crashed into ground!');
-        _botJet!.crash();
+      if (!isInGuaranteePhase) {
+        for (final obstacle in _obstacleManager.obstacles) {
+          // Create bot hitbox (shrink slightly to be more forgiving)
+          final botHitboxSize = BotJetPlayer.botSize * 0.75; // 75% of visual size
+          final botRect = Rect.fromCenter(
+            center: Offset(_botJet!.position.x, _botJet!.position.y),
+            width: botHitboxSize,
+            height: botHitboxSize,
+          );
+          
+          // CORRECTED: obstacle.position.y is the TOP of the obstacle (Anchor.topLeft)
+          // The gap center is NOT at position.y
+          // We need to calculate actual obstacle heights from the DynamicObstacle logic
+          
+          // Calculate gap boundaries - the gap is CENTERED in the screen height
+          // The obstacle spawns with a random Y position which represents where the gap TOP starts
+          final gapSize = obstacle.gapSize;
+          
+          // The actual hitboxes are:
+          // Top obstacle: from 0 to (position.y)
+          // Gap: from (position.y) to (position.y + gapSize)
+          // Bottom obstacle: from (position.y + gapSize) to screen bottom
+          
+          final topRect = Rect.fromLTWH(
+            obstacle.position.x,
+            0,
+            GameConfig.obstacleWidth,
+            obstacle.position.y, // Top obstacle ends at position.y
+          );
+          final bottomRect = Rect.fromLTWH(
+            obstacle.position.x,
+            obstacle.position.y + gapSize, // Bottom obstacle starts after gap
+            GameConfig.obstacleWidth,
+            size.y - (obstacle.position.y + gapSize), // Extends to bottom
+          );
+          
+          if (botRect.overlaps(topRect) || botRect.overlaps(bottomRect)) {
+            final gapTop = obstacle.position.y;
+            final gapBottom = obstacle.position.y + gapSize;
+            final botY = _botJet!.position.y;
+            final crashType = botRect.overlaps(topRect) ? 'TOP' : 'BOTTOM';
+            safePrint('🤖 💥 COLLISION: Hit $crashType pipe! Bot Y=$botY, Gap: $gapTop-$gapBottom');
+            _botJet!.crash();
+            return;
+          }
+        }
+        
+        // Check ground collision for bot
+        if (_botJet!.position.y > size.y - 50 - (BotJetPlayer.botSize / 2)) {
+          safePrint('🤖 BOT COLLISION: Bot crashed into ground!');
+          _botJet!.crash();
+        }
       }
     }
 
