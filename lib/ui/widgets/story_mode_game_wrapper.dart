@@ -260,14 +260,18 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     final usedContinue = _game.gameStateManager.continuesUsedThisRun > 0;
     final elapsedGameTimeMs = _game.gameStateManager.getElapsedGameTime();
     
+    // ✅ FIX: Track actual coins earned (in-game coins collected)
+    // Note: Level completion rewards are not earned on failure, so only track in-game coins
+    final coinsCollected = _game.gameStateManager.coinsCollectedThisRun;
+    
     gameEventsTracker.onGameEnd(
       finalScore: finalScore,
       survivalTimeMs: elapsedGameTimeMs.toInt(),
-      coinsEarned: 0,
+      coinsEarned: coinsCollected, // ✅ Track in-game coins collected before failure
       usedContinue: usedContinue,
       cause: 'story_level_failed',
     );
-    safePrint('🎯 Story mode: Mission progress updated (level failed)');
+    safePrint('🎯 Story mode: Mission progress updated (level failed, $coinsCollected coins)');
     
     // Fire level_failed event for analytics
     final eventBus = EventBus();
@@ -315,6 +319,11 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                     final livesManager = LivesManager();
                     await livesManager.addLife(1);
                     safePrint('💖 Story Mode: Restored 1 heart after ad (now: ${livesManager.currentLives})');
+                    
+                    // ✅ FIX: Track continue usage for missions
+                    final gameEventsTracker = GameEventsTracker();
+                    await gameEventsTracker.onContinueUsed(gemsCost: 0); // Ad-based, no gems
+                    safePrint('🎯 MISSIONS: Continue with ad tracked');
                     
                     // ✅ FIX: Defer popup closing until after current frame completes
                     // This prevents "Navigator is locked" errors when called during animations
@@ -364,6 +373,11 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                   final livesManager = LivesManager();
                   await livesManager.addLife(1);
                   safePrint('💖 Story Mode: Restored 1 heart after gem continue (now: ${livesManager.currentLives})');
+                  
+                  // ✅ FIX: Track continue usage for missions
+                  final gameEventsTracker = GameEventsTracker();
+                  await gameEventsTracker.onContinueUsed(gemsCost: gemCost);
+                  safePrint('🎯 MISSIONS: Continue with gems tracked');
                   
                   // ✅ FIX: Defer popup closing until after current frame completes
                   // This prevents "Navigator is locked" errors when called during animations
@@ -429,14 +443,19 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     final finalScore = _objectiveTracker.currentProgress;
     final usedContinue = _game.gameStateManager.continuesUsedThisRun > 0;
     
+    // ✅ FIX: Track actual coins earned (level reward + in-game coins)
+    final levelCoins = widget.level.reward.coins;
+    final inGameCoins = _game.gameStateManager.coinsCollectedThisRun;
+    final totalCoins = levelCoins + inGameCoins;
+    
     await gameEventsTracker.onGameEnd(
       finalScore: finalScore,
       survivalTimeMs: elapsedGameTimeMs.toInt(),
-      coinsEarned: 0, // Story mode rewards handled separately
+      coinsEarned: totalCoins, // ✅ Track level reward + in-game coins
       usedContinue: usedContinue,
       cause: 'story_level_completed',
     );
-    safePrint('🎯 Story mode: Mission/achievement progress updated');
+    safePrint('🎯 Story mode: Mission/achievement progress updated ($totalCoins coins: $levelCoins reward + $inGameCoins in-game)');
     
     // 🏅 Check story mode achievements
     final achievementsManager = AchievementsManager(); // Use singleton
