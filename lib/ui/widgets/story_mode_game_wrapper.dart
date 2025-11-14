@@ -17,6 +17,7 @@ import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/level_system_manager.dart'; // 🔥 NEW
 import '../../game/systems/game_events_tracker.dart'; // 🎯 For mission/achievement tracking
 import '../../game/systems/achievements_manager.dart'; // 🏅 For story mode achievements
+import '../../integrations/interstitial_ad_manager.dart'; // 📺 For interstitial ads
 import '../screens/level_complete_screen.dart';
 import '../screens/level_failed_screen.dart';
 import '../screens/world_map_screen.dart';
@@ -484,31 +485,47 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
           objectiveAchieved: _objectiveTracker.currentProgress,
           timeTaken: timeTaken,
           continuesUsed: _game.gameStateManager.continuesUsedThisRun,
-          onContinue: () {
+          onContinue: () async {
             // Close the popup
             Navigator.of(context).pop();
             
-            // ✅ FIX: Use cached replay status (checked BEFORE rewards were granted)
-            if (isReplay) {
-              safePrint('🔄 Replay completed - returning to world map (no animation)');
-              _navigateToWorldMapNoAnimation();
-            } else {
-              // 🏆 CRITICAL: Check if zone was just completed (last level in zone)
-              final wasZoneCompleted = levelManager.wasZoneJustCompleted(widget.level.id);
-              
-              if (wasZoneCompleted) {
-                safePrint('🏆 ZONE COMPLETED! Showing celebration, then switching to next zone');
-                _navigateToZoneCompletionCelebration();
-              } else {
-                safePrint('🎉 First completion - navigating with jet animation');
-                _navigateToWorldMapWithAnimation();
-              }
+            // ✅ Track level win for interstitial ad frequency (for ALL wins, including replays)
+            await InterstitialAdManager().onLevelWon();
+            
+            // ✅ Check and show interstitial ad if conditions are met
+            final adShown = await InterstitialAdManager().checkAndShowAd(
+              onAdClosed: () => _proceedAfterAd(isReplay, levelManager),
+            );
+            
+            // If no ad was shown, proceed immediately
+            if (!adShown) {
+              _proceedAfterAd(isReplay, levelManager);
             }
             
             // Note: No need to resumeEngine() - we're navigating away and game will be disposed
           },
         ),
       );
+    }
+  }
+  
+  /// ✅ NEW: Helper to proceed after ad is shown (or skipped)
+  void _proceedAfterAd(bool isReplay, LevelSystemManager levelManager) {
+    // ✅ FIX: Use cached replay status (checked BEFORE rewards were granted)
+    if (isReplay) {
+      safePrint('🔄 Replay completed - returning to world map (no animation)');
+      _navigateToWorldMapNoAnimation();
+    } else {
+      // 🏆 CRITICAL: Check if zone was just completed (last level in zone)
+      final wasZoneCompleted = levelManager.wasZoneJustCompleted(widget.level.id);
+      
+      if (wasZoneCompleted) {
+        safePrint('🏆 ZONE COMPLETED! Showing celebration, then switching to next zone');
+        _navigateToZoneCompletionCelebration();
+      } else {
+        safePrint('🎉 First completion - navigating with jet animation');
+        _navigateToWorldMapWithAnimation();
+      }
     }
   }
   
