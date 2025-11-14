@@ -209,6 +209,7 @@ class BotBattle {
   final double skillLevel;      // 0.6 - 1.5 (60% - 150% of perfect play)
   final double reactionTime;    // 0.1 - 0.5 seconds
   final double mistakeRate;     // 0.02 - 0.20 (2% - 20% chance of mistakes)
+  final int minObstaclePass;    // ✅ NEW: Minimum obstacles bot must pass (0 = no minimum)
   final BotOverride? firstAttemptOverride; // Optional: Make boss harder on first attempt
 
   const BotBattle({
@@ -217,6 +218,7 @@ class BotBattle {
     required this.skillLevel,
     required this.reactionTime,
     required this.mistakeRate,
+    this.minObstaclePass = 0,   // ✅ NEW: Default 0 = no minimum guarantee
     this.firstAttemptOverride,
   });
 
@@ -227,6 +229,7 @@ class BotBattle {
       skillLevel: (json['skillLevel'] as num).toDouble(),
       reactionTime: (json['reactionTime'] as num).toDouble(),
       mistakeRate: (json['mistakeRate'] as num).toDouble(),
+      minObstaclePass: json['minObstaclePass'] as int? ?? 0,  // ✅ NEW: Parse from JSON with default
       firstAttemptOverride: json['firstAttemptOverride'] != null
           ? BotOverride.fromJson(json['firstAttemptOverride'] as Map<String, dynamic>)
           : null,
@@ -240,6 +243,7 @@ class BotBattle {
       'skillLevel': skillLevel,
       'reactionTime': reactionTime,
       'mistakeRate': mistakeRate,
+      if (minObstaclePass > 0) 'minObstaclePass': minObstaclePass,  // ✅ NEW: Only include if > 0
       if (firstAttemptOverride != null) 'firstAttemptOverride': firstAttemptOverride!.toJson(),
     };
   }

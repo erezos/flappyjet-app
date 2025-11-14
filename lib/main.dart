@@ -59,6 +59,7 @@ import 'services/fcm_service.dart';
 
 // Integrations
 import 'ui/widgets/daily_streak/daily_streak_integration.dart';
+// Removed: ftue_integration.dart import (no longer needed - tutorial triggers directly from Level 1)
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -279,7 +280,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
         _initTask('Daily Streak', () => DailyStreakIntegration.initialize()),
         _initTask('Notifications', () => LocalNotificationManager().initialize()),
         _initTask('Rate Us', () => RateUsManager().initialize()),
-        // Removed: Inventory Sync Service (no longer needed with SQLite)
+        // Removed: FTUE initialization (tutorial now triggers directly from Level 1)
         _initTask('Lives Manager', () => LivesManager().initialize()),
         _initTask('Monetization', () => _monetization.initialize(
           inventory: inventoryManager,

@@ -57,7 +57,7 @@ void main() async {
 }
 ```
 
-### 2. Add to Homepage
+### 2. Add to Main Screen
 ```dart
 // Option A: Full integration widget
 DailyStreakHomepageIntegration()

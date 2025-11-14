@@ -1,5 +1,5 @@
 /// 🎵 MENU AUDIO MANAGER - Global menu music for tab navigation
-/// Simplified version of HomepageAudioManager for tab-based navigation
+/// Manages menu music across all tabs in the app
 library;
 
 import 'package:flutter/foundation.dart';
@@ -10,14 +10,7 @@ import 'flappy_jet_audio_manager.dart';
 
 /// Manages menu music for the entire app (tab navigation)
 /// 
-/// Simplified from HomepageAudioManager - removes unnecessary complexity:
-/// - ❌ Route change tracking (not needed with tabs)
-/// - ❌ markReturnedToHomepage (not needed)
-/// - ❌ _hasHandledRouteChange (not needed)
-/// - ❌ _isNavigatedAway (not needed)
-/// - ❌ Complex timer logic
-/// 
-/// Responsibilities:
+/// Features:
 /// - ✅ Start menu music when app initializes
 /// - ✅ Stop menu music when entering game
 /// - ✅ Resume menu music when exiting game

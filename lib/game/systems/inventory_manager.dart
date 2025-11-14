@@ -321,7 +321,7 @@ class InventoryManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Check and trigger auto-refill (call when returning to homepage)
+  /// Check and trigger auto-refill (call when returning to menu/tab navigation)
   Future<bool> checkAndTriggerAutoRefill() async {
     return await _autoRefillManager.checkAndTriggerAutoRefill();
   }

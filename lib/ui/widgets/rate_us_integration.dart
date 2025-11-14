@@ -33,7 +33,7 @@ class RateUsIntegration {
   }
 
   /// Show rate us popup on app launch (if conditions are met)
-  /// Call this from homepage or main screen
+  /// Call this from main tab navigation or launch screen
   static Future<void> showOnAppLaunch(BuildContext context) async {
     if (!shouldShow) return;
 

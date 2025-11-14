@@ -25,13 +25,13 @@ class _BottomNavigatorBarState extends State<BottomNavigatorBar>
   late AnimationController _scaleController;
   int? _tappedIndex;
 
-  // Tab data (icons + labels)
+  // Tab data (custom icon images + labels)
   final List<_TabData> _tabs = [
-    _TabData(icon: Icons.shopping_bag, label: 'STORE'),
-    _TabData(icon: Icons.emoji_events, label: 'TOURNAMENT'),
-    _TabData(icon: Icons.map, label: 'STORY'),
-    _TabData(icon: Icons.checklist, label: 'MISSIONS'),
-    _TabData(icon: Icons.person, label: 'PROFILE'),
+    _TabData(imagePath: 'assets/images/buttons/navigator_store.png', label: 'STORE'),
+    _TabData(imagePath: 'assets/images/buttons/navigator_tournaments.png', label: 'TOURNAMENT'),
+    _TabData(imagePath: 'assets/images/buttons/navigator_story.png', label: 'STORY'),
+    _TabData(imagePath: 'assets/images/buttons/navigator_missions.png', label: 'MISSIONS'),
+    _TabData(imagePath: 'assets/images/buttons/navigator_profile.png', label: 'PROFILE'),
   ];
 
   @override
@@ -82,24 +82,28 @@ class _BottomNavigatorBarState extends State<BottomNavigatorBar>
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     
-    // 🚀 BIGGER responsive height to match the page's vibrant style
+    // 🚀 OPTIMIZED responsive height for larger tab images (balanced for Story page overflow prevention)
     final navBarHeight = screenHeight > 800 
-        ? 110.0  // Large screens (tablets) - INCREASED
+        ? 130.0  // Large screens (tablets) - OPTIMIZED: -10px for Story page breathing room
         : screenHeight > 700 
-            ? 100.0  // Medium screens - INCREASED
-            : 90.0; // Small screens (phones) - INCREASED
+            ? 110.0  // Medium screens - OPTIMIZED: -10px for Story page breathing room
+            : 95.0;  // Small screens (phones) - OPTIMIZED: -15px to prevent overflow on 600px screens
+    
+    // 🎮 FLAME ENGINE BEST PRACTICE: Proportional padding based on screen size
+    // Calculate padding as 1% of navigator height for MAXIMUM icon size
+    final iconPadding = (navBarHeight * 0.01).clamp(0.5, 2.0);
 
     return Container(
       width: screenWidth,
       height: navBarHeight,
       decoration: BoxDecoration(
-        // 🎨 VIBRANT gradient matching FlappyJet's bright theme
+        // 🎨 LIGHTER gradient matching FlappyJet's bright sky theme
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFF1E3A5F), // Rich blue (like sky)
-            const Color(0xFF0D1F2D), // Deep navy
+            const Color(0xFF2E5A8F), // Lighter blue (brighter sky)
+            const Color(0xFF1A3A5A), // Medium navy (lighter than before)
           ],
         ),
         // ✨ BRIGHT cyan top border (matches page theme)
@@ -186,27 +190,20 @@ class _BottomNavigatorBarState extends State<BottomNavigatorBar>
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min, // ✅ FIX: Allow shrinking
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // 🎮 ICON (sized to fit - reduced further to fix overflow)
-                                Icon(
-                                  tab.icon,
-                                  size: isActive ? 22 : 20, // ✅ Reduced from 24/22 to fix 8px overflow
-                                  color: isActive 
-                                      ? const Color(0xFFFFD700) // ✅ Gold for active
-                                      : const Color(0xFFFFD700).withOpacity(0.6), // ✅ Dim gold for inactive
-                                ),
-                                const SizedBox(height: 2), // ✅ Reduced from 3 to 2
-                                // 📝 LABEL (sized to fit - reduced further to fix overflow)
-                                Text(
-                                  tab.label,
-                                  style: TextStyle(
-                                    fontSize: isActive ? 9.5 : 8.5, // ✅ Reduced from 10.5/9.5 to fix 8px overflow
-                                    fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                                    color: isActive 
-                                        ? const Color(0xFFFFD700) // ✅ Gold for active
-                                        : const Color(0xFFFFD700).withOpacity(0.6), // ✅ Dim gold for inactive
-                                    letterSpacing: 0.6, // ✅ Reduced from 0.8
+                                // 🎮 CUSTOM ICON IMAGE (maximized to fill tab space)
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(iconPadding), // 🎮 RESPONSIVE: 1% of nav height, minimal padding for MAX size
+                                    child: Image.asset(
+                                      tab.imagePath,
+                                      fit: BoxFit.contain, // Maximize size while maintaining aspect ratio
+                                      color: isActive 
+                                          ? const Color(0xFFFFD700) // Gold tint for active
+                                          : const Color(0xFFFFD700).withOpacity(0.6), // Dim gold for inactive
+                                      colorBlendMode: BlendMode.modulate,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -280,8 +277,8 @@ class _DashboardBackgroundPainter extends CustomPainter {
 
 /// 📊 Tab data model
 class _TabData {
-  final IconData icon;
+  final String imagePath;
   final String label;
 
-  _TabData({required this.icon, required this.label});
+  _TabData({required this.imagePath, required this.label});
 }

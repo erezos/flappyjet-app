@@ -74,11 +74,12 @@ class DailyStreakReward {
         description: '30 Minutes Heart Booster',
       ),
       const DailyStreakReward(
-        type: DailyStreakRewardType.mysteryBox,
+        type: DailyStreakRewardType.jetSkin,
         amount: 1,
-        iconFrame: 'icon/mystery',
-        displayText: '?',
-        description: 'Mystery Box',
+        iconFrame: 'icon/jet',
+        displayText: 'Jet',
+        description: 'Jet Skin',
+        jetSkinId: 'progressive_jet', // ✅ UPDATED: Mystery Box → Progressive Jet System
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.gems,
@@ -102,10 +103,10 @@ class DailyStreakReward {
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.gems,
-        amount: 5,
+        amount: 10, // ✅ UPDATED: 5 → 10 gems (more balanced vs Flash Strike jet value)
         iconFrame: 'icon/gem',
-        displayText: '5',
-        description: '5 Gems',
+        displayText: '10',
+        description: '10 Gems',
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.heartBooster,
@@ -129,11 +130,12 @@ class DailyStreakReward {
         description: '30 Minutes Heart Booster',
       ),
       const DailyStreakReward(
-        type: DailyStreakRewardType.mysteryBox,
+        type: DailyStreakRewardType.jetSkin,
         amount: 1,
-        iconFrame: 'icon/mystery',
-        displayText: '?',
-        description: 'Mystery Box',
+        iconFrame: 'icon/jet',
+        displayText: 'Jet',
+        description: 'Jet Skin',
+        jetSkinId: 'progressive_jet', // ✅ UPDATED: Mystery Box → Progressive Jet System
       ),
       const DailyStreakReward(
         type: DailyStreakRewardType.gems,
@@ -315,6 +317,11 @@ class DailyStreakManager extends ChangeNotifier {
     // Check if we need to reset daily claim status
     await _checkDailyReset();
     
+    // ✅ NEW: Schedule notification if user hasn't claimed today
+    if (!_claimedToday && currentState == DailyStreakState.available) {
+      await _scheduleNextDayReminder();
+    }
+    
     safePrint('📅 Daily Streak initialized: streak=$_currentStreak, cycle=$_currentCycle, rewardSet=$_currentCycleRewardSet, claimed=$_claimedToday, state=${currentState.name}');
     notifyListeners();
   }
@@ -474,6 +481,8 @@ class DailyStreakManager extends ChangeNotifier {
     final backgroundOperations = <Future>[
       _persistData(),
       LocalNotificationManager().cancelNotification(NotificationType.dailyStreakReminder),
+      // ✅ NEW: Schedule notification for tomorrow's reminder
+      _scheduleNextDayReminder(),
     ];
     
     // Execute background operations in parallel without blocking UI
@@ -481,6 +490,28 @@ class DailyStreakManager extends ChangeNotifier {
       safePrint('⚠️ Daily streak background operations error: $e');
       return <dynamic>[]; // Return empty list for error handling
     });
+    
+    // ✅ FIRE BACKEND EVENT: Daily streak claimed
+    UnifiedAnalyticsManager().trackEvent('daily_streak_claimed', {
+      'day_in_cycle': todayRewardIndex + 1,        // 1-7
+      'current_streak': _currentStreak,             // Total consecutive days
+      'current_cycle': _currentCycle,               // Which 7-day cycle
+      'reward_type': reward.type.name,              // coins, gems, heartBooster, jetSkin, etc.
+      'reward_amount': reward.amount,               // Numeric value
+      'reward_set': _currentCycleRewardSet,         // 'new_player' or 'experienced'
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+    
+    // ✅ FIRE MILESTONE EVENT: For special days (7, 14, 30, 100, etc.)
+    if (_currentStreak == 7 || _currentStreak == 14 || _currentStreak == 30 || 
+        _currentStreak == 60 || _currentStreak == 100) {
+      UnifiedAnalyticsManager().trackEvent('daily_streak_milestone', {
+        'milestone_days': _currentStreak,
+        'total_cycles': _currentCycle,
+        'total_cycles_completed': _totalStreaksCompleted,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    }
     
     safePrint('✅ Daily streak reward claimed: ${reward.description} (streak: $_currentStreak, cycle: $_currentCycle)');
     return true;
@@ -517,19 +548,51 @@ class DailyStreakManager extends ChangeNotifier {
           
         case DailyStreakRewardType.jetSkin:
           if (reward.jetSkinId != null) {
-            // Check if player already owns this jet
-            if (_inventory.isOwned(reward.jetSkinId!)) {
-              // Player already has this jet - give coins instead
-              const duplicateJetCoins = 400; // Flash Strike equivalent value
-              await _inventory.addCoinsWithAnimation(duplicateJetCoins);
-              safePrint('🚁 Duplicate jet detected: ${reward.jetSkinId} → Awarded $duplicateJetCoins coins instead');
+            // ✅ PROGRESSIVE JET SYSTEM: Try jets in order until we find one the player doesn't own
+            if (reward.jetSkinId == 'progressive_jet') {
+              // Day 6 reward: Progressive jet selection
+              const jetProgression = [
+                'cobra_strike',
+                'storm_chaser',
+                'disco_fever',
+                'ruby_phantom',
+                'sugar_storm',
+              ];
               
-              // Show beautiful duplicate jet popup
-              await _showDuplicateJetPopup(reward.jetSkinId!, duplicateJetCoins);
+              String? jetToAward;
+              for (final jetId in jetProgression) {
+                if (!_inventory.isOwned(jetId)) {
+                  jetToAward = jetId;
+                  break;
+                }
+              }
+              
+              if (jetToAward != null) {
+                // Found a jet they don't own - award it!
+                await _inventory.unlockSkin(jetToAward);
+                safePrint('🚁 Progressive jet awarded: $jetToAward');
+              } else {
+                // Player owns all jets in progression - give 500 coins instead
+                const fallbackCoins = 500;
+                await _inventory.addCoinsWithAnimation(fallbackCoins);
+                safePrint('🚁 Player owns all progression jets → Awarded $fallbackCoins coins instead');
+              }
             } else {
-              // Normal jet unlock
-              await _inventory.unlockSkin(reward.jetSkinId!);
-              safePrint('🚁 Unlocked jet skin: ${reward.jetSkinId}');
+              // Normal jet reward (e.g., Flash Strike for new players)
+              // Check if player already owns this jet
+              if (_inventory.isOwned(reward.jetSkinId!)) {
+                // Player already has this jet - give coins instead
+                const duplicateJetCoins = 400; // Flash Strike equivalent value
+                await _inventory.addCoinsWithAnimation(duplicateJetCoins);
+                safePrint('🚁 Duplicate jet detected: ${reward.jetSkinId} → Awarded $duplicateJetCoins coins instead');
+                
+                // Show beautiful duplicate jet popup
+                await _showDuplicateJetPopup(reward.jetSkinId!, duplicateJetCoins);
+              } else {
+                // Normal jet unlock
+                await _inventory.unlockSkin(reward.jetSkinId!);
+                safePrint('🚁 Unlocked jet skin: ${reward.jetSkinId}');
+              }
             }
           }
           break;
@@ -587,12 +650,25 @@ class DailyStreakManager extends ChangeNotifier {
   
   /// Reset streak to 0
   Future<void> _resetStreak() async {
+    final previousStreak = _currentStreak;
+    final previousCycle = _currentCycle;
+    
     _currentStreak = 0;
     _claimedToday = false;
     _lastClaimDate = null;
     _streakStartDate = null;
     await _persistData();
     notifyListeners();
+    
+    // ✅ FIRE BACKEND EVENT: Daily streak broken
+    if (previousStreak > 0) {
+      UnifiedAnalyticsManager().trackEvent('daily_streak_broken', {
+        'last_streak_days': previousStreak,
+        'last_cycle': previousCycle,
+        'total_cycles_completed': _totalStreaksCompleted,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    }
   }
   
   /// Persist data to SharedPreferences
@@ -677,5 +753,16 @@ class DailyStreakManager extends ChangeNotifier {
     
     notifyListeners();
     safePrint('🔄 Daily streak data reset');
+  }
+
+  /// ✅ NEW: Schedule next day's notification reminder
+  Future<void> _scheduleNextDayReminder() async {
+    try {
+      // Schedule notification for next day
+      await LocalNotificationManager().scheduleDailyStreakReminder();
+      safePrint('📲 Daily streak notification scheduled for next day');
+    } catch (e) {
+      safePrint('⚠️ Failed to schedule daily streak notification: $e');
+    }
   }
 }

@@ -61,25 +61,23 @@ class DailyStreakButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Auto-detect screen size for responsive sizing
+    // ✅ BEST PRACTICE: Percentage-based responsive sizing (works on ALL devices)
     final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
-    final isLargeTablet = screenWidth > 900;
     
-    final iconSize = isLargeTablet ? 24.0 : isTablet ? 22.0 : 18.0;
-    final fontSize = isLargeTablet ? 16.0 : isTablet ? 14.0 : 12.0;
-    final padding = isLargeTablet ? 14.0 : isTablet ? 12.0 : 10.0;
-    final verticalPadding = isLargeTablet ? 10.0 : isTablet ? 8.0 : 6.0;
-    final borderRadius = isLargeTablet ? 20.0 : isTablet ? 18.0 : 16.0;
-    final spacing = isLargeTablet ? 6.0 : isTablet ? 5.0 : 4.0;
-    final notificationDotSize = isLargeTablet ? 8.0 : isTablet ? 7.0 : 6.0;
+    // Use percentage of screen width with min/max constraints for safety
+    final iconSize = (screenWidth * 0.065).clamp(22.0, 36.0);        // 6.5% of width, 22-36px range
+    final fontSize = (screenWidth * 0.04).clamp(12.0, 18.0);         // 4% of width, 12-18px range
+    final padding = (screenWidth * 0.035).clamp(10.0, 18.0);         // 3.5% of width, 10-18px range
+    final verticalPadding = (screenWidth * 0.022).clamp(6.0, 12.0);  // 2.2% of width, 6-12px range
+    final borderRadius = (iconSize * 0.7).clamp(16.0, 24.0);         // Proportional to icon size
+    final spacing = (iconSize * 0.25).clamp(4.0, 9.0);               // 25% of icon size
     
     return ListenableBuilder(
       listenable: DailyStreakIntegration.streakManager,
       builder: (context, child) {
         final hasNotification = DailyStreakIntegration.hasNotification;
         final currentStreak = DailyStreakIntegration.streakManager.currentStreak;
-        final borderWidth = hasNotification ? (isTablet ? 2.5 : 2.0) : 1.0;
+        final borderWidth = hasNotification ? (iconSize / 12).clamp(2.0, 3.0) : 1.0;  // Proportional to icon
         
         // Hide if no streak and no notification
         if (!hasNotification && currentStreak == 0) {
@@ -123,7 +121,7 @@ class DailyStreakButton extends StatelessWidget {
                     color: hasNotification
                         ? Colors.amber.withValues(alpha: 0.4)
                         : Colors.blue.withValues(alpha: 0.2),
-                    blurRadius: hasNotification ? (isTablet ? 10 : 8) : 4,
+                    blurRadius: hasNotification ? (iconSize / 3).clamp(6.0, 12.0) : 4,  // Proportional glow
                     spreadRadius: hasNotification ? 1 : 0,
                   ),
                 ],
@@ -138,16 +136,39 @@ class DailyStreakButton extends StatelessWidget {
                         width: iconSize,
                         height: iconSize,
                       ),
+                      // ✅ UPDATED: Replaced red dot with "1" badge (gaming standard)
                       if (hasNotification)
                         Positioned(
-                          top: -2,
-                          right: -2,
+                          top: -4,
+                          right: -4,
                           child: Container(
-                            width: notificationDotSize,
-                            height: notificationDotSize,
-                            decoration: const BoxDecoration(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: (iconSize * 0.2).clamp(4.0, 7.0),  // 20% of icon
+                              vertical: (iconSize * 0.1).clamp(2.0, 4.0),    // 10% of icon
+                            ),
+                            decoration: BoxDecoration(
                               color: Colors.red,
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.6),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              '1',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: (iconSize * 0.38).clamp(9.0, 13.0),  // 38% of icon size
+                                fontWeight: FontWeight.bold,
+                                height: 1.0,
+                              ),
                             ),
                           ),
                         ),

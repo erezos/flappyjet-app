@@ -1,18 +1,22 @@
 /// 💀 STORY MODE - GAME OVER POPUP
 /// 
-/// Beautiful unified screen for story mode game over.
-/// Shows progress, continue options, and level stats.
+/// 🎮 FLAME BEST PRACTICE: Responsive, non-scrollable popup
+/// Shows crashed jet animation, progress, and clear action buttons.
+/// Follows mobile gaming UX patterns: compact, engaging, no clutter.
 library;
 
 import 'package:flutter/material.dart';
 import '../../models/level_data_schema.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
+import '../../game/systems/monetization_manager.dart';
+import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import 'world_map_screen.dart';
 import 'level_objective_popup.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
+import '../widgets/no_hearts_dialog.dart';
 
 class LevelFailedScreen extends StatefulWidget {
   final LevelData level;
@@ -93,6 +97,8 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    
     return Scaffold(
       backgroundColor: Colors.black.withValues(alpha: 0.85),
       body: SafeArea(
@@ -109,7 +115,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                     child: child,
                   );
                 },
-                child: _buildContent(),
+                child: _buildResponsivePopup(screenSize),
               ),
             ),
           ),
@@ -118,165 +124,68 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  Widget _buildContent() {
-    final progress = widget.objectiveAchieved / widget.objectiveTarget;
-    final canContinue = widget.continuesRemaining > 0;
-
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 420, maxHeight: 680),
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1E2337),
-            Color(0xFF0F1419),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.red.withValues(alpha: 0.3),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withValues(alpha: 0.2),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+  /// 🎮 FLAME BEST PRACTICE: Responsive popup - NO SCROLLING
+  /// Uses ConstrainedBox + FittedBox for automatic scaling
+  Widget _buildResponsivePopup(Size screenSize) {
+    // 🎮 RESPONSIVE CONSTRAINTS: Popup takes 85% width, max 75% height
+    final popupWidth = (screenSize.width * 0.85).clamp(300.0, 420.0);
+    final maxPopupHeight = screenSize.height * 0.75; // Maximum 75% of screen height
+    
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: popupWidth,
+        maxHeight: maxPopupHeight,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with game over title
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.red.withValues(alpha: 0.2),
-                      Colors.transparent,
+      child: FittedBox(
+        fit: BoxFit.scaleDown, // ✅ Scale down if content is too big, never up
+        child: IntrinsicHeight( // ✅ Content sizes naturally
+          child: Container(
+            width: popupWidth,
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF1E2337),
+                  Color(0xFF0F1419),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.red.withValues(alpha: 0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withValues(alpha: 0.2),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                children: [
+                  // Main content
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildHeader(screenSize.height),
+                      _buildMainContent(),
                     ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
                   ),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-                ),
-                child: Column(
-                  children: [
-                    // Skull/Game Over emoji with glow (more compact)
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.red.withValues(alpha: 0.4),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: const Text(
-                        '💀',
-                        style: TextStyle(fontSize: 42),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'GAME OVER',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 3,
-                        shadows: [
-                          Shadow(
-                            color: Colors.red,
-                            blurRadius: 15,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.level.name,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                  // X button in top-right corner
+                  _buildCloseButton(),
+                ],
               ),
-
-              // Main content area (more compact padding)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  children: [
-                    // Progress section - elegant circular progress
-                    _buildProgressSection(progress),
-                    const SizedBox(height: 18),
-
-                    // Encouragement message - clean and motivating
-                    Text(
-                      _getEncouragementMessage(progress),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Continue options - show if continues available
-                    if (canContinue) ...[
-                      _buildContinueOptions(),
-                      const SizedBox(height: 16),
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'OR',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Action buttons
-                    _buildActionButtons(),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -285,6 +194,236 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
 
   bool _canRetry() {
     return _livesManager.currentLives > 0;
+  }
+
+  /// 🚀 CLOSE BUTTON: X button in top-right corner
+  Widget _buildCloseButton() {
+    return Positioned(
+      top: 8,
+      right: 8,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _onBackToMap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: const Icon(
+              Icons.close,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 🎨 HEADER: Crashed jet animation + "GAME OVER" title
+  Widget _buildHeader(double screenHeight) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.red.withValues(alpha: 0.2),
+            Colors.transparent,
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: Column(
+        children: [
+          // 🚀 CRASHED JET: Player's jet with smoke animation (12% screen height)
+          _buildCrashedPlayerJet((screenHeight * 0.12).clamp(80.0, 100.0)),
+          const SizedBox(height: 10),
+          const Text(
+            'GAME OVER',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24, // Slightly smaller for compact design
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.5,
+              shadows: [
+                Shadow(
+                  color: Colors.red,
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.level.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 🚀 CRASHED PLAYER JET: Show player's equipped jet with smoke animation
+  /// (Reuses logic from VS level complete popup)
+  Widget _buildCrashedPlayerJet(double iconSize) {
+    // Get player's equipped jet skin
+    final inventory = InventoryManager();
+    final equippedSkinId = inventory.equippedSkinId;
+    final jetSkin = JetSkinCatalog.getSkinById(equippedSkinId) ?? JetSkinCatalog.starterJet;
+    
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 1200),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: value,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // 💨 SMOKE ANIMATION: Multiple smoke particles
+              ...List.generate(8, (i) {
+                final distance = 35 + (i % 2) * 15; // Alternate distances
+                return TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: Duration(milliseconds: 800 + (i * 100)),
+                  curve: Curves.easeOut,
+                  builder: (context, smokeValue, child) {
+                    return Positioned(
+                      left: iconSize / 2 + (distance * smokeValue * 0.7) * (i < 4 ? -1 : 1),
+                      top: iconSize / 2 + (distance * smokeValue * 0.7) * (i % 2 == 0 ? -1 : 1),
+                      child: Opacity(
+                        opacity: (1 - smokeValue) * 0.6,
+                        child: Container(
+                          width: 12 + (smokeValue * 18),
+                          height: 12 + (smokeValue * 18),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                Colors.grey.withValues(alpha: 0.8),
+                                Colors.grey.withValues(alpha: 0.2),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
+              // 🔥 FIRE/EXPLOSION GLOW
+              Container(
+                width: iconSize * 1.3,
+                height: iconSize * 1.3,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.orange.withValues(alpha: 0.4),
+                      Colors.red.withValues(alpha: 0.2),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              // ✈️ CRASHED JET: Player's jet (tilted and damaged look)
+              Transform.rotate(
+                angle: -0.3, // Slight tilt to show crashed state
+                child: Image.asset(
+                  'assets/images/${jetSkin.assetPath}',
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.airplanemode_active,
+                      size: iconSize,
+                      color: Colors.white70,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 📊 MAIN CONTENT: Progress, message, continue options, action buttons
+  Widget _buildMainContent() {
+    final progress = widget.objectiveAchieved / widget.objectiveTarget;
+    final canContinue = widget.continuesRemaining > 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Progress section - compact circular progress
+          _buildCompactProgressSection(progress),
+          const SizedBox(height: 12),
+
+          // Encouragement message - motivating
+          Text(
+            _getEncouragementMessage(progress),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Continue options - compact buttons (if continues available)
+          if (canContinue) ...[
+            _buildCompactContinueOptions(),
+            const SizedBox(height: 12),
+            // Divider
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1), thickness: 1)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1), thickness: 1)),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Action button - "START OVER" (replaces "Try Again")
+          _buildStartOverButton(),
+        ],
+      ),
+    );
   }
 
   String _getEncouragementMessage(double progress) {
@@ -312,8 +451,8 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     }
   }
 
-  // Beautiful circular progress indicator (compact version)
-  Widget _buildProgressSection(double progress) {
+  /// 📊 COMPACT PROGRESS SECTION: Smaller circular progress (80px instead of 120px)
+  Widget _buildCompactProgressSection(double progress) {
     final isVsMode = widget.level.objective.type == ObjectiveType.beatBot;
     
     // 🎮 VS MODE: Show random 80-95% to create urgency
@@ -323,7 +462,6 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     
     if (isVsMode) {
       // Generate consistent random percentage (80-95%) based on achieved score
-      // This creates urgency: "You were SO close!"
       final seed = widget.objectiveAchieved % 16; // 0-15
       percentage = 80 + seed; // 80-95%
       displayProgress = percentage / 100;
@@ -335,18 +473,19 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     }
     
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Circular progress with percentage
+        // Circular progress with percentage (COMPACT: 80px instead of 120px)
         Stack(
           alignment: Alignment.center,
           children: [
             // Background circle
             SizedBox(
-              width: 120,
-              height: 120,
+              width: 80,
+              height: 80,
               child: CircularProgressIndicator(
                 value: displayProgress,
-                strokeWidth: 10,
+                strokeWidth: 8,
                 backgroundColor: Colors.white.withValues(alpha: 0.1),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   displayProgress > 0.7 
@@ -365,16 +504,16 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                   '$percentage%',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 32,
+                    fontSize: 24, // Smaller font for compact design
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
-                  isVsMode ? 'There!' : 'Complete',
+                  isVsMode ? 'There!' : 'Done',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -382,27 +521,27 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        // Objective details
+        const SizedBox(height: 10),
+        // Objective details (smaller text)
         Text(
           isVsMode 
-            ? '🏆 You dodged ${widget.objectiveAchieved} obstacles!'
+            ? '🏆 ${widget.objectiveAchieved} obstacles dodged!'
             : widget.level.objective.description,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 15,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
         ),
         // Only show X/Y for story mode
         if (!isVsMode) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             '${widget.objectiveAchieved} / ${widget.objectiveTarget}',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -411,45 +550,41 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  // Continue options - beautiful button layout
-  Widget _buildContinueOptions() {
+  /// 🎬 COMPACT CONTINUE OPTIONS: Smaller, more engaging buttons
+  Widget _buildCompactContinueOptions() {
     final playerGems = _inventoryManager.gems;
     final continuePrice = 3; // 3 gems per continue
     final canAffordGems = playerGems >= continuePrice;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Continue header
+        // Continue header (smaller)
         Text(
           'Continue? ${widget.continuesRemaining} left',
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: 15,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 16),
-        // Continue buttons row
+        const SizedBox(height: 10),
+        // Compact continue buttons row
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Watch Ad button - "FREE" with video icon
-            Expanded(
-              child: _buildAdContinueButton(
-                onPressed: widget.onContinueWithAd,
-                isLoading: false, // Ad loading state managed in parent
-              ),
+            // Watch Ad button - compact
+            _buildCompactAdButton(
+              onPressed: widget.onContinueWithAd,
             ),
             const SizedBox(width: 12),
-            // Use Gems button - with gem icon
-            Expanded(
-              child: _buildGemContinueButton(
-                gemCost: continuePrice,
-                playerGems: playerGems,
-                canAfford: canAffordGems,
-                onPressed: canAffordGems && widget.onContinueWithGems != null
-                  ? widget.onContinueWithGems
-                  : null,
-              ),
+            // Use Gems button - compact
+            _buildCompactGemButton(
+              gemCost: continuePrice,
+              canAfford: canAffordGems,
+              onPressed: canAffordGems && widget.onContinueWithGems != null
+                ? widget.onContinueWithGems
+                : null,
             ),
           ],
         ),
@@ -457,20 +592,18 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  // 🎬 Ad Continue Button - "FREE" with video icon (more inviting!)
-  Widget _buildAdContinueButton({
-    VoidCallback? onPressed,
-    bool isLoading = false,
-  }) {
-    final isEnabled = onPressed != null && !isLoading;
+  /// 🎬 COMPACT AD BUTTON: Smaller, engaging design
+  Widget _buildCompactAdButton({VoidCallback? onPressed}) {
+    final isEnabled = onPressed != null;
     
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: isEnabled ? onPressed : null,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          width: 110,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isEnabled 
@@ -485,7 +618,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isEnabled 
                 ? Colors.green.withValues(alpha: 0.6) 
@@ -495,55 +628,48 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             boxShadow: isEnabled ? [
               BoxShadow(
                 color: Colors.green.withValues(alpha: 0.3),
-                blurRadius: 12,
+                blurRadius: 10,
                 spreadRadius: 1,
               ),
             ] : null,
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (isLoading)
-                const SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else ...[
-                // Big "FREE" text - most inviting!
-                Text(
-                  'FREE',
-                  style: TextStyle(
-                    color: isEnabled ? Colors.greenAccent : Colors.grey,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
-                    shadows: isEnabled ? [
-                      Shadow(
-                        color: Colors.green.withValues(alpha: 0.5),
-                        blurRadius: 8,
-                      ),
-                    ] : null,
-                  ),
+              // "FREE" text
+              Text(
+                'FREE',
+                style: TextStyle(
+                  color: isEnabled ? Colors.greenAccent : Colors.grey,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                  shadows: isEnabled ? [
+                    Shadow(
+                      color: Colors.green.withValues(alpha: 0.5),
+                      blurRadius: 6,
+                    ),
+                  ] : null,
                 ),
-                const SizedBox(height: 6),
-                // Small video icon
-                Icon(
-                  Icons.play_circle_outline,
-                  color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
-                  size: 20,
+              ),
+              const SizedBox(height: 4),
+              // Video icon
+              Icon(
+                Icons.play_circle_outline,
+                color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
+                size: 16,
+              ),
+              const SizedBox(height: 2),
+              // "watch ad" text
+              Text(
+                'watch ad',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 2),
-                // "watch ad" text
-                Text(
-                  'watch ad',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ],
           ),
         ),
@@ -551,10 +677,9 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  // 💎 Gem Continue Button - with actual gem image
-  Widget _buildGemContinueButton({
+  /// 💎 COMPACT GEM BUTTON: Smaller, engaging design
+  Widget _buildCompactGemButton({
     required int gemCost,
-    required int playerGems,
     required bool canAfford,
     VoidCallback? onPressed,
   }) {
@@ -564,9 +689,10 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
       color: Colors.transparent,
       child: InkWell(
         onTap: isEnabled ? onPressed : null,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          width: 110,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isEnabled 
@@ -581,7 +707,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isEnabled 
                 ? Colors.purple.withValues(alpha: 0.6) 
@@ -591,54 +717,66 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             boxShadow: isEnabled ? [
               BoxShadow(
                 color: Colors.purple.withValues(alpha: 0.3),
-                blurRadius: 12,
+                blurRadius: 10,
                 spreadRadius: 1,
               ),
             ] : null,
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Gem icon image
+              // "3 GEMS" on same line at top
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$gemCost',
+                    style: TextStyle(
+                      color: isEnabled ? Colors.white : Colors.grey,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                      shadows: isEnabled ? [
+                        Shadow(
+                          color: Colors.purple.withValues(alpha: 0.5),
+                          blurRadius: 6,
+                        ),
+                      ] : null,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'GEMS',
+                    style: TextStyle(
+                      color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // Gem icon in middle
               Image.asset(
                 'assets/images/icons/gem_icon.png',
-                width: 36,
-                height: 36,
-                color: isEnabled ? null : Colors.grey, // Gray out if can't afford
+                width: 16,
+                height: 16,
+                color: isEnabled ? null : Colors.grey,
                 opacity: isEnabled ? const AlwaysStoppedAnimation(1.0) : const AlwaysStoppedAnimation(0.5),
               ),
-              const SizedBox(height: 8),
-              // Gem cost
-              Text(
-                '$gemCost',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isEnabled ? Colors.white : Colors.grey,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
               const SizedBox(height: 2),
-              // Label
+              // "continue" text at bottom
               Text(
-                'GEMS',
+                'continue',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              if (!canAfford) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Need $gemCost',
-                  style: TextStyle(
-                    color: Colors.red.withValues(alpha: 0.8),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -646,77 +784,48 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  // Action buttons - Try Again and Back to Map
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
-        // Try Again button
-        SizedBox(
-          width: double.infinity,
-          child: ModernGameButton(
-            label: _canRetry() 
-              ? 'TRY AGAIN (${_livesManager.currentLives} ❤️)'
-              : 'TRY AGAIN',
-            onPressed: _canRetry() ? _onTryAgain : () {},
-            height: 56,
-            style: _canRetry() ? ModernButtonStyle.gold : ModernButtonStyle.secondary,
-            enabled: _canRetry(),
-          ),
-        ),
-        if (!_canRetry()) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.red.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.favorite_border, color: Colors.red, size: 18),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    'No hearts remaining. Wait for regeneration.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        // Back to Map button
-        SizedBox(
-          width: double.infinity,
-          child: ModernGameButton(
-            label: 'BACK TO MAP',
-            onPressed: _onBackToMap,
-            height: 56,
-            style: ModernButtonStyle.secondary,
-          ),
-        ),
-      ],
+  /// 🚀 START OVER BUTTON: Replaces "Try Again", opens heart refill dialog if needed
+  Widget _buildStartOverButton() {
+    final hasHearts = _livesManager.currentLives > 0;
+    
+    return SizedBox(
+      width: double.infinity,
+      child: ModernGameButton(
+        label: hasHearts 
+          ? 'START OVER (${_livesManager.currentLives} ❤️)'
+          : 'START OVER',
+        onPressed: _onStartOver,
+        height: 48, // Compact height
+        style: hasHearts ? ModernButtonStyle.gold : ModernButtonStyle.secondary,
+        enabled: true, // Always enabled (will show heart refill dialog if no hearts)
+      ),
     );
   }
 
-  void _onTryAgain() {
-    if (!_canRetry()) {
-      _showNoHeartsDialog();
-      return;
-    }
+  void _onBackToMap() async {
+    // ✅ NEW: Refill hearts to max when returning to world map
+    await _livesManager.refillToMax();
+    safePrint('🗺️ STORY MODE: Returning to world map - Hearts refilled to max');
+    
+    if (!mounted) return;
+    
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const WorldMapScreen(),
+      ),
+      (route) => route.isFirst, // ✅ Keep tab navigation in stack so back button works
+    );
+  }
 
-    // Navigate back to level objective popup
+  /// 🚀 START OVER: Refills hearts and restarts level (free-to-play!)
+  void _onStartOver() async {
+    // ✅ ALWAYS refill hearts to max when restarting level (free-to-play!)
+    await _livesManager.refillToMax();
+    safePrint('🔄 STORY MODE: Try Again tapped - Hearts refilled to max');
+    
+    if (!mounted) return;
+
+    // ❤️ Navigate back to level objective popup with full hearts
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => LevelObjectivePopup(level: widget.level),
@@ -724,31 +833,23 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  void _onBackToMap() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => const WorldMapScreen(),
-      ),
-      (route) => route.isFirst, // ✅ Keep homepage in stack so back button works
-    );
-  }
-
-  void _showNoHeartsDialog() {
-    showDialog(
+  /// ❤️ HEART REFILL DIALOG: Show NoHeartsDialog which offers 12 gems for full refill
+  Future<void> _showHeartRefillDialog() async {
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('No Hearts'),
-        content: const Text(
-          'You need at least 1 heart to retry. Hearts regenerate over time or you can purchase them in the store.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+      barrierDismissible: true,
+      builder: (context) => NoHeartsDialog(
+        onClose: () => Navigator.of(context).pop(false),
+        monetization: MonetizationManager(), // Pass singleton instance
       ),
     );
+
+    // ✅ If hearts were refilled, user can try again
+    if (result == true && mounted) {
+      setState(() {
+        // Rebuild to update button state
+      });
+    }
   }
 }
 

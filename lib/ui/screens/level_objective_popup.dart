@@ -10,6 +10,7 @@ import '../widgets/story_mode_game_wrapper.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
 import '../../game/core/jet_skins.dart';
+import 'world_map_screen.dart';
 
 /// Get bot jet sprite path from JetSkinCatalog
 String _getBotJetSpritePath(String botJetSkinId) {
@@ -248,7 +249,14 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                   child: GestureDetector(
                     onTap: () {
                       if (!_isStarting) {
-                        Navigator.of(context).pop();
+                        // ✅ FIX: Navigate to world map instead of just popping
+                        // This prevents showing the old game over screen when coming from "Start Over"
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const WorldMapScreen(),
+                          ),
+                          (route) => route.isFirst, // Keep tab navigation in stack
+                        );
                       }
                     },
                     child: Container(

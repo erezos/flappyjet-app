@@ -9,6 +9,9 @@
 .buildlog/
 .history
 
+# Watchman temporary files (Flutter hot reload)
+.watchman-cookie-*
+
 # Android signing
 android/key.properties
 *.jks

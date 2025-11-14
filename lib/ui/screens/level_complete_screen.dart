@@ -204,10 +204,12 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     );
   }
 
-  /// ✅ NEW: Modern, colorful, engaging popup with X button integrated - COMPACT VERSION
+  /// 🎮 FLAME BEST PRACTICE: Fully responsive popup - NO SCROLLING
+  /// Uses percentage-based sizing and FittedBox for perfect scaling on any screen
   Widget _buildModernPopup(double screenWidth, double screenHeight) {
-    final isSmallScreen = screenWidth < 375;
-    final popupWidth = (screenWidth * 0.85).clamp(280.0, 420.0); // ✅ SMALLER: 90% → 85%
+    // 🎮 RESPONSIVE CONSTRAINTS: Popup takes 85% width, max 75% height
+    final popupWidth = (screenWidth * 0.85).clamp(300.0, 450.0);
+    final maxPopupHeight = screenHeight * 0.75; // Maximum 75% of screen height
     
     // ✅ DYNAMIC ICON: Choose icon based on objective type
     String? trophyIconPath;
@@ -227,9 +229,12 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     
     return Container(
       width: popupWidth,
+      constraints: BoxConstraints(
+        maxHeight: maxPopupHeight, // 🎮 CONSTRAIN HEIGHT: Never exceed 75% of screen
+      ),
       margin: EdgeInsets.symmetric(
         horizontal: 24,
-        vertical: screenHeight * 0.12, // ✅ SMALLER: More vertical margin
+        vertical: screenHeight * 0.125, // Center vertically with 12.5% margin top/bottom
       ),
       decoration: BoxDecoration(
         // ✅ MODERN: Vibrant gradient background
@@ -261,206 +266,50 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       ),
       child: Stack(
         children: [
-          // Main content - NO SCROLLVIEW, COMPACT LAYOUT
+          // 🎮 MAIN CONTENT: Using FittedBox for perfect scaling - NO SCROLL!
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              20, // ✅ SMALLER: 24 → 20
-              isSmallScreen ? 48 : 52, // Top padding for X button
-              20,
-              20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ✅ DYNAMIC: Trophy icon OR crashed jet
-                // ✅ RESPONSIVE: Icon size scales with screen height (Flame/Flutter best practice)
-                Builder(
-                  builder: (context) {
-                    final iconSize = (screenHeight * 0.09).clamp(60.0, 80.0); // 9% of screen height, min 60, max 80
-                    
-                    if (widget.level.botBattle != null) {
-                      // VS Battle: Show crashed rival jet
-                      return _buildCrashedRivalJet(iconSize);
-                    } else if (trophyIconPath != null) {
-                      // Mission icon with bounce animation
-                      return TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 1200),
-                        curve: Curves.elasticOut,
-                        builder: (context, value, child) {
-                          return Transform.scale(
-                            scale: value,
-                            child: Transform.rotate(
-                              angle: (1.0 - value) * 0.5,
-                              child: Container(
-                                width: iconSize, // ✅ RESPONSIVE: Scales with screen
-                                height: iconSize,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFFFD700).withOpacity(0.6),
-                                      blurRadius: 20,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: Image.asset(
-                                  trophyIconPath!, // ✅ FIX: Add null assertion since we check != null above
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    } else {
-                      return const SizedBox.shrink(); // Fallback
-                    }
-                  },
+            padding: const EdgeInsets.fromLTRB(16, 50, 16, 16), // Compact padding
+            child: FittedBox(
+              fit: BoxFit.scaleDown, // 🎮 SCALE DOWN content if too big, never scroll
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: popupWidth - 32, // Account for padding
                 ),
-                SizedBox(height: widget.level.botBattle != null ? 12 : 14), // ✅ SMALLER spacing
-
-                // ✅ COLORFUL: Title with gradient text effect
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [
-                      Color(0xFFFFD700),
-                      Color(0xFFFFF59D),
-                      Color(0xFFFFD700),
-                    ],
-                  ).createShader(bounds),
-                  child: Text(
-                    _isReplay ? 'REPLAY COMPLETE!' : 'LEVEL COMPLETE!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isSmallScreen ? 22 : 24, // ✅ SMALLER: 24/28 → 22/24
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5, // ✅ SMALLER: 2 → 1.5
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6), // ✅ SMALLER: 8 → 6
-
-                // Level info - NO BOX, just text
-                Text(
-                  'Level ${widget.level.id}: ${widget.level.name}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: isSmallScreen ? 13 : 14, // ✅ SMALLER: 14/16 → 13/14
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 14), // ✅ SMALLER: 20 → 14
-
-                // ✅ STATS: NO BOX, just rows with divider
-                if (widget.level.objective.type != ObjectiveType.beatBot) ...[
-                  _buildCompactStatRow('🎯', 'Objective', '${widget.objectiveAchieved}/${widget.level.objective.target}'),
-                  Divider(height: 16, color: Colors.white.withOpacity(0.2), thickness: 1), // ✅ SMALLER: 12 → divider
-                ],
-                _buildCompactStatRow('⏱️', 'Time', '${widget.timeTaken}s'),
-                const SizedBox(height: 14), // ✅ SMALLER: 20 → 14
-
-                // ✅ REWARDS: NO BOX, just content with subtle background
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), // ✅ SMALLER: 20 → 12
-                  decoration: BoxDecoration(
-                    color: (_isReplay ? Colors.blue : Colors.amber).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                child: IntrinsicHeight( // 🎮 Size based on content, but respect FittedBox
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        _isReplay ? '🔄 REPLAY REWARD' : '🎁 REWARDS',
-                        style: TextStyle(
-                          color: _isReplay ? const Color(0xFF64B5F6) : const Color(0xFFFFD700),
-                          fontSize: isSmallScreen ? 13 : 14, // ✅ SMALLER: 15/17 → 13/14
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2, // ✅ SMALLER: 1.5 → 1.2
-                        ),
-                      ),
-                      const SizedBox(height: 10), // ✅ SMALLER: 14 → 10
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildRewardItem(
-                            icon: Icons.monetization_on,
-                            iconColor: const Color(0xFFFFD700),
-                            value: _isReplay ? '+20' : '+${widget.level.reward.coins}',
-                          ),
-                          if (!_isReplay && widget.level.reward.gems > 0) ...[
-                            const SizedBox(width: 16), // ✅ SMALLER: 20 → 16
-                            _buildRewardItem(
-                              assetPath: 'assets/images/icons/gem_icon.png',
-                              value: '+${widget.level.reward.gems}',
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (_isReplay) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          'Original reward already earned',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 10, // ✅ SMALLER: 11 → 10
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
+                      // ✅ DYNAMIC: Trophy icon OR crashed jet - responsive sizing
+                      _buildResponsiveIcon(screenHeight, trophyIconPath),
+                      
+                      SizedBox(height: screenHeight * 0.01), // 1% spacing
+
+                      // ✅ COLORFUL: Title with gradient text effect
+                      _buildTitle(),
+                      
+                      SizedBox(height: screenHeight * 0.005), // 0.5% spacing
+
+                      // Level info - compact
+                      _buildLevelInfo(),
+                      
+                      SizedBox(height: screenHeight * 0.015), // 1.5% spacing
+
+                      // ✅ STATS: Compact rows
+                      _buildStats(),
+                      
+                      SizedBox(height: screenHeight * 0.015), // 1.5% spacing
+
+                      // ✅ REWARDS: Seamless content
+                      _buildRewards(),
+                      
+                      SizedBox(height: screenHeight * 0.02), // 2% spacing
+
+                      // ✅ MODERN: Continue button
+                      _buildContinueButton(),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18), // ✅ SMALLER: 24 → 18
-
-                // ✅ MODERN: Continue button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50, // ✅ SMALLER: 56 → 50
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
-                      ),
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF4CAF50).withOpacity(0.5),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _handleContinue,
-                        borderRadius: BorderRadius.circular(25),
-                        child: Center(
-                          child: Text(
-                            'CONTINUE',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: isSmallScreen ? 17 : 18, // ✅ SMALLER: 18/20 → 17/18
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           
@@ -496,6 +345,219 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 🎮 HELPER METHODS: Clean, modular widgets for responsive popup
+
+  /// Build responsive icon (trophy or crashed jet) - scales with screen
+  Widget _buildResponsiveIcon(double screenHeight, String? trophyIconPath) {
+    // 🎮 RESPONSIVE SIZING: VS battles get bigger icons (16-18% height)
+    final iconSize = widget.level.botBattle != null
+        ? (screenHeight * 0.17).clamp(100.0, 140.0) // 🚀 BIGGER for VS battles!
+        : (screenHeight * 0.12).clamp(70.0, 110.0); // Standard for missions
+    
+    if (widget.level.botBattle != null) {
+      // VS Battle: Show crashed rival jet
+      return _buildCrashedRivalJet(iconSize);
+    } else if (trophyIconPath != null) {
+      // Mission icon with bounce animation
+      return TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 1200),
+        curve: Curves.elasticOut,
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: value,
+            child: Transform.rotate(
+              angle: (1.0 - value) * 0.5,
+              child: Container(
+                width: iconSize,
+                height: iconSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFD700).withOpacity(0.6),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Image.asset(
+                  trophyIconPath,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  /// Build title with gradient text effect
+  Widget _buildTitle() {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [
+          Color(0xFFFFD700),
+          Color(0xFFFFF59D),
+          Color(0xFFFFD700),
+        ],
+      ).createShader(bounds),
+      child: const Text(
+        'LEVEL COMPLETE!', // ✅ UNIFIED: Same text for both replay and first-time
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 19, // 🎯 SMALLER: Reduced from 22 to 19
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+          shadows: [
+            Shadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build level info text
+  Widget _buildLevelInfo() {
+    return Text(
+      'Level ${widget.level.id}: ${widget.level.name}',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Colors.white.withOpacity(0.9),
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  /// Build stats section
+  Widget _buildStats() {
+    // 🎯 VS BATTLES: Compact time display (label + value together)
+    if (widget.level.botBattle != null) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('⏱️', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 6),
+          Text(
+            'Time: ${widget.timeTaken}s', // ✅ Combined label + value
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      );
+    }
+    
+    // MISSIONS: Standard layout with objective + time
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildCompactStatRow('🎯', 'Objective', '${widget.objectiveAchieved}/${widget.level.objective.target}'),
+        Divider(height: 12, color: Colors.white.withOpacity(0.2), thickness: 1),
+        _buildCompactStatRow('⏱️', 'Time', '${widget.timeTaken}s'),
+      ],
+    );
+  }
+
+  /// Build rewards section
+  Widget _buildRewards() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _isReplay ? '🔄 REPLAY REWARD' : '🎁 REWARDS',
+          style: TextStyle(
+            color: _isReplay ? const Color(0xFF64B5F6) : const Color(0xFFFFD700),
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildRewardItem(
+              icon: Icons.monetization_on,
+              iconColor: const Color(0xFFFFD700),
+              value: _isReplay ? '+20' : '+${widget.level.reward.coins}',
+            ),
+            if (!_isReplay && widget.level.reward.gems > 0) ...[
+              const SizedBox(width: 16),
+              _buildRewardItem(
+                assetPath: 'assets/images/icons/gem_icon.png',
+                value: '+${widget.level.reward.gems}',
+              ),
+            ],
+          ],
+        ),
+        if (_isReplay) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Original reward already earned',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 10,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Build continue button
+  Widget _buildContinueButton() {
+    return SizedBox(
+      width: 280, // Fixed width for button
+      height: 48,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4CAF50).withOpacity(0.5),
+              blurRadius: 15,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _handleContinue,
+            borderRadius: BorderRadius.circular(24),
+            child: const Center(
+              child: Text(
+                'CONTINUE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -620,7 +682,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             ],
           ),
           child: Text(
-            '🏆 VICTORY! 🏆',
+            'VICTORY!', // ✅ CLEANED: Removed trophy emojis from sides
             style: TextStyle(
               color: const Color(0xFF1A237E), // Dark blue for contrast on gold
               fontSize: badgeFontSize,
@@ -967,7 +1029,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       MaterialPageRoute(
         builder: (context) => const WorldMapScreen(),
       ),
-      (route) => route.isFirst, // ✅ Keep homepage in stack so back button works
+      (route) => route.isFirst, // ✅ Keep tab navigation in stack so back button works
     );
   }
 }

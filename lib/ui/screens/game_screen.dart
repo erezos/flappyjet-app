@@ -22,8 +22,8 @@ import '../../core/database/local_database_manager.dart';
 class GameScreen extends StatefulWidget {
   final MonetizationManager monetization;
   final MissionsManager missions;
-  final VoidCallback? onGameScreenOpened; // ✅ CRITICAL FIX: Callback to notify homepage
-  final VoidCallback? onGameScreenClosed; // ✅ CRITICAL FIX: Callback to notify homepage
+  final VoidCallback? onGameScreenOpened; // Callback to notify menu audio manager
+  final VoidCallback? onGameScreenClosed; // Callback to notify menu audio manager
 
   const GameScreen({
     super.key,
@@ -58,7 +58,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     
-    // ✅ CRITICAL FIX: Notify homepage that game screen is now active
+    // Notify menu audio manager that game screen is now active
     widget.onGameScreenOpened?.call();
   }
   
@@ -88,11 +88,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    // ✅ CRITICAL FIX: Notify homepage that game screen is closing
+    // Notify menu audio manager that game screen is closing
     widget.onGameScreenClosed?.call();
     
     WidgetsBinding.instance.removeObserver(this);
-    // Let the next screen (homepage) manage menu music; do not force-stop here
+    // Let menu audio manager handle music; do not force-stop here
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -141,11 +141,23 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 score: game.currentScore,
                 bestScore: game.gameStateManager.bestScore,
                 onRestart: _handleRestart,
-                onMainMenu: () => Navigator.of(context).pop(),
+                onMainMenu: () async {
+                  // ✅ NEW: Refill hearts to max when exiting to main menu
+                  await LivesManager().refillToMax();
+                  safePrint('🏠 ENDLESS MODE: Exiting to main menu - Hearts refilled to max');
+                  
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
                 onContinueWithAd: () async {
                   // Show rewarded ad and continue game
                   await widget.monetization.showRewardedAdForExtraLife(
-                    onReward: () {
+                    onReward: () async {
+                      // ✅ NEW: Give +1 heart when continuing (endless mode)
+                      await LivesManager().addLife(1);
+                      safePrint('📺 ENDLESS MODE: Continuing with ad - +1❤️ given');
+                      
                       game.continueGame(continueType: 'ad_watch');
                     },
                   );
@@ -165,8 +177,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _handleRestart() {
-    // Check if player has hearts available
+  void _handleRestart() async {
+    // ✅ NEW: Refill hearts to max when restarting endless mode
+    await LivesManager().refillToMax();
+    safePrint('🔄 ENDLESS MODE: Restarting game - Hearts refilled to max');
+    
+    // Check if player has hearts available (should always have them after refill)
     final livesManager = LivesManager();
     if (livesManager.currentLives <= 0) {
       // No hearts available - show options dialog

@@ -8,12 +8,12 @@
       "name": "First Flight",
       "objective": {
         "type": "passObstacles",
-        "target": 3,
-        "description": "Pass 3 obstacles to complete"
+        "target": 8,
+        "description": "Pass 8 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 240,
+        "obstacleGap": 360,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -33,8 +33,8 @@
       "name": "Palm Paradise Path",
       "objective": {
         "type": "surviveTime",
-        "target": 25,
-        "description": "Survive for 25 seconds"
+        "target": 20,
+        "description": "Survive for 20 seconds"
       },
       "difficulty": {
         "speedMultiplier": 0.9,
@@ -43,7 +43,7 @@
         "maxGapShift": 60
       },
       "reward": {
-        "coins": 30,
+        "coins": 25,
         "gems": 0
       },
       "theme": {
@@ -59,16 +59,16 @@
       "name": "Island Hopping",
       "objective": {
         "type": "passObstacles",
-        "target": 5,
-        "description": "Pass 5 obstacles to complete"
+        "target": 10,
+        "description": "Pass 10 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 235,
-        "obstacleFrequency": 2.8
+        "obstacleGap": 330,
+        "obstacleFrequency": 2.4
       },
       "reward": {
-        "coins": 20,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
@@ -84,8 +84,8 @@
       "name": "Wave Rider",
       "objective": {
         "type": "surviveTime",
-        "target": 18,
-        "description": "Survive for 18 seconds"
+        "target": 25,
+        "description": "Survive for 25 seconds"
       },
       "difficulty": {
         "speedMultiplier": 0.95,
@@ -94,7 +94,7 @@
         "maxGapShift": 60
       },
       "reward": {
-        "coins": 25,
+        "coins": 35,
         "gems": 0
       },
       "theme": {
@@ -120,7 +120,7 @@
       },
       "reward": {
         "coins": 40,
-        "gems": 0
+        "gems": 5
       },
       "theme": {
         "background": "phase2_sunny_complete.png",
@@ -132,7 +132,8 @@
         "botJetSkin": "police_patrol",
         "skillLevel": 0.85,
         "reactionTime": 0.4,
-        "mistakeRate": 0.08
+        "mistakeRate": 0.08,
+        "minObstaclePass": 5
       }
     },
     {
@@ -141,16 +142,16 @@
       "name": "Beach Breeze",
       "objective": {
         "type": "passObstacles",
-        "target": 7,
-        "description": "Pass 7 obstacles to complete"
+        "target": 14,
+        "description": "Pass 14 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 230,
-        "obstacleFrequency": 2.6
+        "obstacleGap": 320,
+        "obstacleFrequency": 2.4
       },
       "reward": {
-        "coins": 20,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
@@ -166,17 +167,17 @@
       "name": "Tropical Flow",
       "objective": {
         "type": "surviveTime",
-        "target": 20,
-        "description": "Survive for 20 seconds"
+        "target": 30,
+        "description": "Survive for 30 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 340,
+        "obstacleGap": 350,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
       "reward": {
-        "coins": 30,
+        "coins": 50,
         "gems": 0
       },
       "theme": {
@@ -192,16 +193,16 @@
       "name": "Coconut Run",
       "objective": {
         "type": "passObstacles",
-        "target": 8,
-        "description": "Pass 8 obstacles to complete"
+        "target": 15,
+        "description": "Pass 15 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 225,
-        "obstacleFrequency": 2.5
+        "obstacleGap": 310,
+        "obstacleFrequency": 2.4
       },
       "reward": {
-        "coins": 20,
+        "coins": 55,
         "gems": 0
       },
       "theme": {
@@ -217,16 +218,16 @@
       "name": "Sunset Sprint",
       "objective": {
         "type": "passObstacles",
-        "target": 9,
-        "description": "Pass 9 obstacles to complete"
+        "target": 16,
+        "description": "Pass 16 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 220,
+        "obstacleGap": 300,
         "obstacleFrequency": 2.4
       },
       "reward": {
-        "coins": 20,
+        "coins": 60,
         "gems": 0
       },
       "theme": {
@@ -265,6 +266,7 @@
         "skillLevel": 0.87,
         "reactionTime": 0.25,
         "mistakeRate": 0.07,
+        "minObstaclePass": 10,
         "firstAttemptOverride": {
           "skillLevel": 0.98,
           "reactionTime": 0.05,

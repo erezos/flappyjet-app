@@ -8,8 +8,10 @@ library;
 import 'package:flutter/material.dart';
 import '../../game/systems/level_system_manager.dart';
 import '../../game/systems/lives_manager.dart';
+import '../../game/systems/monetization_manager.dart';
 import '../../models/level_data_schema.dart';
 import 'level_objective_popup.dart';
+import '../widgets/no_hearts_dialog.dart';
 
 class LevelSelectionScreen extends StatefulWidget {
   const LevelSelectionScreen({super.key});
@@ -281,21 +283,21 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
     );
   }
 
-  void _showNoHeartsDialog() {
-    showDialog(
+  void _showNoHeartsDialog() async {
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('No Hearts'),
-        content: const Text(
-          'You need at least 1 heart to play a level. Hearts regenerate over time or you can purchase them in the store.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+      barrierDismissible: true,
+      builder: (context) => NoHeartsDialog(
+        onClose: () => Navigator.of(context).pop(false),
+        monetization: MonetizationManager(), // Pass singleton instance
       ),
     );
+
+    // ✅ If hearts were refilled, user can try again
+    if (result == true && mounted) {
+      setState(() {
+        // Rebuild to update button state
+      });
+    }
   }
 }

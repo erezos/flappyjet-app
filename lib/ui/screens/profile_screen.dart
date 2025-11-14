@@ -300,6 +300,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                             ),
+                            
+                            // Removed: FTUE Reset Button (no longer needed - tutorial simply triggers from Level 1)
                           ],
                           
                         ],

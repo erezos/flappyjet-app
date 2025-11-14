@@ -191,10 +191,13 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
       orElse: () => JetSkinCatalog.starterJet,
     );
     
+    // ✅ FIX: Explicitly set color to transparent to prevent gray square on real devices
+    // Without this, Container can render with a gray background on some devices
     return Container(
       width: widget.jetSize,
       height: widget.jetSize,
       decoration: BoxDecoration(
+        color: Colors.transparent, // 🔧 CRITICAL: Prevent gray square on real devices
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -212,6 +215,8 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
       child: Image.asset(
         'assets/images/${jetSkin.assetPath}',
         fit: BoxFit.contain,
+        filterQuality: FilterQuality.high, // 🎨 Better rendering quality on real devices
+        isAntiAlias: true, // 🎨 Smooth edges on real devices
         errorBuilder: (context, error, stackTrace) {
           // Fallback to icon if image fails to load
           safePrint('⚠️ Failed to load jet image: ${widget.jetSkinId} (${jetSkin.assetPath}), using icon fallback');

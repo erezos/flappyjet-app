@@ -39,9 +39,10 @@ String _getBotJetSpriteFileName(String botJetSkin) {
 /// Note: Property name changed from `gameRef` to `game`
 class BotJetPlayer extends SpriteComponent with HasGameReference {
   final String skinId;
-  final double skillLevel;      // 0.6-1.5 (actual skill level, not normalized 0-1)
+  final double skillLevel;      // Base skill level (0.6-1.5) - used after minimum obstacles
   final double reactionTime;    // in seconds
-  final double mistakeRate;     // 0.02-0.20
+  final double mistakeRate;     // Base mistake rate (0.02-0.20) - used after minimum obstacles
+  final int minObstaclesToPass; // ✅ NEW: Minimum obstacles bot must pass before normal difficulty
   
   // ✅ REFACTOR v2.0.0 Phase 2: Use velocity Vector2 for behaviors
   final Vector2 velocity = Vector2.zero();
@@ -73,7 +74,50 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     required this.skillLevel,
     required this.reactionTime,
     required this.mistakeRate,
+    this.minObstaclesToPass = 0, // ✅ NEW: Default 0 = no minimum guarantee
   });
+  
+  /// ✅ NEW: Dynamic skill level - starts at 0.99 (near perfect), ramps down to base skill
+  /// This ensures bot passes minimum obstacles before returning to normal difficulty
+  double get currentSkillLevel {
+    if (minObstaclesToPass == 0) {
+      // No minimum guarantee - use base skill from start
+      return skillLevel;
+    }
+    
+    if (_score < minObstaclesToPass) {
+      // During guarantee phase: Play at 0.99 skill (near perfect)
+      return 0.99;
+    } else if (_score < minObstaclesToPass + 5) {
+      // Transition phase: Gradually reduce skill over next 5 obstacles
+      final transitionProgress = (_score - minObstaclesToPass) / 5.0;
+      return 0.99 - (0.99 - skillLevel) * transitionProgress;
+    } else {
+      // After transition: Use base skill level
+      return skillLevel;
+    }
+  }
+  
+  /// ✅ NEW: Dynamic mistake rate - starts at 0% (no mistakes), ramps up to base rate
+  /// This ensures bot doesn't fail during minimum obstacle guarantee phase
+  double get currentMistakeRate {
+    if (minObstaclesToPass == 0) {
+      // No minimum guarantee - use base mistake rate from start
+      return mistakeRate;
+    }
+    
+    if (_score < minObstaclesToPass) {
+      // During guarantee phase: NO mistakes (0%)
+      return 0.0;
+    } else if (_score < minObstaclesToPass + 5) {
+      // Transition phase: Gradually increase mistakes over next 5 obstacles
+      final transitionProgress = (_score - minObstaclesToPass) / 5.0;
+      return mistakeRate * transitionProgress;
+    } else {
+      // After transition: Use base mistake rate
+      return mistakeRate;
+    }
+  }
   
   @override
   Future<void> onLoad() async {
@@ -187,31 +231,34 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     if (_nextObstacleGapY != null && _nextObstacleX != null) {
       // We have an obstacle to navigate!
       
+      // ✅ UPDATED: Use dynamic skill level (perfect at start, ramps down to base)
       // Skill-based accuracy: how close to gap center the bot aims
       // High skill = aims closer to center, low skill = more variation
-      final aimVariation = 30 * (1.0 - skillLevel); // 0.98 skill = ±0.6px, 0.6 skill = ±12px
+      final aimVariation = 30 * (1.0 - currentSkillLevel); // 0.99 skill = ±0.3px, 0.87 skill = ±3.9px
       final aimOffset = (_random.nextDouble() * aimVariation * 2) - aimVariation;
       _targetY = _nextObstacleGapY! + aimOffset;
       
       final currentY = position.y;
       
       // 🎯 THRESHOLD-BASED DECISION (like successful ML models)
+      // ✅ UPDATED: Use dynamic skill level for threshold calculation
       // Define a threshold based on skill level - higher skill = tighter control
-      final threshold = 15 + ((1.0 - skillLevel) * 25); // 0.98 skill = 15.5px, 0.6 skill = 25px
+      final threshold = 15 + ((1.0 - currentSkillLevel) * 25); // 0.99 skill = 15.25px, 0.87 skill = 18.25px
       
       // SIMPLE RULE: If we're BELOW target by more than threshold → JUMP
       // This is exactly how successful Flappy Bird AIs work!
       if (currentY > _targetY + threshold) {
         // We're too low - need to jump!
         if (_timeSinceLastJump >= reactionTime) {
+          // ✅ UPDATED: Use dynamic mistake rate (0% at start, ramps up to base)
           // Apply mistake rate: sometimes the bot fails to jump
-          final jumpSuccess = _random.nextDouble() > mistakeRate;
+          final jumpSuccess = _random.nextDouble() > currentMistakeRate;
           if (jumpSuccess) {
-            safePrint('🤖 JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px)');
+            safePrint('🤖 JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px) [Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
             _jump();
             return;
           } else {
-            safePrint('🤖 MISTAKE: Missed jump (${(mistakeRate * 100).toStringAsFixed(0)}% rate)');
+            safePrint('🤖 MISTAKE: Missed jump (${(currentMistakeRate * 100).toStringAsFixed(0)}% rate)');
           }
         }
       }
@@ -272,16 +319,16 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   }
   
   /// Make the bot jump
-  /// NOW USES SKILL LEVEL for jump accuracy!
+  /// ✅ UPDATED: Uses dynamic skill level for jump accuracy!
   void _jump() {
     // ✅ REFACTOR v2.0.0 Phase 2: Use JumpBehavior
     _jumpBehavior.jump();
     _timeSinceLastJump = 0;
     
-    // Add velocity randomness based on mistakeRate AND skill level
+    // ✅ UPDATED: Add velocity randomness based on dynamic mistakeRate AND dynamic skill level
     // Higher skill = less random jumps, even with same mistakeRate
-    final skillFactor = 1.0 - (skillLevel * 0.4); // 0.98 skill = 0.608x, 0.6 skill = 0.76x
-    final randomness = mistakeRate * 150 * skillFactor; // High skill reduces randomness further
+    final skillFactor = 1.0 - (currentSkillLevel * 0.4); // 0.99 skill = 0.604x, 0.87 skill = 0.652x
+    final randomness = currentMistakeRate * 150 * skillFactor; // High skill reduces randomness further
     velocity.y += (_random.nextDouble() * randomness) - (randomness / 2);
   }
   
@@ -289,8 +336,12 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   void incrementScore() {
     if (!_isActive) return;
     _score++;
-    // Only log milestone scores to reduce spam
-    if (_score % 5 == 0 || _score <= 3) {
+    
+    // ✅ NEW: Log skill/mistake rate transitions during minimum obstacle phase
+    if (minObstaclesToPass > 0 && _score <= minObstaclesToPass + 5) {
+      safePrint('🤖 SCORE: $_score/${minObstaclesToPass} [Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
+    } else if (_score % 5 == 0 || _score <= 3) {
+      // Only log milestone scores to reduce spam (after transition)
       safePrint('🤖 SCORE: $_score');
     }
   }

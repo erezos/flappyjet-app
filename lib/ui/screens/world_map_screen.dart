@@ -17,6 +17,9 @@ import 'level_objective_popup.dart';
 import '../../core/debug_logger.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
+import '../widgets/no_hearts_dialog.dart';
+import '../../game/systems/monetization_manager.dart';
+import '../../integrations/ftue_integration.dart';
 
 class WorldMapScreen extends StatefulWidget {
   /// ✅ NEW: Parameters for jet animation flow
@@ -53,11 +56,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   Animation<Offset>? _jetPositionAnimation;
   Animation<double>? _jetScaleAnimation;
   bool _isAnimatingToNextLevel = false;
-  
-  // ✅ NEW: Unlock animation system
-  AnimationController? _unlockAnimationController;
-  bool _showUnlockAnimation = false;
-  int? _unlockingLevelIndex; // Index in the current zone's level list
+  bool _jetFacingLeft = false; // Track jet direction during animation
 
   @override
   void initState() {
@@ -80,7 +79,6 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   void dispose() {
     _levelSystemManager.removeListener(_onLevelSystemChanged);
     _jetAnimationController?.dispose();
-    _unlockAnimationController?.dispose();
     super.dispose();
   }
 
@@ -208,9 +206,13 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     
     safePrint('✈️ Target: level $toLevel (index $toIndex)');
     
+    // ✅ NEW: Detect jet direction based on X position
+    final isMovingLeft = toPos.dx < fromPos.dx;
+    
     // Block interactions during animation
     setState(() {
       _isAnimatingToNextLevel = true;
+      _jetFacingLeft = isMovingLeft;
     });
     
     // Create animation controller
@@ -246,9 +248,6 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     // Start animation
     await _jetAnimationController!.forward();
     
-    // ✅ NEW: Show unlock animation on the target node
-    await _playUnlockAnimation(toIndex);
-    
     // Wait a moment after animation completes
     await Future.delayed(const Duration(milliseconds: 300));
     
@@ -265,39 +264,6 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     setState(() {
       _isAnimatingToNextLevel = false;
     });
-  }
-  
-  /// ✅ NEW: Play unlock animation on a level node
-  Future<void> _playUnlockAnimation(int levelIndex) async {
-    if (!mounted) return;
-    
-    safePrint('🔓 Playing unlock animation for level index $levelIndex');
-    
-    // Set up unlock animation state
-    setState(() {
-      _showUnlockAnimation = true;
-      _unlockingLevelIndex = levelIndex;
-    });
-    
-    // Create unlock animation controller
-    _unlockAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    // Play the animation
-    await _unlockAnimationController!.forward();
-    
-    // Clear unlock animation state
-    if (mounted) {
-      setState(() {
-        _showUnlockAnimation = false;
-        _unlockingLevelIndex = null;
-      });
-    }
-    
-    _unlockAnimationController?.dispose();
-    _unlockAnimationController = null;
   }
   
   /// ✅ NEW: Show level preview (used after jet animation)
@@ -327,7 +293,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
-          safePrint('🗺️ Navigating back to homepage from world map');
+          safePrint('🗺️ Navigating back to story tab from world map');
         }
       },
       child: Scaffold(
@@ -594,13 +560,17 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
               height: 70,
               child: Transform.scale(
                 scale: scale,
-                child: WorldMapJetWidget(
-                  jetSkinId: _inventoryManager.equippedSkinId,
-                  currentPosition: currentPos,
-                  targetPosition: null, // No additional animation
-                  animationDuration: Duration.zero,
-                  onAnimationComplete: () {},
-                  jetSize: 70.0,
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()..scale(_jetFacingLeft ? -1.0 : 1.0, 1.0),
+                  child: WorldMapJetWidget(
+                    jetSkinId: _inventoryManager.equippedSkinId,
+                    currentPosition: currentPos,
+                    targetPosition: null, // No additional animation
+                    animationDuration: Duration.zero,
+                    onAnimationComplete: () {},
+                    jetSize: 70.0,
+                  ),
                 ),
               ),
             ),
@@ -656,13 +626,6 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     final isCompleted = _levelSystemManager.isLevelCompleted(level.id);
     final isCurrent = level.id == _levelSystemManager.currentLevel;
     final isBotBattle = level.botBattle != null;
-    
-    // ✅ NEW: Check if this node should show unlock animation
-    final currentZoneLevels = _levelSystemManager.allLevels
-        .where((l) => l.zone == _levelSystemManager.currentZone)
-        .toList();
-    final levelIndexInZone = currentZoneLevels.indexWhere((l) => l.id == level.id);
-    final isUnlocking = _showUnlockAnimation && _unlockingLevelIndex == levelIndexInZone;
 
     // VS nodes are larger and have special styling
     final nodeSize = isBotBattle ? 85.0 : 60.0;
@@ -679,8 +642,6 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           isCurrent: isCurrent,
           isBotBattle: isBotBattle,
           nodeSize: nodeSize,
-          isUnlocking: isUnlocking,
-          unlockProgress: _unlockAnimationController?.value ?? 0.0,
           child: _buildLevelNumber(level),
         ),
       ),
@@ -744,7 +705,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
             ModernGameButton(
               label: 'BACK TO HOME',
               onPressed: () {
-                // ✅ FIX: Use popUntil to safely return to homepage
+                // ✅ Navigate back to tab navigation (story tab)
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
               height: 56,
@@ -756,7 +717,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     );
   }
 
-  void _onLevelTap(LevelData level) {
+  void _onLevelTap(LevelData level) async {
     // Prevent tapping during jet animation
     if (_isJetAnimating || _isAnimatingToNextLevel) {
       safePrint('🚫 Cannot tap level during jet animation');
@@ -769,6 +730,19 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       return;
     }
 
+    // 🎮 TUTORIAL: Always show tutorial before Level 1 (repeatable for practice)
+    if (level.id == 1) {
+      safePrint('🎮 Tutorial: Showing before Level 1');
+      await FTUEIntegration.showTutorialAnimation(context);
+      
+      // After tutorial completes, check if we're still mounted
+      if (!mounted) {
+        safePrint('🎮 Tutorial: Widget unmounted after tutorial, aborting level start');
+        return;
+      }
+      safePrint('🎮 Tutorial: Complete, continuing to level objective popup');
+    }
+
     // Show level objective popup
     showDialog(
       context: context,
@@ -777,22 +751,22 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     );
   }
 
-  void _showNoHeartsDialog() {
-    showDialog(
+  void _showNoHeartsDialog() async {
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('No Hearts'),
-        content: const Text(
-          'You need at least 1 heart to play a level. Hearts regenerate every 10 minutes or you can purchase them in the store.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+      barrierDismissible: true,
+      builder: (context) => NoHeartsDialog(
+        onClose: () => Navigator.of(context).pop(false),
+        monetization: MonetizationManager(), // Pass singleton instance
       ),
     );
+
+    // ✅ If hearts were refilled, user can try again
+    if (result == true && mounted) {
+      setState(() {
+        // Rebuild to update button state
+      });
+    }
   }
 
 }
@@ -811,10 +785,6 @@ class _HexagonalLevelNode extends StatefulWidget {
   final bool isBotBattle;
   final double nodeSize;
   final Widget child;
-  
-  /// ✅ NEW: Unlock animation state
-  final bool isUnlocking;
-  final double unlockProgress;
 
   const _HexagonalLevelNode({
     required this.isUnlocked,
@@ -823,8 +793,6 @@ class _HexagonalLevelNode extends StatefulWidget {
     required this.isBotBattle,
     required this.nodeSize,
     required this.child,
-    this.isUnlocking = false,
-    this.unlockProgress = 0.0,
   });
 
   @override
@@ -932,66 +900,44 @@ class _HexagonalLevelNodeState extends State<_HexagonalLevelNode>
                 // Content
                 widget.child,
 
-                // ✅ ENHANCED: Lock icon with unlock animation
-                if (!widget.isUnlocked || widget.isUnlocking)
-                  Opacity(
-                    // Fade out during unlock animation
-                    opacity: widget.isUnlocking ? (1.0 - widget.unlockProgress) : 1.0,
-                    child: Transform.scale(
-                      // Shrink during unlock
-                      scale: widget.isUnlocking ? (1.0 - widget.unlockProgress * 0.5) : 1.0,
-                      child: Transform.rotate(
-                        // Rotate during unlock
-                        angle: widget.isUnlocking ? (widget.unlockProgress * 0.5) : 0.0,
-                        child: Container(
-                          width: widget.nodeSize * 0.45, // 45% of node size
-                          height: widget.nodeSize * 0.45,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.85),
-                                Colors.black.withValues(alpha: 0.95),
-                              ],
-                            ),
-                            border: Border.all(
-                              color: const Color(0xFFFFD700).withValues(alpha: 0.4), // Gold border
-                              width: 2.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.lock_rounded,
-                            color: const Color(0xFFFFD700).withValues(alpha: 0.9), // Gold lock
-                            size: widget.nodeSize * 0.28,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black87,
-                                offset: Offset(0, 2),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                        ),
+                // Lock icon for locked levels
+                if (!widget.isUnlocked)
+                  Container(
+                    width: widget.nodeSize * 0.45, // 45% of node size
+                    height: widget.nodeSize * 0.45,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.85),
+                          Colors.black.withValues(alpha: 0.95),
+                        ],
                       ),
+                      border: Border.all(
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.4), // Gold border
+                        width: 2.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
-                  ),
-                
-                // ✅ NEW: Unlock glow effect during animation
-                if (widget.isUnlocking)
-                  CustomPaint(
-                    size: Size(widget.nodeSize + 40 * widget.unlockProgress, widget.nodeSize + 40 * widget.unlockProgress),
-                    painter: _HexagonGlowPainter(
-                      color: const Color(0xFFFFD700).withValues(alpha: 0.6 * widget.unlockProgress),
-                      blurRadius: 30 * widget.unlockProgress,
+                    child: Icon(
+                      Icons.lock_rounded,
+                      color: const Color(0xFFFFD700).withValues(alpha: 0.9), // Gold lock
+                      size: widget.nodeSize * 0.28,
+                      shadows: const [
+                        Shadow(
+                          color: Colors.black87,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'daily_streak_integration.dart';
 
-/// Example integration for showing daily streak in homepage
-/// Add this to your homepage to show the daily streak notification
+/// Example integration for showing daily streak in menu/tab navigation
+/// Add this to your main screen to show the daily streak notification
 class DailyStreakHomepageIntegration extends StatefulWidget {
   const DailyStreakHomepageIntegration({super.key});
   
@@ -219,7 +219,7 @@ class DailyStreakInstructions extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '1. Add DailyStreakHomepageIntegration to your homepage\n'
+              '1. Add DailyStreakHomepageIntegration to your main screen\n'
               '2. Or use DailyStreakFAB as a floating action button\n'
               '3. Initialize in main.dart with DailyStreakIntegration.initialize()\n'
               '4. The system will automatically show popups when appropriate',

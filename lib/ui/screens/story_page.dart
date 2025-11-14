@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
@@ -11,6 +12,7 @@ import '../../game/core/jet_skins.dart'; // ✅ Import for JetSkinCatalog
 import '../widgets/status_bar/coins_gems_display.dart';
 import '../widgets/status_bar/hearts_display.dart';
 import '../widgets/status_bar/daily_streak_button.dart';
+// Removed: ftue_debug_reset_button import (no longer needed - tutorial triggers from Level 1)
 import 'world_map_screen.dart';
 
 class StoryPage extends StatefulWidget {
@@ -86,15 +88,32 @@ class _StoryPageState extends State<StoryPage>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     final size = MediaQuery.of(context).size;
     
-    // Responsive sizing based on screen size (like old homepage)
+    // Responsive sizing based on screen size
     final isTablet = size.width > 600;
     final isLargeTablet = size.width > 900;
     
-    // 🎮 BIGGER SIZES: Increased jet and play button
-    final jetSize = isLargeTablet ? 320.0 : isTablet ? 280.0 : 240.0; // ✅ Bigger jet (was 200/170/140)
-    final playButtonSize = isLargeTablet ? 280.0 : isTablet ? 250.0 : 220.0; // ✅ Already increased
-    final titleWidth = isLargeTablet ? 600.0 : isTablet ? 550.0 : 450.0;
-    final titleHeight = isLargeTablet ? 170.0 : isTablet ? 150.0 : 130.0;
+    // 🎮 FLAME ENGINE BEST PRACTICE: Fully responsive sizes (scale with screen dimensions)
+    // Reference screen: 375px width, 667px height (iPhone SE baseline)
+    
+    // Jet size: Proportional to screen width (responsive across all devices)
+    final jetSize = (size.width * 0.55).clamp(180.0, 320.0);
+    
+    // 🚀 PLAY BUTTON - FULLY RESPONSIVE (SQUARE 540x540 asset)
+    // Strategy: Calculate available space to prevent overflow on ALL screen sizes
+    // 
+    // LAYOUT FORMULA:
+    // - Title section: 140-200px (fixed height)
+    // - Jet section (flex:2) + Button section (flex:3) = remaining space after fixed elements
+    // - Button section gets 3/5 = 60% of flexible space
+    // - Nav bar: ~95-130px
+    // - Safe constraint: Use 25% of total height (tested on 667px-1366px screens)
+    final maxButtonWidth = size.width * 0.85; // 85% of screen width
+    final maxButtonHeight = size.height * 0.25; // Max 25% of screen height (safe for all devices 667px+)
+    final playButtonSize = maxButtonWidth.clamp(200.0, maxButtonHeight.clamp(200.0, 450.0)); // Min 200px, Max 450px
+    
+    // Title: Proportional scaling
+    final titleWidth = (size.width * 0.90).clamp(350.0, 600.0);
+    final titleHeight = (size.height * 0.18).clamp(100.0, 170.0);
     
     // 🛩️ Get user's equipped jet skin and its asset path
     final equippedJetId = _inventory.equippedSkinId;
@@ -113,7 +132,7 @@ class _StoryPageState extends State<StoryPage>
         height: double.infinity,
         child: Stack(
           children: [
-            // === BACKGROUND - Sky with clouds (like old homepage) ===
+            // === BACKGROUND - Sky with clouds ===
             Container(
               decoration: const BoxDecoration(
                 image: DecorationImage(
@@ -157,7 +176,7 @@ class _StoryPageState extends State<StoryPage>
 
                   SizedBox(height: isLargeTablet ? 20 : isTablet ? 16 : 12),
 
-                  // === BIG YELLOW "FLAPPY JET" TITLE (like old homepage) ===
+                  // === BIG YELLOW "FLAPPY JET" TITLE ===
                   SizedBox(
                     width: double.infinity,
                     height: isLargeTablet ? 200.0 : isTablet ? 180.0 : 140.0,
@@ -226,13 +245,13 @@ class _StoryPageState extends State<StoryPage>
 
                   // === GIANT PLAY BUTTON SECTION ===
                   Expanded(
-                    flex: 4, // ✅ Reduced from 5 to push button higher
+                    flex: 3, // 🎮 FLAME ENGINE: Reduced to 3 to accommodate bigger navigator bar (110-140px)
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start, // ✅ Changed from center to start
+                        mainAxisSize: MainAxisSize.min, // 🎮 FLAME ENGINE: Prevent overflow with bigger navigator
                         children: [
-                          SizedBox(height: isLargeTablet ? 40 : isTablet ? 30 : 20), // ✅ Added spacing from top
-                          // 🎮 CUSTOM PLAY BUTTON WITH PRESS ANIMATION
+                          // 🎮 CUSTOM PLAY BUTTON WITH PRESS ANIMATION (no spacing above - moved up to prevent overflow)
                           GestureDetector(
                             onTapDown: (_) {
                               setState(() {
@@ -257,31 +276,31 @@ class _StoryPageState extends State<StoryPage>
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 100),
                                 curve: Curves.easeInOut,
-                                // Add shadow that reduces when pressed
+                                // Minimal shadow to save vertical space
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   boxShadow: _isPlayButtonPressed
                                       ? [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.15), // ✅ Reduced by 50% (was 0.3)
-                                            offset: const Offset(0, 2), // ✅ Reduced by 50% (was 0, 4)
-                                            blurRadius: 7.5, // ✅ Reduced by 50% (was 15)
-                                            spreadRadius: 1, // ✅ Reduced by 50% (was 2)
+                                            color: Colors.black.withOpacity(0.1), // Minimal shadow when pressed
+                                            offset: const Offset(0, 1),
+                                            blurRadius: 4,
+                                            spreadRadius: 0,
                                           ),
                                         ]
                                       : [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.25), // ✅ Reduced by 50% (was 0.5)
-                                            offset: const Offset(0, 6), // ✅ Reduced by 50% (was 0, 12)
-                                            blurRadius: 20, // ✅ Reduced by 50% (was 40)
-                                            spreadRadius: 2.5, // ✅ Reduced by 50% (was 5)
+                                            color: Colors.black.withOpacity(0.15), // Reduced shadow (was 0.25)
+                                            offset: const Offset(0, 3), // Reduced offset (was 0, 6)
+                                            blurRadius: 10, // Reduced blur (was 20)
+                                            spreadRadius: 1, // Reduced spread (was 2.5)
                                           ),
                                         ],
                                 ),
                                 child: Image.asset(
                                   'assets/images/buttons/play_button.png',
-                                  width: playButtonSize,
-                                  height: playButtonSize,
+                                  width: playButtonSize, // 🎮 FLAME ENGINE: Responsive size (250-600px, SQUARE)
+                                  height: playButtonSize, // 🎮 FLAME ENGINE: SQUARE button (540x540 asset)
                                   fit: BoxFit.contain,
                                 ),
                               ),

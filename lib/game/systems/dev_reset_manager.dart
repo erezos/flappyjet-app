@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lives_manager.dart';
 import 'player_identity_manager.dart';
-import 'ftue_manager.dart';
 import 'daily_streak_manager.dart';
 import 'auto_refill_manager.dart';
 import '../../core/debug_logger.dart';
@@ -106,9 +105,7 @@ class DevResetManager {
       final livesManager = LivesManager();
       await livesManager.forceResetToNewPlayer();
       
-      // Reset FTUE Manager to new player state
-      final ftueManager = FTUEManager();
-      await ftueManager.resetFTUE();
+      // FTUE tutorial will show automatically before Level 1 (no state to reset)
       
       // Reset Daily Streak Manager
       final dailyStreakManager = DailyStreakManager();
@@ -119,7 +116,7 @@ class DevResetManager {
       await autoRefillManager.forceResetToNewPlayer();
       
       safePrint('🔧 ✅ Reset complete - All systems reset to new player state');
-      safePrint('🔧 🎮 FTUE will trigger after first two games');
+      safePrint('🔧 🎮 Tutorial will show before Level 1');
       safePrint('🔧 New player will have: 3 hearts, 500 coins, 25 gems, ${playerIdentity.playerName}');
     } catch (e) {
       safePrint('🔧 ⚠️ Error during manager reset: $e');

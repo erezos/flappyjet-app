@@ -118,13 +118,14 @@ class FlappyWorld extends World {
           }
         }
         
-        safePrint('🌍 FlappyWorld: Bot: ${botBattle.botName} - skill=$botSkillLevel, reaction=$botReactionTime, mistakes=$botMistakeRate');
+        safePrint('🌍 FlappyWorld: Bot: ${botBattle.botName} - skill=$botSkillLevel, reaction=$botReactionTime, mistakes=$botMistakeRate, minPass=${botBattle.minObstaclePass}');
         
         bot = BotJetPlayer(
           skinId: botBattle.botJetSkin,
           skillLevel: botSkillLevel,
           reactionTime: botReactionTime,
           mistakeRate: botMistakeRate,
+          minObstaclesToPass: botBattle.minObstaclePass, // ✅ NEW: Pass minimum obstacle guarantee
         );
         bot!.priority = 9; // Render below player
         await add(bot!);

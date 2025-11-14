@@ -1,99 +1,69 @@
-/// 🎮 FTUE Integration - First Time User Experience
-/// Manages onboarding flow and popup triggers for new players
+/// 🎮 Tutorial Integration - Level 1 Tutorial
+/// Shows interactive Flame-based tutorial before Level 1
 library;
 
 import 'package:flutter/material.dart';
-import '../game/systems/ftue_manager.dart';
-import '../game/systems/inventory_manager.dart';
-import '../game/systems/auto_refill_manager.dart';
-import '../ui/widgets/ftue/ftue_popup.dart';
+import '../ui/widgets/ftue/flame_tutorial_popup.dart';
 import '../core/debug_logger.dart';
+import '../core/analytics/unified_analytics_manager.dart';
 
 class FTUEIntegration {
-  static final FTUEManager _ftueManager = FTUEManager();
+  static final UnifiedAnalyticsManager _analytics = UnifiedAnalyticsManager();
   
-  /// Initialize FTUE system
-  static Future<void> initialize() async {
-    await _ftueManager.initialize();
-  }
-  
-  /// Get the FTUE manager instance
-  static FTUEManager get manager => _ftueManager;
-  
-  /// Record that a game was completed
-  static Future<void> recordGameCompleted() async {
-    await _ftueManager.recordGameCompleted();
-  }
-  
-  /// Check if we should show popup after returning to menu
-  static bool shouldShowPopup() {
-    final shouldShow = _ftueManager.shouldShowGiftPopup;
-    safePrint('🎮 FTUE shouldShowPopup check: isFirstSession=${_ftueManager.isFirstSession}, gamesPlayed=${_ftueManager.gamesPlayed}, giftPopupShown=${_ftueManager.giftPopupShown}, result=$shouldShow');
-    return shouldShow;
-  }
-  
-  /// Internal flag to prevent duplicate popup checks
-  static bool _popupCheckInProgress = false;
-  
-  /// Show appropriate FTUE popup based on game count
-  static Future<void> showFTUEPopup(BuildContext context) async {
-    if (!_ftueManager.isInitialized) return;
+  /// Show tutorial animation popup before Level 1 (Flame-based)
+  /// 
+  /// Flame Best Practices:
+  /// - Shows tutorial in non-dismissible dialog
+  /// - Displays "Tutorial Complete" screen with stats
+  /// - User must tap "Continue" button to proceed
+  /// - Prevents race conditions from rapid taps
+  /// 
+  /// Analytics:
+  /// - Fires `tutorial_started` when tutorial begins
+  /// - Fires `tutorial_completed` when user finishes 20s or completes objective
+  /// - Fires `tutorial_skipped` when user clicks skip button
+  static Future<void> showTutorialAnimation(BuildContext context) async {
+    safePrint('🎮 Tutorial: Showing Flame-based tutorial for Level 1');
     
-    // Prevent duplicate popup checks
-    if (_popupCheckInProgress) {
-      safePrint('🎮 FTUE popup check already in progress, skipping duplicate');
-      return;
+    // Fire analytics: tutorial started
+    try {
+      _analytics.trackEvent('tutorial_started', {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+      safePrint('📊 Analytics: tutorial_started event fired');
+    } catch (e) {
+      safePrint('❌ Error tracking tutorial_started: $e');
     }
     
     try {
-      _popupCheckInProgress = true;
-      
-      if (_ftueManager.shouldShowGiftPopup) {
-        await _showGiftPopup(context);
-      }
-    } catch (e) {
-      safePrint('❌ Error showing FTUE popup: $e');
-    } finally {
-      _popupCheckInProgress = false;
-    }
-  }
-  
-  /// Show gift popup with 3-day auto-refill booster
-  static Future<void> _showGiftPopup(BuildContext context) async {
-    safePrint('🎮 Showing FTUE gift popup - 3-day auto-refill booster');
-    
-    // Mark popup as shown IMMEDIATELY to prevent duplicates
-    _ftueManager.markGiftPopupShown();
-    safePrint('🎮 FTUE gift popup marked as shown');
-    
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => FTUEPopup(
-        title: _ftueManager.getGiftPopupTitle(),
-        message: _ftueManager.getGiftPopupMessage(),
-        isGiftPopup: true,
-        onClose: () async {
-          if (context.mounted) {
-            Navigator.of(context).pop();
-          }
-          
-          // Grant 3-day auto-refill booster
-          try {
-            final inventory = InventoryManager();
-            await inventory.activateAutoRefill(AutoRefillDuration.threeDays);
-            safePrint('🎁 3-day auto-refill booster granted to new player!');
-          } catch (e) {
-            safePrint('❌ Error granting auto-refill booster: $e');
-          }
+      // ✅ FLAME BEST PRACTICE: Show tutorial in separate await to prevent race conditions
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return FlameTutorialPopup(
+            onComplete: ({required bool completed, required int taps, required Duration duration}) async {
+              safePrint('🎮 Tutorial finished: completed=$completed, taps=$taps, time=${duration.inSeconds}s');
+              
+              // Fire analytics: tutorial completed or skipped
+              try {
+                final eventName = completed ? 'tutorial_completed' : 'tutorial_skipped';
+                _analytics.trackEvent(eventName, {
+                  'taps': taps,
+                  'duration_seconds': duration.inSeconds,
+                  'timestamp': DateTime.now().millisecondsSinceEpoch,
+                });
+                safePrint('📊 Analytics: $eventName event fired');
+              } catch (e) {
+                safePrint('❌ Error tracking tutorial completion: $e');
+              }
+            },
+          );
         },
-      ),
-    );
-  }
-  
-  
-  /// Reset FTUE for testing (debug only)
-  static Future<void> resetForTesting() async {
-    await _ftueManager.resetFTUE();
+      );
+    } catch (e, stackTrace) {
+      safePrint('❌ Error showing Flame tutorial: $e');
+      safePrint('Stack trace: $stackTrace');
+    }
   }
 }

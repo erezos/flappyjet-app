@@ -129,7 +129,7 @@ class AutoRefillManager extends ChangeNotifier {
   }
 
   /// Check and trigger auto-refill if conditions are met
-  /// Call this when returning to homepage
+  /// Call this when returning to menu/tab navigation
   Future<bool> checkAndTriggerAutoRefill() async {
     if (!_isInitialized || !isAutoRefillActive) {
       return false;

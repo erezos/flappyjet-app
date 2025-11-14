@@ -155,6 +155,13 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   // PUBLIC METHODS for UI tap handling
   Future<void> handleTap() async {
+    // ✅ FLAME BEST PRACTICE: Guard against taps before game is fully loaded
+    // Prevents race condition where user taps before onLoad() completes
+    if (!_isFullyLoaded) {
+      safePrint('🚫 Tap ignored - game not fully loaded yet');
+      return;
+    }
+    
     if (_gameStateManager.isWaitingToStart) {
       // 🎯 STORY MODE: No heart consumption on game start
       // Hearts are only consumed on crashes in story mode
@@ -189,6 +196,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
   // Game over notifier for UI
   ValueNotifier<bool> get gameOverNotifier => _gameStateManager.gameOverNotifier;
+
+  // ✅ FLAME BEST PRACTICE: Track loading state to prevent race conditions
+  bool _isFullyLoaded = false;
 
   @override
   Future<void> onLoad() async {
@@ -225,6 +235,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
       // Start theme music
       await _startThemeMusic();
+
+      // ✅ FLAME BEST PRACTICE: Mark as fully loaded to allow tap interactions
+      _isFullyLoaded = true;
 
       safePrint('🚀 Enhanced Flappy Game with modular architecture initialized!');
     } catch (e, stackTrace) {
@@ -350,12 +363,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   /// - Clean, testable, scalable
   Future<void> _createGameComponents() async {
     // Get equipped skin before creating World
-    String equippedId = InventoryManager().equippedSkinId;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      equippedId = prefs.getString('inv_equipped_skin') ?? equippedId;
-    } catch (_) {}
+    // ✅ FIX: InventoryManager stores equipped skin in SQLite, not SharedPreferences!
+    // Use InventoryManager directly which loads from UserStatsRepository
+    final equippedId = InventoryManager().equippedSkinId;
     final equippedSkin = JetSkinCatalog.getSkinById(equippedId) ?? JetSkinCatalog.starterJet;
+    safePrint('🎮 Creating game with equipped skin: ${equippedSkin.displayName} (id: $equippedId)');
     
     // ✅ CRITICAL FIX: World size MUST match device screen size
     // Using a logical resolution larger than screen causes scaling issues
@@ -1267,12 +1279,23 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Update HUD
     _hud.updateLives(_gameStateManager.lives);
 
-    // 🎵 Resume theme music when continuing game
+    // 🎵 Resume music when continuing game
     () async {
       try {
-        final themeMusic = _themeManager.getThemeMusic(_gameStateManager.currentTheme);
-      await _audioManager.playMusic(themeMusic, volume: 0.7);
-        safePrint('🎵 Game music resumed after continue: $themeMusic');
+        String musicToPlay;
+        
+        // 🎯 STORY MODE FIX: Use level-specific music, not theme music
+        if (isStoryMode && storyModeLevel != null) {
+          musicToPlay = storyModeLevel!.theme.music;
+          safePrint('🎵 STORY MODE: Resuming level music after continue: $musicToPlay');
+        } else {
+          // Endless mode: Use theme-based music
+          musicToPlay = _themeManager.getThemeMusic(_gameStateManager.currentTheme);
+          safePrint('🎵 ENDLESS MODE: Resuming theme music after continue: $musicToPlay');
+        }
+        
+        await _audioManager.playMusic(musicToPlay, volume: 0.7);
+        safePrint('🎵 Game music resumed after continue: $musicToPlay');
       } catch (e) {
         safePrint('⚠️ Failed to resume game music after continue: $e');
       }

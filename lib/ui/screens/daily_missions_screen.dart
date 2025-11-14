@@ -408,24 +408,22 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   }
 
   Widget _buildDailyMissions(BuildContext context, Size screenSize) {
-    return Builder(
-      builder: (context) {
-        // Try to get MissionsManager from Provider first, fallback to passed parameter
-        MissionsManager? missionsManager;
-        try {
-          missionsManager = context.watch<MissionsManager>();
-        } catch (e) {
-          missionsManager = widget.missionsManager;
-        }
+    // Check if missions manager is available
+    if (widget.missionsManager == null) {
+      return const Center(
+        child: Text(
+          'Missions not available',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
 
-        if (missionsManager == null) {
-          return const Center(
-            child: Text(
-              'Missions not available',
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          );
-        }
+    // ✅ FIX: Use ListenableBuilder to listen to MissionsManager changes in real-time
+    // This ensures UI updates immediately when mission progress changes during gameplay
+    return ListenableBuilder(
+      listenable: widget.missionsManager!,
+      builder: (context, _) {
+        final missionsManager = widget.missionsManager!;
 
         if (!missionsManager.isInitialized) {
           return const Center(
@@ -517,24 +515,22 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   }
 
   Widget _buildAchievements(BuildContext context, Size screenSize) {
-    return Builder(
-      builder: (context) {
-        // Try to get AchievementsManager from Provider first, fallback to passed parameter
-        AchievementsManager? achievementsManager;
-        try {
-          achievementsManager = context.watch<AchievementsManager>();
-        } catch (e) {
-          achievementsManager = widget.achievementsManager;
-        }
+    // Check if achievements manager is available
+    if (widget.achievementsManager == null) {
+      return const Center(
+        child: Text(
+          'Achievements not available',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
 
-        if (achievementsManager == null) {
-          return const Center(
-            child: Text(
-              'Achievements not available',
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          );
-        }
+    // ✅ FIX: Use ListenableBuilder to listen to AchievementsManager changes in real-time
+    // This ensures UI updates immediately when achievement progress changes during gameplay
+    return ListenableBuilder(
+      listenable: widget.achievementsManager!,
+      builder: (context, _) {
+        final achievementsManager = widget.achievementsManager!;
 
         if (!achievementsManager.isInitialized) {
           return const Center(
