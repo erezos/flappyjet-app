@@ -3,16 +3,21 @@
 library;
 
 import 'dart:async';
+import 'dart:io'; // ✅ For Platform.isIOS check
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart'; // ✅ iOS ATT
 import 'firebase_options.dart';
 import 'ui/screens/home_navigator_screen.dart';
 
 // Platform optimization system - Now using AAA adaptive quality system
 import 'core/debug_manager.dart';
 import 'core/debug_logger.dart';
+
+// 📱 iOS App Tracking Transparency
+import 'integrations/att_manager.dart';
 
 // Hybrid architecture - Event-driven system
 import 'core/identity/device_identity_manager.dart';
@@ -261,6 +266,24 @@ class _LoadingScreenState extends State<LoadingScreen> {
       );
       safePrint('🎒 ✅ InventoryManager initialized with SQLite');
 
+      // 📱 iOS: Request ATT permission before initializing ads
+      // Apple requires this BEFORE accessing IDFA for personalized ads
+      if (Platform.isIOS) {
+        await _initTask('App Tracking Transparency', () async {
+          final attManager = ATTManager();
+          final status = await attManager.initialize();
+          
+          // Only request if not determined yet
+          if (status == TrackingStatus.notDetermined) {
+            // Apple requires 1+ second delay after app launch
+            await Future.delayed(const Duration(milliseconds: 1500));
+            await attManager.requestPermission();
+          }
+          
+          safePrint('📱 ATT: ${attManager.getStatusMessage()}');
+        })();
+      }
+
       // Phase 2: Background systems (non-blocking)
       final backgroundTasks = [
         _initTask('FCM Service', () => FCMService().initialize()),
@@ -287,6 +310,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
           inventory: inventoryManager,
           lives: LivesManager(),
         )),
+        // ✅ Interstitial ads now initialize AFTER ATT (if iOS)
         _initTask('Interstitial Ads', () => InterstitialAdManager().initialize()),
         // OLD: Comprehensive Analytics removed - now using EventBus for all analytics
       ];
