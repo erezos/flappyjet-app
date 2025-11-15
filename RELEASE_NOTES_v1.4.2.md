@@ -1,141 +1,140 @@
 <en-US>
-🚀 FLAPPYJET PRO v1.6.3
+🚀 FLAPPYJET PRO v2.0.6
 
-🎯 NEW: DAILY MISSIONS!
-Complete challenges, earn massive coin rewards!
+🌍 NEW: EPIC STORY MODE!
+50 handcrafted levels across 5 stunning zones! Battle AI rivals!
 
-🏆 WEEKLY TOURNAMENTS!
-Battle millions of pilots worldwide! Dominate leaderboards!
+🎯 DAILY MISSIONS & ACHIEVEMENTS!
+Complete challenges, unlock legendary rewards!
 
 ✨ NEW FEATURES:
-🛩️ Legendary jet skins
-💖 Heart boosters - extra lives
+🏆 Weekly tournaments - global competition
+🤖 Boss battles - defeat rival pilots
+🗺️ 5 unique zones - Desert, Ocean, Space, City, Arctic
+💖 Heart system - strategic gameplay
 🔥 Daily streak bonuses
-🌍 Global high scores
 ⚡ Smoother performance
-💰 Enhanced economy
 
 Join millions of pilots! Download NOW! ✈️🔥
 </en-US>
 
 <es-ES>
-🚀 FLAPPYJET PRO v1.6.3
+🚀 FLAPPYJET PRO v2.0.6
 
-🎯 ¡NUEVO: MISIONES DIARIAS!
-¡Completa desafíos, gana monedas masivas!
+🌍 ¡NUEVO: MODO HISTORIA ÉPICO!
+¡50 niveles en 5 zonas! ¡Batalla contra rivales IA!
 
-🏆 ¡TORNEOS SEMANALES!
-¡Batalla contra millones de pilotos! ¡Domina clasificaciones!
+🎯 ¡MISIONES DIARIAS Y LOGROS!
+¡Completa desafíos, desbloquea recompensas!
 
 ✨ NUEVAS CARACTERÍSTICAS:
-🛩️ Skins de jets legendarios
-💖 Potenciadores de corazón - vidas extra
+🏆 Torneos semanales - competición global
+🤖 Batallas de jefes - derrota rivales
+🗺️ 5 zonas - Desierto, Océano, Espacio, Ciudad, Ártico
+💖 Sistema de corazones
 🔥 Bonos de racha diaria
-🌍 Puntuaciones altas globales
-⚡ Rendimiento más suave
-💰 Economía mejorada
+⚡ Rendimiento mejorado
 
 ¡Únete a millones de pilotos! ¡Descarga AHORA! ✈️🔥
 </es-ES>
 
 <fr-FR>
-🚀 FLAPPYJET PRO v1.6.3
+🚀 FLAPPYJET PRO v2.0.6
 
-🎯 NOUVEAU: MISSIONS QUOTIDIENNES!
-Complétez des défis, gagnez des pièces massives!
+🌍 NOUVEAU: MODE HISTOIRE ÉPIQUE!
+50 niveaux dans 5 zones! Battez des rivaux IA!
 
-🏆 TOURNOIS HEBDOMADAIRES!
-Battez des millions de pilotes! Dominez les classements!
+🎯 MISSIONS QUOTIDIENNES ET SUCCÈS!
+Complétez des défis, débloquez récompenses!
 
 ✨ NOUVELLES FONCTIONNALITÉS:
-🛩️ Skins de jets légendaires
-💖 Boosters de cœur - vies supplémentaires
-🔥 Bonus de série quotidienne
-🌍 Scores élevés mondiaux
-⚡ Performance ultra-fluide
-💰 Économie améliorée
+🏆 Tournois hebdomadaires - compétition
+🤖 Combats de boss - battez rivaux
+🗺️ 5 zones - Désert, Océan, Espace, Ville, Arctique
+💖 Système de cœurs
+🔥 Bonus quotidiens
+⚡ Performance optimisée
 
-Rejoignez des millions de pilotes! Téléchargez MAINTENANT! ✈️🔥
+Rejoignez millions de pilotes! Téléchargez MAINTENANT! ✈️🔥
 </fr-FR>
 
 <de-DE>
-🚀 FLAPPYJET PRO v1.6.3
+🚀 FLAPPYJET PRO v2.0.6
 
-🎯 NEU: TÄGLICHE MISSIONEN!
-Erfülle Herausforderungen, verdiene massive Münzen!
+🌍 NEU: EPISCHER STORY-MODUS!
+50 Level in 5 Zonen! Kämpfe gegen KI-Rivalen!
 
-🏆 WÖCHENTLICHE TURNIERE!
-Kämpfe gegen Millionen Piloten! Dominiere Bestenlisten!
+🎯 TÄGLICHE MISSIONEN & ERFOLGE!
+Erfülle Herausforderungen, schalte Belohnungen frei!
 
 ✨ NEUE FEATURES:
-🛩️ Legendäre Jet-Skins
-💖 Herz-Booster - Extra Leben
-🔥 Tägliche Streak-Boni
-🌍 Globale Highscores
-⚡ Butterweiche Performance
-💰 Verbesserte Wirtschaft
+🏆 Wöchentliche Turniere - globaler Wettbewerb
+🤖 Boss-Kämpfe - besiege Rivalen
+🗺️ 5 Zonen - Wüste, Ozean, Weltraum, Stadt, Arktis
+💖 Herz-System
+🔥 Tägliche Boni
+⚡ Bessere Performance
 
 Schließe dich Millionen Piloten an! Lade JETZT herunter! ✈️🔥
 </de-DE>
 
 <ja-JP>
-🚀 FLAPPYJET PRO v1.6.3
+🚀 FLAPPYJET PRO v2.0.6
 
-🎯 新機能：デイリーミッション！
-チャレンジをクリア、大量コイン獲得！
+🌍 新機能：壮大なストーリーモード！
+5つの美しいゾーンに50のレベル！AIライバルとバトル！
 
-🏆 ウィークリートーナメント！
-世界中の何百万ものパイロットと戦おう！リーダーボードを制覇！
+🎯 デイリーミッション＆アチーブメント！
+チャレンジをクリア、伝説の報酬をアンロック！
 
 ✨ 新機能:
-🛩️ レジェンダリージェットスキン
-💖 ハートブースター - 追加ライフ
+🏆 ウィークリートーナメント - 世界的競争
+🤖 ボスバトル - ライバルパイロットを倒せ
+🗺️ 5つのユニークなゾーン - 砂漠、海洋、宇宙、都市、北極
+💖 ハートシステム - 戦略的なゲームプレイ
 🔥 デイリーストリークボーナス
-🌍 グローバルハイスコア
 ⚡ 滑らかなパフォーマンス
-💰 改良された経済システム
 
 何百万ものパイロットに参加しよう！今すぐダウンロード！ ✈️🔥
 </ja-JP>
 
 <ko-KR>
-🚀 FLAPPYJET PRO v1.6.3
+🚀 FLAPPYJET PRO v2.0.6
 
-🎯 신규: 데일리 미션!
-도전을 완료하고 엄청난 코인을 획득하세요!
+🌍 신규: 에픽 스토리 모드!
+5개의 멋진 존에 50개 레벨! AI 라이벌과 배틀!
 
-🏆 주간 토너먼트!
-전 세계 수백만 파일럿들과 배틀! 리더보드를 지배하세요!
+🎯 데일리 미션 & 업적!
+도전을 완료하고 전설적인 보상을 잠금 해제하세요!
 
 ✨ 새로운 기능들:
-🛩️ 전설적인 제트 스킨
-💖 하트 부스터 - 추가 생명
+🏆 주간 토너먼트 - 글로벌 경쟁
+🤖 보스 배틀 - 라이벌 파일럿을 물리치세요
+🗺️ 5개의 독특한 존 - 사막, 해양, 우주, 도시, 북극
+💖 하트 시스템 - 전략적인 게임플레이
 🔥 데일리 연속 보너스
-🌍 글로벌 하이스코어
 ⚡ 부드러운 퍼포먼스
-💰 개선된 경제 시스템
 
 수백만 파일럿들과 함께하세요! 지금 다운로드! ✈️🔥
 </ko-KR>
 
 <zh-CN>
-🚀 FLAPPYJET PRO v1.6.3 - 终极飞行员体验！
+🚀 FLAPPYJET PRO v2.0.6
 
-🎯 每日任务震撼来袭！
-每天完成刺激挑战，赢取海量金币奖励！从精准飞行到障碍掌控 - 证明你是终极王牌飞行员！
+🌍 新功能：史诗故事模式！
+5个绚丽区域50个关卡！对战AI对手！
 
-🏆 每周锦标赛 - 全球竞技！
-与全世界数百万飞行员激战！攀登排行榜，统治每周竞赛，夺取#1战机指挥官宝座！
+🎯 每日任务与成就！
+完成挑战，解锁传奇奖励！
 
 ✨ 令人难以置信的新功能:
-🛩️ 传奇战机皮肤 - 解锁惊艳的全新飞机设计！
-💖 爱心助推器 - 突破极限的额外生命！
-🔥 每日连击奖励 - 持续增长的登录奖励！
-🌍 全球最高分 - 看看你在世界的排名！
-⚡ 丝滑流畅性能 - 为史诗游戏体验优化！
-💰 公平经济 - 比以往更快赚取金币！
+🏆 每周锦标赛 - 全球竞技
+🤖 Boss战 - 击败对手飞行员
+🗺️ 5个独特区域 - 沙漠、海洋、太空、城市、北极
+💖 爱心系统 - 策略性游戏玩法
+🔥 每日连击奖励
+⚡ 丝滑流畅性能
 
-体验史上最令人上瘾的飞行游戏！
-加入数百万飞行员翱翔绚丽主题世界！
-立即下载，成为传奇！ ✈️🔥
+加入数百万飞行员！立即下载！ ✈️🔥
 </zh-CN>
+
