@@ -8,6 +8,7 @@ import '../../../game/systems/inventory_manager.dart';
 import '../../../game/systems/monetization_manager.dart';
 import '../../../game/systems/lives_manager.dart';
 import '../../../game/systems/game_events_tracker.dart';
+import '../../../core/events/event_bus.dart'; // ✅ ANALYTICS FIX
 import 'heart_booster_store.dart';
 
 class StorePurchaseHandler {
@@ -168,6 +169,16 @@ class StorePurchaseHandler {
             coinCost: 0, // No coins spent
             rarity: skin.rarity.name,
           );
+
+          // ✅ ANALYTICS FIX: Fire EventBus event for backend
+          EventBus().fire('skin_purchased', {
+            'jet_id': skin.id,
+            'jet_name': skin.displayName,
+            'purchase_type': 'gems',
+            'cost_coins': 0,
+            'cost_gems': gemPrice,
+            'rarity': skin.rarity.name,
+          });
 
           if (context.mounted) {
             _showSuccessSnackBar('🎉 Purchased exclusive ${skin.displayName}!');

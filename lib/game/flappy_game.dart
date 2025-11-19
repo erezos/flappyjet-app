@@ -472,7 +472,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   void _handleGameStart() {
     _gameStateManager.startGame();
 
-    // 📊 Track game start analytics
+    // 📊 Track game start analytics (Firebase)
     _analytics.trackGameStart(
       gameMode: 'endless',
       selectedJet: InventoryManager().equippedSkinId,
@@ -482,7 +482,14 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       totalGems: InventoryManager().gems,
     );
 
-    // OLD: ComprehensiveAnalyticsManager().trackGameStart() removed - now using EventBus
+    // 📊 Track game start for backend (EventBus) - ✅ ANALYTICS FIX
+    eventBus?.fire('game_started', {
+      'game_mode': 'endless',
+      'selected_jet': InventoryManager().equippedSkinId,
+      'selected_skin': InventoryManager().equippedSkinId,
+      'hearts_remaining': _gameStateManager.lives,
+      'powerups_active': <String>[],
+    });
 
     // Start the jet
     _jet.startPlaying();

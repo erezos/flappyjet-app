@@ -8,6 +8,7 @@ import 'achievements_manager.dart';
 import 'inventory_manager.dart';
 import '../../core/network/network_manager.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
+import '../../core/events/event_bus.dart'; // ✅ ANALYTICS FIX
 
 /// Game Events Tracker - Central hub for tracking all game events
 class GameEventsTracker extends ChangeNotifier {
@@ -204,7 +205,7 @@ class GameEventsTracker extends ChangeNotifier {
       await _achievementsManager!.checkCollectionAchievements(ownedCount);
     }
 
-    // 📊 Report analytics
+    // 📊 Report analytics to Firebase
     _analytics?.trackPurchase(
       itemId: skinId,
       itemName: 'jet_skin_$skinId',
@@ -212,6 +213,16 @@ class GameEventsTracker extends ChangeNotifier {
       currency: 'coins',
       purchaseType: 'coins',
     );
+
+    // 📊 Send to backend via EventBus - ✅ ANALYTICS FIX
+    EventBus().fire('skin_purchased', {
+      'jet_id': skinId,
+      'jet_name': 'jet_skin_$skinId',
+      'purchase_type': coinCost > 0 ? 'coins' : 'gems',
+      'cost_coins': coinCost,
+      'cost_gems': 0,
+      'rarity': rarity,
+    });
 
     safePrint('🎮 Skin purchased: $skinId for $coinCost coins');
   }
