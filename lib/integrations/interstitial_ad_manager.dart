@@ -8,10 +8,10 @@ import '../core/debug_logger.dart';
 /// Manages interstitial ads for Story Mode with frequency caps and cooldowns
 /// 
 /// Strategy:
-/// - Session 1: First 3 wins = no ads, then every 2nd win + 2min cooldown
-/// - Session 2+: Every 2nd win + 2min cooldown
+/// - 1st win: No ad (grace period)
+/// - 2nd win onwards: Show ad every win + 2min cooldown
 /// 
-/// This ensures positive UX while maximizing revenue.
+/// This ensures positive first impression while maximizing revenue.
 class InterstitialAdManager {
   static final InterstitialAdManager _instance = InterstitialAdManager._internal();
   factory InterstitialAdManager() => _instance;
@@ -27,11 +27,8 @@ class InterstitialAdManager {
   static const String _adUnitIdAndroid = 'ca-app-pub-9307424222926115/7832054871'; // PRODUCTION
   static const String _adUnitIdIOS = 'ca-app-pub-9307424222926115/5421513959'; // PRODUCTION
   
-  /// First session grace period (no ads for first X wins)
-  static const int _graceWins = 3;
-  
-  /// Show ad every X wins
-  static const int _winsPerAd = 2;
+  /// ✅ NEW LOGIC: First win is free, then ads every win (with cooldown)
+  /// No grace period, no "every 2nd win" - just cooldown-based after 1st win
   
   /// Minimum time between ads (cooldown)
   static const Duration _minTimeBetweenAds = Duration(minutes: 2);
@@ -50,14 +47,12 @@ class InterstitialAdManager {
   /// Last time an ad was shown
   DateTime? _lastAdShownTime;
   
-  /// Number of wins since last ad
-  int _winsSinceLastAd = 0;
+  /// ✅ NEW: Total wins in lifetime (across all sessions)
+  /// Used to check if this is the very first win ever
+  int _totalLifetimeWins = 0;
   
   /// Total wins this session
   int _winsThisSession = 0;
-  
-  /// Is this the first session?
-  bool _isFirstSession = true;
 
   // ============================================================================
   // INITIALIZATION
@@ -72,11 +67,11 @@ class InterstitialAdManager {
   /// Initialize the manager and load first ad
   Future<void> initialize() async {
     try {
-      // Check if first session
+      // Load lifetime wins count
       final prefs = await SharedPreferences.getInstance();
-      _isFirstSession = !(prefs.getBool('has_seen_interstitial') ?? false);
+      _totalLifetimeWins = prefs.getInt('total_lifetime_wins') ?? 0;
       
-      safePrint('📺 InterstitialAdManager initialized (First session: $_isFirstSession)');
+      safePrint('📺 InterstitialAdManager initialized (Lifetime wins: $_totalLifetimeWins)');
       
       // Load first ad
       await _loadAd();
@@ -139,12 +134,11 @@ class InterstitialAdManager {
       onAdShowedFullScreenContent: (ad) {
         safePrint('📺 Interstitial ad showed');
         _lastAdShownTime = DateTime.now();
-        _winsSinceLastAd = 0;
         
         // Track analytics
         UnifiedAnalyticsManager().trackEvent('interstitial_shown', {
           'wins_this_session': _winsThisSession,
-          'is_first_session': _isFirstSession,
+          'lifetime_wins': _totalLifetimeWins,
           'time_since_last_ad': _lastAdShownTime != null 
             ? DateTime.now().difference(_lastAdShownTime!).inSeconds 
             : null,
@@ -197,9 +191,17 @@ class InterstitialAdManager {
   /// Call this when player wins a level
   Future<void> onLevelWon() async {
     _winsThisSession++;
-    _winsSinceLastAd++;
+    _totalLifetimeWins++;
     
-    safePrint('🏆 Level won! Wins this session: $_winsThisSession, Wins since last ad: $_winsSinceLastAd');
+    // Save lifetime wins
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('total_lifetime_wins', _totalLifetimeWins);
+    } catch (e) {
+      safePrint('⚠️ Failed to save lifetime wins: $e');
+    }
+    
+    safePrint('🏆 Level won! Session wins: $_winsThisSession, Lifetime wins: $_totalLifetimeWins');
   }
 
   /// Check if ad should be shown based on current state
@@ -210,29 +212,23 @@ class InterstitialAdManager {
       return false;
     }
 
-    // First session: Grace period (first 3 wins = no ads)
-    if (_isFirstSession && _winsThisSession <= _graceWins) {
-      safePrint('📺 First session grace period (${_winsThisSession}/$_graceWins wins)');
+    // ✅ NEW LOGIC: First win ever = no ad
+    if (_totalLifetimeWins <= 1) {
+      safePrint('📺 First win ever - no ad (Lifetime wins: $_totalLifetimeWins)');
       return false;
     }
 
-    // Check wins frequency (every 2nd win)
-    if (_winsSinceLastAd < _winsPerAd) {
-      safePrint('📺 Not enough wins since last ad ($_winsSinceLastAd/$_winsPerAd)');
-      return false;
-    }
-
-    // Check time-based cooldown (2 minutes)
+    // ✅ NEW LOGIC: After first win, show ad every time IF cooldown has passed
     if (_lastAdShownTime != null) {
       final timeSinceLastAd = DateTime.now().difference(_lastAdShownTime!);
       if (timeSinceLastAd < _minTimeBetweenAds) {
         final remainingSeconds = (_minTimeBetweenAds - timeSinceLastAd).inSeconds;
-        safePrint('📺 Cooldown active (${remainingSeconds}s remaining)');
+        safePrint('📺 Cooldown active (${remainingSeconds}s remaining, ${timeSinceLastAd.inSeconds}s since last ad)');
         return false;
       }
     }
 
-    safePrint('✅ All conditions met - showing ad!');
+    safePrint('✅ All conditions met - showing ad! (Lifetime wins: $_totalLifetimeWins)');
     return true;
   }
 
@@ -248,14 +244,6 @@ class InterstitialAdManager {
       // ✅ FIX: Store callback to call when ad is ACTUALLY dismissed
       _pendingOnAdClosed = onAdClosed;
       
-      // Mark that user has seen an interstitial (no longer first session after first ad)
-      if (_isFirstSession) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('has_seen_interstitial', true);
-        _isFirstSession = false;
-        safePrint('📺 First interstitial shown - future sessions will skip grace period');
-      }
-
       // Show the ad (callback will be called by onAdDismissedFullScreenContent)
       await _interstitialAd!.show();
     } catch (e) {
@@ -285,8 +273,8 @@ class InterstitialAdManager {
   /// Reset session counters (call on app restart if needed)
   void resetSession() {
     _winsThisSession = 0;
-    _winsSinceLastAd = 0;
-    safePrint('📺 Session reset');
+    // NOTE: _totalLifetimeWins persists across sessions (saved in SharedPreferences)
+    safePrint('📺 Session reset (Lifetime wins preserved: $_totalLifetimeWins)');
   }
 
   /// Dispose of resources
