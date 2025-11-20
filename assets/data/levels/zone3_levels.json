@@ -8,12 +8,12 @@
       "name": "Ember Entry",
       "objective": {
         "type": "passObstacles",
-        "target": 14,
-        "description": "Pass 14 obstacles to complete"
+        "target": 16,
+        "description": "Pass 16 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 195,
+        "obstacleGap": 270,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -33,12 +33,12 @@
       "name": "Lava Flows",
       "objective": {
         "type": "surviveTime",
-        "target": 20,
-        "description": "Survive for 20 seconds"
+        "target": 22,
+        "description": "Survive for 22 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 265,
+        "obstacleGap": 270,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -59,12 +59,12 @@
       "name": "Magma Maze",
       "objective": {
         "type": "passObstacles",
-        "target": 15,
-        "description": "Pass 15 obstacles to complete"
+        "target": 17,
+        "description": "Pass 17 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 190,
+        "obstacleGap": 260,
         "obstacleFrequency": 2.1
       },
       "reward": {
@@ -84,12 +84,12 @@
       "name": "Volcanic Path",
       "objective": {
         "type": "surviveTime",
-        "target": 22,
-        "description": "Survive for 22 seconds"
+        "target": 24,
+        "description": "Survive for 24 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 250,
+        "obstacleGap": 260,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -115,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 225,
+        "obstacleGap": 240,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -130,9 +130,10 @@
       "botBattle": {
         "botName": "Stealth Fire",
         "botJetSkin": "stealth_fire",
-        "skillLevel": 0.92,
+        "skillLevel": 0.86,
         "reactionTime": 0.18,
-        "mistakeRate": 0.05
+        "mistakeRate": 0.05,
+        "minObstaclePass": 12
       }
     },
     {
@@ -141,12 +142,12 @@
       "name": "Ash Cloud",
       "objective": {
         "type": "passObstacles",
-        "target": 16,
-        "description": "Pass 16 obstacles to complete"
+        "target": 18,
+        "description": "Pass 18 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 188,
+        "obstacleGap": 250,
         "obstacleFrequency": 2.1
       },
       "reward": {
@@ -166,12 +167,12 @@
       "name": "Crater Run",
       "objective": {
         "type": "passObstacles",
-        "target": 17,
-        "description": "Pass 17 obstacles to complete"
+        "target": 19,
+        "description": "Pass 19 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 185,
+        "obstacleGap": 240,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -191,12 +192,12 @@
       "name": "Inferno Corridor",
       "objective": {
         "type": "surviveTime",
-        "target": 25,
-        "description": "Survive for 25 seconds"
+        "target": 26,
+        "description": "Survive for 26 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 235,
+        "obstacleGap": 240,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -217,12 +218,12 @@
       "name": "Molten Sprint",
       "objective": {
         "type": "passObstacles",
-        "target": 18,
-        "description": "Pass 18 obstacles to complete"
+        "target": 20,
+        "description": "Pass 20 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 180,
+        "obstacleGap": 230,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -247,7 +248,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.20,
-        "obstacleGap": 220,
+        "obstacleGap": 230,
         "obstacleFrequency": 1.9
       },
       "reward": {
@@ -262,11 +263,12 @@
       "botBattle": {
         "botName": "Molten Devastator",
         "botJetSkin": "molten_devastator",
-        "skillLevel": 0.93,
+        "skillLevel": 0.88,
         "reactionTime": 0.165,
         "mistakeRate": 0.04,
+        "minObstaclePass": 14,
         "firstAttemptOverride": {
-          "skillLevel": 0.98,
+          "skillLevel": 0.93,
           "reactionTime": 0.05,
           "mistakeRate": 0.02
         }

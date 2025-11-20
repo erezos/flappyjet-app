@@ -8,12 +8,12 @@
       "name": "Thunder Entry",
       "objective": {
         "type": "passObstacles",
-        "target": 18,
-        "description": "Pass 18 obstacles to complete"
+        "target": 20,
+        "description": "Pass 20 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.18,
-        "obstacleGap": 175,
+        "obstacleGap": 220,
         "obstacleFrequency": 2.0
       },
       "reward": {
@@ -33,8 +33,8 @@
       "name": "Electric Gauntlet",
       "objective": {
         "type": "surviveTime",
-        "target": 22,
-        "description": "Survive for 22 seconds"
+        "target": 24,
+        "description": "Survive for 24 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.20,
@@ -59,12 +59,12 @@
       "name": "Bolt Dodge",
       "objective": {
         "type": "passObstacles",
-        "target": 19,
-        "description": "Pass 19 obstacles to complete"
+        "target": 21,
+        "description": "Pass 21 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.20,
-        "obstacleGap": 172,
+        "obstacleGap": 210,
         "obstacleFrequency": 1.9
       },
       "reward": {
@@ -84,8 +84,8 @@
       "name": "Storm Circuit",
       "objective": {
         "type": "surviveTime",
-        "target": 20,
-        "description": "Survive for 20 seconds"
+        "target": 22,
+        "description": "Survive for 22 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.22,
@@ -130,9 +130,10 @@
       "botBattle": {
         "botName": "Storm Chaser",
         "botJetSkin": "storm_chaser",
-        "skillLevel": 0.94,
+        "skillLevel": 0.90,
         "reactionTime": 0.15,
-        "mistakeRate": 0.04
+        "mistakeRate": 0.04,
+        "minObstaclePass": 14
       }
     },
     {
@@ -141,12 +142,12 @@
       "name": "Tesla Dance",
       "objective": {
         "type": "passObstacles",
-        "target": 20,
-        "description": "Pass 20 obstacles to complete"
+        "target": 22,
+        "description": "Pass 22 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.20,
-        "obstacleGap": 170,
+        "obstacleGap": 200,
         "obstacleFrequency": 1.9
       },
       "reward": {
@@ -166,8 +167,8 @@
       "name": "Lightning Tunnel",
       "objective": {
         "type": "surviveTime",
-        "target": 25,
-        "description": "Survive for 25 seconds"
+        "target": 26,
+        "description": "Survive for 26 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.25,
@@ -192,12 +193,12 @@
       "name": "Voltage Valley",
       "objective": {
         "type": "passObstacles",
-        "target": 21,
-        "description": "Pass 21 obstacles to complete"
+        "target": 23,
+        "description": "Pass 23 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.22,
-        "obstacleGap": 168,
+        "obstacleGap": 195,
         "obstacleFrequency": 1.8
       },
       "reward": {
@@ -217,12 +218,12 @@
       "name": "Thunder Sprint",
       "objective": {
         "type": "passObstacles",
-        "target": 22,
-        "description": "Pass 22 obstacles to complete"
+        "target": 24,
+        "description": "Pass 24 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.22,
-        "obstacleGap": 165,
+        "obstacleGap": 190,
         "obstacleFrequency": 1.8
       },
       "reward": {
@@ -247,7 +248,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.25,
-        "obstacleGap": 220,
+        "obstacleGap": 210,
         "obstacleFrequency": 1.7
       },
       "reward": {
@@ -262,11 +263,12 @@
       "botBattle": {
         "botName": "Diamond Storm",
         "botJetSkin": "diamond_storm",
-        "skillLevel": 0.95,
+        "skillLevel": 0.92,
         "reactionTime": 0.135,
         "mistakeRate": 0.03,
+        "minObstaclePass": 16,
         "firstAttemptOverride": {
-          "skillLevel": 0.98,
+          "skillLevel": 0.95,
           "reactionTime": 0.05,
           "mistakeRate": 0.02
         }

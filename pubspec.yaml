@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 2.0.7+57
+version: 2.0.10+61
 
 environment:
   sdk: '^3.8.0'
@@ -165,4 +165,6 @@ flutter_launcher_icons:
       adaptive_icon_foreground: "assets/images/app_icon/logo.png"
     ios:
       generate: true
-      image_path: "assets/images/app_icon/logo.png" 
+      image_path: "assets/images/app_icon/Sky_Rivals.png"  # ✅ Sky Rivals icon for iOS
+      # iOS needs a solid background color (no transparency)
+      background_color_ios: "#FFFFFF"  # White background for iOS icon 

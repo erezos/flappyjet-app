@@ -13,7 +13,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 360,
+        "obstacleGap": 400,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -33,12 +33,12 @@
       "name": "Palm Paradise Path",
       "objective": {
         "type": "surviveTime",
-        "target": 20,
-        "description": "Survive for 20 seconds"
+        "target": 15,
+        "description": "Survive for 15 seconds"
       },
       "difficulty": {
         "speedMultiplier": 0.9,
-        "obstacleGap": 380,
+        "obstacleGap": 420,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -64,7 +64,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 330,
+        "obstacleGap": 380,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -84,12 +84,12 @@
       "name": "Wave Rider",
       "objective": {
         "type": "surviveTime",
-        "target": 25,
-        "description": "Survive for 25 seconds"
+        "target": 18,
+        "description": "Survive for 18 seconds"
       },
       "difficulty": {
         "speedMultiplier": 0.95,
-        "obstacleGap": 360,
+        "obstacleGap": 410,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -115,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 240,
+        "obstacleGap": 280,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -130,10 +130,10 @@
       "botBattle": {
         "botName": "Police Patrol",
         "botJetSkin": "police_patrol",
-        "skillLevel": 0.85,
+        "skillLevel": 0.75,
         "reactionTime": 0.4,
         "mistakeRate": 0.08,
-        "minObstaclePass": 5
+        "minObstaclePass": 8
       }
     },
     {
@@ -147,7 +147,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 320,
+        "obstacleGap": 340,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -198,7 +198,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 310,
+        "obstacleGap": 330,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -217,14 +217,15 @@
       "zone": 1,
       "name": "Sunset Sprint",
       "objective": {
-        "type": "passObstacles",
-        "target": 16,
-        "description": "Pass 16 obstacles to complete"
+        "type": "surviveTime",
+        "target": 22,
+        "description": "Survive for 22 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 300,
-        "obstacleFrequency": 2.4
+        "speedMultiplier": 1.0,
+        "obstacleGap": 360,
+        "obstacleFrequency": 0.65,
+        "maxGapShift": 60
       },
       "reward": {
         "coins": 60,
@@ -247,8 +248,8 @@
         "description": "Race against Green Lightning to complete Zone 1!"
       },
       "difficulty": {
-        "speedMultiplier": 1.1,
-        "obstacleGap": 235,
+        "speedMultiplier": 1.08,
+        "obstacleGap": 260,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -263,12 +264,12 @@
       "botBattle": {
         "botName": "Green Lightning",
         "botJetSkin": "green_lightning",
-        "skillLevel": 0.87,
+        "skillLevel": 0.82,
         "reactionTime": 0.25,
         "mistakeRate": 0.07,
         "minObstaclePass": 10,
         "firstAttemptOverride": {
-          "skillLevel": 0.98,
+          "skillLevel": 0.90,
           "reactionTime": 0.05,
           "mistakeRate": 0.02
         }

@@ -8,12 +8,12 @@
       "name": "Dune Dancer",
       "objective": {
         "type": "passObstacles",
-        "target": 10,
-        "description": "Pass 10 obstacles to complete"
+        "target": 12,
+        "description": "Pass 12 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 215,
+        "obstacleGap": 330,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -33,8 +33,8 @@
       "name": "Desert Winds",
       "objective": {
         "type": "surviveTime",
-        "target": 18,
-        "description": "Survive for 18 seconds"
+        "target": 20,
+        "description": "Survive for 20 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.05,
@@ -59,12 +59,12 @@
       "name": "Cactus Canyon",
       "objective": {
         "type": "passObstacles",
-        "target": 11,
-        "description": "Pass 11 obstacles to complete"
+        "target": 13,
+        "description": "Pass 13 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.08,
-        "obstacleGap": 210,
+        "obstacleGap": 310,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -84,12 +84,12 @@
       "name": "Sandstorm Path",
       "objective": {
         "type": "surviveTime",
-        "target": 20,
-        "description": "Survive for 20 seconds"
+        "target": 22,
+        "description": "Survive for 22 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.08,
-        "obstacleGap": 300,
+        "obstacleGap": 310,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -115,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 230,
+        "obstacleGap": 260,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -130,9 +130,10 @@
       "botBattle": {
         "botName": "Desert Storm",
         "botJetSkin": "desert_storm",
-        "skillLevel": 0.89,
+        "skillLevel": 0.80,
         "reactionTime": 0.22,
-        "mistakeRate": 0.06
+        "mistakeRate": 0.06,
+        "minObstaclePass": 10
       }
     },
     {
@@ -141,12 +142,12 @@
       "name": "Oasis Flight",
       "objective": {
         "type": "passObstacles",
-        "target": 12,
-        "description": "Pass 12 obstacles to complete"
+        "target": 14,
+        "description": "Pass 14 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.10,
-        "obstacleGap": 205,
+        "obstacleGap": 300,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -166,12 +167,12 @@
       "name": "Mirage Runner",
       "objective": {
         "type": "passObstacles",
-        "target": 13,
-        "description": "Pass 13 obstacles to complete"
+        "target": 15,
+        "description": "Pass 15 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.10,
-        "obstacleGap": 203,
+        "obstacleGap": 290,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -191,12 +192,12 @@
       "name": "Canyon Rush",
       "objective": {
         "type": "surviveTime",
-        "target": 22,
-        "description": "Survive for 22 seconds"
+        "target": 24,
+        "description": "Survive for 24 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.10,
-        "obstacleGap": 280,
+        "obstacleGap": 290,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -217,12 +218,12 @@
       "name": "Scorpion Sprint",
       "objective": {
         "type": "passObstacles",
-        "target": 14,
-        "description": "Pass 14 obstacles to complete"
+        "target": 16,
+        "description": "Pass 16 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 200,
+        "obstacleGap": 280,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -247,7 +248,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 225,
+        "obstacleGap": 250,
         "obstacleFrequency": 2.1
       },
       "reward": {
@@ -262,11 +263,12 @@
       "botBattle": {
         "botName": "Sky Prince",
         "botJetSkin": "sky_prince",
-        "skillLevel": 0.91,
+        "skillLevel": 0.85,
         "reactionTime": 0.20,
         "mistakeRate": 0.05,
+        "minObstaclePass": 12,
         "firstAttemptOverride": {
-          "skillLevel": 0.98,
+          "skillLevel": 0.92,
           "reactionTime": 0.05,
           "mistakeRate": 0.02
         }

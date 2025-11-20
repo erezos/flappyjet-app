@@ -8,12 +8,12 @@
       "name": "Frost Entry",
       "objective": {
         "type": "passObstacles",
-        "target": 22,
-        "description": "Pass 22 obstacles to complete"
+        "target": 24,
+        "description": "Pass 24 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.22,
-        "obstacleGap": 160,
+        "obstacleGap": 185,
         "obstacleFrequency": 1.8
       },
       "reward": {
@@ -33,12 +33,12 @@
       "name": "Ice Tunnels",
       "objective": {
         "type": "surviveTime",
-        "target": 20,
-        "description": "Survive for 20 seconds"
+        "target": 24,
+        "description": "Survive for 24 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.25,
-        "obstacleGap": 190,
+        "obstacleGap": 185,
         "obstacleFrequency": 0.65,
         "maxGapShift": 70
       },
@@ -59,12 +59,12 @@
       "name": "Blizzard Run",
       "objective": {
         "type": "passObstacles",
-        "target": 23,
-        "description": "Pass 23 obstacles to complete"
+        "target": 25,
+        "description": "Pass 25 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.25,
-        "obstacleGap": 157,
+        "obstacleGap": 180,
         "obstacleFrequency": 1.7
       },
       "reward": {
@@ -84,8 +84,8 @@
       "name": "Frozen Gauntlet",
       "objective": {
         "type": "surviveTime",
-        "target": 25,
-        "description": "Survive for 25 seconds"
+        "target": 26,
+        "description": "Survive for 26 seconds"
       },
       "difficulty": {
         "speedMultiplier": 1.28,
@@ -115,7 +115,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.28,
-        "obstacleGap": 220,
+        "obstacleGap": 200,
         "obstacleFrequency": 1.6
       },
       "reward": {
@@ -130,9 +130,10 @@
       "botBattle": {
         "botName": "Stealth Dragon",
         "botJetSkin": "stealth_dragon",
-        "skillLevel": 0.96,
+        "skillLevel": 0.93,
         "reactionTime": 0.12,
-        "mistakeRate": 0.03
+        "mistakeRate": 0.03,
+        "minObstaclePass": 16
       }
     },
     {
@@ -141,12 +142,12 @@
       "name": "Avalanche Path",
       "objective": {
         "type": "passObstacles",
-        "target": 24,
-        "description": "Pass 24 obstacles to complete"
+        "target": 26,
+        "description": "Pass 26 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.25,
-        "obstacleGap": 155,
+        "obstacleGap": 175,
         "obstacleFrequency": 1.7
       },
       "reward": {
@@ -166,12 +167,12 @@
       "name": "Crystal Canyon",
       "objective": {
         "type": "passObstacles",
-        "target": 25,
-        "description": "Pass 25 obstacles to complete"
+        "target": 27,
+        "description": "Pass 27 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.28,
-        "obstacleGap": 153,
+        "obstacleGap": 170,
         "obstacleFrequency": 1.6
       },
       "reward": {
@@ -217,12 +218,12 @@
       "name": "Peak Sprint",
       "objective": {
         "type": "passObstacles",
-        "target": 26,
-        "description": "Pass 26 obstacles to complete"
+        "target": 28,
+        "description": "Pass 28 obstacles to complete"
       },
       "difficulty": {
         "speedMultiplier": 1.30,
-        "obstacleGap": 150,
+        "obstacleGap": 165,
         "obstacleFrequency": 1.6
       },
       "reward": {
@@ -247,7 +248,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.35,
-        "obstacleGap": 220,
+        "obstacleGap": 200,
         "obstacleFrequency": 1.5
       },
       "reward": {
@@ -262,11 +263,12 @@
       "botBattle": {
         "botName": "Lord Of War",
         "botJetSkin": "lord_of_war",
-        "skillLevel": 0.98,
+        "skillLevel": 0.95,
         "reactionTime": 0.10,
         "mistakeRate": 0.02,
+        "minObstaclePass": 18,
         "firstAttemptOverride": {
-          "skillLevel": 0.99,
+          "skillLevel": 0.97,
           "reactionTime": 0.03,
           "mistakeRate": 0.01
         }
