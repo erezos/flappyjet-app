@@ -405,7 +405,9 @@ class PushNotificationManager {
             'userId': _userId,
             'notificationType': notificationType,
           }),
-        ).timeout(const Duration(seconds: 5)).catchError((e) {
+        ).timeout(const Duration(seconds: 5)).then((_) {
+          // Success - silently ignore
+        }).catchError((e) {
           Logger.w('⚠️  Failed to track notification click: $e');
           // Ignore errors - this is fire-and-forget analytics
         });
