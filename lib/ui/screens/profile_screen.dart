@@ -4,6 +4,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
+import '../../core/device_identity_manager.dart';
 import '../../game/systems/player_identity_manager.dart';
 import '../../game/systems/profile_manager.dart';
 import '../../game/systems/inventory_manager.dart';
@@ -301,6 +302,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             
+                            // Push Notification User ID for testing
+                            SizedBox(height: isVerySmallScreen ? 6 : 8),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '🔥 Push User ID:',
+                                    style: TextStyle(
+                                      fontSize: isVerySmallScreen ? 10 : 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    DeviceIdentityManager().userId,
+                                    style: TextStyle(
+                                      fontSize: isVerySmallScreen ? 9 : 10,
+                                      fontFamily: 'monospace',
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
                             // Removed: FTUE Reset Button (no longer needed - tutorial simply triggers from Level 1)
                           ],
                           
