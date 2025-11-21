@@ -72,8 +72,9 @@ class PushNotificationManager {
             ?.createNotificationChannel(_channel);
       }
 
-      // 4. Get FCM token and register with backend
-      await _registerFCMToken(userId);
+      // 4. Get FCM token and register with backend (NON-BLOCKING)
+      // This runs in the background and doesn't block initialization
+      _registerFCMToken(userId); // Fire and forget!
 
       // 5. Set up FCM message handlers
       _setupMessageHandlers();
@@ -130,7 +131,8 @@ class PushNotificationManager {
     Logger.i('✅ Local notifications initialized');
   }
 
-  /// Get FCM token and register with backend
+  /// Get FCM token and register with backend (NON-BLOCKING)
+  /// This runs in the background and doesn't block initialization
   Future<void> _registerFCMToken(String userId) async {
     try {
       // Get FCM token
@@ -142,12 +144,45 @@ class PushNotificationManager {
       }
 
       _fcmToken = token;
-      Logger.i('📱 FCM Token obtained: ${token.substring(0, 20)}...');
+      Logger.i('📱 FCM Token obtained: $token');
+
+      // Listen for token refresh (setup once)
+      _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        _fcmToken = newToken;
+        Logger.i('🔄 FCM token refreshed');
+        _registerTokenWithBackend(newToken, userId); // Re-register with new token
+      });
+
+      // Register with backend (fire-and-forget)
+      _registerTokenWithBackend(token, userId);
+    } catch (e, stack) {
+      Logger.e('Failed to get FCM token', error: e, stackTrace: stack);
+    }
+  }
+
+  /// Register token with backend (fire-and-forget, non-blocking)
+  void _registerTokenWithBackend(String token, String userId) {
+    // Run async without awaiting - this is intentionally fire-and-forget
+    _performRegistration(token, userId).then((_) {
+      // Success handled inside
+    }).catchError((e) {
+      // Errors handled inside
+    });
+  }
+
+  /// Actual registration logic with retries
+  Future<void> _performRegistration(String token, String userId, {int attempt = 1}) async {
+    const maxAttempts = 5;
+    const retryDelay = Duration(seconds: 3);
+
+    try {
+      // First, ensure user is registered with backend
+      await _registerUserWithBackend(userId);
 
       // Get device info
       final deviceInfo = await _getDeviceInfo();
 
-      // Register with backend
+      // Register FCM token
       final response = await http.post(
         Uri.parse('${AppConfig.backendUrl}/api/notifications/register-token'),
         headers: {'Content-Type': 'application/json'},
@@ -161,21 +196,64 @@ class PushNotificationManager {
           'osVersion': deviceInfo['osVersion'],
           'appVersion': deviceInfo['appVersion'],
         }),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('FCM registration timeout'),
       );
 
       if (response.statusCode == 200) {
-        Logger.i('✅ FCM token registered with backend');
+        Logger.i('✅ FCM token registered with backend (attempt $attempt)');
       } else {
-        Logger.e('❌ Failed to register FCM token: ${response.statusCode}');
+        Logger.w('⚠️  FCM registration returned ${response.statusCode} (attempt $attempt)');
+        
+        // Retry on 5xx errors or 404 (user not found)
+        if (attempt < maxAttempts && (response.statusCode >= 500 || response.statusCode == 404)) {
+          Logger.i('🔄 Retrying FCM registration in ${retryDelay.inSeconds}s...');
+          await Future.delayed(retryDelay);
+          await _performRegistration(token, userId, attempt: attempt + 1);
+        }
       }
+    } catch (e) {
+      Logger.w('⚠️  FCM registration failed (attempt $attempt): $e');
+      
+      // Retry on network errors
+      if (attempt < maxAttempts) {
+        Logger.i('🔄 Retrying FCM registration in ${retryDelay.inSeconds}s...');
+        await Future.delayed(retryDelay);
+        await _performRegistration(token, userId, attempt: attempt + 1);
+      } else {
+        Logger.e('❌ FCM registration failed after $maxAttempts attempts');
+      }
+    }
+  }
 
-      // Listen for token refresh
-      _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        _fcmToken = newToken;
-        _registerFCMToken(userId); // Re-register with new token
-      });
-    } catch (e, stack) {
-      Logger.e('Failed to register FCM token', error: e, stackTrace: stack);
+  /// Register user with backend (lightweight auth)
+  Future<void> _registerUserWithBackend(String userId) async {
+    try {
+      final deviceInfo = await _getDeviceInfo();
+      
+      final response = await http.post(
+        Uri.parse('${AppConfig.backendUrl}/api/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'nickname': 'Player', // Default nickname
+          'country': deviceInfo['country'],
+          'deviceModel': deviceInfo['deviceModel'],
+          'osVersion': deviceInfo['osVersion'],
+          'appVersion': deviceInfo['appVersion'],
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        Logger.i('✅ User registered: ${data['isNew'] ? 'NEW' : 'EXISTING'}');
+      } else {
+        Logger.w('⚠️  User registration returned ${response.statusCode}');
+      }
+    } catch (e) {
+      Logger.w('⚠️  User registration failed: $e');
+      // Don't throw - we'll retry FCM registration which will trigger user registration again
     }
   }
 
@@ -318,16 +396,19 @@ class PushNotificationManager {
 
       Logger.i('🎯 Notification clicked: $notificationType, reward: $rewardType $rewardAmount');
 
-      // Track click event on backend
+      // Track click event on backend (fire and forget - non-blocking)
       if (_userId != null && notificationType != null) {
-        await http.post(
+        http.post(
           Uri.parse('${AppConfig.backendUrl}/api/notifications/clicked'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'userId': _userId,
             'notificationType': notificationType,
           }),
-        );
+        ).timeout(const Duration(seconds: 5)).catchError((e) {
+          Logger.w('⚠️  Failed to track notification click: $e');
+          // Ignore errors - this is fire-and-forget analytics
+        });
       }
 
       // Show reward popup if there's a reward
@@ -348,21 +429,23 @@ class PushNotificationManager {
     }
   }
 
-  /// Mark reward as claimed
+  /// Mark reward as claimed (NON-BLOCKING)
   Future<void> claimReward(int eventId) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConfig.backendUrl}/api/notifications/claimed'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'eventId': eventId}),
-      );
-
+    // Fire and forget - don't block the UI
+    http.post(
+      Uri.parse('${AppConfig.backendUrl}/api/notifications/claimed'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'eventId': eventId}),
+    ).timeout(const Duration(seconds: 5)).then((response) {
       if (response.statusCode == 200) {
         Logger.i('✅ Reward claimed for event $eventId');
+      } else {
+        Logger.w('⚠️  Reward claim returned ${response.statusCode}');
       }
-    } catch (e) {
-      Logger.e('Failed to claim reward', error: e);
-    }
+    }).catchError((e) {
+      Logger.w('⚠️  Failed to claim reward: $e');
+      // Ignore errors - reward was already granted locally
+    });
   }
 
   /// Get FCM token
