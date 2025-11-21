@@ -4,7 +4,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
-import '../../core/device_identity_manager.dart';
+import '../../core/identity/device_identity_manager.dart';
 import '../../game/systems/player_identity_manager.dart';
 import '../../game/systems/profile_manager.dart';
 import '../../game/systems/inventory_manager.dart';
