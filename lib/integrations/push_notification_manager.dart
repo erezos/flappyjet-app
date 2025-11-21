@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_config.dart';
 import '../core/debug_logger.dart';
-import '../core/events/event_bus.dart';
 
 /// Push Notification Manager
 /// 
@@ -36,6 +35,7 @@ class PushNotificationManager {
   bool _initialized = false;
   String? _fcmToken;
   String? _userId;
+  Function(Map<String, dynamic>)? _onRewardCallback;
   
   // Notification channel for Android
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -48,13 +48,14 @@ class PushNotificationManager {
   );
 
   /// Initialize push notification system
-  Future<void> initialize(String userId) async {
+  Future<void> initialize(String userId, {Function(Map<String, dynamic>)? onReward}) async {
     if (_initialized) {
       Logger.i('PushNotificationManager already initialized');
       return;
     }
 
     _userId = userId;
+    _onRewardCallback = onReward;
     Logger.i('Initializing PushNotificationManager for user: $userId');
 
     try {
@@ -331,11 +332,16 @@ class PushNotificationManager {
 
       // Show reward popup if there's a reward
       if (rewardType != null && rewardAmount > 0) {
-        EventBus().fire('show_notification_reward', {
+        final rewardData = {
           'type': rewardType,
           'amount': rewardAmount,
           'eventId': data['event_id'],
-        });
+        };
+        
+        // Call the callback if registered
+        if (_onRewardCallback != null) {
+          _onRewardCallback!(rewardData);
+        }
       }
     } catch (e, stack) {
       Logger.e('Failed to handle notification click', error: e, stackTrace: stack);

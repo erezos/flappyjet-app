@@ -315,9 +315,15 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     
     for (final obstacle in obstacles) {
       final obstacleX = obstacle.position.x;
+      final obstacleWidth = 135.375; // Obstacle width (from ObstacleManager)
       
-      // Only consider obstacles ahead of us (with some margin)
-      if (obstacleX > position.x - 50) {
+      // ✅ FIX: Only consider obstacles that bot hasn't fully passed yet
+      // Bot must clear the RIGHT edge of the obstacle (obstacleX + width) before switching targets
+      // This prevents the bot from targeting the next obstacle while still inside the current one's gap
+      // ⚠️ CRITICAL BUG FIX: Add safety margin to prevent premature target switching
+      // The bot was switching to the next obstacle before fully clearing the current one
+      final safetyMargin = 20.0; // 20px safety margin after obstacle edge
+      if (obstacleX + obstacleWidth + safetyMargin > position.x) {
         if (closestX == null || obstacleX < closestX) {
           closestX = obstacleX;
           // Calculate gap center Y

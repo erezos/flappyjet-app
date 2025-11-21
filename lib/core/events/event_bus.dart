@@ -199,9 +199,7 @@ class EventBus {
       final response = await http.post(
         Uri.parse('$_backendUrl/api/events'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'events': events.map((e) => e.toJson()).toList(),
-        }),
+        body: json.encode(events.map((e) => e.toJson()).toList()),
       ).timeout(_requestTimeout);
 
       if (response.statusCode == 200) {

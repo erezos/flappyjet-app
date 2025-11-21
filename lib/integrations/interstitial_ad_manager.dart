@@ -296,8 +296,7 @@ class InterstitialAdManager {
       'is_ready': _isAdReady,
       'is_loading': _isAdLoading,
       'wins_this_session': _winsThisSession,
-      'wins_since_last_ad': _winsSinceLastAd,
-      'is_first_session': _isFirstSession,
+      'total_lifetime_wins': _totalLifetimeWins,
       'last_ad_time': _lastAdShownTime?.toIso8601String(),
       'cooldown_remaining': _lastAdShownTime != null
           ? _minTimeBetweenAds.inSeconds - DateTime.now().difference(_lastAdShownTime!).inSeconds

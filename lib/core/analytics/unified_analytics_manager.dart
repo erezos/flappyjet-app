@@ -29,9 +29,11 @@ class UnifiedAnalyticsManager {
       _firebaseAnalytics = FirebaseAnalyticsManager();
       await _firebaseAnalytics!.initialize();
 
-      // Initialize Smart Railway Analytics
-      _railwayAnalytics = SmartRailwayAnalytics();
-      await _railwayAnalytics!.initialize();
+      // ❌ DISABLED: SmartRailwayAnalytics uses deprecated /api/analytics/v2/batch endpoint
+      // EventBus handles all Railway backend communication directly via /api/events
+      // See EVENT_PROCESSING_ROOT_CAUSE_AND_FIX.md for details
+      // _railwayAnalytics = SmartRailwayAnalytics();
+      // await _railwayAnalytics!.initialize();
 
       _isInitialized = true;
       safePrint('🚀 Unified Analytics Manager initialized successfully');
@@ -41,7 +43,7 @@ class UnifiedAnalyticsManager {
     }
   }
 
-  /// Track event to both Firebase and Railway (zero performance impact)
+  /// Track event to Firebase (Railway events handled by EventBus)
   void trackEvent(String eventName, Map<String, dynamic> parameters) {
     if (!_isInitialized) {
       safePrint('🚀 ⚠️ Analytics not initialized, skipping: $eventName');
@@ -52,8 +54,10 @@ class UnifiedAnalyticsManager {
       // Track to Firebase (synchronous, but lightweight)
       _firebaseAnalytics?.trackEvent(eventName, parameters);
 
-      // Track to Railway (asynchronous, zero impact)
-      _railwayAnalytics?.trackEvent(eventName, parameters);
+      // ❌ DISABLED: SmartRailwayAnalytics (using deprecated endpoint)
+      // Railway events are now handled by EventBus directly via /api/events
+      // See EVENT_PROCESSING_ROOT_CAUSE_AND_FIX.md for details
+      // _railwayAnalytics?.trackEvent(eventName, parameters);
 
       if (kDebugMode) {
         safePrint('🚀 Event tracked: $eventName');

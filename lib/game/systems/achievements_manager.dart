@@ -709,8 +709,10 @@ class AchievementsManager extends ChangeNotifier {
       await _onAchievementUnlocked(achievement);
     }
     
-    await _saveProgress();
+    // ✅ FIX: Notify listeners IMMEDIATELY for real-time UI updates
+    // Then save in background (don't wait)
     notifyListeners();
+    _saveProgress(); // Fire and forget - no await
     safePrint('🏅 ✅ Achievement progress updated and saved');
   }
 
@@ -734,8 +736,10 @@ class AchievementsManager extends ChangeNotifier {
       await _onAchievementUnlocked(achievement);
     }
     
-    await _saveProgress();
+    // ✅ FIX: Notify listeners IMMEDIATELY for real-time UI updates
+    // Then save in background (don't wait)
     notifyListeners();
+    _saveProgress(); // Fire and forget - no await
   }
 
   /// Handle achievement unlock

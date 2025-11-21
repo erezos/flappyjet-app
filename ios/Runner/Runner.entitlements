@@ -2,13 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- ✅ Push Notifications (APNs) -->
-	<!-- Required for daily streak reminders and tournament notifications -->
-	<key>aps-environment</key>
-	<string>production</string>
+	<!-- ============================================================================ -->
+	<!-- ENTITLEMENTS FILE -->
+	<!-- This file is currently empty as the app uses LOCAL notifications only -->
+	<!-- Local notifications don't require push notification entitlements -->
+	<!-- ============================================================================ -->
 	
-	<!-- Note: For development/testing, Xcode will automatically switch this to "development" -->
-	<!-- For App Store builds, this must be "production" -->
+	<!-- NOTE: If you add remote push notifications in the future, add: -->
+	<!-- <key>aps-environment</key> -->
+	<!-- <string>production</string> -->
 </dict>
 </plist>
-

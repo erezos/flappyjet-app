@@ -98,7 +98,9 @@ class NativeAudioEngine: NSObject, FlutterPlugin {
             
             // Configure audio session for games
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .gameChat, options: [.mixWithOthers])
+            // Use .playback category to ensure audio plays even with silent mode switch
+            // .duckOthers will lower other audio when game sounds play
+            try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers, .duckOthers])
             try audioSession.setActive(true)
             
             // Create audio engine

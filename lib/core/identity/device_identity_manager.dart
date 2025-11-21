@@ -32,6 +32,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   static const String _keySessionId = 'current_session_id';
   static const String _keyInstallDate = 'install_date';
   static const String _keyLastSessionDate = 'last_session_date';
+  static const String _keyNickname = 'user_nickname'; // ✅ NEW: Nickname storage
   
   // Identity state
   String? _userId;
@@ -40,6 +41,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   DateTime? _lastSessionDate;
   bool _isInitialized = false;
   bool _isFirstLaunch = false;
+  String _nickname = 'Pilot'; // ✅ NEW: Default nickname
   
   // Device info
   String? _deviceModel;
@@ -50,6 +52,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   // Getters
   String get userId => _userId ?? '';
   String get sessionId => _sessionId ?? '';
+  String get nickname => _nickname; // ✅ NEW: Nickname getter
   DateTime? get installDate => _installDate;
   DateTime? get lastSessionDate => _lastSessionDate;
   bool get isInitialized => _isInitialized;
@@ -77,6 +80,9 @@ class DeviceIdentityManager extends ChangeNotifier {
       // Load or generate user ID
       await _initializeUserId();
       
+      // Load nickname
+      await _loadNickname(); // ✅ NEW: Load saved nickname
+      
       // Generate session ID for this app launch
       await _initializeSessionId();
       
@@ -88,6 +94,7 @@ class DeviceIdentityManager extends ChangeNotifier {
       safePrint('🆔 ✅ Device Identity Manager initialized');
       safePrint('🆔 User ID: ${_userId!.substring(0, 20)}...');
       safePrint('🆔 Session ID: ${_sessionId!.substring(0, 20)}...');
+      safePrint('🆔 Nickname: $_nickname'); // ✅ NEW: Log nickname
       safePrint('🆔 Platform: $_platform');
       safePrint('🆔 Device: $_deviceModel');
       safePrint('🆔 First Launch: $_isFirstLaunch');
@@ -299,6 +306,7 @@ class DeviceIdentityManager extends ChangeNotifier {
       'deviceModel': _deviceModel ?? 'unknown',
       'osVersion': _osVersion ?? 'unknown',
       'appVersion': _appVersion ?? '0.0.0',
+      'nickname': _nickname, // ✅ NEW: Include nickname in metadata
     };
   }
 
@@ -309,6 +317,35 @@ class DeviceIdentityManager extends ChangeNotifier {
       'daysSinceLastSession': daysSinceLastSession,
       'isFirstLaunch': _isFirstLaunch,
     };
+  }
+
+  // ============================================================================
+  // ✅ NEW: Nickname Management
+  // ============================================================================
+
+  /// Load nickname from storage
+  Future<void> _loadNickname() async {
+    final prefs = await SharedPreferences.getInstance();
+    _nickname = prefs.getString(_keyNickname) ?? 'Pilot';
+    safePrint('🆔 Loaded nickname: $_nickname');
+  }
+
+  /// Set player nickname
+  /// 
+  /// This updates the nickname for all future events
+  Future<void> setNickname(String newNickname) async {
+    if (newNickname.isEmpty || newNickname.length > 50) {
+      safePrint('🆔 ⚠️ Invalid nickname length (must be 1-50 characters)');
+      return;
+    }
+
+    _nickname = newNickname.trim();
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyNickname, _nickname);
+    
+    safePrint('🆔 ✅ Nickname updated: $_nickname');
+    notifyListeners();
   }
 }
 

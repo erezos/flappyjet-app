@@ -537,8 +537,10 @@ class MissionsManager extends ChangeNotifier {
     }
     
     if (hasUpdates) {
-      await _saveDailyMissions();
+      // ✅ FIX: Notify listeners IMMEDIATELY for real-time UI updates
+      // Then save in background (don't wait)
       notifyListeners();
+      _saveDailyMissions(); // Fire and forget - no await
     }
   }
 

@@ -48,6 +48,8 @@ import 'game/systems/global_leaderboard_service.dart';
 import 'game/systems/firebase_analytics_manager.dart';
 import 'game/systems/missions_manager.dart';
 import 'game/systems/achievements_manager.dart';
+import 'integrations/push_notification_manager.dart';
+import 'integrations/notification_reward_handler.dart';
 import 'game/systems/audio_settings_manager.dart';
 import 'game/systems/social_sharing_manager.dart';
 import 'game/systems/remote_config_manager.dart';
@@ -303,6 +305,16 @@ class _LoadingScreenState extends State<LoadingScreen> {
         ).initialize()),
         _initTask('Daily Streak', () => DailyStreakIntegration.initialize()),
         _initTask('Notifications', () => LocalNotificationManager().initialize()),
+        _initTask('Push Notifications', () async {
+          final userId = PlayerIdentityManager().playerId;
+          if (userId.isNotEmpty) {
+            final rewardHandler = NotificationRewardHandler();
+            await PushNotificationManager().initialize(
+              userId,
+              onReward: rewardHandler.rewardCallback,
+            );
+          }
+        }),
         _initTask('Rate Us', () => RateUsManager().initialize()),
         // Removed: FTUE initialization (tutorial now triggers directly from Level 1)
         _initTask('Lives Manager', () => LivesManager().initialize()),
@@ -351,6 +363,9 @@ class _LoadingScreenState extends State<LoadingScreen> {
       // Navigate to home navigator screen after brief delay
       await Future.delayed(Duration(milliseconds: 500));
       if (mounted) {
+        // Initialize notification reward handler
+        NotificationRewardHandler().initialize(context);
+        
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => HomeNavigatorScreen(

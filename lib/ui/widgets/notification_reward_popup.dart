@@ -4,7 +4,10 @@ import 'popups/base_popup.dart';
 import 'buttons/modern_game_button.dart';
 import 'buttons/button_styles.dart';
 import 'gem_3d_icon.dart';
+import 'rate_us_popup.dart';
+import '../../core/debug_logger.dart';
 import '../../game/systems/inventory_manager.dart';
+import '../../game/systems/rate_us_manager.dart';
 import '../../integrations/push_notification_manager.dart';
 
 /// Notification Reward Popup
@@ -102,6 +105,9 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
       if (mounted) {
         Navigator.of(context).pop();
         widget.onClose?.call();
+        
+        // Show Rate Us popup if user hasn't rated yet
+        await _showRateUsPopupIfNeeded();
       }
     } catch (e) {
       // Error handling
@@ -124,6 +130,40 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
           ),
         );
       }
+    }
+  }
+
+  /// Show Rate Us popup if user hasn't rated yet
+  /// Called after successfully claiming notification reward
+  Future<void> _showRateUsPopupIfNeeded() async {
+    try {
+      final rateUsManager = RateUsManager();
+      
+      // Only show if user hasn't rated yet
+      if (rateUsManager.hasRated) {
+        return;
+      }
+
+      // Small delay before showing next popup
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => RateUsPopup(
+          onRated: () {
+            // User rated - great!
+          },
+          onDismissed: () {
+            // User dismissed - that's okay
+          },
+        ),
+      );
+    } catch (e) {
+      // Silent fail - don't interrupt user experience
+      safePrint('Failed to show Rate Us popup: $e');
     }
   }
 

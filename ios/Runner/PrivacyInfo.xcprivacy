@@ -8,14 +8,19 @@
 	<!-- ============================================================================ -->
 	
 	<!-- TRACKING -->
+	<!-- NOTE: This app uses LOCAL notifications only (flutter_local_notifications) -->
+	<!-- Remote push notifications are NOT used, so no APNs certificate needed -->
 	<key>NSPrivacyTracking</key>
-	<true/>
+	<false/>
 	
 	<!-- Tracking Domains (for App Tracking Transparency) -->
 	<key>NSPrivacyTrackingDomains</key>
 	<array>
+		<!-- AdMob tracking domains -->
 		<string>googleads.g.doubleclick.net</string>
+		<!-- Unity Ads tracking domains -->
 		<string>unityads.unity3d.com</string>
+		<!-- Backend analytics (NOT for push notifications) -->
 		<string>flappyjet-backend-production.up.railway.app</string>
 	</array>
 	

@@ -348,7 +348,7 @@ class AssetPreloader {
       AssetInfo(path: 'assets/images/jets/green_lightning.png', priority: AssetPriority.important, expectedSizeBytes: 45000, category: 'jet'),
       AssetInfo(path: 'assets/images/jets/blue_falcon.png', priority: AssetPriority.important, expectedSizeBytes: 45000, category: 'jet'),
       AssetInfo(path: 'assets/images/effects/particle.png', priority: AssetPriority.important, expectedSizeBytes: 5000, category: 'effect'),
-      AssetInfo(path: 'assets/images/homepage/flappy_jet_title.png', priority: AssetPriority.important, expectedSizeBytes: 80000, category: 'ui'),
+      AssetInfo(path: 'assets/images/homepage/flappy_jet_title.png', priority: AssetPriority.important, expectedSizeBytes: 150000, category: 'ui'),
     ];
 
     // Optional assets (load in background)
