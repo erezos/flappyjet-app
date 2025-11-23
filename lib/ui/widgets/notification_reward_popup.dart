@@ -170,19 +170,48 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isSmallScreen = screenSize.height < 700;
+    final screenHeight = screenSize.height;
+    final screenWidth = screenSize.width;
+    
+    // Responsive sizing based on screen dimensions
+    final isSmallScreen = screenHeight < 700;
+    final isVerySmallScreen = screenHeight < 600;
+    final isNarrowScreen = screenWidth < 350;
+    
+    // Scale factors for responsive design
+    final scaleFactor = isVerySmallScreen ? 0.85 : (isSmallScreen ? 0.9 : 1.0);
+    final horizontalPadding = isNarrowScreen ? 16.0 : (isSmallScreen ? 20.0 : 32.0);
+    final verticalPadding = isVerySmallScreen ? 40.0 : (isSmallScreen ? 50.0 : 80.0);
+    
+    // Responsive font sizes
+    final titleFontSize = (24 * scaleFactor).clamp(20.0, 24.0);
+    final subtitleFontSize = (14 * scaleFactor).clamp(12.0, 14.0);
+    final rewardFontSize = (32 * scaleFactor).clamp(26.0, 32.0);
+    final descriptionFontSize = (14 * scaleFactor).clamp(12.0, 14.0);
+    
+    // Responsive spacing
+    final headerPadding = (24 * scaleFactor).clamp(16.0, 24.0);
+    final contentPadding = (24 * scaleFactor).clamp(16.0, 24.0);
+    final contentVerticalPadding = (32 * scaleFactor).clamp(20.0, 32.0);
+    final iconSize = (120 * scaleFactor).clamp(90.0, 120.0);
+    final iconEmojiSize = (64 * scaleFactor).clamp(48.0, 64.0);
+    final gemIconSize = (64 * scaleFactor).clamp(48.0, 64.0);
+    final spacingBetween = (24 * scaleFactor).clamp(16.0, 24.0);
+    final spacingSmall = (12 * scaleFactor).clamp(8.0, 12.0);
+    final buttonHeight = (54 * scaleFactor).clamp(48.0, 54.0);
+    final buttonPadding = (24 * scaleFactor).clamp(16.0, 24.0);
 
     return BasePopup(
       padding: EdgeInsets.zero,
       backgroundColor: Colors.transparent,
       child: Container(
         margin: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 20 : 32,
-          vertical: isSmallScreen ? 60 : 80,
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
         ),
         constraints: BoxConstraints(
-          maxWidth: 380,
-          maxHeight: screenSize.height * 0.7,
+          maxWidth: isNarrowScreen ? screenWidth * 0.95 : 380,
+          maxHeight: screenHeight * 0.75,
         ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -208,140 +237,153 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with gradient background
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFF4FC3F7).withOpacity(0.3),
-                      Colors.transparent,
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with gradient background
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: headerPadding),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF4FC3F7).withOpacity(0.3),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // "Welcome Back!" title
+                      Text(
+                        '🎮 WELCOME BACK!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: titleFontSize,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 8 * scaleFactor),
+                      Text(
+                        'Thanks for returning to FlappyJet!',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: subtitleFontSize,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
-                child: Column(
-                  children: [
-                    // "Welcome Back!" title
-                    const Text(
-                      '🎮 WELCOME BACK!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Thanks for returning to FlappyJet!',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
 
-              // Reward display
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                child: Column(
-                  children: [
-                    // Animated reward icon
-                    AnimatedBuilder(
-                      animation: _pulseAnimation,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _claimed ? 1.0 : _pulseAnimation.value,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  widget.rewardType == 'coins'
-                                      ? const Color(0xFFFFD700).withOpacity(0.3)
-                                      : const Color(0xFF4FC3F7).withOpacity(0.3),
-                                  Colors.transparent,
-                                ],
+                // Reward display
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: contentPadding,
+                    vertical: contentVerticalPadding,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Animated reward icon
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _claimed ? 1.0 : _pulseAnimation.value,
+                            child: Container(
+                              width: iconSize,
+                              height: iconSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    widget.rewardType == 'coins'
+                                        ? const Color(0xFFFFD700).withOpacity(0.3)
+                                        : const Color(0xFF4FC3F7).withOpacity(0.3),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: widget.rewardType == 'coins'
+                                    ? Text(
+                                        '🪙',
+                                        style: TextStyle(fontSize: iconEmojiSize),
+                                      )
+                                    : Gem3DIcon(size: gemIconSize),
                               ),
                             ),
-                            child: Center(
-                              child: widget.rewardType == 'coins'
-                                  ? const Text(
-                                      '🪙',
-                                      style: TextStyle(fontSize: 64),
-                                    )
-                                  : const Gem3DIcon(size: 64),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Reward amount
-                    Text(
-                      '+${widget.rewardAmount} ${widget.rewardType == 'coins' ? 'COINS' : 'GEMS'}',
-                      style: TextStyle(
-                        color: widget.rewardType == 'coins'
-                            ? const Color(0xFFFFD700)
-                            : const Color(0xFF4FC3F7),
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                          );
+                        },
                       ),
-                      textAlign: TextAlign.center,
-                    ),
 
-                    const SizedBox(height: 12),
+                      SizedBox(height: spacingBetween),
 
-                    // Description
-                    Text(
-                      'Claim your reward for coming back!',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 14,
+                      // Reward amount
+                      Text(
+                        '+${widget.rewardAmount} ${widget.rewardType == 'coins' ? 'COINS' : 'GEMS'}',
+                        style: TextStyle(
+                          color: widget.rewardType == 'coins'
+                              ? const Color(0xFFFFD700)
+                              : const Color(0xFF4FC3F7),
+                          fontSize: rewardFontSize,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+
+                      SizedBox(height: spacingSmall),
+
+                      // Description
+                      Text(
+                        'Claim your reward for coming back!',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: descriptionFontSize,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Claim button
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: _claimed
-                    ? ModernGameButton(
-                        label: '✅ CLAIMED!',
-                        onPressed: () {},
-                        height: 54,
-                        style: ModernButtonStyle.success,
-                        enabled: false,
-                      )
-                    : ModernGameButton(
-                        label: _isClaiming ? 'CLAIMING...' : 'CLAIM REWARD',
-                        onPressed: _claimReward,
-                        height: 54,
-                        style: widget.rewardType == 'coins'
-                            ? ModernButtonStyle.primary
-                            : ModernButtonStyle.secondary,
-                        enabled: !_isClaiming,
-                      ),
-              ),
-            ],
+                // Claim button
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    buttonPadding,
+                    0,
+                    buttonPadding,
+                    buttonPadding,
+                  ),
+                  child: _claimed
+                      ? ModernGameButton(
+                          label: '✅ CLAIMED!',
+                          onPressed: () {},
+                          height: buttonHeight,
+                          style: ModernButtonStyle.success,
+                          enabled: false,
+                        )
+                      : ModernGameButton(
+                          label: _isClaiming ? 'CLAIMING...' : 'CLAIM REWARD',
+                          onPressed: _claimReward,
+                          height: buttonHeight,
+                          style: widget.rewardType == 'coins'
+                              ? ModernButtonStyle.primary
+                              : ModernButtonStyle.secondary,
+                          enabled: !_isClaiming,
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

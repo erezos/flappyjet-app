@@ -360,15 +360,49 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   
   /// Increment bot score when it passes an obstacle
   void incrementScore() {
-    if (!_isActive) return;
+    if (!_isActive) {
+      safePrint('🤖 ⚠️ incrementScore() called but bot is inactive (score=$_score)');
+      return;
+    }
+    
+    final oldScore = _score;
     _score++;
+    
+    // ✅ ENHANCED DEBUG: Always log phase transitions and key milestones
+    final phase = _getCurrentPhase();
+    final oldPhase = _getPhaseForScore(oldScore);
+    
+    // Log phase transitions
+    if (oldPhase != phase) {
+      safePrint('🤖 🔄 PHASE TRANSITION: Score $_score → $phase (was: $oldPhase)');
+      safePrint('🤖 📊 Current values: Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%');
+    }
     
     // ✅ NEW: Log skill/mistake rate transitions during minimum obstacle phase
     if (minObstaclesToPass > 0 && _score <= minObstaclesToPass + 5) {
-      safePrint('🤖 SCORE: $_score/${minObstaclesToPass} [Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
+      safePrint('🤖 SCORE: $_score/${minObstaclesToPass} [Phase=$phase, Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
     } else if (_score % 5 == 0 || _score <= 3) {
       // Only log milestone scores to reduce spam (after transition)
-      safePrint('🤖 SCORE: $_score');
+      safePrint('🤖 SCORE: $_score [Phase=$phase, Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
+    }
+  }
+  
+  /// Helper method to get current phase name for debugging
+  String _getCurrentPhase() {
+    return _getPhaseForScore(_score);
+  }
+  
+  /// Helper method to get phase name for a given score
+  String _getPhaseForScore(int score) {
+    if (minObstaclesToPass == 0) {
+      return 'normal';
+    }
+    if (score < minObstaclesToPass) {
+      return 'guarantee';
+    } else if (score < minObstaclesToPass + 5) {
+      return 'transition';
+    } else {
+      return 'normal';
     }
   }
   

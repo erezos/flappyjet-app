@@ -48,8 +48,9 @@ import 'game/systems/global_leaderboard_service.dart';
 import 'game/systems/firebase_analytics_manager.dart';
 import 'game/systems/missions_manager.dart';
 import 'game/systems/achievements_manager.dart';
-import 'integrations/push_notification_manager.dart';
-import 'integrations/notification_reward_handler.dart';
+import 'integrations/push_notification_manager.dart' show PushNotificationManager, firebaseMessagingBackgroundHandler;
+import 'integrations/notification_reward_handler.dart' show NotificationRewardHandler, notificationNavigatorKey;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'game/systems/audio_settings_manager.dart';
 import 'game/systems/social_sharing_manager.dart';
 import 'game/systems/remote_config_manager.dart';
@@ -62,7 +63,7 @@ import 'core/data/game_data_manager.dart';
 import 'core/analytics/user_analytics_manager.dart';
 
 // Services
-import 'services/fcm_service.dart';
+import 'services/fcm_service.dart' hide firebaseMessagingBackgroundHandler;
 
 // Integrations
 import 'ui/widgets/daily_streak/daily_streak_integration.dart';
@@ -95,6 +96,11 @@ void main() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     firebaseEnabled = true;
     safePrint('🔥 MAIN: Firebase initialized successfully.');
+    
+    // Register background message handler BEFORE runApp()
+    // This is required for handling notifications when app is terminated or in background
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    safePrint('🔥 MAIN: Background message handler registered');
   } catch (e) {
     safePrint('🔥 MAIN: Firebase initialization failed: $e');
     if (kReleaseMode) {
@@ -115,6 +121,7 @@ class FlappyJetProApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'FlappyJet Pro',
+      navigatorKey: notificationNavigatorKey,
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -306,13 +313,20 @@ class _LoadingScreenState extends State<LoadingScreen> {
         _initTask('Daily Streak', () => DailyStreakIntegration.initialize()),
         _initTask('Notifications', () => LocalNotificationManager().initialize()),
         _initTask('Push Notifications', () async {
-          final userId = PlayerIdentityManager().playerId;
+          safePrint('🔥 DEBUG: Push Notifications task STARTED');
+          // Use DeviceIdentityManager (already initialized in instant tasks)
+          final userId = _deviceIdentity.userId;
+          safePrint('🔥 DEBUG: PushNotifications - userId = "$userId", isNotEmpty = ${userId.isNotEmpty}');
           if (userId.isNotEmpty) {
             final rewardHandler = NotificationRewardHandler();
-            await PushNotificationManager().initialize(
+            // Initialize handler with current context
+            rewardHandler.initialize(context);
+            unawaited(PushNotificationManager().initialize(
               userId,
               onReward: rewardHandler.rewardCallback,
-            );
+            ));
+          } else {
+            safePrint('⚠️  Push Notifications: No userId available');
           }
         }),
         _initTask('Rate Us', () => RateUsManager().initialize()),

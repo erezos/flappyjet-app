@@ -11,6 +11,43 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_config.dart';
 import '../core/debug_logger.dart';
 
+/// Top-level background message handler
+/// This MUST be a top-level function and registered before runApp()
+/// It runs in a separate isolate when the app is in the background or terminated
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // This runs in a separate isolate, so we can't access the PushNotificationManager instance
+  // We can only do lightweight operations here
+  
+  safePrint('🔥 FCM BACKGROUND: Message received in background/terminated state');
+  safePrint('🔥 FCM BACKGROUND: Message ID: ${message.messageId}');
+  safePrint('🔥 FCM BACKGROUND: Title: ${message.notification?.title}');
+  safePrint('🔥 FCM BACKGROUND: Body: ${message.notification?.body}');
+  safePrint('🔥 FCM BACKGROUND: Data: ${message.data}');
+  
+  // Store notification data in SharedPreferences so we can handle it when app opens
+  // This is especially important for terminated state
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final notificationData = {
+      'messageId': message.messageId,
+      'title': message.notification?.title,
+      'body': message.notification?.body,
+      'data': message.data,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+    await prefs.setString('pending_notification', jsonEncode(notificationData));
+    safePrint('🔥 FCM BACKGROUND: Stored pending notification data');
+  } catch (e) {
+    safePrint('🔥 FCM BACKGROUND ERROR: Failed to store notification: $e');
+  }
+  
+  // Note: We can't show UI or access the app's context here
+  // The actual handling will happen when the app opens via:
+  // - getInitialMessage() for terminated state
+  // - onMessageOpenedApp for background state
+}
+
 /// Push Notification Manager
 /// 
 /// Handles:
@@ -57,6 +94,8 @@ class PushNotificationManager {
     _userId = userId;
     _onRewardCallback = onReward;
     Logger.i('Initializing PushNotificationManager for user: $userId');
+    Logger.i('🔥 FCM: Using user ID for notifications: $userId');
+    safePrint('🔥 FCM: Using user ID for notifications: $userId');
 
     try {
       // 1. Request notification permissions
@@ -78,6 +117,9 @@ class PushNotificationManager {
 
       // 5. Set up FCM message handlers
       _setupMessageHandlers();
+
+      // 6. Check for pending notifications (from background handler)
+      _checkPendingNotifications();
 
       _initialized = true;
       Logger.i('✅ PushNotificationManager initialized successfully');
@@ -261,8 +303,8 @@ class PushNotificationManager {
   Future<Map<String, String?>> _getDeviceInfo() async {
     try {
       final deviceInfo = DeviceInfoPlugin();
-      final prefs = await SharedPreferences.getInstance();
       final packageInfo = await _getPackageInfo();
+      final countryCode = await _getCountryCode();
 
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
@@ -270,7 +312,7 @@ class PushNotificationManager {
           'deviceModel': androidInfo.model,
           'osVersion': 'Android ${androidInfo.version.release}',
           'appVersion': packageInfo['version'],
-          'country': prefs.getString('user_country'),
+          'country': countryCode,
           'timezone': DateTime.now().timeZoneName,
         };
       } else if (Platform.isIOS) {
@@ -279,7 +321,7 @@ class PushNotificationManager {
           'deviceModel': iosInfo.model,
           'osVersion': 'iOS ${iosInfo.systemVersion}',
           'appVersion': packageInfo['version'],
-          'country': prefs.getString('user_country'),
+          'country': countryCode,
           'timezone': DateTime.now().timeZoneName,
         };
       }
@@ -291,9 +333,35 @@ class PushNotificationManager {
       'deviceModel': 'Unknown',
       'osVersion': 'Unknown',
       'appVersion': '2.0.10',
-      'country': null,
+      'country': null, // No fallback - null is better than wrong data
       'timezone': 'UTC',
     };
+  }
+
+  /// Get country code from device locale
+  /// Returns null if country cannot be detected (to avoid polluting analytics)
+  Future<String?> _getCountryCode() async {
+    try {
+      // Try to get country from device locale
+      final locale = Platform.localeName; // e.g., "en_US", "fr_FR", "ja_JP"
+      final parts = locale.split('_');
+      
+      if (parts.length >= 2) {
+        final countryCode = parts[1].toUpperCase();
+        // Validate it's a 2-letter country code
+        if (countryCode.length == 2 && RegExp(r'^[A-Z]{2}$').hasMatch(countryCode)) {
+          Logger.i('🌍 Detected country code from locale: $countryCode');
+          return countryCode;
+        }
+      }
+      
+      // Return null if we can't detect (don't use fallback to avoid polluting analytics)
+      Logger.w('🌍 ⚠️ Could not detect country code from locale: $locale');
+      return null;
+    } catch (e) {
+      Logger.w('🌍 ❌ Error detecting country code: $e');
+      return null;
+    }
   }
 
   /// Get package info
@@ -340,7 +408,40 @@ class PushNotificationManager {
     final message = await _firebaseMessaging.getInitialMessage();
     if (message != null) {
       Logger.i('📲 App opened from terminated state via notification');
+      safePrint('🔥 FCM: Initial message data: ${message.data}');
       await _onNotificationClick(message.data);
+    }
+  }
+
+  /// Check for pending notifications stored by background handler
+  /// This handles cases where notifications were received while app was terminated
+  Future<void> _checkPendingNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingData = prefs.getString('pending_notification');
+      
+      if (pendingData != null) {
+        safePrint('🔥 FCM: Found pending notification from background handler');
+        final notificationData = jsonDecode(pendingData) as Map<String, dynamic>;
+        final data = notificationData['data'] as Map<String, dynamic>?;
+        
+        if (data != null) {
+          safePrint('🔥 FCM: Processing pending notification data: $data');
+          
+          // Wait a bit for the app to fully initialize before showing popup
+          await Future.delayed(const Duration(seconds: 2));
+          
+          // Process the notification
+          await _onNotificationClick(data);
+        }
+        
+        // Clear the pending notification
+        await prefs.remove('pending_notification');
+        safePrint('🔥 FCM: Cleared pending notification');
+      }
+    } catch (e) {
+      Logger.w('⚠️  Failed to check pending notifications: $e');
+      safePrint('🔥 FCM ERROR: Failed to check pending notifications: $e');
     }
   }
 
@@ -348,6 +449,8 @@ class PushNotificationManager {
   Future<void> _showLocalNotification(RemoteMessage message) async {
     final notification = message.notification;
     if (notification == null) return;
+
+    safePrint('🔥 DEBUG: Showing local notification with data: ${message.data}');
 
     final androidDetails = AndroidNotificationDetails(
       _channel.id,
@@ -370,31 +473,46 @@ class PushNotificationManager {
       iOS: iosDetails,
     );
 
+    final payload = jsonEncode(message.data);
+    safePrint('🔥 DEBUG: Notification payload JSON: $payload');
+
     await _localNotifications.show(
       message.hashCode,
       notification.title,
       notification.body,
       details,
-      payload: jsonEncode(message.data),
+      payload: payload,
     );
   }
 
   /// Handle notification tap
   Future<void> _onNotificationTapped(NotificationResponse response) async {
+    safePrint('🔥 DEBUG: Local notification tapped, payload: ${response.payload}');
     if (response.payload != null) {
-      final data = jsonDecode(response.payload!);
-      await _onNotificationClick(data);
+      try {
+        final data = jsonDecode(response.payload!);
+        safePrint('🔥 DEBUG: Parsed notification payload: $data');
+        await _onNotificationClick(data);
+      } catch (e) {
+        Logger.e('Failed to parse notification payload', error: e);
+        safePrint('🔥 ERROR: Failed to parse payload: $e');
+      }
+    } else {
+      safePrint('🔥 WARNING: Notification tapped but payload is null');
     }
   }
 
   /// Handle notification click (track + show reward)
   Future<void> _onNotificationClick(Map<String, dynamic> data) async {
     try {
+      safePrint('🔥 DEBUG: Notification clicked with data: $data');
+
       final notificationType = data['notification_type'] ?? data['type'];
       final rewardType = data['reward_type'];
       final rewardAmount = int.tryParse(data['reward_amount']?.toString() ?? '0') ?? 0;
 
       Logger.i('🎯 Notification clicked: $notificationType, reward: $rewardType $rewardAmount');
+      safePrint('🎯 Notification clicked: $notificationType, reward: $rewardType $rewardAmount');
 
       // Track click event on backend (fire and forget - non-blocking)
       if (_userId != null && notificationType != null) {

@@ -420,7 +420,8 @@ class PlayerIdentityManager extends ChangeNotifier {
   }
 
   /// Get country code from device locale
-  Future<String> _getCountryCode() async {
+  /// Returns null if country cannot be detected (to avoid polluting analytics)
+  Future<String?> _getCountryCode() async {
     try {
       // Try to get country from device locale
       final locale = Platform.localeName; // e.g., "en_US", "fr_FR", "ja_JP"
@@ -435,12 +436,12 @@ class PlayerIdentityManager extends ChangeNotifier {
         }
       }
       
-      // Final fallback
-      safePrint('🌍 ⚠️ Could not detect country code, using default: US');
-      return 'US';
+      // Return null if we can't detect (don't use fallback to avoid polluting analytics)
+      safePrint('🌍 ⚠️ Could not detect country code from locale: $locale');
+      return null;
     } catch (e) {
-      safePrint('🌍 ❌ Error detecting country code: $e, using default: US');
-      return 'US';
+      safePrint('🌍 ❌ Error detecting country code: $e');
+      return null;
     }
   }
 

@@ -51,7 +51,7 @@ class UserAnalytics {
   final String deviceModel;
   final String osVersion;
   final String platform; // android/ios
-  final String countryCode;
+  final String? countryCode; // Nullable to avoid polluting analytics with false data
   final String timezone;
   final String appVersion;
   
@@ -178,7 +178,7 @@ class UserAnalytics {
       deviceModel: json['deviceModel'] ?? 'unknown',
       osVersion: json['osVersion'] ?? 'unknown',
       platform: json['platform'] ?? 'unknown',
-      countryCode: json['countryCode'] ?? 'US',
+      countryCode: json['countryCode'], // No fallback - null is better than wrong data
       timezone: json['timezone'] ?? 'UTC',
       appVersion: json['appVersion'] ?? '1.0.0',
       adWatchCount: json['adWatchCount'] ?? 0,
@@ -221,7 +221,7 @@ class UserAnalytics {
     String? deviceModel,
     String? osVersion,
     String? platform,
-    String? countryCode,
+    String? countryCode, // Nullable
     String? timezone,
     String? appVersion,
     int? adWatchCount,
@@ -425,7 +425,8 @@ class UserAnalyticsManager extends ChangeNotifier {
   }
 
   /// Get country code from device locale
-  Future<String> _getCountryCode() async {
+  /// Returns null if country cannot be detected (to avoid polluting analytics)
+  Future<String?> _getCountryCode() async {
     try {
       // Try to get country from device locale
       final locale = Platform.localeName; // e.g., "en_US", "fr_FR", "ja_JP"
@@ -439,10 +440,10 @@ class UserAnalyticsManager extends ChangeNotifier {
         }
       }
       
-      // Final fallback
-      return 'US';
+      // Return null if we can't detect (don't use fallback to avoid polluting analytics)
+      return null;
     } catch (e) {
-      return 'US';
+      return null;
     }
   }
 

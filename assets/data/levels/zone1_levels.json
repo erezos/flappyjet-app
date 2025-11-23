@@ -12,8 +12,8 @@
         "description": "Pass 8 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.0,
-        "obstacleGap": 400,
+        "speedMultiplier": 0.95,
+        "obstacleGap": 420,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -33,17 +33,17 @@
       "name": "Palm Paradise Path",
       "objective": {
         "type": "surviveTime",
-        "target": 15,
-        "description": "Survive for 15 seconds"
+        "target": 12,
+        "description": "Survive for 12 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 0.9,
+        "speedMultiplier": 0.85,
         "obstacleGap": 420,
         "obstacleFrequency": 0.65,
-        "maxGapShift": 60
+        "maxGapShift": 50
       },
       "reward": {
-        "coins": 25,
+        "coins": 20,
         "gems": 0
       },
       "theme": {
@@ -59,16 +59,16 @@
       "name": "Island Hopping",
       "objective": {
         "type": "passObstacles",
-        "target": 10,
-        "description": "Pass 10 obstacles to complete"
+        "target": 8,
+        "description": "Pass 8 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.0,
-        "obstacleGap": 380,
-        "obstacleFrequency": 2.4
+        "speedMultiplier": 0.95,
+        "obstacleGap": 400,
+        "obstacleFrequency": 2.6
       },
       "reward": {
-        "coins": 30,
+        "coins": 25,
         "gems": 0
       },
       "theme": {
@@ -84,17 +84,17 @@
       "name": "Wave Rider",
       "objective": {
         "type": "surviveTime",
-        "target": 18,
-        "description": "Survive for 18 seconds"
+        "target": 15,
+        "description": "Survive for 15 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 0.95,
-        "obstacleGap": 410,
+        "speedMultiplier": 0.90,
+        "obstacleGap": 420,
         "obstacleFrequency": 0.65,
-        "maxGapShift": 60
+        "maxGapShift": 50
       },
       "reward": {
-        "coins": 35,
+        "coins": 30,
         "gems": 0
       },
       "theme": {
@@ -114,9 +114,9 @@
         "description": "Race against Police Patrol and win!"
       },
       "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 280,
-        "obstacleFrequency": 2.4
+        "speedMultiplier": 1.0,
+        "obstacleGap": 300,
+        "obstacleFrequency": 2.5
       },
       "reward": {
         "coins": 40,
@@ -130,10 +130,10 @@
       "botBattle": {
         "botName": "Police Patrol",
         "botJetSkin": "police_patrol",
-        "skillLevel": 0.75,
-        "reactionTime": 0.4,
-        "mistakeRate": 0.08,
-        "minObstaclePass": 8
+        "skillLevel": 0.05,
+        "reactionTime": 0.45,
+        "mistakeRate": 0.95,
+        "minObstaclePass": 6
       }
     },
     {
@@ -142,16 +142,16 @@
       "name": "Beach Breeze",
       "objective": {
         "type": "passObstacles",
-        "target": 14,
-        "description": "Pass 14 obstacles to complete"
+        "target": 10,
+        "description": "Pass 10 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.0,
-        "obstacleGap": 340,
-        "obstacleFrequency": 2.4
+        "speedMultiplier": 0.95,
+        "obstacleGap": 380,
+        "obstacleFrequency": 2.6
       },
       "reward": {
-        "coins": 45,
+        "coins": 40,
         "gems": 0
       },
       "theme": {
@@ -167,17 +167,17 @@
       "name": "Tropical Flow",
       "objective": {
         "type": "surviveTime",
-        "target": 30,
-        "description": "Survive for 30 seconds"
+        "target": 22,
+        "description": "Survive for 22 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.0,
-        "obstacleGap": 350,
+        "speedMultiplier": 0.95,
+        "obstacleGap": 360,
         "obstacleFrequency": 0.65,
-        "maxGapShift": 60
+        "maxGapShift": 50
       },
       "reward": {
-        "coins": 50,
+        "coins": 45,
         "gems": 0
       },
       "theme": {
@@ -193,16 +193,16 @@
       "name": "Coconut Run",
       "objective": {
         "type": "passObstacles",
-        "target": 15,
-        "description": "Pass 15 obstacles to complete"
+        "target": 12,
+        "description": "Pass 12 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 330,
-        "obstacleFrequency": 2.4
+        "speedMultiplier": 1.0,
+        "obstacleGap": 360,
+        "obstacleFrequency": 2.5
       },
       "reward": {
-        "coins": 55,
+        "coins": 50,
         "gems": 0
       },
       "theme": {
@@ -218,17 +218,17 @@
       "name": "Sunset Sprint",
       "objective": {
         "type": "surviveTime",
-        "target": 22,
-        "description": "Survive for 22 seconds"
+        "target": 20,
+        "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.0,
-        "obstacleGap": 360,
+        "speedMultiplier": 0.95,
+        "obstacleGap": 370,
         "obstacleFrequency": 0.65,
-        "maxGapShift": 60
+        "maxGapShift": 50
       },
       "reward": {
-        "coins": 60,
+        "coins": 55,
         "gems": 0
       },
       "theme": {
@@ -248,9 +248,9 @@
         "description": "Race against Green Lightning to complete Zone 1!"
       },
       "difficulty": {
-        "speedMultiplier": 1.08,
-        "obstacleGap": 260,
-        "obstacleFrequency": 2.3
+        "speedMultiplier": 1.05,
+        "obstacleGap": 280,
+        "obstacleFrequency": 2.4
       },
       "reward": {
         "coins": 40,
@@ -264,14 +264,14 @@
       "botBattle": {
         "botName": "Green Lightning",
         "botJetSkin": "green_lightning",
-        "skillLevel": 0.82,
-        "reactionTime": 0.25,
-        "mistakeRate": 0.07,
-        "minObstaclePass": 10,
+        "skillLevel": 0.75,
+        "reactionTime": 0.30,
+        "mistakeRate": 0.10,
+        "minObstaclePass": 8,
         "firstAttemptOverride": {
-          "skillLevel": 0.90,
-          "reactionTime": 0.05,
-          "mistakeRate": 0.02
+          "skillLevel": 0.85,
+          "reactionTime": 0.10,
+          "mistakeRate": 0.05
         }
       }
     }
