@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import '../../../game/core/economy_config.dart';
 import '../gem_3d_icon.dart';
+import '../../utils/responsive_config.dart';
 
 class GemsStore extends StatelessWidget {
   final Function(GemPack) onPurchaseGemPack;
@@ -14,44 +15,54 @@ class GemsStore extends StatelessWidget {
   Widget build(BuildContext context) {
     final gemPacks = EconomyConfig.gemPacks.values.toList();
     final screenSize = MediaQuery.of(context).size;
-    final isTablet = screenSize.width > 600;
-    final isLargeTablet = screenSize.width > 900;
-
-    // Dynamic aspect ratio - more compact cards to reduce empty space
-    double aspectRatio;
-    if (isLargeTablet) {
-      aspectRatio = 1.1; // More compact on large tablets
-    } else if (isTablet) {
-      aspectRatio = 1.0; // Square-ish on regular tablets
-    } else {
-      aspectRatio = 0.9; // Slightly taller on mobile
-    }
 
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 24 : 16,
-        vertical: 12,
+      padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+        horizontal: 16.0,
+        vertical: 12.0,
+        screenSize: screenSize,
       ),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(), // Parent SingleChildScrollView handles scrolling
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: aspectRatio,
-          crossAxisSpacing: isTablet ? 20 : 12,
-          mainAxisSpacing: isTablet ? 20 : 12,
-        ),
-        itemCount: gemPacks.length,
-        itemBuilder: (context, index) {
-          final pack = gemPacks[index];
-          final isPopular = index == 1; // Medium pack is most popular
-          final isBestValue = index == 2; // Large pack is best value
+      // Use LayoutBuilder to calculate available space and make grid truly responsive
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Calculate available width for grid (accounting for padding and spacing)
+          final horizontalPadding = ResponsiveConfig.responsivePadding(16.0, screenSize) * 2;
+          final crossAxisSpacing = ResponsiveConfig.responsivePadding(12.0, screenSize);
+          final availableWidth = constraints.maxWidth - horizontalPadding;
+          
+          // Calculate card width (2 columns with spacing)
+          final cardWidth = (availableWidth - crossAxisSpacing) / 2;
+          
+          // Estimate card height based on content (badge + icon + title + gems + price + padding)
+          // This ensures cards fit without scrolling on most screens
+          final estimatedCardHeight = ResponsiveConfig.responsiveSize(180.0, screenSize, minScale: 0.85, maxScale: 1.2);
+          
+          // Calculate dynamic aspect ratio based on available space
+          // Ensure cards are tall enough to fit content but not too tall
+          final aspectRatio = cardWidth / estimatedCardHeight.clamp(160.0, 220.0);
+          
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(), // Parent SingleChildScrollView handles scrolling
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: aspectRatio,
+              crossAxisSpacing: crossAxisSpacing,
+              mainAxisSpacing: ResponsiveConfig.responsivePadding(12.0, screenSize),
+            ),
+            itemCount: gemPacks.length,
+            itemBuilder: (context, index) {
+              final pack = gemPacks[index];
+              final isPopular = index == 1; // Medium pack is most popular
+              final isBestValue = index == 2; // Large pack is best value
 
-          return ModernGemPackCard(
-            pack: pack,
-            isPopular: isPopular,
-            isBestValue: isBestValue,
-            onTap: () => onPurchaseGemPack(pack),
+              return ModernGemPackCard(
+                pack: pack,
+                isPopular: isPopular,
+                isBestValue: isBestValue,
+                onTap: () => onPurchaseGemPack(pack),
+              );
+            },
           );
         },
       ),
@@ -103,61 +114,61 @@ class ModernGemPackCard extends StatelessWidget {
           children: [
             // Main content - Truly responsive design
             Padding(
-              padding: EdgeInsets.all(MediaQuery.of(context).size.width > 600 ? 12 : 8),
+              padding: ResponsiveConfig.responsiveEdgeInsets(8.0, MediaQuery.of(context).size),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final cardWidth = constraints.maxWidth;
-                  final isTablet = MediaQuery.of(context).size.width > 600;
-                  final isLargeTablet = MediaQuery.of(context).size.width > 900;
+                  final layoutScreenSize = MediaQuery.of(context).size;
                   
-                  // Responsive sizing based on actual card dimensions
-                  final iconSize = isLargeTablet 
-                      ? (cardWidth * 0.35).clamp(45.0, 70.0)
-                      : isTablet 
-                          ? (cardWidth * 0.3).clamp(35.0, 55.0)
-                          : (cardWidth * 0.25).clamp(25.0, 40.0);
+                  // Responsive sizing using ResponsiveConfig
+                  final iconSize = ResponsiveConfig.responsiveSize(
+                    cardWidth * 0.3,
+                    layoutScreenSize,
+                    minScale: 0.9,
+                    maxScale: 1.2,
+                  ).clamp(35.0, 70.0);
                           
-                  final titleSize = isLargeTablet 
-                      ? (cardWidth * 0.08).clamp(18.0, 24.0)
-                      : isTablet 
-                          ? (cardWidth * 0.07).clamp(16.0, 20.0)
-                          : (cardWidth * 0.06).clamp(12.0, 16.0);
+                  final titleSize = ResponsiveConfig.responsiveFontSize(
+                    cardWidth * 0.07,
+                    layoutScreenSize,
+                    context,
+                  ).clamp(12.0, 24.0);
                           
-                  final gemSize = isLargeTablet 
-                      ? (cardWidth * 0.07).clamp(16.0, 20.0)
-                      : isTablet 
-                          ? (cardWidth * 0.06).clamp(14.0, 18.0)
-                          : (cardWidth * 0.055).clamp(11.0, 14.0);
+                  final gemSize = ResponsiveConfig.responsiveFontSize(
+                    cardWidth * 0.06,
+                    layoutScreenSize,
+                    context,
+                  ).clamp(11.0, 20.0);
                           
                   final bonusSize = gemSize * 0.8;
                   
-                  final priceSize = isLargeTablet 
-                      ? (cardWidth * 0.08).clamp(20.0, 26.0)
-                      : isTablet 
-                          ? (cardWidth * 0.07).clamp(18.0, 22.0)
-                          : (cardWidth * 0.065).clamp(14.0, 18.0);
+                  final priceSize = ResponsiveConfig.responsiveFontSize(
+                    cardWidth * 0.07,
+                    layoutScreenSize,
+                    context,
+                  ).clamp(14.0, 26.0);
 
                   return Column(
                     children: [
-                      // Top section - Badge (compact height)
+                      // Top section - Badge (responsive height)
                       SizedBox(
-                        height: isLargeTablet ? 32 : isTablet ? 28 : 22,
+                        height: ResponsiveConfig.responsiveSize(22.0, layoutScreenSize, minScale: 0.9, maxScale: 1.4).clamp(22.0, 32.0),
                         child: Center(
                           child: isPopular
-                              ? _buildPopularBadge(isTablet)
+                              ? _buildPopularBadge(layoutScreenSize)
                               : isBestValue
-                              ? _buildBestValueBadge(isTablet)
+                              ? _buildBestValueBadge(layoutScreenSize)
                               : const SizedBox.shrink(),
                         ),
                       ),
 
-                      // Icon section (compact height)
+                      // Icon section (responsive height)
                       SizedBox(
-                        height: isLargeTablet ? 70 : isTablet ? 60 : 45,
+                        height: ResponsiveConfig.responsiveSize(45.0, layoutScreenSize, minScale: 0.9, maxScale: 1.5).clamp(45.0, 70.0),
                         child: Center(child: Gem3DIcon(size: iconSize)),
                       ),
 
-                      SizedBox(height: isTablet ? 6 : 3),
+                      SizedBox(height: ResponsiveConfig.responsivePadding(3.0, layoutScreenSize)),
 
                       // Title section (responsive)
                       Text(
@@ -173,7 +184,7 @@ class ModernGemPackCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
 
-                      SizedBox(height: isTablet ? 8 : 6),
+                      SizedBox(height: ResponsiveConfig.responsivePadding(6.0, layoutScreenSize)),
 
                       // Gems info section (compact)
                       Column(
@@ -189,7 +200,7 @@ class ModernGemPackCard extends StatelessWidget {
                             ),
                           ),
                           if (pack.hasBonus) ...[
-                            SizedBox(height: isTablet ? 3 : 2),
+                            SizedBox(height: ResponsiveConfig.responsivePadding(2.0, layoutScreenSize)),
                             Text(
                               '+${pack.bonusGems} BONUS',
                               style: TextStyle(
@@ -209,13 +220,13 @@ class ModernGemPackCard extends StatelessWidget {
                       // Price button section (responsive height and styling)
                       Container(
                         width: double.infinity,
-                        height: isLargeTablet ? 48 : isTablet ? 42 : 36,
+                        height: ResponsiveConfig.responsiveButtonHeight(36.0, layoutScreenSize).clamp(36.0, 48.0),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                          borderRadius: BorderRadius.circular(ResponsiveConfig.responsivePadding(12.0, layoutScreenSize)),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.4),
-                            width: isTablet ? 1.5 : 1,
+                            width: ResponsiveConfig.responsivePadding(1.0, layoutScreenSize).clamp(1.0, 1.5),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -267,65 +278,83 @@ class ModernGemPackCard extends StatelessWidget {
 
   // Removed _getGemIconColor() - no longer needed with asset image
 
-  Widget _buildPopularBadge(bool isTablet) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 14 : 10,
-        vertical: isTablet ? 6 : 4,
-      ),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
-        ),
-        borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-            blurRadius: isTablet ? 10 : 8,
-            offset: const Offset(0, 2),
+  Widget _buildPopularBadge(Size screenSize) {
+    return Builder(
+      builder: (context) {
+        final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
+        final verticalPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
+        final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+        final borderRadius = ResponsiveConfig.responsivePadding(12.0, screenSize);
+        
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
           ),
-        ],
-      ),
-      child: Text(
-        '🔥 POPULAR',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: isTablet ? 14 : 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
-      ),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+            ),
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                blurRadius: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            '🔥 POPULAR',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildBestValueBadge(bool isTablet) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 14 : 10,
-        vertical: isTablet ? 6 : 4,
-      ),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-        ),
-        borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
-            blurRadius: isTablet ? 10 : 8,
-            offset: const Offset(0, 2),
+  Widget _buildBestValueBadge(Size screenSize) {
+    return Builder(
+      builder: (context) {
+        final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
+        final verticalPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
+        final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+        final borderRadius = ResponsiveConfig.responsivePadding(12.0, screenSize);
+        
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
           ),
-        ],
-      ),
-      child: Text(
-        '💎 BEST VALUE',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: isTablet ? 14 : 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
-      ),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+            ),
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                blurRadius: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            '💎 BEST VALUE',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        );
+      },
     );
   }
 

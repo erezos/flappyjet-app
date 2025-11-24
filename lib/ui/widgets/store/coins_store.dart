@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../game/core/economy_config.dart';
 import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
+import '../../utils/responsive_config.dart';
 
 class CoinsStore extends StatelessWidget {
   final InventoryManager inventory;
@@ -21,49 +22,44 @@ class CoinsStore extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final coinPacks = EconomyConfig.coinPacks.values.toList();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
+    final screenSize = MediaQuery.of(context).size;
+
+    // Use ResponsiveConfig for aspect ratio
+    final baseAspectRatio = 0.9;
+    final aspectRatio = ResponsiveConfig.responsiveAspectRatio(
+      screenSize,
+      baseAspectRatio,
+      2, // columns
+    );
 
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 24 : 16,
-        vertical: 12,
+      padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+        horizontal: 16.0,
+        vertical: 12.0,
+        screenSize: screenSize,
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Calculate optimal aspect ratio based on available space
-          final availableHeight = constraints.maxHeight;
-          final cardHeight =
-              (availableHeight - (isTablet ? 20 : 12)) /
-              2; // 2 rows, minus spacing
-          final cardWidth =
-              (screenWidth - (isTablet ? 68 : 44)) /
-              2; // 2 columns, minus padding/spacing
-          final optimalAspectRatio = (cardWidth / cardHeight).clamp(0.7, 1.2);
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: aspectRatio,
+          crossAxisSpacing: ResponsiveConfig.responsivePadding(12.0, screenSize),
+          mainAxisSpacing: ResponsiveConfig.responsivePadding(12.0, screenSize),
+        ),
+        itemCount: coinPacks.length,
+        itemBuilder: (context, index) {
+          final pack = coinPacks[index];
+          final isBestValue = index == 2; // Large pack is best value
+          final isPopular = index == 1; // Medium pack is most popular
 
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: optimalAspectRatio,
-              crossAxisSpacing: isTablet ? 20 : 12,
-              mainAxisSpacing: isTablet ? 20 : 12,
-            ),
-            itemCount: coinPacks.length,
-            itemBuilder: (context, index) {
-              final pack = coinPacks[index];
-              final isBestValue = index == 2; // Large pack is best value
-              final isPopular = index == 1; // Medium pack is most popular
-
-              return ModernCoinPackCard(
-                pack: pack,
-                inventory: inventory,
-                isPopular: isPopular,
-                isBestValue: isBestValue,
-                onTap: () => onPurchaseCoinPack(pack),
-              );
-            },
+          return ModernCoinPackCard(
+            pack: pack,
+            inventory: inventory,
+            isPopular: isPopular,
+            isBestValue: isBestValue,
+            onTap: () => onPurchaseCoinPack(pack),
+            screenSize: screenSize,
           );
         },
       ),
@@ -78,6 +74,7 @@ class ModernCoinPackCard extends StatelessWidget {
   final bool isPopular;
   final bool isBestValue;
   final VoidCallback onTap;
+  final Size screenSize;
 
   const ModernCoinPackCard({
     super.key,
@@ -86,12 +83,14 @@ class ModernCoinPackCard extends StatelessWidget {
     required this.isPopular,
     required this.isBestValue,
     required this.onTap,
+    required this.screenSize,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = _getCoinPackColors();
     final canAfford = inventory.gems >= pack.gemPrice;
+    final screenSize = this.screenSize;
 
     return GestureDetector(
       onTap: canAfford ? onTap : null,
@@ -122,32 +121,59 @@ class ModernCoinPackCard extends StatelessWidget {
           children: [
             // Main content
             Padding(
-              padding: const EdgeInsets.all(6),
+              padding: ResponsiveConfig.responsiveEdgeInsets(6.0, screenSize),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final cardHeight = constraints.maxHeight;
-                  final iconSize = (cardHeight * 0.2).clamp(20.0, 35.0);
-                  final titleSize = (cardHeight * 0.08).clamp(12.0, 16.0);
-                  final coinSize = (cardHeight * 0.07).clamp(11.0, 14.0);
-                  final priceSize = (cardHeight * 0.09).clamp(14.0, 18.0);
+                  final iconSize = ResponsiveConfig.responsiveSize(
+                    cardHeight * 0.2,
+                    screenSize,
+                    minScale: 0.9,
+                    maxScale: 1.2,
+                  ).clamp(20.0, 35.0);
+                  final titleSize = ResponsiveConfig.responsiveFontSize(
+                    cardHeight * 0.08,
+                    screenSize,
+                    context,
+                  ).clamp(12.0, 16.0);
+                  final coinSize = ResponsiveConfig.responsiveFontSize(
+                    cardHeight * 0.07,
+                    screenSize,
+                    context,
+                  ).clamp(11.0, 14.0);
+                  final priceSize = ResponsiveConfig.responsiveFontSize(
+                    cardHeight * 0.09,
+                    screenSize,
+                    context,
+                  ).clamp(14.0, 18.0);
 
                   return Column(
                     children: [
-                      // Top section - Badge (fixed height)
+                      // Top section - Badge (responsive height)
                       SizedBox(
-                        height: (cardHeight * 0.15).clamp(20.0, 30.0),
+                        height: ResponsiveConfig.responsiveSize(
+                          cardHeight * 0.15,
+                          screenSize,
+                          minScale: 0.9,
+                          maxScale: 1.2,
+                        ).clamp(20.0, 30.0),
                         child: Center(
                           child: isPopular && canAfford
-                              ? _buildPopularBadge()
+                              ? _buildPopularBadge(screenSize)
                               : isBestValue && canAfford
-                              ? _buildBestValueBadge()
+                              ? _buildBestValueBadge(screenSize)
                               : const SizedBox.shrink(),
                         ),
                       ),
 
-                      // Icon section (fixed height)
+                      // Icon section (responsive height)
                       SizedBox(
-                        height: (cardHeight * 0.25).clamp(35.0, 50.0),
+                        height: ResponsiveConfig.responsiveSize(
+                          cardHeight * 0.25,
+                          screenSize,
+                          minScale: 0.9,
+                          maxScale: 1.2,
+                        ).clamp(35.0, 50.0),
                         child: Center(
                           child: Icon(
                             Icons.monetization_on,
@@ -159,9 +185,14 @@ class ModernCoinPackCard extends StatelessWidget {
                         ),
                       ),
 
-                      // Title section (fixed height)
+                      // Title section (responsive height)
                       SizedBox(
-                        height: (cardHeight * 0.15).clamp(20.0, 30.0),
+                        height: ResponsiveConfig.responsiveSize(
+                          cardHeight * 0.15,
+                          screenSize,
+                          minScale: 0.9,
+                          maxScale: 1.2,
+                        ).clamp(20.0, 30.0),
                         child: Center(
                           child: Text(
                             pack.displayName,
@@ -179,9 +210,14 @@ class ModernCoinPackCard extends StatelessWidget {
                         ),
                       ),
 
-                      // Coins info section (fixed height)
+                      // Coins info section (responsive height)
                       SizedBox(
-                        height: (cardHeight * 0.2).clamp(30.0, 40.0),
+                        height: ResponsiveConfig.responsiveSize(
+                          cardHeight * 0.2,
+                          screenSize,
+                          minScale: 0.9,
+                          maxScale: 1.2,
+                        ).clamp(30.0, 40.0),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -196,14 +232,18 @@ class ModernCoinPackCard extends StatelessWidget {
                               ),
                             ),
                             if (pack.hasBonus) ...[
-                              const SizedBox(height: 2),
+                              SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
                               Text(
                                 '+${pack.bonusCoins} BONUS',
                                 style: TextStyle(
                                   color: canAfford
                                       ? const Color(0xFFFFD700)
                                       : Colors.grey.shade400,
-                                  fontSize: (coinSize * 0.85).clamp(9.0, 11.0),
+                                  fontSize: ResponsiveConfig.responsiveFontSize(
+                                    coinSize * 0.85,
+                                    screenSize,
+                                    context,
+                                  ).clamp(9.0, 11.0),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -215,10 +255,15 @@ class ModernCoinPackCard extends StatelessWidget {
                       // Spacer to push price to bottom
                       const Spacer(),
 
-                      // Price button section (fixed height at bottom)
+                      // Price button section (responsive height at bottom)
                       Container(
                         width: double.infinity,
-                        height: (cardHeight * 0.18).clamp(30.0, 40.0),
+                        height: ResponsiveConfig.responsiveSize(
+                          cardHeight * 0.18,
+                          screenSize,
+                          minScale: 0.9,
+                          maxScale: 1.2,
+                        ).clamp(30.0, 40.0),
                         decoration: BoxDecoration(
                           color: canAfford
                               ? Colors.white.withValues(alpha: 0.2)
@@ -235,7 +280,7 @@ class ModernCoinPackCard extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Gem3DIcon(size: priceSize * 0.8),
-                            const SizedBox(width: 4),
+                            SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
                             Text(
                               '${pack.gemPrice}',
                               style: TextStyle(
@@ -280,57 +325,75 @@ class ModernCoinPackCard extends StatelessWidget {
     return [const Color(0xFFFF9800), const Color(0xFFE65100)];
   }
 
-  Widget _buildPopularBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  Widget _buildPopularBadge(Size screenSize) {
+    return Builder(
+      builder: (context) {
+        final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
+        final verticalPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
+        final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+        final borderRadius = ResponsiveConfig.responsivePadding(12.0, screenSize);
+        
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+            ),
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                blurRadius: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: const Text(
-        '🔥 POPULAR',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+          child: Text(
+            '🔥 POPULAR',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildBestValueBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  Widget _buildBestValueBadge(Size screenSize) {
+    return Builder(
+      builder: (context) {
+        final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
+        final verticalPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
+        final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+        final borderRadius = ResponsiveConfig.responsivePadding(12.0, screenSize);
+        
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+            ),
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                blurRadius: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: const Text(
-        '💎 BEST VALUE',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+          child: Text(
+            '💎 BEST VALUE',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      },
     );
   }
 

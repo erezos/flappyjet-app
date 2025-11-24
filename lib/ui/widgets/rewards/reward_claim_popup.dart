@@ -5,6 +5,7 @@ import '../popups/base_popup.dart';
 import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
 import '../gem_3d_icon.dart';
+import '../../utils/responsive_config.dart';
 
 /// Generic reward claim popup for Daily Missions and Achievements
 /// Displays a beautiful, animated popup when user claims rewards
@@ -50,20 +51,34 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isVerySmallScreen = screenSize.height < 600;
-    final isSmallScreen = screenSize.height < 700;
+    
+    // Use ResponsiveConfig for popup sizing
+    final popupWidth = ResponsiveConfig.responsivePopupWidth(
+      screenSize,
+      percent: 0.9,
+      minWidth: 320.0,
+      maxWidth: 500.0,
+    );
+    final popupHeight = ResponsiveConfig.responsivePopupHeight(
+      screenSize,
+      percent: 0.8,
+      minHeight: 400.0,
+      maxHeight: 700.0,
+    );
 
     return BasePopup(
       padding: EdgeInsets.zero,
       backgroundColor: Colors.transparent,
+      maxWidthPixels: popupWidth,
       child: Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 20 : 32,
-          vertical: isSmallScreen ? 40 : 60,
+        margin: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+          horizontal: 20.0,
+          vertical: 40.0,
+          screenSize: screenSize,
         ),
         constraints: BoxConstraints(
-          maxWidth: 400,
-          maxHeight: screenSize.height * 0.8,
+          maxWidth: popupWidth,
+          maxHeight: popupHeight,
         ),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
@@ -88,22 +103,30 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
               ..._buildSparkles(),
 
               // Main content
-              Padding(
-                padding: EdgeInsets.all(isVerySmallScreen ? 16 : 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildHeader(isVerySmallScreen),
-                    SizedBox(height: isVerySmallScreen ? 12 : 16),
-                    _buildRewardName(isVerySmallScreen),
-                    SizedBox(height: isVerySmallScreen ? 12 : 16),
-                    _buildRewardIcons(isVerySmallScreen),
-                    SizedBox(height: isVerySmallScreen ? 16 : 20),
-                    _buildDescription(isVerySmallScreen),
-                    SizedBox(height: isVerySmallScreen ? 20 : 24),
-                    _buildActionButton(context, isSmallScreen),
-                  ],
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final contentPadding = ResponsiveConfig.responsivePadding(24.0, screenSize);
+                  final spacingMedium = ResponsiveConfig.responsivePadding(16.0, screenSize);
+                  final spacingLarge = ResponsiveConfig.responsivePadding(20.0, screenSize);
+                  
+                  return Padding(
+                    padding: EdgeInsets.all(contentPadding),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildHeader(context, screenSize),
+                        SizedBox(height: spacingMedium),
+                        _buildRewardName(context, screenSize),
+                        SizedBox(height: spacingMedium),
+                        _buildRewardIcons(context, screenSize, constraints.maxWidth),
+                        SizedBox(height: spacingLarge),
+                        _buildDescription(context, screenSize),
+                        SizedBox(height: spacingLarge),
+                        _buildActionButton(context, screenSize),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -112,43 +135,54 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
     );
   }
 
-  Widget _buildHeader(bool isVerySmallScreen) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: isVerySmallScreen ? 12 : 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            widget.themeColor.withValues(alpha: 0.8),
-            widget.themeColor.withValues(alpha: 0.6),
-          ],
-        ),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(22),
-          topRight: Radius.circular(22),
-        ),
-      ),
-      child: Text(
-        widget.title,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: isVerySmallScreen ? 20 : 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: const [
-            Shadow(offset: Offset(0, 2), blurRadius: 4, color: Colors.black54),
-          ],
-        ),
-      ),
+  Widget _buildHeader(BuildContext context, Size screenSize) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padding = ResponsiveConfig.responsivePadding(16.0, screenSize);
+        final fontSize = ResponsiveConfig.responsiveFontSize(24.0, screenSize, context);
+        
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: padding),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                widget.themeColor.withValues(alpha: 0.8),
+                widget.themeColor.withValues(alpha: 0.6),
+              ],
+            ),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(22),
+              topRight: Radius.circular(22),
+            ),
+          ),
+          child: Text(
+            widget.title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              shadows: const [
+                Shadow(offset: Offset(0, 2), blurRadius: 4, color: Colors.black54),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildRewardName(bool isVerySmallScreen) {
+  Widget _buildRewardName(BuildContext context, Size screenSize) {
+    final fontSize = ResponsiveConfig.responsiveFontSize(26.0, screenSize, context);
+    
     return Text(
       widget.rewardName,
       textAlign: TextAlign.center,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        fontSize: isVerySmallScreen ? 22 : 26,
+        fontSize: fontSize,
         fontWeight: FontWeight.bold,
         color: Colors.white,
         shadows: const [
@@ -158,8 +192,14 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
     );
   }
 
-  Widget _buildRewardIcons(bool isVerySmallScreen) {
-    final iconSize = isVerySmallScreen ? 48.0 : 60.0;
+  Widget _buildRewardIcons(BuildContext context, Size screenSize, double maxWidth) {
+    // Icon size as percentage of popup width (15-18%)
+    final iconSize = ResponsiveConfig.responsiveSize(
+      maxWidth * 0.15,
+      screenSize,
+      minScale: 0.9,
+      maxScale: 1.2,
+    ).clamp(48.0, 80.0);
     final hasCoins = widget.coinReward > 0;
     final hasGems = widget.gemReward > 0;
     
@@ -181,11 +221,11 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
                   );
                 },
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
               Text(
                 '+${widget.coinReward}',
                 style: TextStyle(
-                  fontSize: isVerySmallScreen ? 18 : 22,
+                  fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
                   fontWeight: FontWeight.bold,
                   color: Colors.amber,
                   shadows: const [
@@ -200,16 +240,17 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
             ],
           ),
         ],
-        if (hasCoins && hasGems) SizedBox(width: isVerySmallScreen ? 24 : 32),
+        if (hasCoins && hasGems) 
+          SizedBox(width: ResponsiveConfig.responsivePadding(32.0, screenSize)),
         if (hasGems) ...[
           Column(
             children: [
               Gem3DIcon(size: iconSize), // ✅ Real 3D gem image
-              const SizedBox(height: 8),
+              SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
               Text(
                 '+${widget.gemReward}',
                 style: TextStyle(
-                  fontSize: isVerySmallScreen ? 18 : 22,
+                  fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
                   fontWeight: FontWeight.bold,
                   color: Colors.purple,
                   shadows: const [
@@ -228,19 +269,25 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
     );
   }
 
-  Widget _buildDescription(bool isVerySmallScreen) {
+  Widget _buildDescription(BuildContext context, Size screenSize) {
+    final fontSize = ResponsiveConfig.responsiveFontSize(16.0, screenSize, context);
+    
     return Text(
       widget.description,
       textAlign: TextAlign.center,
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        fontSize: isVerySmallScreen ? 14 : 16,
+        fontSize: fontSize,
         color: Colors.white.withValues(alpha: 0.9),
         height: 1.4,
       ),
     );
   }
 
-  Widget _buildActionButton(BuildContext context, bool isSmallScreen) {
+  Widget _buildActionButton(BuildContext context, Size screenSize) {
+    final buttonHeight = ResponsiveConfig.responsiveButtonHeight(56.0, screenSize);
+    
     return ModernGameButton(
       label: 'AWESOME!',
       onPressed: () {
@@ -250,7 +297,7 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
           Navigator.of(context).pop();
         }
       },
-      height: isSmallScreen ? 48 : 56,
+      height: buttonHeight,
       style: ModernButtonStyle.primary, // Gold
     );
   }

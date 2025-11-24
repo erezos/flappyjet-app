@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/systems/daily_streak_manager.dart';
 import '../../../game/core/jet_skins.dart';
+import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
 import 'daily_streak_reward_claim_popup.dart';
 import '../buttons/modern_game_button.dart';
@@ -461,7 +462,34 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
       case DailyStreakRewardType.jetSkin:
         // Show actual jet preview instead of generic plane icon
         if (reward.jetSkinId != null) {
-          final jetSkin = JetSkinCatalog.getSkinById(reward.jetSkinId!);
+          // Handle progressive jet system (Day 6 reward)
+          String? jetIdToDisplay = reward.jetSkinId;
+          if (reward.jetSkinId == 'progressive_jet') {
+            // Determine which jet will be awarded by checking ownership
+            const jetProgression = [
+              'cobra_strike',
+              'storm_chaser',
+              'disco_fever',
+              'ruby_phantom',
+              'sugar_storm',
+            ];
+            
+            // Find first jet player doesn't own
+            final inventory = InventoryManager();
+            for (final jetId in jetProgression) {
+              if (!inventory.isOwned(jetId)) {
+                jetIdToDisplay = jetId;
+                break;
+              }
+            }
+            
+            // If player owns all jets, show first jet in progression as preview
+            if (jetIdToDisplay == 'progressive_jet') {
+              jetIdToDisplay = jetProgression.first;
+            }
+          }
+          
+          final jetSkin = JetSkinCatalog.getSkinById(jetIdToDisplay!);
           if (jetSkin != null) {
             return Opacity(
               opacity: isLocked 

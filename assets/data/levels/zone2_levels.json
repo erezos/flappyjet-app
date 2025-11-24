@@ -130,9 +130,9 @@
       "botBattle": {
         "botName": "Desert Storm",
         "botJetSkin": "desert_storm",
-        "skillLevel": 0.80,
-        "reactionTime": 0.22,
-        "mistakeRate": 0.06,
+        "skillLevel": 0.10,
+        "reactionTime": 0.35,
+        "mistakeRate": 0.85,
         "minObstaclePass": 10
       }
     },
@@ -263,9 +263,9 @@
       "botBattle": {
         "botName": "Sky Prince",
         "botJetSkin": "sky_prince",
-        "skillLevel": 0.85,
-        "reactionTime": 0.20,
-        "mistakeRate": 0.05,
+        "skillLevel": 0.15,
+        "reactionTime": 0.35,
+        "mistakeRate": 0.85,
         "minObstaclePass": 12,
         "firstAttemptOverride": {
           "skillLevel": 0.92,

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/analytics/unified_analytics_manager.dart';
+import '../core/events/event_bus.dart';
 import '../core/debug_logger.dart';
 
 /// Manages interstitial ads for Story Mode with frequency caps and cooldowns
@@ -133,15 +134,27 @@ class InterstitialAdManager {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
         safePrint('📺 Interstitial ad showed');
+        
+        // ✅ FIX: Calculate time since last ad BEFORE updating the timestamp
+        final timeSinceLastAd = _lastAdShownTime != null 
+          ? DateTime.now().difference(_lastAdShownTime!).inSeconds 
+          : null;
+        
+        // Update timestamp AFTER calculating the difference
         _lastAdShownTime = DateTime.now();
         
-        // Track analytics
+        // Track analytics to Firebase
         UnifiedAnalyticsManager().trackEvent('interstitial_shown', {
           'wins_this_session': _winsThisSession,
           'lifetime_wins': _totalLifetimeWins,
-          'time_since_last_ad': _lastAdShownTime != null 
-            ? DateTime.now().difference(_lastAdShownTime!).inSeconds 
-            : null,
+          'time_since_last_ad': timeSinceLastAd,
+        });
+        
+        // 📊 Send to Railway backend via EventBus
+        EventBus().fire('interstitial_shown', {
+          'wins_this_session': _winsThisSession,
+          'lifetime_wins': _totalLifetimeWins,
+          'time_since_last_ad': timeSinceLastAd,
         });
       },
       onAdDismissedFullScreenContent: (ad) {
@@ -157,8 +170,13 @@ class InterstitialAdManager {
           _pendingOnAdClosed = null; // Clear the callback
         }
         
-        // Track analytics
+        // Track analytics to Firebase
         UnifiedAnalyticsManager().trackEvent('interstitial_dismissed', {
+          'wins_this_session': _winsThisSession,
+        });
+        
+        // 📊 Send to Railway backend via EventBus (optional but good for completeness)
+        EventBus().fire('interstitial_dismissed', {
           'wins_this_session': _winsThisSession,
         });
       },

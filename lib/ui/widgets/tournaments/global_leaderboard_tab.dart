@@ -155,27 +155,83 @@ class _GlobalLeaderboardTabState extends State<GlobalLeaderboardTab> {
   }
 
   Widget _buildErrorState() {
+    // Check if it's a server error (500) or network error
+    final isServerError = _error?.contains('500') == true || 
+                         _error?.contains('Server error') == true;
+    
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
-          const SizedBox(height: 16),
-          Text(
-            _error!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadGlobalLeaderboard,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4ECDC4),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Retry'),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Animated icon
+            Icon(
+              isServerError ? Icons.construction : Icons.cloud_off,
+              color: const Color(0xFF4ECDC4),
+              size: 80,
+            ).animate()
+              .scale(delay: 200.ms, duration: 600.ms, curve: Curves.elasticOut)
+              .shimmer(delay: 800.ms, duration: 1200.ms),
+            
+            const SizedBox(height: 24),
+            
+            // Title
+            Text(
+              isServerError ? 'Coming Soon...' : 'Connection Issue',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ).animate()
+              .fadeIn(delay: 300.ms, duration: 400.ms)
+              .slideY(begin: -0.2, end: 0),
+            
+            const SizedBox(height: 12),
+            
+            // Description
+            Text(
+              isServerError 
+                ? 'We\'re upgrading the global leaderboard!\nCheck back soon to see worldwide rankings.'
+                : 'Unable to load leaderboard.\nPlease check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ).animate()
+              .fadeIn(delay: 500.ms, duration: 400.ms)
+              .slideY(begin: -0.1, end: 0),
+            
+            const SizedBox(height: 32),
+            
+            // Retry button
+            ElevatedButton.icon(
+              onPressed: _loadGlobalLeaderboard,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4ECDC4),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              icon: const Icon(Icons.refresh, size: 20),
+              label: const Text(
+                'Try Again',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ).animate()
+              .fadeIn(delay: 700.ms, duration: 400.ms)
+              .scale(delay: 700.ms, duration: 400.ms, begin: const Offset(0.9, 0.9)),
+          ],
+        ),
       ),
     );
   }

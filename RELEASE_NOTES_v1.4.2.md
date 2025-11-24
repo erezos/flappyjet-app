@@ -1,13 +1,18 @@
 <en-US>
-🚀 FLAPPYJET PRO v2.0.6
+🚀 FLAPPYJET PRO v2.1.2
 
-🌍 NEW: EPIC STORY MODE!
+🐛 BUG FIXES & IMPROVEMENTS:
+✅ Fixed interstitial ad analytics tracking
+✅ Improved boss difficulty balance
+✅ Enhanced analytics accuracy
+
+🌍 EPIC STORY MODE!
 50 handcrafted levels across 5 stunning zones! Battle AI rivals!
 
 🎯 DAILY MISSIONS & ACHIEVEMENTS!
 Complete challenges, unlock legendary rewards!
 
-✨ NEW FEATURES:
+✨ FEATURES:
 🏆 Weekly tournaments - global competition
 🤖 Boss battles - defeat rival pilots
 🗺️ 5 unique zones - Desert, Ocean, Space, City, Arctic
@@ -19,7 +24,7 @@ Join millions of pilots! Download NOW! ✈️🔥
 </en-US>
 
 <es-ES>
-🚀 FLAPPYJET PRO v2.0.6
+🚀 FLAPPYJET PRO v2.1.2
 
 🌍 ¡NUEVO: MODO HISTORIA ÉPICO!
 ¡50 niveles en 5 zonas! ¡Batalla contra rivales IA!
@@ -39,7 +44,7 @@ Join millions of pilots! Download NOW! ✈️🔥
 </es-ES>
 
 <fr-FR>
-🚀 FLAPPYJET PRO v2.0.6
+🚀 FLAPPYJET PRO v2.1.2
 
 🌍 NOUVEAU: MODE HISTOIRE ÉPIQUE!
 50 niveaux dans 5 zones! Battez des rivaux IA!
@@ -59,7 +64,7 @@ Rejoignez millions de pilotes! Téléchargez MAINTENANT! ✈️🔥
 </fr-FR>
 
 <de-DE>
-🚀 FLAPPYJET PRO v2.0.6
+🚀 FLAPPYJET PRO v2.1.2
 
 🌍 NEU: EPISCHER STORY-MODUS!
 50 Level in 5 Zonen! Kämpfe gegen KI-Rivalen!
@@ -79,7 +84,7 @@ Schließe dich Millionen Piloten an! Lade JETZT herunter! ✈️🔥
 </de-DE>
 
 <ja-JP>
-🚀 FLAPPYJET PRO v2.0.6
+🚀 FLAPPYJET PRO v2.1.2
 
 🌍 新機能：壮大なストーリーモード！
 5つの美しいゾーンに50のレベル！AIライバルとバトル！
@@ -99,7 +104,7 @@ Schließe dich Millionen Piloten an! Lade JETZT herunter! ✈️🔥
 </ja-JP>
 
 <ko-KR>
-🚀 FLAPPYJET PRO v2.0.6
+🚀 FLAPPYJET PRO v2.1.2
 
 🌍 신규: 에픽 스토리 모드!
 5개의 멋진 존에 50개 레벨! AI 라이벌과 배틀!
@@ -119,7 +124,7 @@ Schließe dich Millionen Piloten an! Lade JETZT herunter! ✈️🔥
 </ko-KR>
 
 <zh-CN>
-🚀 FLAPPYJET PRO v2.0.6
+🚀 FLAPPYJET PRO v2.1.2
 
 🌍 新功能：史诗故事模式！
 5个绚丽区域50个关卡！对战AI对手！

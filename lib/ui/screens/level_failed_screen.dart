@@ -9,14 +9,13 @@ import 'package:flutter/material.dart';
 import '../../models/level_data_schema.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
-import '../../game/systems/monetization_manager.dart';
 import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import 'world_map_screen.dart';
 import 'level_objective_popup.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
-import '../widgets/no_hearts_dialog.dart';
+import '../utils/responsive_config.dart';
 
 class LevelFailedScreen extends StatefulWidget {
   final LevelData level;
@@ -127,9 +126,19 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   /// 🎮 FLAME BEST PRACTICE: Responsive popup - NO SCROLLING
   /// Uses ConstrainedBox + FittedBox for automatic scaling
   Widget _buildResponsivePopup(Size screenSize) {
-    // 🎮 RESPONSIVE CONSTRAINTS: Popup takes 85% width, max 75% height
-    final popupWidth = (screenSize.width * 0.85).clamp(300.0, 420.0);
-    final maxPopupHeight = screenSize.height * 0.75; // Maximum 75% of screen height
+    // 🎮 RESPONSIVE CONSTRAINTS: Use ResponsiveConfig for consistent sizing
+    final popupWidth = ResponsiveConfig.responsivePopupWidth(
+      screenSize,
+      percent: 0.85,
+      minWidth: 300.0,
+      maxWidth: 450.0,
+    );
+    final maxPopupHeight = ResponsiveConfig.responsivePopupHeight(
+      screenSize,
+      percent: 0.75,
+      minHeight: 400.0,
+      maxHeight: 700.0,
+    );
     
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -177,8 +186,8 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildHeader(screenSize.height),
-                      _buildMainContent(),
+                      _buildHeader(screenSize),
+                      _buildMainContent(screenSize),
                     ],
                   ),
                   // X button in top-right corner
@@ -190,10 +199,6 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
         ),
       ),
     );
-  }
-
-  bool _canRetry() {
-    return _livesManager.currentLives > 0;
   }
 
   /// 🚀 CLOSE BUTTON: X button in top-right corner
@@ -228,9 +233,10 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   }
 
   /// 🎨 HEADER: Crashed jet animation + "GAME OVER" title
-  Widget _buildHeader(double screenHeight) {
+  Widget _buildHeader(Size screenSize) {
+    final padding = ResponsiveConfig.responsivePadding(20.0, screenSize);
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      padding: EdgeInsets.fromLTRB(padding, padding, padding, ResponsiveConfig.responsivePadding(12.0, screenSize)),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -244,33 +250,50 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
       ),
       child: Column(
         children: [
-          // 🚀 CRASHED JET: Player's jet with smoke animation (12% screen height)
-          _buildCrashedPlayerJet((screenHeight * 0.12).clamp(80.0, 100.0)),
-          const SizedBox(height: 10),
-          const Text(
-            'GAME OVER',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24, // Slightly smaller for compact design
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2.5,
-              shadows: [
-                Shadow(
-                  color: Colors.red,
-                  blurRadius: 12,
-                ),
-              ],
-            ),
+          // 🚀 CRASHED JET: Player's jet with smoke animation (responsive size)
+          Builder(
+            builder: (context) {
+              final jetSize = ResponsiveConfig.responsiveSize(90.0, screenSize, minScale: 0.9, maxScale: 1.1);
+              return _buildCrashedPlayerJet(jetSize.clamp(80.0, 110.0));
+            },
           ),
-          const SizedBox(height: 4),
-          Text(
-            widget.level.name,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+          SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+          Builder(
+            builder: (context) {
+              final fontSize = ResponsiveConfig.responsiveFontSize(24.0, screenSize, context);
+              return Text(
+                'GAME OVER',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.5,
+                  shadows: const [
+                    Shadow(
+                      color: Colors.red,
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          SizedBox(height: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+          Builder(
+            builder: (context) {
+              final fontSize = ResponsiveConfig.responsiveFontSize(14.0, screenSize, context);
+              return Text(
+                widget.level.name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -368,59 +391,76 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   }
 
   /// 📊 MAIN CONTENT: Progress, message, continue options, action buttons
-  Widget _buildMainContent() {
+  Widget _buildMainContent(Size screenSize) {
     final progress = widget.objectiveAchieved / widget.objectiveTarget;
     final canContinue = widget.continuesRemaining > 0;
 
+    final horizontalPadding = ResponsiveConfig.responsivePadding(20.0, screenSize);
+    final verticalPadding = ResponsiveConfig.responsivePadding(16.0, screenSize);
+    final spacingSmall = ResponsiveConfig.responsivePadding(12.0, screenSize);
+    final spacingMedium = ResponsiveConfig.responsivePadding(14.0, screenSize);
+    
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, ResponsiveConfig.responsivePadding(8.0, screenSize), horizontalPadding, verticalPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Progress section - compact circular progress
-          _buildCompactProgressSection(progress),
-          const SizedBox(height: 12),
+          _buildCompactProgressSection(progress, screenSize),
+          SizedBox(height: spacingSmall),
 
           // Encouragement message - motivating
-          Text(
-            _getEncouragementMessage(progress),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              height: 1.3,
-            ),
+          Builder(
+            builder: (context) {
+              final fontSize = ResponsiveConfig.responsiveFontSize(14.0, screenSize, context);
+              return Text(
+                _getEncouragementMessage(progress),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: spacingMedium),
 
           // Continue options - compact buttons (if continues available)
           if (canContinue) ...[
-            _buildCompactContinueOptions(),
-            const SizedBox(height: 12),
+            _buildCompactContinueOptions(screenSize),
+            SizedBox(height: spacingSmall),
             // Divider
             Row(
               children: [
                 Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1), thickness: 1)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    'OR',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  padding: EdgeInsets.symmetric(horizontal: spacingSmall),
+                  child: Builder(
+                    builder: (context) {
+                      final fontSize = ResponsiveConfig.responsiveFontSize(11.0, screenSize, context);
+                      return Text(
+                        'OR',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1), thickness: 1)),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: spacingSmall),
           ],
 
           // Action button - "START OVER" (replaces "Try Again")
-          _buildStartOverButton(),
+          _buildStartOverButton(screenSize),
         ],
       ),
     );
@@ -451,8 +491,8 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     }
   }
 
-  /// 📊 COMPACT PROGRESS SECTION: Smaller circular progress (80px instead of 120px)
-  Widget _buildCompactProgressSection(double progress) {
+  /// 📊 COMPACT PROGRESS SECTION: Smaller circular progress (responsive size)
+  Widget _buildCompactProgressSection(double progress, Size screenSize) {
     final isVsMode = widget.level.objective.type == ObjectiveType.beatBot;
     
     // 🎮 VS MODE: Show random 80-95% to create urgency
@@ -472,17 +512,20 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
       displayProgress = cappedProgress;
     }
     
+    // Responsive progress circle size
+    final progressSize = ResponsiveConfig.responsiveSize(80.0, screenSize, minScale: 0.9, maxScale: 1.2);
+    
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Circular progress with percentage (COMPACT: 80px instead of 120px)
+        // Circular progress with percentage (responsive size)
         Stack(
           alignment: Alignment.center,
           children: [
             // Background circle
             SizedBox(
-              width: 80,
-              height: 80,
+              width: progressSize,
+              height: progressSize,
               child: CircularProgressIndicator(
                 value: displayProgress,
                 strokeWidth: 8,
@@ -497,53 +540,72 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               ),
             ),
             // Percentage text
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$percentage%',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24, // Smaller font for compact design
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  isVsMode ? 'There!' : 'Done',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            Builder(
+              builder: (context) {
+                final percentageFontSize = ResponsiveConfig.responsiveFontSize(24.0, screenSize, context);
+                final labelFontSize = ResponsiveConfig.responsiveFontSize(11.0, screenSize, context);
+                
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$percentage%',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: percentageFontSize,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: ResponsiveConfig.responsivePadding(1.0, screenSize)),
+                    Text(
+                      isVsMode ? 'There!' : 'Done',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: labelFontSize,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        // Objective details (smaller text)
-        Text(
-          isVsMode 
-            ? '🏆 ${widget.objectiveAchieved} obstacles dodged!'
-            : widget.level.objective.description,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
+        SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+        // Objective details (responsive text)
+        Builder(
+          builder: (context) {
+            final fontSize = ResponsiveConfig.responsiveFontSize(13.0, screenSize, context);
+            return Text(
+              isVsMode 
+                ? '🏆 ${widget.objectiveAchieved} obstacles dodged!'
+                : widget.level.objective.description,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: fontSize,
+                fontWeight: FontWeight.w500,
+              ),
+            );
+          },
         ),
         // Only show X/Y for story mode
         if (!isVsMode) ...[
-          const SizedBox(height: 6),
-          Text(
-            '${widget.objectiveAchieved} / ${widget.objectiveTarget}',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          SizedBox(height: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+          Builder(
+            builder: (context) {
+              final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+              return Text(
+                '${widget.objectiveAchieved} / ${widget.objectiveTarget}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+            },
           ),
         ],
       ],
@@ -551,7 +613,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   }
 
   /// 🎬 COMPACT CONTINUE OPTIONS: Smaller, more engaging buttons
-  Widget _buildCompactContinueOptions() {
+  Widget _buildCompactContinueOptions(Size screenSize) {
     final playerGems = _inventoryManager.gems;
     final continuePrice = 3; // 3 gems per continue
     final canAffordGems = playerGems >= continuePrice;
@@ -559,16 +621,21 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Continue header (smaller)
-        Text(
-          'Continue? ${widget.continuesRemaining} left',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
+        // Continue header (responsive)
+        Builder(
+          builder: (context) {
+            final fontSize = ResponsiveConfig.responsiveFontSize(15.0, screenSize, context);
+            return Text(
+              'Continue? ${widget.continuesRemaining} left',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: fontSize,
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          },
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
         // Compact continue buttons row
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -576,8 +643,9 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             // Watch Ad button - compact
             _buildCompactAdButton(
               onPressed: widget.onContinueWithAd,
+              screenSize: screenSize,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
             // Use Gems button - compact
             _buildCompactGemButton(
               gemCost: continuePrice,
@@ -585,6 +653,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               onPressed: canAffordGems && widget.onContinueWithGems != null
                 ? widget.onContinueWithGems
                 : null,
+              screenSize: screenSize,
             ),
           ],
         ),
@@ -593,7 +662,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   }
 
   /// 🎬 COMPACT AD BUTTON: Smaller, engaging design
-  Widget _buildCompactAdButton({VoidCallback? onPressed}) {
+  Widget _buildCompactAdButton({VoidCallback? onPressed, required Size screenSize}) {
     final isEnabled = onPressed != null;
     
     return Material(
@@ -633,44 +702,52 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               ),
             ] : null,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // "FREE" text
-              Text(
-                'FREE',
-                style: TextStyle(
-                  color: isEnabled ? Colors.greenAccent : Colors.grey,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                  shadows: isEnabled ? [
-                    Shadow(
-                      color: Colors.green.withValues(alpha: 0.5),
-                      blurRadius: 6,
+          child: Builder(
+            builder: (context) {
+              final freeFontSize = ResponsiveConfig.responsiveFontSize(22.0, screenSize, context);
+              final iconSize = ResponsiveConfig.responsiveIconSize(16.0, screenSize);
+              final labelFontSize = ResponsiveConfig.responsiveFontSize(10.0, screenSize, context);
+              
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // "FREE" text
+                  Text(
+                    'FREE',
+                    style: TextStyle(
+                      color: isEnabled ? Colors.greenAccent : Colors.grey,
+                      fontSize: freeFontSize,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                      shadows: isEnabled ? [
+                        Shadow(
+                          color: Colors.green.withValues(alpha: 0.5),
+                          blurRadius: 6,
+                        ),
+                      ] : null,
                     ),
-                  ] : null,
-                ),
-              ),
-              const SizedBox(height: 4),
-              // Video icon
-              Icon(
-                Icons.play_circle_outline,
-                color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
-                size: 16,
-              ),
-              const SizedBox(height: 2),
-              // "watch ad" text
-              Text(
-                'watch ad',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                  // Video icon
+                  Icon(
+                    Icons.play_circle_outline,
+                    color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
+                    size: iconSize,
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
+                  // "watch ad" text
+                  Text(
+                    'watch ad',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
+                      fontSize: labelFontSize,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -682,6 +759,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     required int gemCost,
     required bool canAfford,
     VoidCallback? onPressed,
+    required Size screenSize,
   }) {
     final isEnabled = onPressed != null && canAfford;
     
@@ -722,62 +800,71 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               ),
             ] : null,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // "3 GEMS" on same line at top
-              Row(
+          child: Builder(
+            builder: (context) {
+              final gemCostFontSize = ResponsiveConfig.responsiveFontSize(22.0, screenSize, context);
+              final gemsLabelFontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+              final iconSize = ResponsiveConfig.responsiveIconSize(16.0, screenSize);
+              final continueFontSize = ResponsiveConfig.responsiveFontSize(10.0, screenSize, context);
+              
+              return Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '$gemCost',
-                    style: TextStyle(
-                      color: isEnabled ? Colors.white : Colors.grey,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                      shadows: isEnabled ? [
-                        Shadow(
-                          color: Colors.purple.withValues(alpha: 0.5),
-                          blurRadius: 6,
+                  // "3 GEMS" on same line at top
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$gemCost',
+                        style: TextStyle(
+                          color: isEnabled ? Colors.white : Colors.grey,
+                          fontSize: gemCostFontSize,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                          shadows: isEnabled ? [
+                            Shadow(
+                              color: Colors.purple.withValues(alpha: 0.5),
+                              blurRadius: 6,
+                            ),
+                          ] : null,
                         ),
-                      ] : null,
-                    ),
+                      ),
+                      SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                      Text(
+                        'GEMS',
+                        style: TextStyle(
+                          color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
+                          fontSize: gemsLabelFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                  // Gem icon in middle
+                  Image.asset(
+                    'assets/images/icons/gem_icon.png',
+                    width: iconSize,
+                    height: iconSize,
+                    color: isEnabled ? null : Colors.grey,
+                    opacity: isEnabled ? const AlwaysStoppedAnimation(1.0) : const AlwaysStoppedAnimation(0.5),
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
+                  // "continue" text at bottom
                   Text(
-                    'GEMS',
+                    'continue',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
+                      fontSize: continueFontSize,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 4),
-              // Gem icon in middle
-              Image.asset(
-                'assets/images/icons/gem_icon.png',
-                width: 16,
-                height: 16,
-                color: isEnabled ? null : Colors.grey,
-                opacity: isEnabled ? const AlwaysStoppedAnimation(1.0) : const AlwaysStoppedAnimation(0.5),
-              ),
-              const SizedBox(height: 2),
-              // "continue" text at bottom
-              Text(
-                'continue',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -785,8 +872,9 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   }
 
   /// 🚀 START OVER BUTTON: Replaces "Try Again", opens heart refill dialog if needed
-  Widget _buildStartOverButton() {
+  Widget _buildStartOverButton(Size screenSize) {
     final hasHearts = _livesManager.currentLives > 0;
+    final buttonHeight = ResponsiveConfig.responsiveButtonHeight(48.0, screenSize);
     
     return SizedBox(
       width: double.infinity,
@@ -795,7 +883,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
           ? 'START OVER (${_livesManager.currentLives} ❤️)'
           : 'START OVER',
         onPressed: _onStartOver,
-        height: 48, // Compact height
+        height: buttonHeight,
         style: hasHearts ? ModernButtonStyle.gold : ModernButtonStyle.secondary,
         enabled: true, // Always enabled (will show heart refill dialog if no hearts)
       ),
@@ -833,23 +921,5 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  /// ❤️ HEART REFILL DIALOG: Show NoHeartsDialog which offers 12 gems for full refill
-  Future<void> _showHeartRefillDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => NoHeartsDialog(
-        onClose: () => Navigator.of(context).pop(false),
-        monetization: MonetizationManager(), // Pass singleton instance
-      ),
-    );
-
-    // ✅ If hearts were refilled, user can try again
-    if (result == true && mounted) {
-      setState(() {
-        // Rebuild to update button state
-      });
-    }
-  }
 }
 

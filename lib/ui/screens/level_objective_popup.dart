@@ -11,6 +11,7 @@ import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
 import '../../game/core/jet_skins.dart';
 import 'world_map_screen.dart';
+import '../utils/responsive_config.dart';
 
 /// Get bot jet sprite path from JetSkinCatalog
 String _getBotJetSpritePath(String botJetSkinId) {
@@ -44,7 +45,6 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
   late AnimationController _vsController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _jetBounceAnimation;
-  late Animation<double> _vsAnimation;
   bool _isStarting = false;
 
   @override
@@ -77,17 +77,10 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
       ),
     );
 
-    // VS badge pulse animation
+    // VS badge pulse animation (controller created but animation not currently used)
     _vsController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
-    );
-
-    _vsAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(
-        parent: _vsController,
-        curve: Curves.easeInOut,
-      ),
     );
 
     // Start animations
@@ -139,162 +132,189 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
   @override
   Widget build(BuildContext context) {
     final isVsBattle = widget.level.botBattle != null;
+    final screenSize = MediaQuery.of(context).size;
+    
+    // Responsive popup sizing
+    final popupWidth = ResponsiveConfig.responsivePopupWidth(
+      screenSize,
+      percent: 0.9,
+      minWidth: 320.0,
+      maxWidth: 500.0,
+    );
     
     return Dialog(
       backgroundColor: Colors.transparent,
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            // Modern gradient border
-            gradient: LinearGradient(
-              colors: [
-                Colors.amber.shade400,
-                Colors.orange.shade600,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.6),
-                blurRadius: 30,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
-            ),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              // Deep blue gradient background
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1E3A8A),
-                  Color(0xFF312E81),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              margin: ResponsiveConfig.responsiveEdgeInsets(16.0, screenSize),
+              padding: ResponsiveConfig.responsiveEdgeInsets(4.0, screenSize),
+              decoration: BoxDecoration(
+                // Modern gradient border
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.amber.shade400,
+                    Colors.orange.shade600,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                  ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Stack(
-              children: [
-                // Main content (scrollable to handle overflow)
-                  SingleChildScrollView(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: popupWidth,
+                  maxHeight: ResponsiveConfig.responsivePopupHeight(
+                    screenSize,
+                    percent: 0.8,
+                    minHeight: 400.0,
+                    maxHeight: 700.0,
+                  ),
+                ),
+                padding: ResponsiveConfig.responsiveEdgeInsets(20.0, screenSize),
+                decoration: BoxDecoration(
+                  // Deep blue gradient background
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF1E3A8A),
+                      Color(0xFF312E81),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Level title with modern styling
-                      Text(
-                        'LEVEL ${widget.level.id}',
-                        style: TextStyle(
-                          color: Colors.amber.shade300,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              offset: const Offset(0, 2),
-                              blurRadius: 4,
+                      Builder(
+                        builder: (context) {
+                          final titleFontSize = ResponsiveConfig.responsiveFontSize(26.0, screenSize, context);
+                          return Text(
+                            'LEVEL ${widget.level.id}',
+                            style: TextStyle(
+                              color: Colors.amber.shade300,
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  offset: const Offset(0, 2),
+                                  blurRadius: 4,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                       
-                      const SizedBox(height: 2),
+                      SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
                       
-                      Text(
-                        widget.level.name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final nameFontSize = ResponsiveConfig.responsiveFontSize(16.0, screenSize, context);
+                          return Text(
+                            widget.level.name,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: nameFontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
                       ),
                       
-                      const SizedBox(height: 16),
+                      SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
 
                       // Objective card (comes first for VS battles)
                       _buildObjectiveCard(),
                       
                       // VS Battle Section with Enemy Jet (comes after objective)
                       if (isVsBattle) ...[
-                        const SizedBox(height: 12),
-                        _buildVsBattleSection(),
+                        SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+                        _buildVsBattleSection(screenSize),
                       ],
                       
-                      const SizedBox(height: 12),
+                      SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
 
                       // Reward card
-                      _buildRewardCard(),
+                      _buildRewardCard(screenSize),
                       
-                      const SizedBox(height: 12),
+                      SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
 
                       // Start Button
                       _buildStartButton(),
                     ],
                   ),
                 ),
-                
-                // Close button (top right)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () {
-                      if (!_isStarting) {
-                        // ✅ FIX: Navigate to world map instead of just popping
-                        // This prevents showing the old game over screen when coming from "Start Over"
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (context) => const WorldMapScreen(),
-                          ),
-                          (route) => route.isFirst, // Keep tab navigation in stack
-                        );
-                      }
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+              ),
+            ),
+            
+            // Close button positioned at top-right of popup window (outer container)
+            Positioned(
+              top: ResponsiveConfig.responsivePadding(8.0, screenSize),
+              right: ResponsiveConfig.responsivePadding(8.0, screenSize),
+              child: GestureDetector(
+                onTap: () {
+                  if (!_isStarting) {
+                    // ✅ FIX: Navigate to world map instead of just popping
+                    // This prevents showing the old game over screen when coming from "Start Over"
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const WorldMapScreen(),
                       ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                      (route) => route.isFirst, // Keep tab navigation in stack
+                    );
+                  }
+                },
+                child: Container(
+                  width: ResponsiveConfig.responsiveIconSize(40.0, screenSize),
+                  height: ResponsiveConfig.responsiveIconSize(40.0, screenSize),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      width: ResponsiveConfig.responsiveSize(2.0, screenSize, minScale: 0.8, maxScale: 1.2),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: ResponsiveConfig.responsiveSize(8.0, screenSize),
+                        offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
   /// 🆚 VS Battle Section with animated enemy jet - COMPACT VERSION
-  Widget _buildVsBattleSection() {
+  Widget _buildVsBattleSection(Size screenSize) {
     final bot = widget.level.botBattle!;
     
     return Container(
@@ -306,10 +326,13 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
             offset: Offset(0, _jetBounceAnimation.value * 0.5), // Reduced bounce
             child: Column(
               children: [
-                // Compact jet display with glow
-                Container(
-                  width: 100,
-                  height: 100,
+                // Compact jet display with glow (responsive size)
+                Builder(
+                  builder: (context) {
+                    final jetSize = ResponsiveConfig.responsiveSize(100.0, screenSize, minScale: 0.9, maxScale: 1.2);
+                    return Container(
+                      width: jetSize,
+                      height: jetSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
@@ -356,13 +379,21 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                       fit: BoxFit.contain,
                     ),
                   ),
+                    );
+                  },
                 ),
                 
-                const SizedBox(height: 10),
+                SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
                 
                 // Bot name with epic styling
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                Builder(
+                  builder: (context) {
+                    final padding = ResponsiveConfig.responsivePadding(18.0, screenSize);
+                    final verticalPadding = ResponsiveConfig.responsivePadding(6.0, screenSize);
+                    final fontSize = ResponsiveConfig.responsiveFontSize(14.0, screenSize, context);
+                    
+                    return Container(
+                      padding: EdgeInsets.symmetric(horizontal: padding, vertical: verticalPadding),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -388,23 +419,27 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                       ),
                     ],
                   ),
-                  child: Text(
-                    bot.botName.toUpperCase(),
-                    style: TextStyle(
-                      color: Colors.yellow.shade200,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.8),
-                          offset: const Offset(0, 1),
-                          blurRadius: 2,
+                      child: Text(
+                        bot.botName.toUpperCase(),
+                        style: TextStyle(
+                          color: Colors.yellow.shade200,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.8),
+                              offset: const Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -416,6 +451,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
 
   /// 🎯 Modern objective card
   Widget _buildObjectiveCard() {
+    final screenSize = MediaQuery.of(context).size;
     final objectiveType = widget.level.objective.type;
     
     return Column(
@@ -425,10 +461,14 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
           children: [
             // 🎯 Use obstacle image for "pass obstacles" objective
             if (objectiveType == ObjectiveType.passObstacles)
-              Container(
-                width: 44,
-                height: 44,
-                padding: const EdgeInsets.all(4),
+              Builder(
+                builder: (context) {
+                  final iconSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize);
+                  final padding = ResponsiveConfig.responsivePadding(4.0, screenSize);
+                  return Container(
+                    width: iconSize,
+                    height: iconSize,
+                    padding: EdgeInsets.all(padding),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
@@ -436,68 +476,100 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                 child: Image.asset(
                   'assets/images/obstacles/${widget.level.theme.obstacles}',
                   fit: BoxFit.contain,
-                ),
+                  ),
+                  );
+                },
               )
             else
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _getObjectiveIcon(),
-                  color: Colors.amber.shade300,
-                  size: 24,
-                ),
+              Builder(
+                builder: (context) {
+                  final padding = ResponsiveConfig.responsivePadding(6.0, screenSize);
+                  final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize);
+                  return Container(
+                    padding: EdgeInsets.all(padding),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _getObjectiveIcon(),
+                      color: Colors.amber.shade300,
+                      size: iconSize,
+                    ),
+                  );
+                },
               ),
-            const SizedBox(width: 10),
-            const Text(
-              'OBJECTIVE',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2,
-              ),
+            SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+            Builder(
+              builder: (context) {
+                final fontSize = ResponsiveConfig.responsiveFontSize(13.0, screenSize, context);
+                return Text(
+                  'OBJECTIVE',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                  ),
+                );
+              },
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          widget.level.objective.description,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            height: 1.2,
-          ),
+        SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+        Builder(
+          builder: (context) {
+            final fontSize = ResponsiveConfig.responsiveFontSize(16.0, screenSize, context);
+            return Text(
+              widget.level.objective.description,
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            );
+          },
         ),
       ],
     );
   }
 
   /// 💰 Modern reward card
-  Widget _buildRewardCard() {
+  Widget _buildRewardCard(Size screenSize) {
     return Column(
       children: [
-        const Text(
-          'REWARD',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 2,
-          ),
+        Builder(
+          builder: (context) {
+            final fontSize = ResponsiveConfig.responsiveFontSize(13.0, screenSize, context);
+            return Text(
+              'REWARD',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            );
+          },
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Coins
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            Builder(
+              builder: (context) {
+                final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
+                final verticalPadding = ResponsiveConfig.responsivePadding(5.0, screenSize);
+                final fontSize = ResponsiveConfig.responsiveFontSize(18.0, screenSize, context);
+                final iconSize = ResponsiveConfig.responsiveIconSize(20.0, screenSize);
+                
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
               decoration: BoxDecoration(
                 color: Colors.amber.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
@@ -506,27 +578,35 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                   width: 2,
                 ),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.monetization_on,
-                      color: Colors.amber, size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${widget.level.reward.coins}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.monetization_on, color: Colors.amber, size: iconSize),
+                      SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                      Text(
+                        '${widget.level.reward.coins}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
             // Gems (if any)
             if (widget.level.reward.gems > 0) ...[
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)),
+              Builder(
+                builder: (context) {
+                  final horizontalPadding = ResponsiveConfig.responsivePadding(12.0, screenSize);
+                  final verticalPadding = ResponsiveConfig.responsivePadding(6.0, screenSize);
+                  final fontSize = ResponsiveConfig.responsiveFontSize(22.0, screenSize, context);
+                  final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize);
+                  
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
                 decoration: BoxDecoration(
                   color: Colors.cyan.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -535,24 +615,26 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                     width: 2,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/images/icons/gem_icon.png',
-                      width: 24,
-                      height: 24,
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          'assets/images/icons/gem_icon.png',
+                          width: iconSize,
+                          height: iconSize,
+                        ),
+                        SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+                        Text(
+                          '${widget.level.reward.gems}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${widget.level.reward.gems}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ],
           ],
@@ -563,6 +645,8 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
 
   /// ▶️ Modern start button
   Widget _buildStartButton() {
+    final screenSize = MediaQuery.of(context).size;
+    final buttonHeight = ResponsiveConfig.responsiveButtonHeight(60.0, screenSize);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -595,7 +679,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
           : ModernGameButton(
               label: 'START ▶',
               onPressed: _startLevel,
-              height: 60,
+              height: buttonHeight,
               style: ModernButtonStyle.gold, // Gold for level start
               customGradient: const [
                 Colors.transparent, // Transparent to show gradient container behind

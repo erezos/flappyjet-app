@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/systems/daily_streak_manager.dart';
 import '../../../game/core/jet_skins.dart';
+import '../../../game/systems/inventory_manager.dart';
 import '../popups/base_popup.dart';
 import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
 import '../gem_3d_icon.dart';
+import '../../utils/responsive_config.dart';
 
 class DailyStreakRewardClaimPopup extends StatefulWidget {
   final DailyStreakReward reward;
@@ -63,16 +65,25 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isSmallScreen = screenSize.height < 700;
-    final isVerySmallScreen = screenSize.height < 600;
+    final isHeartBooster = widget.reward.type == DailyStreakRewardType.heartBooster;
 
     return BasePopup(
-      maxWidthPixels: 400,
+      maxWidthPixels: ResponsiveConfig.responsivePopupWidth(
+        screenSize,
+        percent: 0.9,
+        minWidth: 300.0,
+        maxWidth: 450.0,
+      ),
       padding: EdgeInsets.zero,
       backgroundColor: Colors.transparent,
       child: Container(
         constraints: BoxConstraints(
-          maxHeight: screenSize.height * 0.75,
+          maxHeight: ResponsiveConfig.responsivePopupHeight(
+            screenSize,
+            percent: 0.85,
+            minHeight: 400.0,
+            maxHeight: 600.0,
+          ),
         ),
         decoration: BoxDecoration(
           // Premium glassmorphism effect
@@ -92,38 +103,78 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header with reward icon
-            _buildHeader(isSmallScreen, isVerySmallScreen),
+            // Header with reward icon - Fixed height
+            _buildHeader(screenSize),
             
-            // Content
+            // Content - Flexible but constrained, scroll only if absolutely necessary
             Flexible(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 16 : isSmallScreen ? 20 : 24,
-                  vertical: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    _buildTitle(isVerySmallScreen, isSmallScreen),
-                    
-                    SizedBox(height: isVerySmallScreen ? 8 : isSmallScreen ? 12 : 16),
-                    
-                    // Reward display
-                    _buildRewardDisplay(isVerySmallScreen, isSmallScreen),
-                    
-                    SizedBox(height: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20),
-                    
-                    // Explanation text
-                    _buildExplanation(isVerySmallScreen, isSmallScreen),
-                    
-                    SizedBox(height: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 32),
-                    
-                    // Action button
-                    _buildActionButton(context, isVerySmallScreen, isSmallScreen),
-                  ],
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final content = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title
+                      Padding(
+                        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                          screenSize: screenSize,
+                        ),
+                        child: _buildTitle(context, screenSize),
+                      ),
+                      
+                      // Reward display
+                      Padding(
+                        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                          horizontal: 16.0,
+                          vertical: 0.0,
+                          screenSize: screenSize,
+                        ),
+                        child: _buildRewardDisplay(context, screenSize),
+                      ),
+                      
+                      SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                      
+                      // Explanation text - Compact for heart booster, Flexible to take available space
+                      Flexible(
+                        child: Padding(
+                          padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                            horizontal: 16.0,
+                            vertical: 0.0,
+                            screenSize: screenSize,
+                          ),
+                          child: _buildExplanation(context, screenSize, isHeartBooster),
+                        ),
+                      ),
+                      
+                      SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+                      
+                      // Action button
+                      Padding(
+                        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                          screenSize: screenSize,
+                        ),
+                        child: _buildActionButton(context, screenSize),
+                      ),
+                    ],
+                  );
+                  
+                  // Use SingleChildScrollView but with ClampingScrollPhysics for smooth scrolling
+                  // Only scrolls if content exceeds available space
+                  return SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(), // Smooth scroll if needed
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: content,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -132,13 +183,15 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     );
   }
 
-  Widget _buildHeader(bool isSmallScreen, bool isVerySmallScreen) {
-    final headerIconSize = (isVerySmallScreen ? 28 : isSmallScreen ? 32 : 40).toDouble();
+  Widget _buildHeader(Size screenSize) {
+    final headerIconSize = ResponsiveConfig.responsiveIconSize(32.0, screenSize);
     
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        vertical: isVerySmallScreen ? 12 : isSmallScreen ? 16 : 20,
+      padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+        horizontal: 0.0,
+        vertical: 16.0,
+        screenSize: screenSize,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -164,9 +217,36 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
 
   /// Build jet skin icon for header with larger size
   Widget _buildJetSkinHeaderIcon(double size) {
+    // Handle progressive jet system (Day 6 reward)
+    String? jetIdToDisplay = widget.reward.jetSkinId;
+    if (widget.reward.jetSkinId == 'progressive_jet') {
+      // Determine which jet will be awarded by checking ownership
+      const jetProgression = [
+        'cobra_strike',
+        'storm_chaser',
+        'disco_fever',
+        'ruby_phantom',
+        'sugar_storm',
+      ];
+      
+      // Find first jet player doesn't own
+      final inventory = InventoryManager();
+      for (final jetId in jetProgression) {
+        if (!inventory.isOwned(jetId)) {
+          jetIdToDisplay = jetId;
+          break;
+        }
+      }
+      
+      // If player owns all jets, show first jet in progression as preview
+      if (jetIdToDisplay == 'progressive_jet') {
+        jetIdToDisplay = jetProgression.first;
+      }
+    }
+    
     // Find the jet skin
     final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
-      (skin) => skin.id == widget.reward.jetSkinId,
+      (skin) => skin.id == jetIdToDisplay,
       orElse: () => JetSkinCatalog.starterJet,
     );
 
@@ -189,11 +269,11 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     );
   }
 
-  Widget _buildTitle(bool isVerySmallScreen, bool isSmallScreen) {
+  Widget _buildTitle(BuildContext context, Size screenSize) {
     return Text(
       '🎉 Daily Reward Claimed!',
       style: TextStyle(
-        fontSize: isVerySmallScreen ? 20 : isSmallScreen ? 22 : 26,
+        fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
         fontWeight: FontWeight.bold,
         color: Colors.white,
         shadows: const [
@@ -208,15 +288,16 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     );
   }
 
-  Widget _buildRewardDisplay(bool isVerySmallScreen, bool isSmallScreen) {
-    final iconSize = (isVerySmallScreen ? 28 : isSmallScreen ? 32 : 36).toDouble();
+  Widget _buildRewardDisplay(BuildContext context, Size screenSize) {
+    final iconSize = ResponsiveConfig.responsiveIconSize(28.0, screenSize);
     
     return ScaleTransition(
       scale: _rewardAnimation,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isVerySmallScreen ? 16 : isSmallScreen ? 20 : 24,
-          vertical: isVerySmallScreen ? 10 : isSmallScreen ? 12 : 16,
+        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+          horizontal: 16.0,
+          vertical: 12.0,
+          screenSize: screenSize,
         ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -269,18 +350,18 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
                 child: Icon(
                   _getRewardIcon(),
                   color: Colors.white,
-                  size: isVerySmallScreen ? 16 : isSmallScreen ? 18 : 20,
+                  size: ResponsiveConfig.responsiveIconSize(18.0, screenSize),
                 ),
               ),
             
-            SizedBox(width: isVerySmallScreen ? 6 : isSmallScreen ? 8 : 12),
+            SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
             
             // Reward text - wrapped in Flexible to prevent overflow
             Flexible(
               child: Text(
                 _getRewardDisplayText(),
                 style: TextStyle(
-                  fontSize: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 24,
+                  fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                   shadows: const [
@@ -291,8 +372,8 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
                     ),
                   ],
                 ),
-                overflow: TextOverflow.ellipsis, // Prevent overflow with ellipsis
-                maxLines: 1, // Keep it on one line
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],
@@ -332,9 +413,36 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
       );
     }
 
+    // Handle progressive jet system (Day 6 reward)
+    String? jetIdToDisplay = widget.reward.jetSkinId;
+    if (widget.reward.jetSkinId == 'progressive_jet') {
+      // Determine which jet will be awarded by checking ownership
+      const jetProgression = [
+        'cobra_strike',
+        'storm_chaser',
+        'disco_fever',
+        'ruby_phantom',
+        'sugar_storm',
+      ];
+      
+      // Find first jet player doesn't own
+      final inventory = InventoryManager();
+      for (final jetId in jetProgression) {
+        if (!inventory.isOwned(jetId)) {
+          jetIdToDisplay = jetId;
+          break;
+        }
+      }
+      
+      // If player owns all jets, show first jet in progression as preview
+      if (jetIdToDisplay == 'progressive_jet') {
+        jetIdToDisplay = jetProgression.first;
+      }
+    }
+
     // Find the jet skin
     final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
-      (skin) => skin.id == widget.reward.jetSkinId,
+      (skin) => skin.id == jetIdToDisplay,
       orElse: () => JetSkinCatalog.starterJet,
     );
 
@@ -386,27 +494,51 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     );
   }
 
-  Widget _buildExplanation(bool isVerySmallScreen, bool isSmallScreen) {
+  Widget _buildExplanation(BuildContext context, Size screenSize, bool isHeartBooster) {
+    // For heart booster, use more compact text
+    final explanationText = isHeartBooster 
+        ? _getCompactHeartBoosterText()
+        : _getExplanationText();
+    
     return Text(
-      _getExplanationText(),
+      explanationText,
       style: TextStyle(
-        fontSize: isVerySmallScreen ? 13 : isSmallScreen ? 14 : 16,
+        fontSize: ResponsiveConfig.responsiveFontSize(
+          isHeartBooster ? 13.0 : 14.0,
+          screenSize,
+          context,
+        ),
         color: Colors.white.withValues(alpha: 0.9),
-        height: 1.5,
+        height: isHeartBooster ? 1.3 : 1.5, // Tighter line height for heart booster
       ),
       textAlign: TextAlign.center,
+      maxLines: isHeartBooster ? 8 : null, // Limit lines for heart booster
+      overflow: TextOverflow.ellipsis,
     );
   }
+  
+  /// Get compact heart booster text that fits better
+  String _getCompactHeartBoosterText() {
+    return '🔥 Your Heart Booster is active for ${widget.reward.amount} min!\n\n'
+        '✨ Benefits:\n'
+        '• Max hearts: 3 → 6\n'
+        '• Hearts refilled to 6\n'
+        '• Faster regen: 8 min\n\n'
+        'Enjoy unlimited flying!';
+  }
 
-  Widget _buildActionButton(BuildContext context, bool isVerySmallScreen, bool isSmallScreen) {
-    return ModernGameButton(
-      label: 'AWESOME!',
-      onPressed: () {
-        Navigator.of(context).pop();
-        widget.onClose?.call();
-      },
-      height: isVerySmallScreen ? 44 : isSmallScreen ? 48 : 56,
-      style: ModernButtonStyle.primary, // Gold
+  Widget _buildActionButton(BuildContext context, Size screenSize) {
+    return SizedBox(
+      width: double.infinity,
+      child: ModernGameButton(
+        label: 'AWESOME!',
+        onPressed: () {
+          Navigator.of(context).pop();
+          widget.onClose?.call();
+        },
+        height: ResponsiveConfig.responsiveButtonHeight(48.0, screenSize),
+        style: ModernButtonStyle.primary, // Gold
+      ),
     );
   }
 

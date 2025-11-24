@@ -164,26 +164,26 @@ class _BottomNavigatorBarState extends State<BottomNavigatorBar>
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 10),
                             decoration: BoxDecoration(
-                              // 🌟 GOLD active tab background
+                              // 🌟 WHITE active tab background (classic, always readable)
                               color: isActive 
-                                  ? Color(0xFFFFD700).withOpacity(glowIntensity * 0.3) // Gold glow
+                                  ? Colors.white.withOpacity(glowIntensity * 0.15) // Subtle white glow
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(14), // Rounder
-                              // ✨ GOLD active tab border
+                              // ✨ WHITE active tab border (clean, professional, excellent contrast)
                               border: isActive ? Border.all(
-                                color: const Color(0xFFFFD700), // Gold border
-                                width: 2, // Thicker
+                                color: Colors.white, // Clean white border
+                                width: 2.5, // Slightly thicker for better visibility
                               ) : null,
-                              // 💫 GOLD glow effect for active tab
+                              // 💫 WHITE glow effect for active tab (elegant, modern)
                               boxShadow: isActive ? [
                                 BoxShadow(
-                                  color: Color(0xFFFFD700).withOpacity(glowIntensity * 0.6),
-                                  blurRadius: 30, // Larger glow
-                                  spreadRadius: 3,
+                                  color: Colors.white.withOpacity(glowIntensity * 0.5),
+                                  blurRadius: 25, // Softer glow
+                                  spreadRadius: 2,
                                 ),
                                 BoxShadow(
-                                  color: Color(0xFFFFD700).withOpacity(0.3),
-                                  blurRadius: 15,
+                                  color: Colors.white.withOpacity(0.3),
+                                  blurRadius: 12,
                                   spreadRadius: 1,
                                 ),
                               ] : null,
@@ -200,7 +200,7 @@ class _BottomNavigatorBarState extends State<BottomNavigatorBar>
                                       tab.imagePath,
                                       fit: BoxFit.contain, // Maximize size while maintaining aspect ratio
                                       color: isActive 
-                                          ? const Color(0xFFFFD700) // Gold tint for active
+                                          ? Colors.white // Clean white for active (perfect contrast with dark blue background)
                                           : const Color(0xFFFFD700).withOpacity(0.6), // Dim gold for inactive
                                       colorBlendMode: BlendMode.modulate,
                                     ),

@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import '../../utils/responsive_config.dart';
 
 /// Base popup widget with modern styling and animations
 /// 
@@ -140,19 +141,31 @@ class _BasePopupState extends State<BasePopup>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
-    final screenWidth = screenSize.width;
-    final screenHeight = screenSize.height;
 
-    // Calculate max width
+    // Calculate max width using ResponsiveConfig
     final maxWidth = widget.maxWidthPixels ??
-        (screenWidth * widget.maxWidthPercent).clamp(300.0, 800.0);
+        ResponsiveConfig.responsivePopupWidth(
+          screenSize,
+          percent: widget.maxWidthPercent,
+          minWidth: 300.0,
+          maxWidth: 800.0,
+        );
+
+    // Calculate max height using ResponsiveConfig (accounting for safe area)
+    final maxHeight = ResponsiveConfig.responsivePopupHeight(
+      screenSize,
+      percent: 0.85,
+      minHeight: 400.0,
+      maxHeight: 800.0,
+    );
 
     // Default background color - soft cream for warm, casual game aesthetic
     // Warmer than pure white, less clinical, more inviting and modern
     final bgColor = widget.backgroundColor ?? const Color(0xFFFFF8E7);
 
-    // Default padding
-    final popupPadding = widget.padding ?? const EdgeInsets.all(24.0);
+    // Responsive padding using ResponsiveConfig
+    final popupPadding = widget.padding ?? 
+        ResponsiveConfig.responsiveEdgeInsets(24.0, screenSize);
 
     return Scaffold(
       backgroundColor: Colors.black.withValues(alpha: 0.7), // Dark backdrop
@@ -178,7 +191,7 @@ class _BasePopupState extends State<BasePopup>
               child: Container(
                 constraints: BoxConstraints(
                   maxWidth: maxWidth,
-                  maxHeight: screenHeight * 0.85,
+                  maxHeight: maxHeight,
                 ),
                 child: Stack(
                   clipBehavior: Clip.none,

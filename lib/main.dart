@@ -356,14 +356,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
       Future.wait(backgroundFutures).then((_) {
         safePrint('🚀 ✅ All background systems initialized');
         
-        // Try to connect to cloud in background
-        _anonymousIdentity.connectToCloudAsync().then((success) {
-          if (success) {
-            safePrint('🎭 ✅ Connected to cloud in background');
-          } else {
-            safePrint('🎭 ⚠️ Cloud connection failed, staying anonymous');
-          }
-        });
+        // ❌ REMOVED: Cloud connection not needed for client-only app
+        // Events are sent via EventBus to /api/events (no authentication required)
+        // Analytics work anonymously with device IDs from DeviceIdentityManager
+        // Tournaments/leaderboards use device IDs, not backend user authentication
       }).catchError((e) {
         safePrint('🚀 ⚠️ Some background systems failed: $e');
       });

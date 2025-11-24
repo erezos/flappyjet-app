@@ -133,7 +133,13 @@
         "skillLevel": 0.05,
         "reactionTime": 0.45,
         "mistakeRate": 0.95,
-        "minObstaclePass": 6
+        "minObstaclePass": 3,
+        "firstAttemptOverride": {
+          "skillLevel": 0.05,
+          "reactionTime": 0.45,
+          "mistakeRate": 0.95,
+          "minObstaclePass": 6
+        }
       }
     },
     {
@@ -264,14 +270,15 @@
       "botBattle": {
         "botName": "Green Lightning",
         "botJetSkin": "green_lightning",
-        "skillLevel": 0.75,
-        "reactionTime": 0.30,
-        "mistakeRate": 0.10,
-        "minObstaclePass": 8,
+        "skillLevel": 0.05,
+        "reactionTime": 0.45,
+        "mistakeRate": 0.95,
+        "minObstaclePass": 6,
         "firstAttemptOverride": {
           "skillLevel": 0.85,
           "reactionTime": 0.10,
-          "mistakeRate": 0.05
+          "mistakeRate": 0.05,
+          "minObstaclePass": 8
         }
       }
     }

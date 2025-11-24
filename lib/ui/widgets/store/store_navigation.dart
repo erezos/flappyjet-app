@@ -102,20 +102,25 @@ class StoreNavigation extends StatelessWidget {
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Use gem icon widget for Gems category, emoji for others
-                      category == 'Gems'
-                          ? Gem3DIcon(
-                              size: iconSize,
-                              // Beautiful asset gem icon
-                            )
-                          : Text(
-                              categoryIcon,
-                              style: TextStyle(
-                                fontSize: iconSize,
-                                color: Colors.white,
+                      Center(
+                        child: category == 'Gems'
+                            ? Gem3DIcon(
+                                size: iconSize,
+                                // Beautiful asset gem icon
+                              )
+                            : Text(
+                                categoryIcon,
+                                style: TextStyle(
+                                  fontSize: iconSize,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
+                      ),
                       SizedBox(height: iconSpacing),
                       Text(
                         category == 'Heart Booster'
@@ -129,6 +134,7 @@ class StoreNavigation extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           fontSize: textSize,
                           letterSpacing: isTablet ? 0.8 : 0.5,
+                          height: 1.2, // Ensure consistent line height
                         ),
                       ),
                     ],

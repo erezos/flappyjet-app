@@ -5,6 +5,7 @@ import '../../game/systems/achievements_manager.dart';
 import '../widgets/gem_3d_icon.dart';
 import '../widgets/mission_achievement_icons.dart';
 import '../widgets/rewards/reward_claim_popup.dart';
+import '../utils/responsive_config.dart';
 
 class DailyMissionsScreen extends StatefulWidget {
   final MissionsManager? missionsManager;
@@ -347,12 +348,25 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   }
 
   Widget _buildTabSelector(BuildContext context, Size screenSize) {
-    final isTablet = screenSize.width > 600;
+    // ✅ RESPONSIVE: Use ResponsiveConfig for consistent sizing
+    final isTablet = ResponsiveConfig.isTablet(screenSize);
+    final isLargeTablet = ResponsiveConfig.isLargeTablet(screenSize);
+    
+    // Calculate responsive font size based on screen size
+    final baseFontSize = isLargeTablet ? 18.0 : isTablet ? 16.0 : 14.0;
+    final responsiveFontSize = ResponsiveConfig.responsiveFontSize(
+      baseFontSize,
+      screenSize,
+      context,
+      minScale: 0.7, // Allow scaling down to 70% for small screens
+      maxScale: 1.2,
+    ).clamp(11.0, 18.0); // Clamp between 11-18px
 
     return Container(
-      margin: EdgeInsets.symmetric(
+      margin: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
         horizontal: isTablet ? 24.0 : 16.0,
         vertical: isTablet ? 16.0 : 12.0,
+        screenSize: screenSize,
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25),
@@ -367,7 +381,12 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(25),
         child: Container(
-          height: isTablet ? 60 : 50,
+          height: ResponsiveConfig.responsiveSize(
+            isTablet ? 60.0 : 50.0,
+            screenSize,
+            minScale: 0.9,
+            maxScale: 1.2,
+          ),
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Color(0xFF1e3c72), Color(0xFF2a5298)],
@@ -389,17 +408,50 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
             dividerColor: Colors.transparent,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
-            labelStyle: TextStyle(
-              fontSize: isTablet ? 18 : 16,
-              fontWeight: FontWeight.bold,
-            ),
-            unselectedLabelStyle: TextStyle(
-              fontSize: isTablet ? 18 : 16,
-              fontWeight: FontWeight.w500,
-            ),
-            tabs: const [
-              Tab(text: 'DAILY MISSIONS'),
-              Tab(text: 'ACHIEVEMENTS'),
+            // ✅ FIX: Use custom tabs with FittedBox to prevent text overflow
+            tabs: [
+              Tab(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveConfig.responsivePadding(4.0, screenSize),
+                    ),
+                    child: Text(
+                      'DAILY MISSIONS',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: responsiveFontSize,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2, // Consistent line height
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Tab(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveConfig.responsivePadding(4.0, screenSize),
+                    ),
+                    child: Text(
+                      'ACHIEVEMENTS',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: responsiveFontSize,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2, // Consistent line height
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -408,24 +460,51 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   }
 
   Widget _buildDailyMissions(BuildContext context, Size screenSize) {
+    // ✅ FIX: Use widget.missionsManager directly (it's the same instance being updated during gameplay)
+    // This ensures we're listening to the same instance that's being updated
+    final missionsManager = widget.missionsManager;
+
     // Check if missions manager is available
-    if (widget.missionsManager == null) {
-      return const Center(
-        child: Text(
-          'Missions not available',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+    if (missionsManager == null) {
+      return Center(
+        child: Builder(
+          builder: (context) {
+            return Text(
+              'Missions not available',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: const Color(0xFF1A237E), // Dark blue for better readability
+                fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
+                fontWeight: FontWeight.w600,
+                shadows: [
+                  Shadow(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    offset: const Offset(0, 1),
+                    blurRadius: 3,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       );
     }
 
     // ✅ FIX: Use ListenableBuilder to listen to MissionsManager changes in real-time
     // This ensures UI updates immediately when mission progress changes during gameplay
+    // IMPORTANT: This will rebuild whenever MissionsManager calls notifyListeners()
     return ListenableBuilder(
-      listenable: widget.missionsManager!,
+      listenable: missionsManager,
       builder: (context, _) {
-        final missionsManager = widget.missionsManager!;
+        // missionsManager is guaranteed non-null here (checked above)
+        final manager = missionsManager;
 
-        if (!missionsManager.isInitialized) {
+        if (!manager.isInitialized) {
           return const Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFffc107)),
@@ -433,7 +512,7 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
           );
         }
 
-        final missions = missionsManager.dailyMissions;
+        final missions = manager.dailyMissions;
 
         // Sort missions: completed (ready to claim) first, then in progress, then not started
         missions.sort((a, b) {
@@ -461,17 +540,40 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
               children: [
                 Icon(
                   Icons.assignment_outlined,
-                  size: screenSize.width > 600 ? 80 : 60,
-                  color: Colors.white54,
+                  size: ResponsiveConfig.responsiveIconSize(screenSize.width > 600 ? 80.0 : 60.0, screenSize),
+                  color: const Color(0xFF1A237E), // Dark blue for better contrast
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'No missions available\nCheck back tomorrow!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: screenSize.width > 600 ? 20 : 16,
-                  ),
+                SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
+                Builder(
+                  builder: (context) {
+                    return Text(
+                      'No missions available\nCheck back tomorrow!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF1A237E), // Dark blue for better readability
+                        fontSize: ResponsiveConfig.responsiveFontSize(
+                          screenSize.width > 600 ? 20.0 : 18.0,
+                          screenSize,
+                          context,
+                        ),
+                        fontWeight: FontWeight.w600, // Semi-bold for better visibility
+                        height: 1.4,
+                        shadows: [
+                          // Text shadow for better contrast against light backgrounds
+                          Shadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            offset: const Offset(0, 1),
+                            blurRadius: 3,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -515,24 +617,51 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   }
 
   Widget _buildAchievements(BuildContext context, Size screenSize) {
+    // ✅ FIX: Use widget.achievementsManager directly (it's the same instance being updated during gameplay)
+    // This ensures we're listening to the same instance that's being updated
+    final achievementsManager = widget.achievementsManager;
+
     // Check if achievements manager is available
-    if (widget.achievementsManager == null) {
-      return const Center(
-        child: Text(
-          'Achievements not available',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+    if (achievementsManager == null) {
+      return Center(
+        child: Builder(
+          builder: (context) {
+            return Text(
+              'Achievements not available',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: const Color(0xFF1A237E), // Dark blue for better readability
+                fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
+                fontWeight: FontWeight.w600,
+                shadows: [
+                  Shadow(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    offset: const Offset(0, 1),
+                    blurRadius: 3,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       );
     }
 
     // ✅ FIX: Use ListenableBuilder to listen to AchievementsManager changes in real-time
     // This ensures UI updates immediately when achievement progress changes during gameplay
+    // IMPORTANT: This will rebuild whenever AchievementsManager calls notifyListeners()
     return ListenableBuilder(
-      listenable: widget.achievementsManager!,
+      listenable: achievementsManager,
       builder: (context, _) {
-        final achievementsManager = widget.achievementsManager!;
+        // achievementsManager is guaranteed non-null here (checked above)
+        final manager = achievementsManager;
 
-        if (!achievementsManager.isInitialized) {
+        if (!manager.isInitialized) {
           return const Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFffc107)),
@@ -540,7 +669,7 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
           );
         }
 
-        final achievements = achievementsManager.visibleAchievements;
+        final achievements = manager.visibleAchievements;
         if (achievements.isEmpty) {
           return Center(
             child: Column(
@@ -548,17 +677,40 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
               children: [
                 Icon(
                   Icons.emoji_events,
-                  size: screenSize.width > 600 ? 80 : 60,
-                  color: const Color(0xFFffc107),
+                  size: ResponsiveConfig.responsiveIconSize(screenSize.width > 600 ? 80.0 : 60.0, screenSize),
+                  color: const Color(0xFF1A237E), // Dark blue for better contrast
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'No achievements available\nCheck back later!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: screenSize.width > 600 ? 20 : 16,
-                  ),
+                SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
+                Builder(
+                  builder: (context) {
+                    return Text(
+                      'No achievements available\nCheck back later!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF1A237E), // Dark blue for better readability
+                        fontSize: ResponsiveConfig.responsiveFontSize(
+                          screenSize.width > 600 ? 20.0 : 18.0,
+                          screenSize,
+                          context,
+                        ),
+                        fontWeight: FontWeight.w600, // Semi-bold for better visibility
+                        height: 1.4,
+                        shadows: [
+                          // Text shadow for better contrast against light backgrounds
+                          Shadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            offset: const Offset(0, 1),
+                            blurRadius: 3,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -713,19 +865,21 @@ class PremiumMissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isTablet = screenSize.width > 600;
-    final isLargePhone = screenSize.width > 400;
-    final isSmallPhone = screenSize.width < 360;
-    // Increased card heights for better content fit and engagement
-    final cardHeight = isTablet
-        ? 150.0
-        : (isLargePhone ? 135.0 : (isSmallPhone ? 125.0 : 120.0));
+    final screenSize = this.screenSize;
+    // Use ResponsiveConfig for consistent sizing
+    // Card height based on aspect ratio (~3.5:1 width:height)
+    final cardHeight = ResponsiveConfig.responsiveSize(
+      screenSize.width / 3.5,
+      screenSize,
+      minScale: 0.9,
+      maxScale: 1.2,
+    ).clamp(120.0, 160.0);
 
     // Get mission-specific styling
     final missionStyle = _getMissionStyle(mission.type);
 
     return Container(
-      margin: EdgeInsets.only(bottom: isTablet ? 20 : 16),
+      margin: EdgeInsets.only(bottom: ResponsiveConfig.responsivePadding(16.0, screenSize)),
       height: cardHeight,
       decoration: BoxDecoration(
         gradient: missionStyle.gradient,
@@ -769,7 +923,7 @@ class PremiumMissionCard extends StatelessWidget {
 
             // Main content
             Padding(
-              padding: EdgeInsets.all(isTablet ? 20 : (isLargePhone ? 16 : 14)),
+              padding: ResponsiveConfig.responsiveEdgeInsets(16.0, screenSize),
               child: Column(
                 children: [
                   // Top row with icon, details, and rewards
@@ -777,10 +931,19 @@ class PremiumMissionCard extends StatelessWidget {
                     flex: 3,
                     child: Row(
                       children: [
-                        // Mission icon - Larger and more engaging
-                        Container(
-                          width: isTablet ? 60 : (isLargePhone ? 52 : 48),
-                          height: isTablet ? 60 : (isLargePhone ? 52 : 48),
+                        // Mission icon - Responsive size (35-40% of card height)
+                        Builder(
+                          builder: (context) {
+                            final iconSize = ResponsiveConfig.responsiveSize(
+                              cardHeight * 0.38,
+                              screenSize,
+                              minScale: 0.9,
+                              maxScale: 1.1,
+                            ).clamp(48.0, 70.0);
+                            
+                            return Container(
+                              width: iconSize,
+                              height: iconSize,
                           decoration: BoxDecoration(
                             color: missionStyle.iconBackgroundColor,
                             borderRadius: BorderRadius.circular(16),
@@ -792,116 +955,140 @@ class PremiumMissionCard extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: Mission3DIcon(
-                            iconType: MissionIconMapper.getIconForMissionType(
-                              mission.type.toString().split('.').last,
-                            ),
-                            size: isTablet ? 32 : (isLargePhone ? 28 : 26),
-                            // Remove tintColor to show original icon colors
-                          ),
+                              child: Mission3DIcon(
+                                iconType: MissionIconMapper.getIconForMissionType(
+                                  mission.type.toString().split('.').last,
+                                ),
+                                size: iconSize * 0.55, // Icon size relative to container
+                                // Remove tintColor to show original icon colors
+                              ),
+                            );
+                          },
                         ),
 
-                        SizedBox(width: isTablet ? 18 : 14),
+                        SizedBox(width: ResponsiveConfig.responsivePadding(14.0, screenSize)),
 
-                        // Mission details - Bigger and bolder text
+                        // Mission details - Responsive text with FittedBox to prevent overflow
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                mission.title,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: isTablet
-                                      ? 18
-                                      : (isLargePhone ? 16 : 15),
-                                  fontWeight: FontWeight.w900, // Extra bold
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.6,
+                          child: Builder(
+                            builder: (context) {
+                              final titleFontSize = ResponsiveConfig.responsiveFontSize(16.0, screenSize, context);
+                              final descFontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+                              
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      mission.title,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: titleFontSize,
+                                        fontWeight: FontWeight.w900, // Extra bold
+                                        height: 1.2, // ✅ FIX: Consistent line height
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                            offset: const Offset(0, 1),
+                                            blurRadius: 3,
+                                          ),
+                                        ],
                                       ),
-                                      offset: const Offset(0, 1),
-                                      blurRadius: 3,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: isTablet ? 4 : 3),
-                              Text(
-                                mission.description,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: isTablet
-                                      ? 13
-                                      : (isLargePhone ? 12 : 11),
-                                  fontWeight: FontWeight.w600, // Bolder
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                                  ),
+                                  SizedBox(height: ResponsiveConfig.responsivePadding(3.0, screenSize)),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      mission.description,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontSize: descFontSize,
+                                        fontWeight: FontWeight.w600, // Bolder
+                                        height: 1.2, // ✅ FIX: Consistent line height
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
 
-                        // Coin reward - Larger and more prominent
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isTablet ? 14 : 12,
-                            vertical: isTablet ? 8 : 7,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFffd700), Color(0xFFffb300)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFFff8f00,
-                                ).withValues(alpha: 0.4),
-                                blurRadius: 6,
-                                offset: const Offset(0, 3),
+                        // Coin reward - Responsive sizing with FittedBox
+                        Builder(
+                          builder: (context) {
+                            final horizontalPadding = ResponsiveConfig.responsivePadding(12.0, screenSize);
+                            final verticalPadding = ResponsiveConfig.responsivePadding(7.0, screenSize);
+                            final iconSize = ResponsiveConfig.responsiveIconSize(18.0, screenSize);
+                            final fontSize = ResponsiveConfig.responsiveFontSize(14.0, screenSize, context);
+                            
+                            return Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                                vertical: verticalPadding,
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.monetization_on,
-                                color: Colors.white,
-                                size: isTablet
-                                    ? 20
-                                    : (isLargePhone ? 18 : 16), // Larger icon
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFffd700), Color(0xFFffb300)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFFff8f00,
+                                    ).withValues(alpha: 0.4),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${mission.reward}',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: isTablet
-                                      ? 16
-                                      : (isLargePhone ? 14 : 13), // Larger text
-                                  fontWeight: FontWeight.w900, // Extra bold
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.4,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown, // ✅ FIX: Scale down if needed
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.monetization_on,
+                                      color: Colors.white,
+                                      size: iconSize,
+                                    ),
+                                    SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                                    Text(
+                                      '${mission.reward}',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: fontSize,
+                                        fontWeight: FontWeight.w900, // Extra bold
+                                        height: 1.0, // ✅ FIX: Consistent line height
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.4,
+                                            ),
+                                            offset: const Offset(0, 1),
+                                            blurRadius: 2,
+                                          ),
+                                        ],
                                       ),
-                                      offset: const Offset(0, 1),
-                                      blurRadius: 2,
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -911,84 +1098,127 @@ class PremiumMissionCard extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: Container(
+                      width: double.infinity, // ✅ FIX: Ensure full width for proper centering
                       alignment: Alignment.center,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                      ),
                       child: mission.completed && !mission.claimed
                           ?
                             // Claim button for completed missions
-                            ElevatedButton(
-                              onPressed: isClaiming ? null : onClaimReward,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isClaiming
-                                    ? Colors.grey
-                                    : const Color(0xFF4caf50),
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isTablet ? 24 : 20,
-                                  vertical: isTablet ? 10 : 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                elevation: isClaiming ? 2 : 6,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (isClaiming)
-                                    SizedBox(
-                                      width: isTablet ? 18 : 16,
-                                      height: isTablet ? 18 : 16,
-                                      child: const CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
+                            Builder(
+                              builder: (context) {
+                                final buttonHeight = ResponsiveConfig.responsiveButtonHeight(40.0, screenSize);
+                                final horizontalPadding = ResponsiveConfig.responsivePadding(16.0, screenSize);
+                                final verticalPadding = ResponsiveConfig.responsivePadding(8.0, screenSize);
+                                
+                                return ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: buttonHeight,
+                                    maxWidth: double.infinity, // ✅ FIX: Allow button to use available width
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: isClaiming ? null : onClaimReward,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isClaiming
+                                          ? Colors.grey
+                                          : const Color(0xFF4caf50),
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: horizontalPadding,
+                                        vertical: verticalPadding,
                                       ),
-                                    )
-                                  else
-                                    Icon(
-                                      Icons.card_giftcard,
-                                      size: isTablet ? 18 : 16,
+                                      minimumSize: Size(double.infinity, buttonHeight), // ✅ FIX: Full width button
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      elevation: isClaiming ? 2 : 6,
                                     ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isClaiming ? 'CLAIMING...' : 'CLAIM REWARD',
-                                    style: TextStyle(
-                                      fontSize: isTablet ? 14 : 12,
-                                      fontWeight: FontWeight.w900, // Extra bold
+                                    child: Builder(
+                                      builder: (context) {
+                                        final iconSize = ResponsiveConfig.responsiveIconSize(16.0, screenSize);
+                                        final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+                                        
+                                        return FittedBox(
+                                          fit: BoxFit.scaleDown, // ✅ FIX: Scale down text if needed
+                                          alignment: Alignment.center,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              if (isClaiming)
+                                                SizedBox(
+                                                  width: iconSize,
+                                                  height: iconSize,
+                                                  child: const CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<Color>(
+                                                          Colors.white,
+                                                        ),
+                                                  ),
+                                                )
+                                              else
+                                                Icon(
+                                                  Icons.card_giftcard,
+                                                  size: iconSize,
+                                                ),
+                                              SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                                              Text(
+                                                isClaiming ? 'CLAIMING...' : 'CLAIM REWARD',
+                                                style: TextStyle(
+                                                  fontSize: fontSize,
+                                                  fontWeight: FontWeight.w900, // Extra bold
+                                                  height: 1.0, // ✅ FIX: Consistent line height
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
-                                ],
-                              ),
+                                );
+                              },
                             )
                           :
                             // Progress indicator for incomplete missions
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isTablet
-                                    ? 18
-                                    : (isLargePhone ? 16 : 14),
-                                vertical: isTablet ? 8 : (isLargePhone ? 6 : 5),
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.4),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Text(
-                                'Progress: ${mission.progress}/${mission.target}',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: isTablet
-                                      ? 13
-                                      : (isLargePhone ? 12 : 11),
-                                  fontWeight: FontWeight.w700, // Bolder
-                                ),
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final horizontalPadding = ResponsiveConfig.responsivePadding(16.0, screenSize);
+                                final verticalPadding = ResponsiveConfig.responsivePadding(6.0, screenSize);
+                                final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
+                                
+                                return Container(
+                                  width: double.infinity, // ✅ FIX: Full width for proper centering
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: horizontalPadding,
+                                    vertical: verticalPadding,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.4),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.4),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown, // ✅ FIX: Scale down if needed
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Progress: ${mission.progress}/${mission.target}',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: fontSize,
+                                        fontWeight: FontWeight.w700, // Bolder
+                                        height: 1.0, // ✅ FIX: Consistent line height
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                     ),
                   ),
