@@ -181,6 +181,9 @@ class DailyStreakManager extends ChangeNotifier {
   DateTime? _cycleStartDate;
   String? _currentCycleRewardSet; // 'new_player' or 'experienced'
   
+  // ✅ FIX: Track the actual jet ID that was unlocked (for progressive jet system)
+  String? _lastUnlockedJetId;
+  
   // Dependencies
   final InventoryManager _inventory = InventoryManager();
   final LivesManager _lives = LivesManager();
@@ -193,6 +196,10 @@ class DailyStreakManager extends ChangeNotifier {
   int get currentCycle => _currentCycle;
   DateTime? get cycleStartDate => _cycleStartDate;
   String? get currentCycleRewardSet => _currentCycleRewardSet;
+  
+  /// ✅ FIX: Get the actual jet ID that was unlocked (for progressive jet system)
+  /// Returns null if no jet was unlocked or if the last reward wasn't a jet
+  String? get lastUnlockedJetId => _lastUnlockedJetId;
   
   /// Get current day index (0-6) for UI display
   int get currentDayIndex => (_currentStreak - 1).clamp(0, 6);
@@ -463,6 +470,7 @@ class DailyStreakManager extends ChangeNotifier {
     _currentStreak++;
     _claimedToday = true;
     _lastClaimDate = DateTime.now();
+    _lastUnlockedJetId = null; // Reset - will be set by _applyReward if jet is unlocked
     
     // CRITICAL FIX: Handle cycle completion
     if (isCycleComplete) {
@@ -570,7 +578,10 @@ class DailyStreakManager extends ChangeNotifier {
               if (jetToAward != null) {
                 // Found a jet they don't own - award it!
                 await _inventory.unlockSkin(jetToAward);
-                safePrint('🚁 Progressive jet awarded: $jetToAward');
+                // ✅ AUTO-EQUIP: Automatically equip the newly unlocked jet
+                await _inventory.equipSkin(jetToAward);
+                _lastUnlockedJetId = jetToAward; // ✅ FIX: Store the actual unlocked jet ID
+                safePrint('🚁 Progressive jet awarded and auto-equipped: $jetToAward');
               } else {
                 // Player owns all jets in progression - give 500 coins instead
                 const fallbackCoins = 500;
@@ -591,7 +602,10 @@ class DailyStreakManager extends ChangeNotifier {
               } else {
                 // Normal jet unlock
                 await _inventory.unlockSkin(reward.jetSkinId!);
-                safePrint('🚁 Unlocked jet skin: ${reward.jetSkinId}');
+                // ✅ AUTO-EQUIP: Automatically equip the newly unlocked jet
+                await _inventory.equipSkin(reward.jetSkinId!);
+                _lastUnlockedJetId = reward.jetSkinId; // ✅ FIX: Store the actual unlocked jet ID
+                safePrint('🚁 Unlocked and auto-equipped jet skin: ${reward.jetSkinId}');
               }
             }
           }

@@ -1,18 +1,13 @@
 <en-US>
 🚀 FLAPPYJET PRO v2.1.2
 
-🐛 BUG FIXES & IMPROVEMENTS:
-✅ Fixed interstitial ad analytics tracking
-✅ Improved boss difficulty balance
-✅ Enhanced analytics accuracy
-
-🌍 EPIC STORY MODE!
+🌍 NEW: EPIC STORY MODE!
 50 handcrafted levels across 5 stunning zones! Battle AI rivals!
 
 🎯 DAILY MISSIONS & ACHIEVEMENTS!
 Complete challenges, unlock legendary rewards!
 
-✨ FEATURES:
+✨ NEW FEATURES:
 🏆 Weekly tournaments - global competition
 🤖 Boss battles - defeat rival pilots
 🗺️ 5 unique zones - Desert, Ocean, Space, City, Arctic

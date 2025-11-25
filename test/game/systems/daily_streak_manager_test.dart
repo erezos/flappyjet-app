@@ -214,9 +214,11 @@ void main() {
       ];
 
       bool gotJet = false;
+      String? unlockedJetId;
       for (final jetId in jetProgression) {
         if (inventory.isOwned(jetId)) {
           gotJet = true;
+          unlockedJetId = jetId;
           break;
         }
       }
@@ -227,6 +229,9 @@ void main() {
             reason: 'Should get 500 coins if owns all jets');
       } else {
         expect(gotJet, true, reason: 'Should get a jet from progression');
+        // ✅ AUTO-EQUIP VERIFICATION: Jet should be auto-equipped when unlocked
+        expect(inventory.equippedSkinId, unlockedJetId,
+            reason: 'Unlocked jet should be auto-equipped');
       }
     });
 

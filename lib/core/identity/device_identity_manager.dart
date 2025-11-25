@@ -48,6 +48,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   String? _osVersion;
   String? _appVersion;
   String? _platform;
+  String? _countryCode; // ✅ NEW: Country code from device locale
 
   // Getters
   String get userId => _userId ?? '';
@@ -62,6 +63,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   String get osVersion => _osVersion ?? 'unknown';
   String get appVersion => _appVersion ?? '0.0.0';
   String get platform => _platform ?? 'unknown';
+  String? get countryCode => _countryCode; // ✅ NEW: Country code getter (nullable)
 
   /// Initialize the device identity system
   /// 
@@ -94,9 +96,10 @@ class DeviceIdentityManager extends ChangeNotifier {
       safePrint('🆔 ✅ Device Identity Manager initialized');
       safePrint('🆔 User ID: ${_userId!.substring(0, 20)}...');
       safePrint('🆔 Session ID: ${_sessionId!.substring(0, 20)}...');
-      safePrint('🆔 Nickname: $_nickname'); // ✅ NEW: Log nickname
+      safePrint('🆔 Nickname: $_nickname');
       safePrint('🆔 Platform: $_platform');
       safePrint('🆔 Device: $_deviceModel');
+      safePrint('🆔 Country: ${_countryCode ?? "Unknown"}'); // ✅ NEW: Log country
       safePrint('🆔 First Launch: $_isFirstLaunch');
       
       notifyListeners();
@@ -247,13 +250,17 @@ class DeviceIdentityManager extends ChangeNotifier {
       final packageInfo = await PackageInfo.fromPlatform();
       _appVersion = packageInfo.version;
       
-      safePrint('🆔 Device info collected: $_deviceModel, $_osVersion, $_appVersion');
+      // ✅ NEW: Detect country code from device locale
+      _countryCode = await _getCountryCode();
+      
+      safePrint('🆔 Device info collected: $_deviceModel, $_osVersion, $_appVersion, country: ${_countryCode ?? "Unknown"}');
       
     } catch (e) {
       safePrint('🆔 ⚠️ Failed to collect device info: $e');
       _deviceModel = 'unknown';
       _osVersion = 'unknown';
       _appVersion = '0.0.0';
+      _countryCode = null; // ✅ NEW: Set to null on error
     }
   }
 
@@ -300,14 +307,24 @@ class DeviceIdentityManager extends ChangeNotifier {
   }
 
   /// Get device metadata for events
+  /// 
+  /// Includes: platform, deviceModel, osVersion, appVersion, nickname, country
+  /// Country is nullable - only included if detected (to avoid polluting analytics)
   Map<String, dynamic> getDeviceMetadata() {
-    return {
+    final metadata = <String, dynamic>{
       'platform': _platform ?? 'unknown',
       'deviceModel': _deviceModel ?? 'unknown',
       'osVersion': _osVersion ?? 'unknown',
       'appVersion': _appVersion ?? '0.0.0',
-      'nickname': _nickname, // ✅ NEW: Include nickname in metadata
+      'nickname': _nickname,
     };
+    
+    // ✅ NEW: Include country only if detected (null = not included in map)
+    if (_countryCode != null) {
+      metadata['country'] = _countryCode!;
+    }
+    
+    return metadata;
   }
 
   /// Get session metadata for events
@@ -346,6 +363,49 @@ class DeviceIdentityManager extends ChangeNotifier {
     
     safePrint('🆔 ✅ Nickname updated: $_nickname');
     notifyListeners();
+  }
+
+  // ============================================================================
+  // ✅ NEW: Country Code Detection
+  // ============================================================================
+
+  /// Get country code from device locale
+  /// 
+  /// Returns null if country cannot be detected (to avoid polluting analytics)
+  /// 
+  /// Method: Extracts country from Platform.localeName (e.g., "en_US" -> "US")
+  /// 
+  /// Limitations:
+  /// - Only works if locale includes country code (e.g., "en_US", "fr_FR")
+  /// - Locales without country (e.g., "en") will return null
+  /// - This is intentional to avoid false data in analytics
+  Future<String?> _getCountryCode() async {
+    try {
+      // Try to get country from device locale
+      // Platform.localeName returns format like "en_US", "fr_FR", "ja_JP"
+      final locale = Platform.localeName;
+      final parts = locale.split('_');
+      
+      if (parts.length >= 2) {
+        final countryCode = parts[1].toUpperCase();
+        
+        // Validate it's a 2-letter country code (ISO 3166-1 alpha-2)
+        if (countryCode.length == 2 && RegExp(r'^[A-Z]{2}$').hasMatch(countryCode)) {
+          safePrint('🌍 Detected country code from locale: $countryCode (locale: $locale)');
+          return countryCode;
+        } else {
+          safePrint('🌍 ⚠️ Invalid country code format: $countryCode (locale: $locale)');
+        }
+      } else {
+        safePrint('🌍 ⚠️ Locale does not include country code: $locale');
+      }
+      
+      // Return null if we can't detect (don't use fallback to avoid polluting analytics)
+      return null;
+    } catch (e) {
+      safePrint('🌍 ❌ Error detecting country code: $e');
+      return null;
+    }
   }
 }
 

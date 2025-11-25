@@ -42,11 +42,14 @@ class LevelFailedScreen extends StatefulWidget {
 }
 
 class _LevelFailedScreenState extends State<LevelFailedScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
+  
+  // ✅ SMOKE ANIMATION: Controller for realistic smoke effects
+  late AnimationController _smokeController;
 
   final LivesManager _livesManager = LivesManager();
   final InventoryManager _inventoryManager = InventoryManager();
@@ -81,6 +84,15 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
         curve: Curves.easeOut,
       ),
     );
+    
+    // ✅ SMOKE ANIMATION: Setup smoke controller (one-time animation)
+    _smokeController = AnimationController(
+      duration: const Duration(milliseconds: 2500),
+      vsync: this,
+    );
+    
+    // Start the smoke animation (runs once then stops)
+    _smokeController.forward();
 
     // Start animations
     _animationController.forward();
@@ -91,6 +103,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _smokeController.dispose();
     super.dispose();
   }
 
@@ -178,22 +191,39 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Stack(
-                children: [
-                  // Main content
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildHeader(screenSize),
-                      _buildMainContent(screenSize),
-                    ],
+            child: Builder(
+              builder: (context) {
+                // Calculate button size for positioning
+                final buttonSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize)
+                    .clamp(44.0, 56.0);
+                final buttonOffset = -buttonSize / 2; // Half outside (on border)
+                
+                return Stack(
+                  clipBehavior: Clip.none, // ✅ Allow children to overflow (for X button on frame)
+                  children: [
+                // Main content (clipped to border radius)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(), // Smooth scrolling without bouncing
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildHeader(screenSize),
+                        _buildMainContent(screenSize),
+                      ],
+                    ),
                   ),
-                  // X button in top-right corner
-                  _buildCloseButton(),
-                ],
-              ),
+                ),
+                    // ✅ X BUTTON: Positioned on popup frame (outside container, on border)
+                    Positioned(
+                      top: buttonOffset,
+                      right: buttonOffset,
+                      child: _buildCloseButton(screenSize),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -201,32 +231,46 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  /// 🚀 CLOSE BUTTON: X button in top-right corner
-  Widget _buildCloseButton() {
-    return Positioned(
-      top: 8,
-      right: 8,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _onBackToMap,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: const Icon(
-              Icons.close,
-              color: Colors.white,
-              size: 20,
-            ),
+  /// ✅ X BUTTON: Positioned on popup frame (outside container, on border)
+  /// Uses ResponsiveConfig for consistent sizing across all devices
+  Widget _buildCloseButton(Size screenSize) {
+    // Responsive button size (minimum 44x44 for touch target accessibility)
+    final buttonSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize)
+        .clamp(44.0, 56.0); // Min 44px (accessibility), max 56px
+    
+    // Responsive icon size
+    final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize)
+        .clamp(20.0, 28.0);
+    
+    // Responsive border width
+    final borderWidth = ResponsiveConfig.responsiveSize(2.0, screenSize)
+        .clamp(1.5, 3.0);
+
+    return GestureDetector(
+      onTap: _onBackToMap,
+      child: Container(
+        width: buttonSize,
+        height: buttonSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withValues(alpha: 0.7), // More opaque for visibility on frame
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.9), // High contrast white border
+            width: borderWidth,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: ResponsiveConfig.responsiveSize(12.0, screenSize),
+              spreadRadius: ResponsiveConfig.responsiveSize(2.0, screenSize),
+              offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.close_rounded,
+          size: iconSize,
+          color: Colors.white,
         ),
       ),
     );
@@ -238,9 +282,11 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     return Container(
       padding: EdgeInsets.fromLTRB(padding, padding, padding, ResponsiveConfig.responsivePadding(12.0, screenSize)),
       decoration: BoxDecoration(
+        // ✅ NO RED GRADIENT: Removed red gradient to eliminate red square appearance
+        // Using subtle dark gradient instead for depth without red
         gradient: LinearGradient(
           colors: [
-            Colors.red.withValues(alpha: 0.2),
+            Colors.black.withValues(alpha: 0.1),
             Colors.transparent,
           ],
           begin: Alignment.topCenter,
@@ -250,11 +296,12 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
       ),
       child: Column(
         children: [
-          // 🚀 CRASHED JET: Player's jet with smoke animation (responsive size)
+          // 🚀 CRASHED JET: Player's jet with smoke animation (MUCH BIGGER - responsive size)
           Builder(
             builder: (context) {
-              final jetSize = ResponsiveConfig.responsiveSize(90.0, screenSize, minScale: 0.9, maxScale: 1.1);
-              return _buildCrashedPlayerJet(jetSize.clamp(80.0, 110.0));
+              // ✅ MUCH BIGGER: Increased from 90px to 140px base, with larger range
+              final jetSize = ResponsiveConfig.responsiveSize(140.0, screenSize, minScale: 0.9, maxScale: 1.2);
+              return _buildCrashedPlayerJet(jetSize.clamp(120.0, 180.0));
             },
           ),
           SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
@@ -300,13 +347,19 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  /// 🚀 CRASHED PLAYER JET: Show player's equipped jet with smoke animation
-  /// (Reuses logic from VS level complete popup)
+  /// 🚀 CRASHED PLAYER JET: Show player's equipped jet with REAL ANIMATED SMOKE
+  /// ✅ RESPONSIVE: Uses same smoke effect as level complete screen, scales proportionally
   Widget _buildCrashedPlayerJet(double iconSize) {
     // Get player's equipped jet skin
     final inventory = InventoryManager();
     final equippedSkinId = inventory.equippedSkinId;
     final jetSkin = JetSkinCatalog.getSkinById(equippedSkinId) ?? JetSkinCatalog.starterJet;
+    final jetPath = 'assets/images/${jetSkin.assetPath}';
+    
+    // ✅ RESPONSIVE: Scale all positions and sizes proportionally (Flame/Flutter best practice)
+    // Base design was for 90px, so scale factor = iconSize / 90
+    final scaleFactor = iconSize / 90.0;
+    double scaled(double baseValue) => baseValue * scaleFactor;
     
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -315,75 +368,327 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
       builder: (context, value, child) {
         return Transform.scale(
           scale: value,
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              // 💨 SMOKE ANIMATION: Multiple smoke particles
-              ...List.generate(8, (i) {
-                final distance = 35 + (i % 2) * 15; // Alternate distances
-                return TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: Duration(milliseconds: 800 + (i * 100)),
-                  curve: Curves.easeOut,
-                  builder: (context, smokeValue, child) {
-                    return Positioned(
-                      left: iconSize / 2 + (distance * smokeValue * 0.7) * (i < 4 ? -1 : 1),
-                      top: iconSize / 2 + (distance * smokeValue * 0.7) * (i % 2 == 0 ? -1 : 1),
-                      child: Opacity(
-                        opacity: (1 - smokeValue) * 0.6,
-                        child: Container(
-                          width: 12 + (smokeValue * 18),
-                          height: 12 + (smokeValue * 18),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                Colors.grey.withValues(alpha: 0.8),
-                                Colors.grey.withValues(alpha: 0.2),
-                                Colors.transparent,
-                              ],
+          child: SizedBox(
+            width: iconSize,
+            height: iconSize,
+            // ✅ NO BACKGROUND: SizedBox is transparent by default, no red square
+            child: AnimatedBuilder(
+              animation: _smokeController,
+              builder: (context, child) {
+                // Normalized animation value (0.0 to 1.0)
+                final t = _smokeController.value;
+                
+                // Different particles fade at different rates for layered effect
+                final smoke1Opacity = (1.0 - t).clamp(0.0, 0.9);
+                final smoke2Opacity = (1.0 - t * 0.9).clamp(0.0, 0.85);
+                final smoke3Opacity = (1.0 - t * 1.1).clamp(0.0, 0.8);
+                final smoke4Opacity = (1.0 - t * 0.85).clamp(0.0, 0.75);
+                
+                // Fire sparks flicker (sine wave for natural flicker)
+                final sparkFlicker1 = 0.6 + (0.3 * (1.0 - t));
+                final sparkFlicker2 = 0.7 + (0.3 * (1.0 - t * 0.8));
+                
+                return Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Large explosion smoke (background) - rotating and expanding
+                    Positioned(
+                      top: scaled(10) - (t * scaled(5)),
+                      child: Transform.rotate(
+                        angle: t * 1.2,
+                        child: Opacity(
+                          opacity: (0.5 - t * 0.3).clamp(0.0, 0.5),
+                          child: Transform.scale(
+                            scale: 1.0 + (t * 0.4),
+                            child: Image.asset(
+                              'assets/images/effects/explosion_smoke.png',
+                              width: scaled(60),
+                              height: scaled(60),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                // Fallback: Use gradient circle if asset missing
+                                return Container(
+                                  width: scaled(60),
+                                  height: scaled(60),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        Colors.grey.withValues(alpha: 0.6),
+                                        Colors.grey.withValues(alpha: 0.2),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                    
+                    // Rising smoke particle 1 (left side) - drifting up and left
+                    Positioned(
+                      top: scaled(5) - (t * scaled(16)),
+                      left: scaled(10) - (t * scaled(7)),
+                      child: Transform.rotate(
+                        angle: t * 2.0,
+                        child: Opacity(
+                          opacity: smoke1Opacity,
+                          child: Transform.scale(
+                            scale: 0.6 + (t * 0.6),
+                            child: Image.asset(
+                              'assets/images/effects/smoke_particle_2.png',
+                              width: scaled(22),
+                              height: scaled(22),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: scaled(22),
+                                  height: scaled(22),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        Colors.grey.withValues(alpha: 0.7),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Rising smoke particle 2 (right side) - drifting up and right
+                    Positioned(
+                      top: scaled(7) - (t * scaled(18)),
+                      right: scaled(8) + (t * scaled(5)),
+                      child: Transform.rotate(
+                        angle: -t * 1.8,
+                        child: Opacity(
+                          opacity: smoke2Opacity,
+                          child: Transform.scale(
+                            scale: 0.5 + (t * 0.7),
+                            child: Image.asset(
+                              'assets/images/effects/smoke_particle_1.png',
+                              width: scaled(20),
+                              height: scaled(20),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: scaled(20),
+                                  height: scaled(20),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        Colors.grey.withValues(alpha: 0.7),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Middle smoke puff (center-left) - rising and expanding
+                    Positioned(
+                      top: scaled(14) - (t * scaled(12)),
+                      left: scaled(12) - (t * scaled(4)),
+                      child: Transform.rotate(
+                        angle: t * 2.5,
+                        child: Opacity(
+                          opacity: smoke3Opacity,
+                          child: Transform.scale(
+                            scale: 0.4 + (t * 0.5),
+                            child: Image.asset(
+                              'assets/images/effects/smoke_particle_3.png',
+                              width: scaled(18),
+                              height: scaled(18),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: scaled(18),
+                                  height: scaled(18),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        Colors.grey.withValues(alpha: 0.7),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Additional smoke wisp (top center) - quick dissipation
+                    Positioned(
+                      top: scaled(3) - (t * scaled(20)),
+                      left: scaled(30) + (t * scaled(3)),
+                      child: Transform.rotate(
+                        angle: -t * 2.2,
+                        child: Opacity(
+                          opacity: smoke4Opacity,
+                          child: Transform.scale(
+                            scale: 0.3 + (t * 0.5),
+                            child: Image.asset(
+                              'assets/images/effects/smoke_particle_1.png',
+                              width: scaled(16),
+                              height: scaled(16),
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: scaled(16),
+                                  height: scaled(16),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        Colors.grey.withValues(alpha: 0.7),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Fire spark 1 (flickering, stays near crash site)
+                    Positioned(
+                      top: scaled(30) + (t * scaled(1.5)),
+                      left: scaled(16),
+                      child: Opacity(
+                        opacity: sparkFlicker1,
+                        child: Transform.scale(
+                          scale: 0.8 + (0.3 * (1.0 - t)),
+                          child: Image.asset(
+                            'assets/images/effects/fire_spark_1.png',
+                            width: scaled(12),
+                            height: scaled(12),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: scaled(12),
+                                height: scaled(12),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.orange.withValues(alpha: 0.8),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Fire spark 2 (flickering, stays near crash site)
+                    Positioned(
+                      top: scaled(32) + (t * scaled(1.0)),
+                      right: scaled(14),
+                      child: Opacity(
+                        opacity: sparkFlicker2,
+                        child: Transform.scale(
+                          scale: 0.7 + (0.4 * (1.0 - t)),
+                          child: Image.asset(
+                            'assets/images/effects/fire_spark_2.png',
+                            width: scaled(11),
+                            height: scaled(11),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: scaled(11),
+                                height: scaled(11),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.red.withValues(alpha: 0.8),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Orange explosion glow overlay (pulsing gently)
+                    Positioned(
+                      child: Container(
+                        width: scaled(65) + (t * scaled(5)),
+                        height: scaled(65) + (t * scaled(5)),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              Colors.orange.withValues(alpha: (0.3 - t * 0.2).clamp(0.0, 0.3)),
+                              Colors.red.withValues(alpha: (0.2 - t * 0.15).clamp(0.0, 0.2)),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // ✈️ CRASHED JET: Player's jet (tilted and damaged look)
+                    // ✅ NO RED SQUARE: Just the jet with shadow, NO container/border/background
+                    Positioned(
+                      top: scaled(28) + (t < 0.2 ? t * scaled(1.5) : scaled(0.3)),
+                      child: Transform.rotate(
+                        angle: -0.25 + (t < 0.3 ? t * 0.1 : 0.03),
+                        child: Container(
+                          width: scaled(42),
+                          height: scaled(42),
+                          // ✅ EXPLICITLY TRANSPARENT: No background, no border, no red
+                          // ✅ FIX: Cannot use both color and decoration - use decoration.color instead
+                          decoration: BoxDecoration(
+                            // ✅ NO RED: Only black shadow for depth, transparent background
+                            color: Colors.transparent, // Explicit transparent background
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                blurRadius: 25,
+                                spreadRadius: 3,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Image.asset(
+                            jetPath,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.airplanemode_active,
+                                size: scaled(42),
+                                color: Colors.white70,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
-              }),
-              // 🔥 FIRE/EXPLOSION GLOW
-              Container(
-                width: iconSize * 1.3,
-                height: iconSize * 1.3,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.orange.withValues(alpha: 0.4),
-                      Colors.red.withValues(alpha: 0.2),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-              // ✈️ CRASHED JET: Player's jet (tilted and damaged look)
-              Transform.rotate(
-                angle: -0.3, // Slight tilt to show crashed state
-                child: Image.asset(
-                  'assets/images/${jetSkin.assetPath}',
-                  width: iconSize,
-                  height: iconSize,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.airplanemode_active,
-                      size: iconSize,
-                      color: Colors.white70,
-                    );
-                  },
-                ),
-              ),
-            ],
+              },
+            ),
           ),
         );
       },

@@ -82,6 +82,7 @@ class EventBus {
   /// Automatically injects required base fields:
   /// - app_version (from DeviceIdentityManager)
   /// - platform ('ios' or 'android')
+  /// - country (from DeviceIdentityManager, only if detected)
   /// 
   /// Usage:
   /// ```dart
@@ -113,6 +114,13 @@ class EventBus {
         'app_version': _identityManager!.appVersion,
         'platform': _identityManager!.platform,
       };
+
+      // ✅ NEW: Include country code if available (for analytics)
+      // Only include if detected (null = not included, to avoid polluting analytics)
+      final countryCode = _identityManager!.countryCode;
+      if (countryCode != null) {
+        enrichedData['country'] = countryCode;
+      }
 
       final event = Event(
         name: eventName,
@@ -178,7 +186,7 @@ class EventBus {
         safePrint('📤 ✅ Flushed ${eventsToSend.length} events');
         
         // If more events remain, flush again
-        if (_memoryQueue.length > 0) {
+        if (_memoryQueue.isNotEmpty) {
           safePrint('📤 More events in queue, flushing again...');
           unawaited(flush());
         }

@@ -139,6 +139,7 @@ void main() {
         expect(metadata, containsPair('deviceModel', isNotEmpty));
         expect(metadata, containsPair('osVersion', isNotEmpty));
         expect(metadata, containsPair('appVersion', isNotEmpty));
+        expect(metadata, containsPair('nickname', isNotEmpty));
       });
 
       test('should return consistent metadata', () async {
@@ -147,6 +148,32 @@ void main() {
         final metadata2 = identityManager.getDeviceMetadata();
 
         expect(metadata1, equals(metadata2));
+      });
+
+      test('should include country in metadata if detected', () async {
+        await identityManager.initialize();
+        final metadata = identityManager.getDeviceMetadata();
+
+        // Country is optional - may or may not be present depending on device locale
+        // If countryCode is not null, it should be in metadata
+        if (identityManager.countryCode != null) {
+          expect(metadata, containsPair('country', identityManager.countryCode));
+          expect(metadata['country'], isA<String>());
+          expect((metadata['country'] as String).length, equals(2));
+        } else {
+          // If country is not detected, it should not be in metadata
+          expect(metadata, isNot(containsPair('country', anything)));
+        }
+      });
+
+      test('should have valid country code format if present', () async {
+        await identityManager.initialize();
+        final countryCode = identityManager.countryCode;
+
+        if (countryCode != null) {
+          // Should be 2-letter uppercase country code (ISO 3166-1 alpha-2)
+          expect(countryCode, matches(RegExp(r'^[A-Z]{2}$')));
+        }
       });
     });
 

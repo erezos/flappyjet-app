@@ -494,14 +494,13 @@ class MissionsManager extends ChangeNotifier {
 
   /// Update mission progress
   Future<void> updateMissionProgress(MissionType type, int amount) async {
-    safePrint('🎯 MISSION UPDATE: Updating progress for $type with amount $amount');
-    safePrint('🎯 MISSION UPDATE: Current missions count: ${_dailyMissions.length}');
+    // ✅ REDUCED LOGGING: Only log when missions are actually updated, not for every check
+    // Removed verbose logs: "Updating progress for $type", "Current missions count", "Checking mission..."
     
     bool hasUpdates = false;
     
     for (int i = 0; i < _dailyMissions.length; i++) {
       final mission = _dailyMissions[i];
-      safePrint('🎯 MISSION UPDATE: Checking mission ${mission.title} (${mission.type}) - completed: ${mission.completed}');
       if (mission.type == type && !mission.completed) {
         int newProgress;
         

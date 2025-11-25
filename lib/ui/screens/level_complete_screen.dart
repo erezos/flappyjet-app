@@ -10,9 +10,8 @@ import '../../game/systems/level_reward_manager.dart';
 import '../../game/systems/level_system_manager.dart';
 import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
+import '../utils/responsive_config.dart';
 import 'world_map_screen.dart';
-import 'level_objective_popup.dart';
-import 'zone_completion_celebration_screen.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 
 /// Get bot jet sprite path from JetSkinCatalog
@@ -207,9 +206,21 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
   /// 🎮 FLAME BEST PRACTICE: Fully responsive popup - NO SCROLLING
   /// Uses percentage-based sizing and FittedBox for perfect scaling on any screen
   Widget _buildModernPopup(double screenWidth, double screenHeight) {
+    final screenSize = Size(screenWidth, screenHeight);
+    
     // 🎮 RESPONSIVE CONSTRAINTS: Popup takes 85% width, max 75% height
-    final popupWidth = (screenWidth * 0.85).clamp(300.0, 450.0);
-    final maxPopupHeight = screenHeight * 0.75; // Maximum 75% of screen height
+    final popupWidth = ResponsiveConfig.responsivePopupWidth(
+      screenSize,
+      percent: 0.85,
+      minWidth: 300.0,
+      maxWidth: 450.0,
+    );
+    final maxPopupHeight = ResponsiveConfig.responsivePopupHeight(
+      screenSize,
+      percent: 0.75,
+      minHeight: 400.0,
+      maxHeight: 800.0,
+    );
     
     // ✅ DYNAMIC ICON: Choose icon based on objective type
     String? trophyIconPath;
@@ -227,53 +238,75 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     }
     // For VS battles, trophyIconPath stays null and we show the crashed jet instead
     
-    return Container(
-      width: popupWidth,
+    // Calculate responsive button size for X button positioning
+    final buttonSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize)
+        .clamp(44.0, 56.0); // Min 44px (accessibility), max 56px
+    final buttonOffset = -buttonSize / 2; // Half outside (on border)
+    
+    // Calculate margins for Container (responsive)
+    final marginInsets = ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+      horizontal: 24.0,
+      vertical: screenHeight * 0.125,
+      screenSize: screenSize,
+    );
+    
+    return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: maxPopupHeight, // 🎮 CONSTRAIN HEIGHT: Never exceed 75% of screen
-      ),
-      margin: EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: screenHeight * 0.125, // Center vertically with 12.5% margin top/bottom
-      ),
-      decoration: BoxDecoration(
-        // ✅ MODERN: Vibrant gradient background
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF6A11CB), // Purple
-            Color(0xFF2575FC), // Blue
-          ],
-        ),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: const Color(0xFFFFD700).withOpacity(0.6), // Gold border
-          width: 3,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFD700).withOpacity(0.3),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        maxWidth: popupWidth + marginInsets.horizontal * 2, // Account for margins
+        maxHeight: maxPopupHeight + marginInsets.vertical * 2,
       ),
       child: Stack(
+        clipBehavior: Clip.none, // ✅ CRITICAL: Allow X button to overflow outside container
         children: [
-          // 🎮 MAIN CONTENT: Using FittedBox for perfect scaling - NO SCROLL!
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 50, 16, 16), // Compact padding
+          // 🎮 POPUP CONTAINER: Main content container
+          Container(
+            width: popupWidth,
+            constraints: BoxConstraints(
+              maxHeight: maxPopupHeight, // 🎮 CONSTRAIN HEIGHT: Never exceed 75% of screen
+            ),
+            margin: marginInsets,
+          decoration: BoxDecoration(
+            // ✅ MODERN: Vibrant gradient background
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF6A11CB), // Purple
+                Color(0xFF2575FC), // Blue
+              ],
+            ),
+            borderRadius: BorderRadius.circular(
+              ResponsiveConfig.responsiveSize(30.0, screenSize).clamp(24.0, 36.0),
+            ),
+            border: Border.all(
+              color: const Color(0xFFFFD700).withOpacity(0.6), // Gold border
+              width: ResponsiveConfig.responsiveSize(3.0, screenSize).clamp(2.0, 4.0),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD700).withOpacity(0.3),
+                blurRadius: ResponsiveConfig.responsiveSize(30.0, screenSize),
+                spreadRadius: ResponsiveConfig.responsiveSize(5.0, screenSize),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: ResponsiveConfig.responsiveSize(20.0, screenSize),
+                offset: Offset(0, ResponsiveConfig.responsiveSize(10.0, screenSize)),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              ResponsiveConfig.responsivePadding(16.0, screenSize),
+              ResponsiveConfig.responsivePadding(50.0, screenSize), // Top padding for X button clearance
+              ResponsiveConfig.responsivePadding(16.0, screenSize),
+              ResponsiveConfig.responsivePadding(16.0, screenSize),
+            ),
             child: FittedBox(
               fit: BoxFit.scaleDown, // 🎮 SCALE DOWN content if too big, never scroll
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: popupWidth - 32, // Account for padding
+                  maxWidth: popupWidth - ResponsiveConfig.responsivePadding(32.0, screenSize), // Account for padding
                 ),
                 child: IntrinsicHeight( // 🎮 Size based on content, but respect FittedBox
                   child: Column(
@@ -312,37 +345,15 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               ),
             ),
           ),
-          
-          // ✅ INTEGRATED: X button inside popup (top-right)
+        ),
+        
+          // ✅ X BUTTON: Positioned on popup frame (outside container, on border)
+          // Position relative to Container's top-right corner using negative offsets
+          // This ensures consistent positioning across all screen sizes
           Positioned(
-            top: 10,
-            right: 10,
-            child: GestureDetector(
-              onTap: _handleContinue,
-              child: Container(
-                width: 36, // ✅ SMALLER: 40 → 36
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.4),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.5),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.close_rounded,
-                  color: Colors.white,
-                  size: 20, // ✅ SMALLER: 22 → 20
-                ),
-              ),
-            ),
+            top: marginInsets.top + buttonOffset, // Top margin + negative offset (half outside)
+            right: marginInsets.right + buttonOffset, // Right margin + negative offset (half outside)
+            child: _buildCloseButton(screenSize),
           ),
         ],
       ),
@@ -350,6 +361,51 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
   }
 
   // 🎮 HELPER METHODS: Clean, modular widgets for responsive popup
+
+  /// ✅ NEW: Build close button (X) positioned on popup frame
+  /// Uses ResponsiveConfig for consistent sizing across all devices
+  Widget _buildCloseButton(Size screenSize) {
+    // Responsive button size (minimum 44x44 for touch target accessibility)
+    final buttonSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize)
+        .clamp(44.0, 56.0); // Min 44px (accessibility), max 56px
+    
+    // Responsive icon size
+    final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize)
+        .clamp(20.0, 28.0);
+    
+    // Responsive border width
+    final borderWidth = ResponsiveConfig.responsiveSize(2.0, screenSize)
+        .clamp(1.5, 3.0);
+    
+    return GestureDetector(
+      onTap: _handleContinue,
+      child: Container(
+        width: buttonSize,
+        height: buttonSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withOpacity(0.7), // More opaque for visibility on frame
+          border: Border.all(
+            color: Colors.white.withOpacity(0.9), // High contrast white border
+            width: borderWidth,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: ResponsiveConfig.responsiveSize(12.0, screenSize),
+              spreadRadius: ResponsiveConfig.responsiveSize(2.0, screenSize),
+              offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.close_rounded,
+          color: Colors.white,
+          size: iconSize,
+        ),
+      ),
+    );
+  }
 
   /// Build responsive icon (trophy or crashed jet) - scales with screen
   Widget _buildResponsiveIcon(double screenHeight, String? trophyIconPath) {
@@ -967,68 +1023,6 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       // Fallback to old flow (direct navigation)
       _onBackToMap();
     }
-  }
-
-  /// Check if there's a next level available
-  void _onNextLevel() async {
-    // ✅ Track level win for interstitial ad frequency
-    await _interstitialAdManager.onLevelWon();
-    
-    // ✅ Check and show interstitial ad if conditions are met
-    final adShown = await _interstitialAdManager.checkAndShowAd(
-      onAdClosed: () => _proceedToNextLevel(),
-    );
-    
-    // If no ad was shown, proceed immediately
-    if (!adShown) {
-      _proceedToNextLevel();
-    }
-  }
-  
-  void _proceedToNextLevel() {
-    // Check if zone was just completed
-    if (!_isReplay && _levelSystemManager.wasZoneJustCompleted(widget.level.id)) {
-      _navigateToZoneCompletionCelebration();
-      return;
-    }
-
-    final nextLevelId = widget.level.id + 1;
-    final nextLevel = _levelSystemManager.getLevelById(nextLevelId);
-
-    if (nextLevel != null && _levelSystemManager.isLevelUnlocked(nextLevelId)) {
-      // Navigate to next level
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => LevelObjectivePopup(level: nextLevel),
-        ),
-      );
-    } else {
-      // No more levels or not unlocked yet
-      _onBackToMap();
-    }
-  }
-
-  void _navigateToZoneCompletionCelebration() {
-    final zoneData = _levelSystemManager.getZoneById(widget.level.zone);
-    if (zoneData == null) {
-      safePrint('❌ Zone data not found for zone ${widget.level.zone}');
-      _onBackToMap();
-      return;
-    }
-
-    final stats = _levelSystemManager.getZoneStats(widget.level.zone);
-
-    safePrint('🎉 Navigating to zone completion celebration for Zone ${widget.level.zone}');
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ZoneCompletionCelebrationScreen(
-          completedZone: zoneData,
-          totalCoins: stats['coins'] ?? 0,
-          totalGems: stats['gems'] ?? 0,
-          botWins: stats['botWins'] ?? 0,
-        ),
-      ),
-    );
   }
 
   void _onBackToMap() async {

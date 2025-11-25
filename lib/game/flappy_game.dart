@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 // ✅ REFACTOR v1.7.0: Collision detection now handled by HasCollisionDetection mixin (removed unused import)
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../core/debug_logger.dart';
 import 'systems/adaptive_quality.dart';
 
@@ -889,7 +890,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     }
     
     // 🔥 CRITICAL FIX: Sync LivesManager with game's final life count (should be 0)
-    () async {
+    // ⚠️ DEFERRED: Must happen after build phase to avoid "setState during build" error
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
       try {
         final livesManager = LivesManager();
         await livesManager.setLives(0);
@@ -897,7 +899,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       } catch (e) {
         safePrint('⚠️ Failed to sync LivesManager on game over: $e');
       }
-    }();
+    });
 
     // 🎯 Track game events for missions and achievements
     () async {

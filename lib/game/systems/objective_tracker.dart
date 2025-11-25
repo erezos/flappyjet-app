@@ -23,6 +23,11 @@ class ObjectiveTracker extends ChangeNotifier {
   int _playerScore = 0;
   int _botScore = 0;
   bool _botIsActive = true; // Track if bot is still alive
+  
+  // Previous values for change detection (to reduce log spam)
+  int _prevPlayerScore = -1;
+  int _prevBotScore = -1;
+  bool _prevBotIsActive = true;
 
   // Getters
   LevelObjective? get objective => _objective;
@@ -44,6 +49,9 @@ class ObjectiveTracker extends ChangeNotifier {
     _playerScore = 0;
     _botScore = 0;
     _botIsActive = true; // Reset bot state
+    _prevPlayerScore = -1;
+    _prevBotScore = -1;
+    _prevBotIsActive = true;
     
     safePrint('🎯 Started tracking objective: ${objective.description}');
     notifyListeners();
@@ -121,20 +129,30 @@ class ObjectiveTracker extends ChangeNotifier {
     if (_objective == null || _isCompleted) return;
     
     if (_objective!.type == ObjectiveType.beatBot) {
-      if (playerScore != null) {
+      bool scoreChanged = false;
+      
+      if (playerScore != null && playerScore != _playerScore) {
         _playerScore = playerScore;
         _currentProgress = _playerScore;
+        scoreChanged = true;
       }
-      if (botScore != null) {
+      if (botScore != null && botScore != _botScore) {
         _botScore = botScore;
+        scoreChanged = true;
       }
-      if (botIsActive != null) {
+      if (botIsActive != null && botIsActive != _botIsActive) {
         _botIsActive = botIsActive;
+        scoreChanged = true;
       }
       
-      // Log bot status change
-      final statusEmoji = _botIsActive ? '💪' : '💥';
-      safePrint('🎯 Bot Battle: Player $_playerScore vs Bot $_botScore $statusEmoji');
+      // Only log when score or status actually changes (reduces log spam)
+      if (scoreChanged || _playerScore != _prevPlayerScore || _botScore != _prevBotScore || _botIsActive != _prevBotIsActive) {
+        final statusEmoji = _botIsActive ? '💪' : '💥';
+        safePrint('🎯 Bot Battle: Player $_playerScore vs Bot $_botScore $statusEmoji');
+        _prevPlayerScore = _playerScore;
+        _prevBotScore = _botScore;
+        _prevBotIsActive = _botIsActive;
+      }
       
       _checkCompletion();
       notifyListeners();

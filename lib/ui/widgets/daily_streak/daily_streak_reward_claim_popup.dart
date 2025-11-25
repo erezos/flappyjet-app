@@ -70,127 +70,136 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     return BasePopup(
       maxWidthPixels: ResponsiveConfig.responsivePopupWidth(
         screenSize,
-        percent: 0.9,
+        percent: 0.85,
         minWidth: 300.0,
         maxWidth: 450.0,
       ),
       padding: EdgeInsets.zero,
       backgroundColor: Colors.transparent,
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: ResponsiveConfig.responsivePopupHeight(
-            screenSize,
-            percent: 0.85,
-            minHeight: 400.0,
-            maxHeight: 600.0,
-          ),
-        ),
-        decoration: BoxDecoration(
-          // Premium glassmorphism effect
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withValues(alpha: 0.15),
-              Colors.white.withValues(alpha: 0.05),
-            ],
-          ),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.3),
-            width: 2,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header with reward icon - Fixed height
-            _buildHeader(screenSize),
-            
-            // Content - Flexible but constrained, scroll only if absolutely necessary
-            Flexible(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final content = Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Title
-                      Padding(
-                        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                          horizontal: 16.0,
-                          vertical: 12.0,
-                          screenSize: screenSize,
-                        ),
-                        child: _buildTitle(context, screenSize),
-                      ),
-                      
-                      // Reward display
-                      Padding(
-                        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                          horizontal: 16.0,
-                          vertical: 0.0,
-                          screenSize: screenSize,
-                        ),
-                        child: _buildRewardDisplay(context, screenSize),
-                      ),
-                      
-                      SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
-                      
-                      // Explanation text - Compact for heart booster, Flexible to take available space
-                      Flexible(
-                        child: Padding(
-                          padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                            horizontal: 16.0,
-                            vertical: 0.0,
-                            screenSize: screenSize,
-                          ),
-                          child: _buildExplanation(context, screenSize, isHeartBooster),
-                        ),
-                      ),
-                      
-                      SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
-                      
-                      // Action button
-                      Padding(
-                        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                          screenSize: screenSize,
-                        ),
-                        child: _buildActionButton(context, screenSize),
-                      ),
-                    ],
-                  );
-                  
-                  // Use SingleChildScrollView but with ClampingScrollPhysics for smooth scrolling
-                  // Only scrolls if content exceeds available space
-                  return SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(), // Smooth scroll if needed
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: IntrinsicHeight(
-                        child: content,
-                      ),
-                    ),
-                  );
-                },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Main popup content
+          Container(
+            constraints: BoxConstraints(
+              maxHeight: ResponsiveConfig.responsivePopupHeight(
+                screenSize,
+                percent: 0.75, // Reduced from 0.85 to use less space
+                minHeight: 350.0, // Reduced from 400.0
+                maxHeight: 550.0, // Reduced from 600.0
               ),
             ),
-          ],
-        ),
+            decoration: BoxDecoration(
+              // Premium glassmorphism effect
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.15),
+                  Colors.white.withValues(alpha: 0.05),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.3),
+                width: 2,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with reward icon - Compact height
+                _buildHeader(screenSize),
+                
+                // Content - Optimized layout with better space usage
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final content = Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Title - Compact
+                          Padding(
+                            padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                              horizontal: 16.0,
+                              vertical: 8.0, // Reduced from 12.0
+                              screenSize: screenSize,
+                            ),
+                            child: _buildTitle(context, screenSize),
+                          ),
+                          
+                          // Reward display - Compact
+                          Padding(
+                            padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                              horizontal: 16.0,
+                              vertical: 4.0, // Reduced spacing
+                              screenSize: screenSize,
+                            ),
+                            child: _buildRewardDisplay(context, screenSize),
+                          ),
+                          
+                          // Explanation text - Flexible to fill available space
+                          Expanded(
+                            child: Padding(
+                              padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                                horizontal: 16.0,
+                                vertical: 8.0,
+                                screenSize: screenSize,
+                              ),
+                              child: _buildExplanation(context, screenSize, isHeartBooster),
+                            ),
+                          ),
+                          
+                          // Action button - At bottom
+                          Padding(
+                            padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                              horizontal: 16.0,
+                              vertical: 12.0, // Reduced from 8.0 top + 8.0 bottom
+                              screenSize: screenSize,
+                            ),
+                            child: _buildActionButton(context, screenSize),
+                          ),
+                        ],
+                      );
+                      
+                      // Use SingleChildScrollView only if content exceeds available space
+                      return SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: IntrinsicHeight(
+                            child: content,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // ✅ X BUTTON: Positioned on popup frame (outside container, on border)
+          Positioned(
+            top: -ResponsiveConfig.responsiveIconSize(44.0, screenSize).clamp(44.0, 56.0) / 2,
+            right: -ResponsiveConfig.responsiveIconSize(44.0, screenSize).clamp(44.0, 56.0) / 2,
+            child: _buildCloseButton(screenSize),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(Size screenSize) {
-    final headerIconSize = ResponsiveConfig.responsiveIconSize(32.0, screenSize);
+    final headerIconSize = ResponsiveConfig.responsiveIconSize(28.0, screenSize); // Reduced from 32.0
     
     return Container(
       width: double.infinity,
       padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
         horizontal: 0.0,
-        vertical: 16.0,
+        vertical: 12.0, // Reduced from 16.0 for more compact header
         screenSize: screenSize,
       ),
       decoration: BoxDecoration(
@@ -214,33 +223,90 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
             ),
     );
   }
+  
+  /// ✅ NEW: Build close button (X) positioned on popup frame
+  /// Uses ResponsiveConfig for consistent sizing across all devices
+  Widget _buildCloseButton(Size screenSize) {
+    // Responsive button size (minimum 44x44 for touch target accessibility)
+    final buttonSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize)
+        .clamp(44.0, 56.0); // Min 44px (accessibility), max 56px
+    
+    // Responsive icon size
+    final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize)
+        .clamp(20.0, 28.0);
+    
+    // Responsive border width
+    final borderWidth = ResponsiveConfig.responsiveSize(2.0, screenSize)
+        .clamp(1.5, 3.0);
+    
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop();
+        widget.onClose?.call();
+      },
+      child: Container(
+        width: buttonSize,
+        height: buttonSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withOpacity(0.7), // More opaque for visibility on frame
+          border: Border.all(
+            color: Colors.white.withOpacity(0.9), // High contrast white border
+            width: borderWidth,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: ResponsiveConfig.responsiveSize(12.0, screenSize),
+              spreadRadius: ResponsiveConfig.responsiveSize(2.0, screenSize),
+              offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.close_rounded,
+          size: iconSize,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
 
   /// Build jet skin icon for header with larger size
   Widget _buildJetSkinHeaderIcon(double size) {
     // Handle progressive jet system (Day 6 reward)
     String? jetIdToDisplay = widget.reward.jetSkinId;
     if (widget.reward.jetSkinId == 'progressive_jet') {
-      // Determine which jet will be awarded by checking ownership
-      const jetProgression = [
-        'cobra_strike',
-        'storm_chaser',
-        'disco_fever',
-        'ruby_phantom',
-        'sugar_storm',
-      ];
+      // ✅ FIX: Get the actual jet ID that was unlocked from DailyStreakManager
+      final streakManager = DailyStreakManager();
+      final actualUnlockedJet = streakManager.lastUnlockedJetId;
       
-      // Find first jet player doesn't own
-      final inventory = InventoryManager();
-      for (final jetId in jetProgression) {
-        if (!inventory.isOwned(jetId)) {
-          jetIdToDisplay = jetId;
-          break;
+      if (actualUnlockedJet != null) {
+        // Use the actual jet that was unlocked
+        jetIdToDisplay = actualUnlockedJet;
+      } else {
+        // Fallback: Check inventory to find which jet was unlocked
+        const jetProgression = [
+          'cobra_strike',
+          'storm_chaser',
+          'disco_fever',
+          'ruby_phantom',
+          'sugar_storm',
+        ];
+        
+        final inventory = InventoryManager();
+        // Find first jet in progression that IS owned
+        for (final jetId in jetProgression) {
+          if (inventory.isOwned(jetId)) {
+            jetIdToDisplay = jetId;
+            break;
+          }
         }
-      }
-      
-      // If player owns all jets, show first jet in progression as preview
-      if (jetIdToDisplay == 'progressive_jet') {
-        jetIdToDisplay = jetProgression.first;
+        
+        // Final fallback
+        if (jetIdToDisplay == 'progressive_jet' || jetIdToDisplay == null) {
+          jetIdToDisplay = jetProgression.first;
+        }
       }
     }
     
@@ -273,7 +339,7 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     return Text(
       '🎉 Daily Reward Claimed!',
       style: TextStyle(
-        fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
+        fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context), // Reduced from 22.0
         fontWeight: FontWeight.bold,
         color: Colors.white,
         shadows: const [
@@ -416,27 +482,36 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     // Handle progressive jet system (Day 6 reward)
     String? jetIdToDisplay = widget.reward.jetSkinId;
     if (widget.reward.jetSkinId == 'progressive_jet') {
-      // Determine which jet will be awarded by checking ownership
-      const jetProgression = [
-        'cobra_strike',
-        'storm_chaser',
-        'disco_fever',
-        'ruby_phantom',
-        'sugar_storm',
-      ];
+      // ✅ FIX: Get the actual jet ID that was unlocked from DailyStreakManager
+      final streakManager = DailyStreakManager();
+      final actualUnlockedJet = streakManager.lastUnlockedJetId;
       
-      // Find first jet player doesn't own
-      final inventory = InventoryManager();
-      for (final jetId in jetProgression) {
-        if (!inventory.isOwned(jetId)) {
-          jetIdToDisplay = jetId;
-          break;
+      if (actualUnlockedJet != null) {
+        // Use the actual jet that was unlocked
+        jetIdToDisplay = actualUnlockedJet;
+      } else {
+        // Fallback: Check inventory to find which jet was unlocked
+        const jetProgression = [
+          'cobra_strike',
+          'storm_chaser',
+          'disco_fever',
+          'ruby_phantom',
+          'sugar_storm',
+        ];
+        
+        final inventory = InventoryManager();
+        // Find first jet in progression that IS owned
+        for (final jetId in jetProgression) {
+          if (inventory.isOwned(jetId)) {
+            jetIdToDisplay = jetId;
+            break;
+          }
         }
-      }
-      
-      // If player owns all jets, show first jet in progression as preview
-      if (jetIdToDisplay == 'progressive_jet') {
-        jetIdToDisplay = jetProgression.first;
+        
+        // Final fallback
+        if (jetIdToDisplay == 'progressive_jet' || jetIdToDisplay == null) {
+          jetIdToDisplay = jetProgression.first;
+        }
       }
     }
 
@@ -500,20 +575,23 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
         ? _getCompactHeartBoosterText()
         : _getExplanationText();
     
-    return Text(
-      explanationText,
-      style: TextStyle(
-        fontSize: ResponsiveConfig.responsiveFontSize(
-          isHeartBooster ? 13.0 : 14.0,
-          screenSize,
-          context,
+    return Center(
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(), // Prevent nested scrolling
+        child: Text(
+          explanationText,
+          style: TextStyle(
+            fontSize: ResponsiveConfig.responsiveFontSize(
+              isHeartBooster ? 12.0 : 13.0, // Slightly smaller
+              screenSize,
+              context,
+            ),
+            color: Colors.white.withValues(alpha: 0.9),
+            height: isHeartBooster ? 1.3 : 1.4, // Tighter line height
+          ),
+          textAlign: TextAlign.center,
         ),
-        color: Colors.white.withValues(alpha: 0.9),
-        height: isHeartBooster ? 1.3 : 1.5, // Tighter line height for heart booster
       ),
-      textAlign: TextAlign.center,
-      maxLines: isHeartBooster ? 8 : null, // Limit lines for heart booster
-      overflow: TextOverflow.ellipsis,
     );
   }
   
