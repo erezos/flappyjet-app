@@ -18,6 +18,8 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       manager = MissionsManager();
+      // Reset singleton state for clean test
+      manager.resetForTesting();
       await manager.initialize();
     });
 
@@ -149,6 +151,7 @@ void main() {
       
       SharedPreferences.setMockInitialValues({});
       final manager = MissionsManager();
+      manager.resetForTesting();
       await manager.initialize();
 
       // Track if notification happens quickly (before save would complete)
@@ -177,6 +180,7 @@ void main() {
     test('mission becomes completed when progress reaches target', () async {
       SharedPreferences.setMockInitialValues({});
       final manager = MissionsManager();
+      manager.resetForTesting();
       await manager.initialize();
 
       // Keep updating until a mission is completed
@@ -200,6 +204,7 @@ void main() {
     test('claimMissionReward returns false for uncompleted mission', () async {
       SharedPreferences.setMockInitialValues({});
       final manager = MissionsManager();
+      manager.resetForTesting();
       await manager.initialize();
 
       // Get first mission (if exists) and try to claim without completing
@@ -218,6 +223,7 @@ void main() {
     test('claimMissionReward removes mission from list on success', () async {
       SharedPreferences.setMockInitialValues({});
       final manager = MissionsManager();
+      manager.resetForTesting();
       await manager.initialize();
 
       final initialCount = manager.dailyMissions.length;
@@ -250,6 +256,7 @@ void main() {
     test('mission completed state persists across listeners', () async {
       SharedPreferences.setMockInitialValues({});
       final manager = MissionsManager();
+      manager.resetForTesting();
       await manager.initialize();
 
       bool sawCompletedMission = false;

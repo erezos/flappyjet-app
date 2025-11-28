@@ -95,11 +95,19 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   }
 
   /// Claim mission reward with fade-out animation
+  /// 
+  /// ✅ CRITICAL FIX: Uses proper BuildContext lifecycle management to prevent
+  /// "This BuildContext is no longer valid" errors. The context can become
+  /// invalid during async operations (like claiming rewards), so we must
+  /// check `mounted` immediately before using the context for UI operations.
   Future<void> _claimReward(BuildContext context, String missionId) async {
     // Prevent double-clicking
     if (_claimingMissions.contains(missionId)) {
       return;
     }
+
+    // ✅ FIX: Early mounted check before any state changes
+    if (!mounted) return;
 
     setState(() {
       _claimingMissions.add(missionId);
@@ -108,18 +116,22 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     // Try to get MissionsManager from Provider first, fallback to passed parameter
     MissionsManager? missionsManager;
     try {
+      // ✅ FIX: Check mounted before using context
+      if (!mounted) return;
       missionsManager = context.read<MissionsManager>();
     } catch (e) {
       missionsManager = widget.missionsManager;
     }
 
     if (missionsManager == null) {
+      if (!mounted) return; // ✅ FIX: Check before setState
       setState(() {
         _claimingMissions.remove(missionId);
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Missions not available')));
+      if (!mounted) return; // ✅ FIX: Check before using context
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missions not available')),
+      );
       return;
     }
 
@@ -130,10 +142,19 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     );
     
     final success = await missionsManager.claimMissionReward(missionId);
-    if (success && mounted) {
+    
+    // ✅ CRITICAL FIX: Check mounted AGAIN after the async operation
+    // The widget could have been disposed during the await
+    if (!mounted) return;
+    
+    if (success) {
       setState(() {
         _claimingMissions.remove(missionId);
       });
+      
+      // ✅ CRITICAL FIX: Double-check mounted right before showDialog
+      // This is the exact point where the error occurred
+      if (!mounted) return;
       
       // Show beautiful reward claim popup
       await showDialog(
@@ -155,31 +176,41 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
       setState(() {
         _claimingMissions.remove(missionId);
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to claim reward'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // ✅ FIX: Check mounted before showing snackbar
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to claim reward'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   /// Claim achievement reward with animation
+  /// 
+  /// ✅ CRITICAL FIX: Uses proper BuildContext lifecycle management to prevent
+  /// "This BuildContext is no longer valid" errors. Same fix as _claimReward.
   Future<void> _claimAchievementReward(
     BuildContext context,
     String achievementId,
   ) async {
+    // ✅ FIX: Early mounted check before any operations
+    if (!mounted) return;
+    
     // Try to get AchievementsManager from Provider first, fallback to passed parameter
     AchievementsManager? achievementsManager;
     try {
+      // ✅ FIX: Check mounted before using context
+      if (!mounted) return;
       achievementsManager = context.read<AchievementsManager>();
     } catch (e) {
       achievementsManager = widget.achievementsManager;
     }
 
     if (achievementsManager == null) {
+      // ✅ FIX: Check mounted before using context for snackbar
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Achievements not available')),
       );
@@ -192,7 +223,15 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     final success = await achievementsManager.claimAchievementReward(
       achievementId,
     );
-    if (success && achievement != null && mounted) {
+    
+    // ✅ CRITICAL FIX: Check mounted AGAIN after the async operation
+    // The widget could have been disposed during the await
+    if (!mounted) return;
+    
+    if (success && achievement != null) {
+      // ✅ CRITICAL FIX: Double-check mounted right before showDialog
+      if (!mounted) return;
+      
       // Show beautiful reward claim popup
       await showDialog(
         context: context,
@@ -216,14 +255,14 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
         ),
       );
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to claim achievement reward'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // ✅ FIX: Check mounted before showing snackbar
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to claim achievement reward'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

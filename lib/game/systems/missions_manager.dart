@@ -203,6 +203,17 @@ class MissionsManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reset singleton state for testing purposes
+  /// @visibleForTesting - DO NOT use in production code!
+  void resetForTesting() {
+    _dailyMissions = [];
+    _playerStats = null;
+    _lastResetDate = null;
+    _isInitialized = false;
+    // Clear listeners to prevent stale callbacks
+    // Note: ChangeNotifier doesn't expose removeListener for all, so we accept listeners persist
+  }
+
   /// Load player statistics from various sources
   Future<void> _loadPlayerStats() async {
     final prefs = await SharedPreferences.getInstance();
