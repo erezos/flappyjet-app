@@ -48,7 +48,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   String? _osVersion;
   String? _appVersion;
   String? _platform;
-  String? _countryCode; // ✅ NEW: Country code from device locale
+  String? _locale; // Device locale (e.g., "en_US", "he_IL") - for language preference analytics
 
   // Getters
   String get userId => _userId ?? '';
@@ -63,7 +63,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   String get osVersion => _osVersion ?? 'unknown';
   String get appVersion => _appVersion ?? '0.0.0';
   String get platform => _platform ?? 'unknown';
-  String? get countryCode => _countryCode; // ✅ NEW: Country code getter (nullable)
+  String? get locale => _locale; // Device locale getter (e.g., "en_US") - nullable
 
   /// Initialize the device identity system
   /// 
@@ -99,7 +99,7 @@ class DeviceIdentityManager extends ChangeNotifier {
       safePrint('🆔 Nickname: $_nickname');
       safePrint('🆔 Platform: $_platform');
       safePrint('🆔 Device: $_deviceModel');
-      safePrint('🆔 Country: ${_countryCode ?? "Unknown"}'); // ✅ NEW: Log country
+      safePrint('🆔 Locale: ${_locale ?? "Unknown"}');
       safePrint('🆔 First Launch: $_isFirstLaunch');
       
       notifyListeners();
@@ -250,17 +250,17 @@ class DeviceIdentityManager extends ChangeNotifier {
       final packageInfo = await PackageInfo.fromPlatform();
       _appVersion = packageInfo.version;
       
-      // ✅ NEW: Detect country code from device locale
-      _countryCode = await _getCountryCode();
+      // Detect device locale for language preference analytics
+      _locale = _getDeviceLocale();
       
-      safePrint('🆔 Device info collected: $_deviceModel, $_osVersion, $_appVersion, country: ${_countryCode ?? "Unknown"}');
+      safePrint('🆔 Device info collected: $_deviceModel, $_osVersion, $_appVersion, locale: ${_locale ?? "Unknown"}');
       
     } catch (e) {
       safePrint('🆔 ⚠️ Failed to collect device info: $e');
       _deviceModel = 'unknown';
       _osVersion = 'unknown';
       _appVersion = '0.0.0';
-      _countryCode = null; // ✅ NEW: Set to null on error
+      _locale = null;
     }
   }
 
@@ -308,8 +308,8 @@ class DeviceIdentityManager extends ChangeNotifier {
 
   /// Get device metadata for events
   /// 
-  /// Includes: platform, deviceModel, osVersion, appVersion, nickname, country
-  /// Country is nullable - only included if detected (to avoid polluting analytics)
+  /// Includes: platform, deviceModel, osVersion, appVersion, nickname, locale
+  /// Locale is nullable - only included if detected (to avoid polluting analytics)
   Map<String, dynamic> getDeviceMetadata() {
     final metadata = <String, dynamic>{
       'platform': _platform ?? 'unknown',
@@ -319,9 +319,9 @@ class DeviceIdentityManager extends ChangeNotifier {
       'nickname': _nickname,
     };
     
-    // ✅ NEW: Include country only if detected (null = not included in map)
-    if (_countryCode != null) {
-      metadata['country'] = _countryCode!;
+    // Include locale only if detected (for language preference analytics)
+    if (_locale != null) {
+      metadata['locale'] = _locale!;
     }
     
     return metadata;
@@ -366,44 +366,32 @@ class DeviceIdentityManager extends ChangeNotifier {
   }
 
   // ============================================================================
-  // ✅ NEW: Country Code Detection
+  // Device Locale Detection (for language preference analytics)
   // ============================================================================
 
-  /// Get country code from device locale
+  /// Get device locale string
   /// 
-  /// Returns null if country cannot be detected (to avoid polluting analytics)
+  /// Returns the full locale string (e.g., "en_US", "he_IL", "fr_FR")
+  /// This is the user's LANGUAGE PREFERENCE, not their geographic location.
   /// 
-  /// Method: Extracts country from Platform.localeName (e.g., "en_US" -> "US")
-  /// 
-  /// Limitations:
-  /// - Only works if locale includes country code (e.g., "en_US", "fr_FR")
-  /// - Locales without country (e.g., "en") will return null
-  /// - This is intentional to avoid false data in analytics
-  Future<String?> _getCountryCode() async {
+  /// Note: Geographic location (country) is determined server-side via IP geolocation.
+  /// This locale is useful for localization decisions (e.g., "Should we add Hebrew?")
+  String? _getDeviceLocale() {
     try {
-      // Try to get country from device locale
-      // Platform.localeName returns format like "en_US", "fr_FR", "ja_JP"
-      final locale = Platform.localeName;
-      final parts = locale.split('_');
+      // Platform.localeName returns format like "en_US", "fr_FR", "ja_JP", "he_IL"
+      final localeString = Platform.localeName;
       
-      if (parts.length >= 2) {
-        final countryCode = parts[1].toUpperCase();
-        
-        // Validate it's a 2-letter country code (ISO 3166-1 alpha-2)
-        if (countryCode.length == 2 && RegExp(r'^[A-Z]{2}$').hasMatch(countryCode)) {
-          safePrint('🌍 Detected country code from locale: $countryCode (locale: $locale)');
-          return countryCode;
-        } else {
-          safePrint('🌍 ⚠️ Invalid country code format: $countryCode (locale: $locale)');
-        }
-      } else {
-        safePrint('🌍 ⚠️ Locale does not include country code: $locale');
+      // Normalize: replace any hyphens with underscores for consistency
+      final normalizedLocale = localeString.replaceAll('-', '_');
+      
+      if (normalizedLocale.isNotEmpty) {
+        safePrint('🌍 Device locale: $normalizedLocale');
+        return normalizedLocale;
       }
       
-      // Return null if we can't detect (don't use fallback to avoid polluting analytics)
       return null;
     } catch (e) {
-      safePrint('🌍 ❌ Error detecting country code: $e');
+      safePrint('🌍 ❌ Error detecting device locale: $e');
       return null;
     }
   }

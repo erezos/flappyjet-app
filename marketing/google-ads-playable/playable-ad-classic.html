@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="ad.size" content="width=320,height=480">
+    <title>FlappyJet - Tap to Play!</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{width:100%;height:100vh;overflow:hidden;font-family:'Arial Black',sans-serif;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);touch-action:none}
+        #gameCanvas{display:block;width:100%;height:100%;cursor:pointer}
+        .overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);color:white;z-index:10}
+        .title{font-size:clamp(32px,8vw,56px);background:linear-gradient(180deg,#FFD700 0%,#FFA500 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:3px 3px 6px rgba(0,0,0,0.5);margin-bottom:10px;animation:float 2s ease-in-out infinite}
+        .subtitle{font-size:clamp(14px,4vw,24px);color:#87CEEB;margin-bottom:30px}
+        .tap-hint{font-size:clamp(18px,5vw,28px);color:#fff;animation:pulse 1.5s infinite}
+        #endScreen{display:none}
+        .score-display{font-size:clamp(36px,10vw,64px);color:#FFD700;margin:20px 0}
+        .cta-btn{background:linear-gradient(180deg,#4CAF50 0%,#2E7D32 100%);color:white;border:none;padding:18px 50px;font-size:clamp(18px,5vw,28px);font-weight:bold;border-radius:50px;cursor:pointer;box-shadow:0 8px 0 #1B5E20,0 15px 20px rgba(0,0,0,0.3);margin-top:20px;animation:bounce 1s infinite;text-transform:uppercase}
+        .cta-btn:active{transform:translateY(4px);box-shadow:0 4px 0 #1B5E20}
+        #scoreDisplay{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:clamp(36px,10vw,56px);color:white;text-shadow:3px 3px 0 #000;z-index:5}
+        #gemCount{position:absolute;top:20px;right:20px;font-size:20px;color:#FFD700;z-index:5;display:flex;align-items:center;gap:8px}
+        .stars{display:flex;gap:10px;margin:15px 0}
+        .star{font-size:32px;animation:starPop 0.3s ease-out forwards;opacity:0}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+        @keyframes starPop{to{opacity:1;transform:scale(1.2)}}
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="scoreDisplay" style="display:none">0</div>
+    <div id="gemCount" style="display:none">💎 <span id="gems">0</span></div>
+    <div id="startScreen" class="overlay">
+        <div class="title">✈️ FLAPPY JET</div>
+        <div class="subtitle">50 Levels • Boss Battles • Tournaments</div>
+        <div class="tap-hint">👆 TAP TO FLY!</div>
+    </div>
+    <div id="endScreen" class="overlay">
+        <div class="title">🎉 AWESOME!</div>
+        <div class="stars"><span class="star" style="animation-delay:0.1s">⭐</span><span class="star" style="animation-delay:0.2s">⭐</span><span class="star" style="animation-delay:0.3s">⭐</span></div>
+        <div class="score-display">Score: <span id="finalScore">0</span></div>
+        <div style="font-size:16px;color:#87CEEB;margin:10px 0">Unlock 30+ jets & 5 epic zones!</div>
+        <button class="cta-btn" id="installBtn">DOWNLOAD FREE</button>
+    </div>
+    <script>
+        let mraidReady=typeof mraid!=='undefined'&&mraid.getState()!=='loading';
+        if(typeof mraid!=='undefined'&&mraid.getState()==='loading'){mraid.addEventListener('ready',()=>mraidReady=true)}
+        const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+        const startScreen=document.getElementById('startScreen'),endScreen=document.getElementById('endScreen');
+        const scoreDisplay=document.getElementById('scoreDisplay'),gemCountEl=document.getElementById('gemCount');
+        
+        // Load real FlappyJet assets
+        const jetImg=new Image();jetImg.src='data:image/png;base64,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';
+        let jetLoaded=false;jetImg.onload=()=>{jetLoaded=true};
+        
+        let gameStarted=false,gameOver=false,score=0,gems=0,frame=0;
+        const jet={x:0,y:0,w:70,h:50,vel:0,grav:0.45,jump:-9,rot:0};
+        function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;jet.x=canvas.width*0.2;if(!gameStarted)jet.y=canvas.height/2}
+        resize();window.addEventListener('resize',resize);
+        const obstacles=[],obstW=80,obstGap=220,obstSpeed=3;
+        const gemItems=[];
+        function createObs(){const min=60,max=canvas.height-obstGap-min,top=Math.random()*(max-min)+min;obstacles.push({x:canvas.width,top,bot:top+obstGap,passed:false})}
+        function createGem(){if(Math.random()<0.3){const y=Math.random()*(canvas.height-200)+100;gemItems.push({x:canvas.width+100,y,collected:false})}}
+        function drawJet(){ctx.save();ctx.translate(jet.x+jet.w/2,jet.y+jet.h/2);ctx.rotate(jet.rot);
+            if(jetLoaded){ctx.drawImage(jetImg,-jet.w/2,-jet.h/2,jet.w,jet.h)}
+            else{const g=ctx.createLinearGradient(-jet.w/2,0,jet.w/2,0);g.addColorStop(0,'#4A90E2');g.addColorStop(1,'#2E5C8A');ctx.fillStyle=g;
+            ctx.beginPath();ctx.moveTo(-jet.w/2,0);ctx.lineTo(jet.w/2,-jet.h/2);ctx.lineTo(jet.w/2,jet.h/2);ctx.closePath();ctx.fill();
+            ctx.fillStyle='#87CEEB';ctx.beginPath();ctx.ellipse(jet.w/4,-jet.h/6,8,5,0,0,Math.PI*2);ctx.fill();
+            ctx.fillStyle='#FF6B6B';ctx.fillRect(-jet.w/2-10,-3,15,6)}
+            ctx.restore()}
+        function drawObs(){obstacles.forEach(o=>{const g1=ctx.createLinearGradient(o.x,0,o.x+obstW,0);g1.addColorStop(0,'#2ECC71');g1.addColorStop(1,'#27AE60');
+            ctx.fillStyle=g1;ctx.fillRect(o.x,0,obstW,o.top);ctx.fillRect(o.x,o.bot,obstW,canvas.height-o.bot);
+            ctx.fillStyle='#1E8449';ctx.fillRect(o.x-5,o.top-20,obstW+10,20);ctx.fillRect(o.x-5,o.bot,obstW+10,20)})}
+        function drawGems(){gemItems.forEach(g=>{if(!g.collected){ctx.font='24px Arial';ctx.fillText('💎',g.x,g.y)}})}
+        function drawBg(){const g=ctx.createLinearGradient(0,0,0,canvas.height);g.addColorStop(0,'#1a1a2e');g.addColorStop(0.5,'#16213e');g.addColorStop(1,'#0f3460');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle='rgba(255,255,255,0.1)';for(let i=0;i<50;i++){ctx.beginPath();ctx.arc((frame*0.5+i*100)%canvas.width,Math.sin(i)*100+canvas.height/3,2,0,Math.PI*2);ctx.fill()}}
+        function update(){if(!gameStarted||gameOver)return;frame++;
+            jet.vel+=jet.grav;jet.y+=jet.vel;jet.rot=Math.min(Math.max(jet.vel*0.04,-0.4),0.6);
+            if(frame%100===0)createObs();if(frame%150===0)createGem();
+            obstacles.forEach((o,i)=>{o.x-=obstSpeed;if(!o.passed&&o.x+obstW<jet.x){o.passed=true;score++;scoreDisplay.textContent=score}
+                if(o.x+obstW<0)obstacles.splice(i,1);
+                if(jet.x+jet.w>o.x&&jet.x<o.x+obstW&&(jet.y<o.top||jet.y+jet.h>o.bot))endGame()});
+            gemItems.forEach((g,i)=>{g.x-=obstSpeed;if(!g.collected&&Math.abs(jet.x-g.x)<30&&Math.abs(jet.y-g.y)<30){g.collected=true;gems++;document.getElementById('gems').textContent=gems}
+                if(g.x<-50)gemItems.splice(i,1)});
+            if(jet.y+jet.h>canvas.height||jet.y<0)endGame()}
+        function draw(){drawBg();drawObs();drawGems();drawJet()}
+        function gameLoop(){update();draw();requestAnimationFrame(gameLoop)}
+        function startGame(){gameStarted=true;startScreen.style.display='none';scoreDisplay.style.display='block';gemCountEl.style.display='flex';jet.vel=jet.jump}
+        function endGame(){if(gameOver)return;gameOver=true;document.getElementById('finalScore').textContent=score;endScreen.style.display='flex'}
+        function jump(){if(!gameStarted)startGame();else if(!gameOver)jet.vel=jet.jump}
+        document.body.addEventListener('click',jump);
+        document.body.addEventListener('touchstart',e=>{e.preventDefault();jump()});
+        startScreen.addEventListener('click',jump);
+        startScreen.addEventListener('touchstart',e=>{e.preventDefault();jump()});
+        document.getElementById('installBtn').addEventListener('click',e=>{e.stopPropagation();
+            const url='https://play.google.com/store/apps/details?id=com.flappyjet.pro.flappy_jet_pro';
+            if(typeof mraid!=='undefined'&&mraidReady)mraid.open(url);else window.open(url,'_blank')});
+        gameLoop();
+    </script>
+</body>
+</html>

@@ -4,10 +4,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 import '../../game/systems/local_notification_manager.dart';
 import '../../game/systems/firebase_analytics_manager.dart';
 import '../../core/debug_logger.dart';
-import 'popups/base_popup.dart';
 import 'buttons/modern_game_button.dart';
 import 'buttons/button_styles.dart';
 
@@ -57,10 +57,9 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
     final isSmallScreen = screenHeight < 700;
     final isNarrowScreen = screenWidth < 400;
 
-    return BasePopup(
-      padding: EdgeInsets.zero,
-      backgroundColor: Colors.transparent,
-      child: Container(
+    // Note: This widget is shown using showBasePopup, so we don't wrap in BasePopup here
+    // BasePopup is applied by showBasePopup in notification_permission_manager.dart
+    return Container(
         margin: EdgeInsets.symmetric(
           horizontal: isNarrowScreen ? 16 : 24,
           vertical: isSmallScreen ? 20 : 40,
@@ -131,8 +130,7 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
             _buildCloseButton(),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildNotificationIcon(bool isSmallScreen) {
@@ -343,8 +341,28 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
 
     HapticFeedback.lightImpact();
 
+    // ⚠️ CRITICAL FIX: Close Flutter dialog FIRST before requesting permissions
+    // This allows the native system permission dialog to appear without interference
+    // The Flutter dialog's barrier was blocking all touches, making the app unresponsive
+    // Get context and navigator before closing (context becomes invalid after pop)
+    // Use rootNavigator to ensure we pop the dialog from the root overlay
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    // Close the dialog immediately using rootNavigator
+    if (mounted && context.mounted) {
+      navigator.pop();
+      widget.onClose?.call();
+    }
+
+    // Wait for the next frame to ensure the dialog is fully removed from the overlay
+    // This is critical - the Scaffold in BasePopup needs to be completely removed
+    // before the native permission dialog appears, otherwise touches are blocked
+    await SchedulerBinding.instance.endOfFrame;
+    await Future.delayed(const Duration(milliseconds: 200));
+
     try {
-      // Request notification permissions
+      // Request notification permissions (native dialog will appear now)
       final notificationManager = LocalNotificationManager();
       await notificationManager.requestPermissions();
       
@@ -359,54 +377,41 @@ class _NotificationPermissionPopupState extends State<NotificationPermissionPopu
       if (hasPermission) {
         Logger.i('🔔 User granted notification permissions via popup');
         
-        // Show success feedback
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('🎉 Great! We\'ll notify you when hearts are ready!'),
-              backgroundColor: const Color(0xFF27AE60),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
+        // Show success feedback (use scaffoldMessenger we got before closing)
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: const Text('🎉 Great! We\'ll notify you when hearts are ready!'),
+            backgroundColor: const Color(0xFF27AE60),
+            duration: const Duration(seconds: 2),
+          ),
+        );
         
         widget.onAllow?.call();
       } else {
         Logger.w('🔔 User denied notification permissions via popup');
         
         // Show info about manual enabling
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('💡 You can enable notifications anytime in Settings'),
-              backgroundColor: const Color(0xFF95A5A6),
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: const Text('💡 You can enable notifications anytime in Settings'),
+            backgroundColor: const Color(0xFF95A5A6),
+            duration: const Duration(seconds: 3),
+          ),
+        );
         
         widget.onDismiss?.call();
-      }
-
-      // Close popup after brief delay
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted && context.mounted) {
-        Navigator.of(context).pop();
-        widget.onClose?.call();
       }
 
     } catch (e) {
       Logger.e('🔔 Error handling notification permission request: $e');
       
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('❌ Something went wrong. Try again later.'),
-            backgroundColor: const Color(0xFFE74C3C),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text('❌ Something went wrong. Try again later.'),
+          backgroundColor: const Color(0xFFE74C3C),
+          duration: const Duration(seconds: 2),
+        ),
+      );
       
       widget.onDismiss?.call();
     } finally {

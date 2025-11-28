@@ -66,29 +66,33 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isHeartBooster = widget.reward.type == DailyStreakRewardType.heartBooster;
+    
+    // Calculate scale factor for proportional sizing
+    final scaleFactor = ResponsiveConfig.getScaleFactor(screenSize);
+
+    // Calculate close button overflow space (half of button size)
+    final closeButtonOverflow = (44.0 * scaleFactor).clamp(40.0, 56.0) / 2 + 4;
 
     return BasePopup(
       maxWidthPixels: ResponsiveConfig.responsivePopupWidth(
         screenSize,
-        percent: 0.85,
-        minWidth: 300.0,
-        maxWidth: 450.0,
+        percent: 0.88,
+        minWidth: 320.0,
+        maxWidth: 480.0,
       ),
       padding: EdgeInsets.zero,
       backgroundColor: Colors.transparent,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Main popup content
-          Container(
-            constraints: BoxConstraints(
-              maxHeight: ResponsiveConfig.responsivePopupHeight(
-                screenSize,
-                percent: 0.75, // Reduced from 0.85 to use less space
-                minHeight: 350.0, // Reduced from 400.0
-                maxHeight: 550.0, // Reduced from 600.0
-              ),
-            ),
+      // Add margin to BasePopup so the X button has room to overflow without being clipped
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: closeButtonOverflow,
+          right: closeButtonOverflow,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Main popup content
+            Container(
             decoration: BoxDecoration(
               // Premium glassmorphism effect
               gradient: LinearGradient(
@@ -104,103 +108,78 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
                 width: 2,
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header with reward icon - Compact height
-                _buildHeader(screenSize),
-                
-                // Content - Optimized layout with better space usage
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final content = Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Title - Compact
-                          Padding(
-                            padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                              horizontal: 16.0,
-                              vertical: 8.0, // Reduced from 12.0
-                              screenSize: screenSize,
-                            ),
-                            child: _buildTitle(context, screenSize),
-                          ),
-                          
-                          // Reward display - Compact
-                          Padding(
-                            padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                              horizontal: 16.0,
-                              vertical: 4.0, // Reduced spacing
-                              screenSize: screenSize,
-                            ),
-                            child: _buildRewardDisplay(context, screenSize),
-                          ),
-                          
-                          // Explanation text - Flexible to fill available space
-                          Expanded(
-                            child: Padding(
-                              padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                                horizontal: 16.0,
-                                vertical: 8.0,
-                                screenSize: screenSize,
-                              ),
-                              child: _buildExplanation(context, screenSize, isHeartBooster),
-                            ),
-                          ),
-                          
-                          // Action button - At bottom
-                          Padding(
-                            padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-                              horizontal: 16.0,
-                              vertical: 12.0, // Reduced from 8.0 top + 8.0 bottom
-                              screenSize: screenSize,
-                            ),
-                            child: _buildActionButton(context, screenSize),
-                          ),
-                        ],
-                      );
-                      
-                      // Use SingleChildScrollView only if content exceeds available space
-                      return SingleChildScrollView(
-                        physics: const ClampingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: IntrinsicHeight(
-                            child: content,
-                          ),
-                        ),
-                      );
-                    },
+            // Use IntrinsicHeight to let content determine size naturally
+            child: IntrinsicHeight(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header with reward icon - proportionally sized
+                  _buildHeader(screenSize, scaleFactor),
+                  
+                  // Title - Compact
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.0 * scaleFactor,
+                      vertical: 12.0 * scaleFactor,
+                    ),
+                    child: _buildTitle(context, screenSize, scaleFactor),
                   ),
-                ),
-              ],
+                  
+                  // Reward display - Prominent and centered
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.0 * scaleFactor,
+                      vertical: 8.0 * scaleFactor,
+                    ),
+                    child: _buildRewardDisplay(context, screenSize, scaleFactor),
+                  ),
+                  
+                  // Explanation text
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.0 * scaleFactor,
+                      vertical: 12.0 * scaleFactor,
+                    ),
+                    child: _buildExplanation(context, screenSize, isHeartBooster, scaleFactor),
+                  ),
+                  
+                  // Action button - Fixed at bottom
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: 20.0 * scaleFactor,
+                      right: 20.0 * scaleFactor,
+                      top: 8.0 * scaleFactor,
+                      bottom: 20.0 * scaleFactor,
+                    ),
+                    child: _buildActionButton(context, screenSize, scaleFactor),
+                  ),
+                ],
+              ),
             ),
           ),
           
-          // ✅ X BUTTON: Positioned on popup frame (outside container, on border)
-          Positioned(
-            top: -ResponsiveConfig.responsiveIconSize(44.0, screenSize).clamp(44.0, 56.0) / 2,
-            right: -ResponsiveConfig.responsiveIconSize(44.0, screenSize).clamp(44.0, 56.0) / 2,
-            child: _buildCloseButton(screenSize),
-          ),
-        ],
+            // ✅ X BUTTON: Positioned on popup frame (outside container, on border)
+            // With the outer Padding, the button stays inside the padded area
+            Positioned(
+              top: -(44.0 * scaleFactor).clamp(40.0, 56.0) / 2,
+              right: -(44.0 * scaleFactor).clamp(40.0, 56.0) / 2,
+              child: _buildCloseButton(screenSize, scaleFactor),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(Size screenSize) {
-    final headerIconSize = ResponsiveConfig.responsiveIconSize(28.0, screenSize); // Reduced from 32.0
+  Widget _buildHeader(Size screenSize, double scaleFactor) {
+    // Scale header icon proportionally - larger for visual impact
+    final headerIconSize = (48.0 * scaleFactor).clamp(40.0, 64.0);
     
     return Container(
       width: double.infinity,
-      padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 0.0,
-        vertical: 12.0, // Reduced from 16.0 for more compact header
-        screenSize: screenSize,
+        vertical: 16.0 * scaleFactor,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -214,30 +193,41 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
           topRight: Radius.circular(22),
         ),
       ),
-      child: widget.reward.type == DailyStreakRewardType.jetSkin && widget.reward.jetSkinId != null
-          ? _buildJetSkinHeaderIcon(headerIconSize)
-          : Icon(
-              _getRewardIcon(),
-              size: headerIconSize,
-              color: Colors.white,
-            ),
+      child: _buildHeaderIcon(headerIconSize),
     );
   }
+
+  /// Build appropriate header icon based on reward type
+  Widget _buildHeaderIcon(double iconSize) {
+    switch (widget.reward.type) {
+      case DailyStreakRewardType.gems:
+        // Use our custom Gem3DIcon for gems
+        return Center(child: Gem3DIcon(size: iconSize * 1.2));
+      
+      case DailyStreakRewardType.jetSkin:
+        // Show actual jet image for jet skins
+        if (widget.reward.jetSkinId != null) {
+          return _buildJetSkinHeaderIcon(iconSize);
+        }
+        return Icon(_getRewardIcon(), size: iconSize, color: Colors.white);
+      
+      default:
+        // Default icon for other reward types
+        return Icon(_getRewardIcon(), size: iconSize, color: Colors.white);
+    }
+  }
   
-  /// ✅ NEW: Build close button (X) positioned on popup frame
-  /// Uses ResponsiveConfig for consistent sizing across all devices
-  Widget _buildCloseButton(Size screenSize) {
+  /// ✅ Build close button (X) positioned on popup frame
+  /// Uses proportional scaling for consistent sizing across all devices
+  Widget _buildCloseButton(Size screenSize, double scaleFactor) {
     // Responsive button size (minimum 44x44 for touch target accessibility)
-    final buttonSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize)
-        .clamp(44.0, 56.0); // Min 44px (accessibility), max 56px
+    final buttonSize = (44.0 * scaleFactor).clamp(40.0, 56.0);
     
     // Responsive icon size
-    final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize)
-        .clamp(20.0, 28.0);
+    final iconSize = (24.0 * scaleFactor).clamp(20.0, 30.0);
     
     // Responsive border width
-    final borderWidth = ResponsiveConfig.responsiveSize(2.0, screenSize)
-        .clamp(1.5, 3.0);
+    final borderWidth = (2.0 * scaleFactor).clamp(1.5, 3.0);
     
     return GestureDetector(
       onTap: () {
@@ -249,17 +239,17 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
         height: buttonSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.black.withOpacity(0.7), // More opaque for visibility on frame
+          color: Colors.black.withOpacity(0.7),
           border: Border.all(
-            color: Colors.white.withOpacity(0.9), // High contrast white border
+            color: Colors.white.withOpacity(0.9),
             width: borderWidth,
           ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.5),
-              blurRadius: ResponsiveConfig.responsiveSize(12.0, screenSize),
-              spreadRadius: ResponsiveConfig.responsiveSize(2.0, screenSize),
-              offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
+              blurRadius: 12.0 * scaleFactor,
+              spreadRadius: 2.0 * scaleFactor,
+              offset: Offset(0, 2.0 * scaleFactor),
             ),
           ],
         ),
@@ -335,17 +325,17 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     );
   }
 
-  Widget _buildTitle(BuildContext context, Size screenSize) {
+  Widget _buildTitle(BuildContext context, Size screenSize, double scaleFactor) {
     return Text(
       '🎉 Daily Reward Claimed!',
       style: TextStyle(
-        fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context), // Reduced from 22.0
+        fontSize: (22.0 * scaleFactor).clamp(18.0, 28.0),
         fontWeight: FontWeight.bold,
         color: Colors.white,
-        shadows: const [
+        shadows: [
           Shadow(
-            offset: Offset(0, 2),
-            blurRadius: 4,
+            offset: Offset(0, 2.0 * scaleFactor),
+            blurRadius: 4.0 * scaleFactor,
             color: Colors.black54,
           ),
         ],
@@ -354,39 +344,40 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     );
   }
 
-  Widget _buildRewardDisplay(BuildContext context, Size screenSize) {
-    final iconSize = ResponsiveConfig.responsiveIconSize(28.0, screenSize);
+  Widget _buildRewardDisplay(BuildContext context, Size screenSize, double scaleFactor) {
+    // Larger icon for visual impact
+    final iconSize = (36.0 * scaleFactor).clamp(32.0, 48.0);
     
     return ScaleTransition(
       scale: _rewardAnimation,
       child: Container(
-        padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
-          horizontal: 16.0,
-          vertical: 12.0,
-          screenSize: screenSize,
+        padding: EdgeInsets.symmetric(
+          horizontal: 20.0 * scaleFactor,
+          vertical: 14.0 * scaleFactor,
         ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              _getRewardColor().withValues(alpha: 0.8),
-              _getRewardColor().withValues(alpha: 0.6),
+              _getRewardColor().withValues(alpha: 0.85),
+              _getRewardColor().withValues(alpha: 0.65),
             ],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16.0 * scaleFactor),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.4),
-            width: 2,
+            width: 2.0 * scaleFactor,
           ),
           boxShadow: [
             BoxShadow(
-              color: _getRewardColor().withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: _getRewardColor().withValues(alpha: 0.4),
+              blurRadius: 16.0 * scaleFactor,
+              offset: Offset(0, 6.0 * scaleFactor),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Reward icon - Use Gem3DIcon for gems, jet image for jets, regular icon for others
             if (widget.reward.type == DailyStreakRewardType.gems)
@@ -408,32 +399,32 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                      blurRadius: 4.0 * scaleFactor,
+                      offset: Offset(0, 2.0 * scaleFactor),
                     ),
                   ],
                 ),
                 child: Icon(
                   _getRewardIcon(),
                   color: Colors.white,
-                  size: ResponsiveConfig.responsiveIconSize(18.0, screenSize),
+                  size: (22.0 * scaleFactor).clamp(18.0, 28.0),
                 ),
               ),
             
-            SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+            SizedBox(width: 12.0 * scaleFactor),
             
             // Reward text - wrapped in Flexible to prevent overflow
             Flexible(
               child: Text(
                 _getRewardDisplayText(),
                 style: TextStyle(
-                  fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
+                  fontSize: (24.0 * scaleFactor).clamp(20.0, 32.0),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  shadows: const [
+                  shadows: [
                     Shadow(
-                      offset: Offset(0, 1),
-                      blurRadius: 2,
+                      offset: Offset(0, 1.5 * scaleFactor),
+                      blurRadius: 3.0 * scaleFactor,
                       color: Colors.black54,
                     ),
                   ],
@@ -569,28 +560,21 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     );
   }
 
-  Widget _buildExplanation(BuildContext context, Size screenSize, bool isHeartBooster) {
+  Widget _buildExplanation(BuildContext context, Size screenSize, bool isHeartBooster, double scaleFactor) {
     // For heart booster, use more compact text
     final explanationText = isHeartBooster 
         ? _getCompactHeartBoosterText()
         : _getExplanationText();
     
     return Center(
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(), // Prevent nested scrolling
-        child: Text(
-          explanationText,
-          style: TextStyle(
-            fontSize: ResponsiveConfig.responsiveFontSize(
-              isHeartBooster ? 12.0 : 13.0, // Slightly smaller
-              screenSize,
-              context,
-            ),
-            color: Colors.white.withValues(alpha: 0.9),
-            height: isHeartBooster ? 1.3 : 1.4, // Tighter line height
-          ),
-          textAlign: TextAlign.center,
+      child: Text(
+        explanationText,
+        style: TextStyle(
+          fontSize: (isHeartBooster ? 13.0 : 14.0) * scaleFactor,
+          color: Colors.white.withValues(alpha: 0.9),
+          height: isHeartBooster ? 1.35 : 1.45,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -605,7 +589,7 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
         'Enjoy unlimited flying!';
   }
 
-  Widget _buildActionButton(BuildContext context, Size screenSize) {
+  Widget _buildActionButton(BuildContext context, Size screenSize, double scaleFactor) {
     return SizedBox(
       width: double.infinity,
       child: ModernGameButton(
@@ -614,7 +598,7 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
           Navigator.of(context).pop();
           widget.onClose?.call();
         },
-        height: ResponsiveConfig.responsiveButtonHeight(48.0, screenSize),
+        height: (52.0 * scaleFactor).clamp(48.0, 64.0),
         style: ModernButtonStyle.primary, // Gold
       ),
     );

@@ -115,11 +115,11 @@ class EventBus {
         'platform': _identityManager!.platform,
       };
 
-      // ✅ NEW: Include country code if available (for analytics)
-      // Only include if detected (null = not included, to avoid polluting analytics)
-      final countryCode = _identityManager!.countryCode;
-      if (countryCode != null) {
-        enrichedData['country'] = countryCode;
+      // Include device locale if available (for language preference analytics)
+      // Note: Geographic country is determined server-side via IP geolocation
+      final deviceLocale = _identityManager!.locale;
+      if (deviceLocale != null) {
+        enrichedData['locale'] = deviceLocale;
       }
 
       final event = Event(

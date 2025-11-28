@@ -958,6 +958,24 @@ class AchievementsManager extends ChangeNotifier {
       
       safePrint('🏅 💰 Achievement reward claimed: ${achievement.coinReward} coins${achievement.gemReward > 0 ? ' + ${achievement.gemReward} gems' : ''} for "${achievement.title}"');
       
+      // Calculate time to claim (how long between unlock and claim)
+      final timeToClaimSeconds = achievement.unlockedAt != null
+          ? DateTime.now().difference(achievement.unlockedAt!).inSeconds
+          : 0;
+      
+      // 🔥 Fire achievement_claimed event for analytics
+      final eventBus = EventBus();
+      eventBus.fire('achievement_claimed', {
+        'achievement_id': achievement.id,
+        'achievement_name': achievement.title,
+        'achievement_tier': achievement.rarity.toString(),
+        'achievement_category': achievement.category.toString(),
+        'reward_coins': achievement.coinReward,
+        'reward_gems': achievement.gemReward,
+        'time_to_claim_seconds': timeToClaimSeconds,
+      });
+      safePrint('🏆 achievement_claimed event fired for "${achievement.title}" (claimed ${timeToClaimSeconds}s after unlock)');
+      
       // Mark as claimed
       _achievements[achievementId] = achievement.copyWith(
         claimed: true,

@@ -13,11 +13,12 @@ import 'leaderboard_manager.dart';
 import 'global_leaderboard_service.dart';
 import 'game_events_tracker.dart';
 // Removed auth_manager import - functionality moved here
-import '../../core/network/network_manager.dart';
+// Removed network_manager import - using event-driven architecture instead of blocking API calls
 import '../../services/nickname_validation_service.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
-import 'inventory_manager.dart';
+// Removed inventory_manager import - not used directly
 import '../../core/identity/unified_id_manager.dart';
+import '../../core/events/event_bus.dart';
 // Removed railway_leaderboard_service import - consumers will initialize as needed
 
 /// Authentication states for reactive UI updates
@@ -633,54 +634,18 @@ class PlayerIdentityManager extends ChangeNotifier {
       // Update all dependent systems
       await _syncToAllSystems();
 
-      // 🚂 CRITICAL: Sync nickname to Railway backend using PlayerAuthService
-      bool backendSyncSuccess = false;
+      // 🚂 ✅ EVENT-DRIVEN: Fire nickname_changed event via EventBus (async, non-blocking)
+      // Backend will update users table when it receives this event
+      // This ensures push notifications use the correct personalized nickname
       try {
-        if (_isBackendRegistered && _authToken.isNotEmpty) {
-          // Use new unified system for proper API communication
-          final networkManager = NetworkManager();
-          
-          final updateResult = await networkManager.updatePlayerProfile({
-            'nickname': _playerName,
-          });
-          
-          if (updateResult.success) {
-            safePrint('🚂 ✅ Nickname synced to Railway backend: $_playerName');
-            backendSyncSuccess = true;
-          } else {
-            safePrint('🚂 ⚠️ Nickname sync failed: ${updateResult.error}');
-            
-            // If token expired, try to refresh and retry
-            if (updateResult.error?.contains('expired') == true || 
-                updateResult.error?.contains('Invalid') == true) {
-              safePrint('🚂 🔄 Token expired, attempting refresh...');
-              
-              // Use internal token refresh
-              await ensureValidToken();
-              // Retry the update after token refresh
-              final retryResult = await networkManager.updatePlayerProfile({
-                'nickname': _playerName,
-              });
-              
-              if (retryResult.success) {
-                safePrint('🚂 ✅ Nickname sync successful after token refresh');
-                backendSyncSuccess = true;
-              } else {
-                safePrint('🚂 ❌ Nickname sync failed even after token refresh: ${retryResult.error}');
-              }
-            }
-          }
-        } else {
-          safePrint('🚂 ⚠️ Cannot sync nickname - not authenticated with backend');
-        }
+        EventBus().fire('nickname_changed', {
+          'new_nickname': _playerName,
+          'old_nickname': oldName,
+        });
+        safePrint('🚂 ✅ Nickname change event fired: $oldName → $_playerName');
       } catch (e) {
-        safePrint('🚂 ❌ Failed to sync nickname to Railway backend: $e');
-      }
-
-      // 🚨 CRITICAL: Warn user if backend sync failed
-      if (!backendSyncSuccess) {
-        safePrint('🚨 WARNING: Nickname updated locally but backend sync failed!');
-        safePrint('🚨 Tournament scores may show old nickname until sync succeeds');
+        // Non-blocking - event bus may not be initialized yet
+        safePrint('🚂 ⚠️ EventBus fire failed (non-blocking): $e');
       }
 
       // 🎯 IMPORTANT: Track nickname change for missions/achievements
@@ -701,57 +666,21 @@ class PlayerIdentityManager extends ChangeNotifier {
   }
 
   /// Force immediate nickname sync to backend (for critical operations like tournaments)
+  /// ✅ EVENT-DRIVEN: Fires event via EventBus (async, non-blocking)
+  /// Backend updates users table when it receives the event
   Future<bool> forceNicknameSyncToBackend() async {
     try {
-      if (!_isBackendRegistered) {
-        safePrint('🚂 ❌ Cannot force sync - not registered with backend');
-        return false;
-      }
-
-      // Use new unified system for proper API communication
-      final networkManager = NetworkManager();
+      // Fire nickname_changed event via EventBus (async, non-blocking)
+      // Backend will update users table when it receives this event
+      EventBus().fire('nickname_changed', {
+        'new_nickname': _playerName,
+        'old_nickname': _playerName, // Same nickname = refresh/sync
+      });
       
-      // First try with current token
-      if (_authToken.isNotEmpty) {
-        final updateResult = await networkManager.updatePlayerProfile({
-          'nickname': _playerName,
-        });
-        
-        if (updateResult.success) {
-          safePrint('🚂 ✅ Force nickname sync successful: $_playerName');
-          return true;
-        }
-        
-        // If token expired, try to refresh
-        if (updateResult.error?.contains('expired') == true || 
-            updateResult.error?.contains('Invalid') == true) {
-          safePrint('🚂 🔄 Force nickname sync: re-authenticating...');
-          
-          // Try to refresh token
-          await ensureValidToken();
-          
-          // Retry with refreshed token
-          final retryResult = await networkManager.updatePlayerProfile({
-            'nickname': _playerName,
-          });
-          
-          if (retryResult.success) {
-            safePrint('🚂 ✅ Force nickname sync successful after token refresh: $_playerName');
-            return true;
-          } else {
-            safePrint('🚂 ❌ Force nickname sync failed even after token refresh');
-            return false;
-          }
-        } else {
-          safePrint('🚂 ❌ Force nickname sync failed');
-          return false;
-        }
-      } else {
-        safePrint('🚂 ❌ No auth token available for force sync');
-        return false;
-      }
+      safePrint('🚂 ✅ Force nickname sync event fired: $_playerName');
+      return true;
     } catch (e) {
-      safePrint('🚂 ❌ Force nickname sync error: $e');
+      safePrint('🚂 ⚠️ Force nickname sync event failed: $e');
       return false;
     }
   }

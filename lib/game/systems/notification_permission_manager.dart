@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'local_notification_manager.dart';
 import 'firebase_analytics_manager.dart';
 import '../../ui/widgets/notification_permission_popup.dart';
+import '../../ui/widgets/popups/base_popup.dart';
 import '../../core/debug_logger.dart';
 
 /// Smart notification permission re-engagement manager
@@ -116,11 +117,16 @@ class NotificationPermissionManager {
       // Track that we're showing the popup
       await _recordPopupShown();
 
-      // Show the popup
-      await showDialog(
+      // Show the popup using showBasePopup to avoid double-barrier issue
+      // BasePopup creates its own Scaffold with backdrop, so we must use showBasePopup
+      // instead of showDialog to prevent the barrier from blocking touches
+      // Use transparent background and zero padding to match original design
+      await showBasePopup(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => NotificationPermissionPopup(
+        backgroundColor: Colors.transparent,
+        padding: EdgeInsets.zero,
+        child: NotificationPermissionPopup(
           onAllow: () async {
             await _recordUserAllowed();
           },

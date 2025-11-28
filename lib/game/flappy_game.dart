@@ -37,6 +37,7 @@ import 'systems/game_state_manager.dart';
 import 'systems/obstacle_manager.dart';
 import 'systems/celebration_system.dart';
 import 'systems/theme_manager.dart';
+import 'systems/victory_controller.dart';
 
 // Story Mode
 import '../models/level_data_schema.dart';
@@ -114,6 +115,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   late ObstacleManager _obstacleManager;
   late CelebrationSystem _celebrationSystem;
   late ThemeManager _themeManager;
+  
+  // ✅ Victory animation controller
+  late VictoryController _victoryController;
   
   // 💨 Pre-loaded smoke/fire sprites for on-demand particle creation (performance optimization)
   late List<Sprite> _smokeSprites;
@@ -272,6 +276,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Initialize celebration system (will be connected to hardware particle system later)
     _celebrationSystem = CelebrationSystem();
+    
+    // ✅ Initialize victory controller for end-level animations
+    _victoryController = VictoryController();
 
     // Initialize theme manager (will be connected to audio manager later)
     _themeManager = ThemeManager();
@@ -415,6 +422,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // ✅ Add HardwareParticleSystem to World so camera can see it!
     // Particles must be in the World, not the root game, for World + Camera architecture
     await _world.add(_hardwareParticleSystem);
+    
+    // ✅ Add VictoryController to receive update() calls for animations
+    await _world.add(_victoryController);
     
     // ✅ Step 6: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
@@ -874,7 +884,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       // Determine game mode - backend accepts 'endless' or 'story'
       final String gameMode = isStoryMode ? 'story' : 'endless';
       
-      eventBus!.fire('game_ended', {
+      // Build event data
+      final Map<String, dynamic> eventData = {
         'game_mode': gameMode,
         'score': _gameStateManager.score,
         'duration_seconds': (_gameStateManager.getElapsedGameTime() / 1000).round(),
@@ -885,8 +896,17 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
         'cause_of_death': _gameStateManager.causeOfDeath,
         'max_combo': 0,
         'powerups_used': <String>[],
-      });
-      safePrint('🏆 game_ended event fired (mode: $gameMode, score: ${_gameStateManager.score}, duration: ${_gameStateManager.getElapsedGameTime() / 1000}s)');
+      };
+      
+      // 📊 Add level info for story mode games
+      if (isStoryMode && storyModeLevel != null) {
+        eventData['level_id'] = storyModeLevel!.id;
+        eventData['zone_id'] = storyModeLevel!.zone;
+        eventData['level_name'] = storyModeLevel!.name;
+      }
+      
+      eventBus!.fire('game_ended', eventData);
+      safePrint('🏆 game_ended event fired (mode: $gameMode, score: ${_gameStateManager.score}, level: ${storyModeLevel?.id ?? 'N/A'})');
     }
     
     // 🔥 CRITICAL FIX: Sync LivesManager with game's final life count (should be 0)
@@ -1370,6 +1390,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   bool get hasPerformanceTimer => true;
   bool get hasDebugRectangle => true;
   FlappyJetAudioManager get audioManager => _audioManager;
+  
+  // ✅ PUBLIC GETTERS for victory animations
+  CelebrationSystem get celebrationSystem => _celebrationSystem;
+  HardwareParticleSystem get hardwareParticleSystem => _hardwareParticleSystem;
+  VictoryController get victoryController => _victoryController;
 
   void testUpdatePerformanceMetrics() => _updatePerformanceMetrics();
   void testRenderCycle() {} // Test method placeholder

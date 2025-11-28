@@ -172,12 +172,17 @@ class _BasePopupState extends State<BasePopup>
       body: GestureDetector(
         // Dismiss on tap outside (if allowed)
         onTap: widget.barrierDismissible ? _handleClose : null,
-        behavior: HitTestBehavior.opaque,
+        // Use deferToChild when not dismissible so children receive all touches
+        // Use opaque when dismissible so taps outside the popup close it
+        behavior: widget.barrierDismissible 
+            ? HitTestBehavior.opaque 
+            : HitTestBehavior.deferToChild,
         child: Center(
-          child: GestureDetector(
-            // Prevent tap from propagating to backdrop
-            onTap: () {},
-            child: AnimatedBuilder(
+          // ⚠️ REMOVED: Inner GestureDetector with onTap: () {} was blocking button taps!
+          // The gesture arena was causing the empty callback to compete with buttons.
+          // Now we use HitTestBehavior.deferToChild above when barrierDismissible=false
+          // to let all child touches pass through properly.
+          child: AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
                 return FadeTransition(
@@ -264,7 +269,6 @@ class _BasePopupState extends State<BasePopup>
                 ),
               ),
             ),
-          ),
         ),
       ),
     );

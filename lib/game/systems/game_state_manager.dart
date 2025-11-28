@@ -6,11 +6,30 @@ import '../core/game_config.dart';
 import '../core/game_themes.dart';
 import '../../core/repositories/user_stats_repository.dart';
 
+/// State tracking for game end conditions (victory vs game over)
+/// Used to prevent race conditions where both victory and death trigger simultaneously
+enum GameEndState {
+  /// Normal gameplay - no end condition triggered yet
+  playing,
+  
+  /// Victory has been triggered (objective completed)
+  /// Takes priority over gameOver if both happen on same frame
+  victoryTriggered,
+  
+  /// Game over has been triggered (out of lives)
+  gameOverTriggered,
+  
+  /// State is locked - no further transitions allowed
+  /// Prevents duplicate popups or conflicting states
+  locked,
+}
+
 /// Manages the core game state and transitions
 /// Separated from FlappyGame for better testability and maintainability
 /// 
 /// ✅ MIGRATED: Now uses UserStatsRepository for persistence (no SharedPreferences/backend sync)
 /// ✅ PHASE 3: Fires game_ended events to EventBus for leaderboard sync
+/// ✅ EDGE CASE FIX: Added GameEndState for victory priority + state lock
 class GameStateManager extends ChangeNotifier {
   final UserStatsRepository? _userStats;
   final EventBus? _eventBus;
@@ -45,6 +64,10 @@ class GameStateManager extends ChangeNotifier {
   // Theme notification state
   double _themeNotificationTime = 0.0;
   bool _showingThemeNotification = false;
+  
+  // ✅ EDGE CASE FIX: Game end state tracking
+  // Prevents race condition where victory + death happen on same frame
+  GameEndState _gameEndState = GameEndState.playing;
   
   // Game over notifier for UI
   final ValueNotifier<bool> gameOverNotifier = ValueNotifier<bool>(false);
@@ -88,6 +111,64 @@ class GameStateManager extends ChangeNotifier {
   // Continue system getters
   bool get canContinueWithAd => _continuesUsedThisRun < _maxContinuesPerRun;
   int get continuesRemaining => _maxContinuesPerRun - _continuesUsedThisRun;
+  
+  // ✅ EDGE CASE FIX: Game end state getters
+  GameEndState get gameEndState => _gameEndState;
+  bool get isVictoryTriggered => _gameEndState == GameEndState.victoryTriggered;
+  bool get isGameOverTriggered => _gameEndState == GameEndState.gameOverTriggered;
+  bool get isEndStateLocked => _gameEndState == GameEndState.locked;
+  
+  /// Attempt to set victory state (objective completed)
+  /// Returns true if successful, false if another end state was already triggered
+  /// Victory has PRIORITY over game over (player earned it!)
+  bool trySetVictory() {
+    if (_gameEndState == GameEndState.locked) {
+      safePrint('🎮 trySetVictory: DENIED - state is locked');
+      return false;
+    }
+    
+    // Victory priority: allow even if gameOver was triggered
+    // This handles the edge case where player passes last obstacle AND dies on same frame
+    if (_gameEndState == GameEndState.gameOverTriggered) {
+      safePrint('🎮 trySetVictory: VICTORY PRIORITY - overriding game over!');
+    }
+    
+    _gameEndState = GameEndState.victoryTriggered;
+    safePrint('🎮 trySetVictory: SUCCESS - victory state set');
+    return true;
+  }
+  
+  /// Attempt to set game over state (out of lives)
+  /// Returns true if successful, false if victory was already triggered
+  bool trySetGameOver() {
+    if (_gameEndState == GameEndState.locked) {
+      safePrint('🎮 trySetGameOver: DENIED - state is locked');
+      return false;
+    }
+    
+    // Do NOT override victory - player earned it!
+    if (_gameEndState == GameEndState.victoryTriggered) {
+      safePrint('🎮 trySetGameOver: DENIED - victory already triggered (victory priority)');
+      return false;
+    }
+    
+    _gameEndState = GameEndState.gameOverTriggered;
+    safePrint('🎮 trySetGameOver: SUCCESS - game over state set');
+    return true;
+  }
+  
+  /// Lock the game end state to prevent further changes
+  /// Call this after showing the final popup
+  void lockEndState() {
+    _gameEndState = GameEndState.locked;
+    safePrint('🎮 lockEndState: State locked');
+  }
+  
+  /// Reset game end state for new game/level
+  void resetEndState() {
+    _gameEndState = GameEndState.playing;
+    safePrint('🎮 resetEndState: State reset to playing');
+  }
 
   /// Start the game when user taps - transition from waiting to playing
   void startGame() {
@@ -105,6 +186,9 @@ class GameStateManager extends ChangeNotifier {
     _coinsCollectedThisRun = 0;
     _gemsCollectedThisRun = 0;
     _causeOfDeath = 'unknown';
+    
+    // ✅ EDGE CASE FIX: Reset end state for new run
+    resetEndState();
 
 
     safePrint('🚀 Game is now in playing state - tap to make the jet jump!');
@@ -183,6 +267,11 @@ class GameStateManager extends ChangeNotifier {
     
     // ✅ CRITICAL FIX: Resume playing state (not waiting!)
     _isWaitingToStart = false;
+    
+    // ✅ CRITICAL FIX: Reset end state to allow victory/game-over after continue
+    // Without this, the state stays "locked" and victory can't be triggered even if bot crashes
+    resetEndState();
+    safePrint('🔄 continueGame: End state reset to playing');
 
     // Grant exactly +1 life (up to max). If at 0, restore to 1.
     final int newLives = (_lives <= 0)
@@ -258,6 +347,10 @@ class GameStateManager extends ChangeNotifier {
     // _timeSinceLastObstacle is managed by ObstacleManager
     _themeNotificationTime = 0.0;
     _showingThemeNotification = false;
+    
+    // ✅ EDGE CASE FIX: Reset end state
+    resetEndState();
+    
     safePrint('🔄 Game reset to starting state');
   }
 

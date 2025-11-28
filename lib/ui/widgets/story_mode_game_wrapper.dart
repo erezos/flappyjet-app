@@ -223,6 +223,16 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
 
   void _onGameOver() {
     if (_levelEnded) return;
+    
+    // ✅ EDGE CASE FIX: Use state lock to prevent race condition
+    // If victory was already triggered, don't show game over
+    if (!_game.gameStateManager.trySetGameOver()) {
+      safePrint('🎮 Game over ignored - victory already triggered (victory priority)');
+      return;
+    }
+
+    // ✅ CRITICAL FIX: Set _levelEnded immediately to prevent duplicate calls
+    _levelEnded = true;
 
     safePrint('🎮 Game over in story mode');
 
@@ -238,11 +248,18 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     final objectiveCompleted = _objectiveTracker.checkFinalCompletion();
 
     if (objectiveCompleted) {
+      // ✅ EDGE CASE: Objective was completed! Use victory priority
+      // Reset _levelEnded so _onLevelCompleted can proceed
+      _levelEnded = false;
+      _game.gameStateManager.resetEndState(); // Allow victory to take over
       _onLevelCompleted();
     } else {
       // ❌ Objective not completed - navigate DIRECTLY to beautiful game over popup
       // Skip the GameOverMenu entirely for a cleaner, more engaging experience
       safePrint('🎮 ❌ Objective not completed. Showing story mode game over popup.');
+      
+      // Lock state to prevent any further changes
+      _game.gameStateManager.lockEndState();
       
       // ✅ FIX: Defer popup showing until after current frame completes
       // This prevents "Navigator is locked" errors when called during Flame's update loop
@@ -339,7 +356,12 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                       });
                     }
                     
-                    // Continue game
+                    // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
+                    // This was causing the timer to immediately cancel after continue
+                    _levelEnded = false;
+                    safePrint('🔄 STORY MODE: _levelEnded reset to false for continue');
+                    
+                    // Continue game (this also resets end state now)
                     _game.continueGame();
                     
                     // Restart timer for time-based levels
@@ -393,7 +415,12 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                     });
                   }
                   
-                  // Continue game
+                  // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
+                  // This was causing the timer to immediately cancel after continue
+                  _levelEnded = false;
+                  safePrint('🔄 STORY MODE: _levelEnded reset to false for gem continue');
+                  
+                  // Continue game (this also resets end state now)
                   _game.continueGame();
                   
                   // Restart timer for time-based levels
@@ -415,7 +442,22 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
 
   void _onLevelCompleted() async {
     if (_levelEnded) return;
+    
+    // ✅ EDGE CASE FIX: Use victory state lock
+    // Victory has priority - always succeeds unless state is already locked
+    if (!_game.gameStateManager.trySetVictory()) {
+      // State is locked, but check if we can still proceed
+      // This handles the case where game over checked objective and redirected here
+      if (_game.gameStateManager.isEndStateLocked) {
+        safePrint('🎮 Level completed ignored - state already locked');
+        return;
+      }
+    }
+    
     _levelEnded = true;
+    
+    // Lock state to prevent any game over from interfering
+    _game.gameStateManager.lockEndState();
 
     safePrint('🎮 ✅ Level ${widget.level.id} completed!');
 
@@ -465,6 +507,24 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     final achievementsManager = AchievementsManager(); // Use singleton
     final levelManager = LevelSystemManager();
     
+    // 📊 ANALYTICS: Fire level_completed event for dashboard tracking
+    final isFirstAttempt = !levelManager.isLevelCompleted(widget.level.id); // First completion if not already completed
+    final continuesUsed = _game.gameStateManager.continuesUsedThisRun;
+    final eventBus = EventBus();
+    eventBus.fire('level_completed', {
+      'level_id': widget.level.id,
+      'zone_id': widget.level.zone,
+      'level_name': widget.level.name,
+      'score': finalScore,
+      'stars': 0, // We don't track stars currently
+      'time_seconds': timeTaken,
+      'hearts_remaining': actualHeartsRemaining,
+      'first_attempt': isFirstAttempt,
+      'objective_type': widget.level.objective.type.toString(),
+      'continues_used': continuesUsed,
+    });
+    safePrint('📊 Analytics: level_completed event fired for level ${widget.level.id} (first_attempt: $isFirstAttempt)');
+    
     // Calculate total completed levels (count all completed levels in level manager)
     int totalCompleted = 0;
     for (int i = 1; i <= 100; i++) { // Check up to 100 levels (adjust as needed)
@@ -493,14 +553,41 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     final isReplay = levelManager.isLevelReplay(widget.level.id);
     safePrint('🎉 Level Complete Screen: isReplay = $isReplay (cached BEFORE dialog)');
     
-    // ✅ CRITICAL FIX: Pause game engine before showing popup
-    // This prevents crashes/collisions from happening while popup is visible
-    _game.pauseEngine();
-    safePrint('⏸️ Game paused - showing level complete popup');
-
-    // ✅ NEW FLOW: Show popup instead of pushing new screen
-    if (mounted) {
-      showDialog(
+    // 🎉 START VICTORY ANIMATION
+    // Animation plays while player celebrates, then popup appears
+    final victoryStarted = _game.victoryController.startVictory(widget.level.id);
+    
+    if (victoryStarted) {
+      safePrint('🎉 Victory animation started for level ${widget.level.id}');
+      
+      // Set callback for when animation completes
+      _game.victoryController.onVictoryComplete = () {
+        safePrint('🎉 Victory animation complete - showing popup');
+        
+        // ✅ CRITICAL FIX: Pause game engine before showing popup
+        _game.pauseEngine();
+        safePrint('⏸️ Game paused - showing level complete popup');
+        
+        // Show popup after animation
+        _showLevelCompletePopup(isReplay, levelManager, timeTaken);
+      };
+    } else {
+      // Victory couldn't start (maybe already in progress) - show popup immediately
+      safePrint('⚠️ Victory animation could not start - showing popup immediately');
+      
+      // ✅ CRITICAL FIX: Pause game engine before showing popup
+      _game.pauseEngine();
+      safePrint('⏸️ Game paused - showing level complete popup');
+      
+      _showLevelCompletePopup(isReplay, levelManager, timeTaken);
+    }
+  }
+  
+  /// Show the level complete popup (extracted to allow calling after animation)
+  void _showLevelCompletePopup(bool isReplay, LevelSystemManager levelManager, int timeTaken) {
+    if (!mounted) return;
+    
+    showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => LevelCompleteScreen(
@@ -533,7 +620,6 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
           },
         ),
       );
-    }
   }
   
   /// ✅ NEW: Helper to proceed after ad is shown (or skipped)
@@ -897,6 +983,10 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
                   await Future.delayed(const Duration(milliseconds: 50));
                 }
                 
+                // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
+                _levelEnded = false;
+                safePrint('🔄 STORY MODE: _levelEnded reset to false for overlay ad continue');
+                
                 // NOW continue the game after the overlay is definitely gone
                 _game.continueGame();
                 
@@ -1025,6 +1115,10 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
         // Wait for the UI to rebuild (2 frames to be safe)
         await Future.delayed(const Duration(milliseconds: 50));
       }
+      
+      // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
+      _levelEnded = false;
+      safePrint('🔄 STORY MODE: _levelEnded reset to false for gem purchase continue');
       
       // NOW continue the game after the overlay is definitely gone
       _game.continueGame();

@@ -4,7 +4,7 @@ import 'inventory_manager.dart';
 import 'local_notification_manager.dart';
 import 'lives_manager.dart';
 import '../../core/debug_logger.dart';
-import '../../core/analytics/unified_analytics_manager.dart';
+import '../../core/events/event_bus.dart';
 
 /// Daily streak reward types
 enum DailyStreakRewardType {
@@ -437,12 +437,13 @@ class DailyStreakManager extends ChangeNotifier {
     
     safePrint('🎉 Completed cycle $_currentCycle! Starting new cycle with $_currentCycleRewardSet rewards');
     
-    // Trigger cycle completion analytics
-    UnifiedAnalyticsManager().trackEvent('daily_streak_cycle_completed', {
+    // Trigger cycle completion analytics (via EventBus → Railway backend)
+    EventBus().fire('daily_streak_cycle_completed', {
       'cycle_number': _currentCycle,
-      'total_cycles': _totalStreaksCompleted,
-      'reward_set': _currentCycleRewardSet,
+      'total_cycles_completed': _totalStreaksCompleted,
+      'reward_set': _currentCycleRewardSet ?? 'new_player',
     });
+    safePrint('🏆 daily_streak_cycle_completed event fired (cycle $_currentCycle)');
     
     await _persistData();
     notifyListeners();
@@ -499,26 +500,26 @@ class DailyStreakManager extends ChangeNotifier {
       return <dynamic>[]; // Return empty list for error handling
     });
     
-    // ✅ FIRE BACKEND EVENT: Daily streak claimed
-    UnifiedAnalyticsManager().trackEvent('daily_streak_claimed', {
+    // ✅ FIRE BACKEND EVENT: Daily streak claimed (via EventBus → Railway backend)
+    EventBus().fire('daily_streak_claimed', {
       'day_in_cycle': todayRewardIndex + 1,        // 1-7
       'current_streak': _currentStreak,             // Total consecutive days
       'current_cycle': _currentCycle,               // Which 7-day cycle
       'reward_type': reward.type.name,              // coins, gems, heartBooster, jetSkin, etc.
       'reward_amount': reward.amount,               // Numeric value
-      'reward_set': _currentCycleRewardSet,         // 'new_player' or 'experienced'
-      'timestamp': DateTime.now().toIso8601String(),
+      'reward_set': _currentCycleRewardSet ?? 'new_player', // 'new_player' or 'experienced'
     });
+    safePrint('🏆 daily_streak_claimed event fired (day ${todayRewardIndex + 1}, streak $_currentStreak)');
     
     // ✅ FIRE MILESTONE EVENT: For special days (7, 14, 30, 100, etc.)
     if (_currentStreak == 7 || _currentStreak == 14 || _currentStreak == 30 || 
         _currentStreak == 60 || _currentStreak == 100) {
-      UnifiedAnalyticsManager().trackEvent('daily_streak_milestone', {
+      EventBus().fire('daily_streak_milestone', {
         'milestone_days': _currentStreak,
-        'total_cycles': _currentCycle,
+        'current_cycle': _currentCycle,
         'total_cycles_completed': _totalStreaksCompleted,
-        'timestamp': DateTime.now().toIso8601String(),
       });
+      safePrint('🏆 daily_streak_milestone event fired (${_currentStreak} days)');
     }
     
     safePrint('✅ Daily streak reward claimed: ${reward.description} (streak: $_currentStreak, cycle: $_currentCycle)');
@@ -674,14 +675,14 @@ class DailyStreakManager extends ChangeNotifier {
     await _persistData();
     notifyListeners();
     
-    // ✅ FIRE BACKEND EVENT: Daily streak broken
+    // ✅ FIRE BACKEND EVENT: Daily streak broken (via EventBus → Railway backend)
     if (previousStreak > 0) {
-      UnifiedAnalyticsManager().trackEvent('daily_streak_broken', {
+      EventBus().fire('daily_streak_broken', {
         'last_streak_days': previousStreak,
         'last_cycle': previousCycle,
         'total_cycles_completed': _totalStreaksCompleted,
-        'timestamp': DateTime.now().toIso8601String(),
       });
+      safePrint('🏆 daily_streak_broken event fired (was $previousStreak days)');
     }
   }
   

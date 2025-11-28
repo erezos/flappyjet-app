@@ -16,6 +16,7 @@ import '../../game/systems/audio_settings_manager.dart';
 import '../widgets/gem_3d_icon.dart';
 import '../widgets/settings_toggle_buttons.dart';
 import '../widgets/notification_analytics_dashboard.dart';
+import '../widgets/daily_streak/daily_streak_test_widget.dart';
 import 'store_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -95,6 +96,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : _profile.nickname;
       setState(() {});
     }
+  }
+
+  /// Show daily streak debug popup menu (DEBUG only)
+  void _showDailyStreakDebugMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: const DailyStreakTestWidget(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -296,6 +319,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue.withValues(alpha: 0.2),
                                   foregroundColor: Colors.blue,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  minimumSize: const Size(0, 32),
+                                ),
+                              ),
+                            ),
+                            
+                            // 🎁 Daily Streak Debug Popups
+                            SizedBox(height: isVerySmallScreen ? 6 : 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _showDailyStreakDebugMenu(context),
+                                icon: const Icon(Icons.card_giftcard, size: 16),
+                                label: const Text(
+                                  'Daily Streak Popups (DEBUG)',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purple.withValues(alpha: 0.2),
+                                  foregroundColor: Colors.purple,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   minimumSize: const Size(0, 32),
                                 ),

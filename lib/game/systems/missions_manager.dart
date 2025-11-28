@@ -172,7 +172,11 @@ enum PlayerSkillLevel {
 
 /// Adaptive Missions Manager - Core system for dynamic daily missions
 class MissionsManager extends ChangeNotifier {
-  MissionsManager();
+  // ✅ SINGLETON PATTERN - Ensures all code uses the same instance!
+  // This fixes the bug where game and UI were using different instances
+  static final MissionsManager _instance = MissionsManager._internal();
+  factory MissionsManager() => _instance;
+  MissionsManager._internal();
 
   static const String _keyDailyMissions = 'missions_daily';
   static const String _keyLastResetDate = 'missions_last_reset';
@@ -544,8 +548,22 @@ class MissionsManager extends ChangeNotifier {
   }
 
   /// Handle mission completion (no longer grants rewards automatically)
+  /// This is called when mission CRITERIA is met, NOT when reward is claimed
   Future<void> _onMissionCompleted(Mission mission) async {
     safePrint('🎯 Mission completed: ${mission.title} - Ready to claim ${mission.reward} coins');
+    
+    // 🔥 Fire mission_unlocked event (criteria met, ready to claim)
+    final eventBus = EventBus();
+    eventBus.fire('mission_unlocked', {
+      'mission_id': mission.id,
+      'mission_type': mission.type.toString(),
+      'mission_difficulty': mission.difficulty.toString(),
+      'mission_title': mission.title,
+      'reward_coins': mission.reward,
+      'target': mission.target,
+      'progress': mission.progress,
+    });
+    safePrint('🏆 mission_unlocked event fired for "${mission.title}" (ready to claim)');
     
     // Track completion for analytics
     await _trackMissionCompletion(mission);
