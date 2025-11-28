@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../core/debug_logger.dart';
+import '../core/events/event_bus.dart';
+import '../core/analytics/unified_analytics_manager.dart';
 
 /// 🚀 AdMob Mediation Service - Unity Ads + AdMob Network
 /// 
@@ -126,6 +128,49 @@ class AdMobMediationService {
     final Completer<bool> completer = Completer<bool>();
 
     safePrint('📱 🎬 Showing rewarded ad...');
+
+    // 💰 REAL AdMob Revenue Tracking via onPaidEvent
+    // This callback provides actual revenue data from AdMob (not estimates!)
+    // ⚠️ CRITICAL: Wrapped in try-catch to NEVER break user experience
+    _rewardedAd!.onPaidEvent = (Ad ad, double valueMicros, PrecisionType precision, String currencyCode) {
+      try {
+        // AdMob reports value in micros (millionths of currency unit)
+        // e.g., $0.015 = 15,000 micros
+        final revenueUsd = valueMicros / 1000000.0;
+        
+        safePrint('💰 REAL Ad Revenue: \$${revenueUsd.toStringAsFixed(6)} $currencyCode (precision: ${precision.name})');
+        
+        // Track real revenue to backend (non-blocking)
+        try {
+          EventBus().fire('ad_revenue', {
+            'ad_type': 'rewarded',
+            'ad_format': 'rewarded_video',
+            'revenue_micros': valueMicros,
+            'revenue_usd': revenueUsd,
+            'currency': currencyCode,
+            'precision': precision.name,
+            'is_real_revenue': true,
+          });
+        } catch (e) {
+          safePrint('⚠️ EventBus.fire failed (non-blocking): $e');
+        }
+        
+        // Also track to Firebase for attribution (non-blocking)
+        try {
+          UnifiedAnalyticsManager().trackEvent('ad_revenue', {
+            'ad_type': 'rewarded',
+            'value': revenueUsd,
+            'currency': currencyCode,
+            'precision': precision.name,
+          });
+        } catch (e) {
+          safePrint('⚠️ Firebase tracking failed (non-blocking): $e');
+        }
+      } catch (e) {
+        // ⚠️ Revenue tracking should NEVER break the app
+        safePrint('⚠️ onPaidEvent error (safely ignored): $e');
+      }
+    };
 
     // Set up callbacks BEFORE showing
     _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(

@@ -184,16 +184,7 @@ class InterstitialAdManager {
           'time_since_last_ad': timeSinceLastAd,
         });
         
-        // 💰 Track ad revenue for ROI/LTV calculation
-        // Estimated eCPM for interstitials: ~$10 average → $0.01 per impression
-        // Conservative estimate to avoid over-reporting
-        EventBus().fire('ad_revenue', {
-          'ad_type': 'interstitial',
-          'ad_format': 'fullscreen',
-          'estimated_revenue_usd': 0.01, // $10 eCPM / 1000
-          'currency': 'USD',
-        });
-        safePrint('💰 Ad revenue tracked: \$0.01 (interstitial)');
+        // 💰 Ad revenue is now tracked via onPaidEvent callback (real AdMob data)
       },
       onAdDismissedFullScreenContent: (ad) {
         safePrint('📺 Interstitial ad dismissed');
@@ -276,6 +267,49 @@ class InterstitialAdManager {
         });
       },
     );
+    
+    // 💰 REAL AdMob Revenue Tracking via onPaidEvent
+    // This callback provides actual revenue data from AdMob (not estimates!)
+    // ⚠️ CRITICAL: Wrapped in try-catch to NEVER break user experience
+    ad.onPaidEvent = (Ad ad, double valueMicros, PrecisionType precision, String currencyCode) {
+      try {
+        // AdMob reports value in micros (millionths of currency unit)
+        // e.g., $0.01 = 10,000 micros
+        final revenueUsd = valueMicros / 1000000.0;
+        
+        safePrint('💰 REAL Ad Revenue: \$${revenueUsd.toStringAsFixed(6)} $currencyCode (precision: ${precision.name})');
+        
+        // Track real revenue to backend (non-blocking)
+        try {
+          EventBus().fire('ad_revenue', {
+            'ad_type': 'interstitial',
+            'ad_format': 'fullscreen',
+            'revenue_micros': valueMicros,
+            'revenue_usd': revenueUsd,
+            'currency': currencyCode,
+            'precision': precision.name,
+            'is_real_revenue': true,
+          });
+        } catch (e) {
+          safePrint('⚠️ EventBus.fire failed (non-blocking): $e');
+        }
+        
+        // Also track to Firebase for attribution (non-blocking)
+        try {
+          UnifiedAnalyticsManager().trackEvent('ad_revenue', {
+            'ad_type': 'interstitial',
+            'value': revenueUsd,
+            'currency': currencyCode,
+            'precision': precision.name,
+          });
+        } catch (e) {
+          safePrint('⚠️ Firebase tracking failed (non-blocking): $e');
+        }
+      } catch (e) {
+        // ⚠️ Revenue tracking should NEVER break the app
+        safePrint('⚠️ onPaidEvent error (safely ignored): $e');
+      }
+    };
   }
 
   // ============================================================================

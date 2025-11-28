@@ -9,7 +9,6 @@ import 'inventory_manager.dart';
 import 'lives_manager.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
 import '../../integrations/interstitial_ad_manager.dart';
-import '../../core/events/event_bus.dart';
 
 /// 🚀 PRODUCTION MONETIZATION SYSTEM - AdMob Mediation + IAP
 /// 
@@ -184,17 +183,8 @@ class MonetizationManager extends ChangeNotifier {
           'reward_amount': 1,
         });
         
-        // 💰 Track ad revenue for ROI/LTV calculation
-        // Rewarded ads have higher eCPM (~$15-20) → $0.015-0.02 per completed view
-        // Using $0.015 as conservative estimate
-        EventBus().fire('ad_revenue', {
-          'ad_type': 'rewarded',
-          'ad_format': 'rewarded_video',
-          'estimated_revenue_usd': 0.015, // $15 eCPM / 1000
-          'currency': 'USD',
-          'reward_granted': true,
-        });
-        safePrint('💰 Ad revenue tracked: \$0.015 (rewarded video completed)');
+        // 💰 Ad revenue is now tracked via onPaidEvent callback in AdMobMediationService
+        // This provides REAL AdMob revenue data instead of estimates
         
         // ✅ Extend interstitial ad cooldown when user watches rewarded video
         // This gives user a 3-minute break from interstitials
