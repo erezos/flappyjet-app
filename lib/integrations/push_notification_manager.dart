@@ -332,7 +332,7 @@ class PushNotificationManager {
     return {
       'deviceModel': 'Unknown',
       'osVersion': 'Unknown',
-      'appVersion': '2.0.10',
+      'appVersion': 'unknown', // Fallback - actual version comes from PackageInfo
       'country': null, // No fallback - null is better than wrong data
       'timezone': 'UTC',
     };
@@ -373,7 +373,7 @@ class PushNotificationManager {
         'buildNumber': packageInfo.buildNumber,
       };
     } catch (e) {
-      return {'version': '2.0.10', 'buildNumber': '61'};
+      return {'version': 'unknown', 'buildNumber': '0'};
     }
   }
 

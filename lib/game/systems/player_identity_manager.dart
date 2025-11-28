@@ -8,6 +8,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'profile_manager.dart';
 import 'leaderboard_manager.dart';
 import 'global_leaderboard_service.dart';
@@ -85,6 +86,7 @@ class PlayerIdentityManager extends ChangeNotifier {
   String _playerName = '';
   String _playerId = '';
   String _deviceId = '';
+  String _appVersion = 'unknown';
   
   // Authentication
   String _authToken = '';
@@ -108,6 +110,7 @@ class PlayerIdentityManager extends ChangeNotifier {
   String get playerName => _playerName;
   String get playerId => _playerId;
   String get deviceId => _deviceId;
+  String get appVersion => _appVersion;
   
   // Authentication Getters
   String get authToken => _authToken;
@@ -398,7 +401,7 @@ class PlayerIdentityManager extends ChangeNotifier {
   /// Get standard HTTP headers
   Map<String, String> _getHeaders() => {
     'Content-Type': 'application/json',
-    'User-Agent': 'FlappyJet/${_getAppVersion()}',
+    'User-Agent': 'FlappyJet/$_appVersion',
   };
 
   /// Get authenticated HTTP headers
@@ -414,10 +417,15 @@ class PlayerIdentityManager extends ChangeNotifier {
     return 'unknown';
   }
 
-  /// Get app version
+  /// Get app version from package info
   Future<String> _getAppVersion() async {
-    // This should be loaded from package_info_plus
-    return '1.4.6';
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      return packageInfo.version;
+    } catch (e) {
+      safePrint('⚠️ Failed to get app version: $e');
+      return 'unknown';
+    }
   }
 
   /// Get country code from device locale
@@ -476,6 +484,9 @@ class PlayerIdentityManager extends ChangeNotifier {
       // Get device ID first
       _deviceId = prefs.getString(_keyDeviceId) ?? await _getDeviceId();
       await prefs.setString(_keyDeviceId, _deviceId);
+
+      // Get app version
+      _appVersion = await _getAppVersion();
 
       // Load authentication data
       await _loadAuthData();

@@ -1031,7 +1031,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
               'coinsEarned': _gameStateManager.score,
               'continuesUsed': _gameStateManager.continuesUsedThisRun,
               'sessionLength': (DateTime.now().millisecondsSinceEpoch - _gameStateManager.gameStartTime) ~/ 1000,
-              'gameVersion': '1.0.0',
+              'gameVersion': playerIdentity.appVersion,
               'platform': 'mobile',
               'livesUsed': _gameStateManager.continuesUsedThisRun,
               'scoreMultiplier': 1.0,

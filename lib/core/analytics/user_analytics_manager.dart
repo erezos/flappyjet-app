@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../debug_logger.dart';
 import '../network/network_manager.dart';
 import '../../game/systems/player_identity_manager.dart';
@@ -365,7 +366,7 @@ class UserAnalyticsManager extends ChangeNotifier {
       platform: deviceInfo['platform'] ?? 'unknown',
       countryCode: await _getCountryCode(), // Detect from device locale
       timezone: DateTime.now().timeZoneName,
-      appVersion: '1.4.6',
+      appVersion: await _getAppVersion(),
       adWatchCount: 0,
       shareCount: 0,
       rateUsPromptShown: 0,
@@ -420,7 +421,7 @@ class UserAnalyticsManager extends ChangeNotifier {
       deviceModel: deviceInfo['model'],
       osVersion: deviceInfo['osVersion'],
       platform: deviceInfo['platform'],
-      appVersion: '1.4.6',
+      appVersion: await _getAppVersion(),
     );
   }
 
@@ -444,6 +445,17 @@ class UserAnalyticsManager extends ChangeNotifier {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Get app version from package info
+  Future<String> _getAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      return packageInfo.version;
+    } catch (e) {
+      safePrint('📊 ⚠️ Failed to get app version: $e');
+      return 'unknown';
     }
   }
 

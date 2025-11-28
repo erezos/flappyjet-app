@@ -226,8 +226,8 @@ class NetworkManager extends ChangeNotifier {
 
   /// Build request headers
   Future<Map<String, String>> _buildHeaders(NetworkRequest request) async {
-    // Get real app version
-    String appVersion = '1.5.5'; // Fallback
+    // Get real app version from package info
+    String appVersion = 'unknown'; // Fallback only if PackageInfo fails
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       appVersion = packageInfo.version;

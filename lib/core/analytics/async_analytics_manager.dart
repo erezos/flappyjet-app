@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../game/systems/anonymous_identity_manager.dart';
 import '../../game/systems/player_identity_manager.dart';
 import '../../game/systems/firebase_analytics_manager.dart';
@@ -61,6 +62,7 @@ class AsyncAnalyticsManager extends ChangeNotifier {
   AnalyticsState _state = AnalyticsState.initializing;
   final List<AnalyticsEvent> _eventQueue = [];
   String _sessionId = '';
+  String? _appVersion;
   Timer? _flushTimer;
   
   // Configuration
@@ -81,6 +83,9 @@ class AsyncAnalyticsManager extends ChangeNotifier {
       
       // Generate session ID
       _sessionId = _generateSessionId();
+      
+      // Load app version from package info
+      await _loadAppVersion();
       
       // Load queued events from storage
       await _loadQueuedEvents();
@@ -122,6 +127,18 @@ class AsyncAnalyticsManager extends ChangeNotifier {
     }
     
     notifyListeners();
+  }
+
+  /// Load app version from package info
+  Future<void> _loadAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      _appVersion = packageInfo.version;
+      safePrint('📊 App version loaded: $_appVersion');
+    } catch (e) {
+      safePrint('📊 ⚠️ Failed to load app version: $e');
+      _appVersion = 'unknown';
+    }
   }
 
   /// Track event (always non-blocking)
@@ -172,7 +189,7 @@ class AsyncAnalyticsManager extends ChangeNotifier {
     
     // Add session context
     enriched['session_id'] = _sessionId;
-    enriched['app_version'] = '1.4.9'; // TODO: Get from package info
+    enriched['app_version'] = _appVersion ?? 'unknown'; // Dynamic from PackageInfo
     enriched['platform'] = defaultTargetPlatform.name;
     
     // Add identity state

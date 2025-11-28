@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../debug_logger.dart';
 import '../network/network_manager.dart';
 import '../../game/systems/player_identity_manager.dart';
@@ -94,6 +95,7 @@ class SmartRailwayAnalytics {
   int _consecutiveFailures = 0;
   bool _isUserActive = true;
   DateTime? _lastUserActivity;
+  String? _appVersion;
 
   /// Initialize the smart analytics system
   Future<void> initialize() async {
@@ -109,6 +111,14 @@ class SmartRailwayAnalytics {
       
       // Get player ID
       _playerId = _playerIdentity!.playerId;
+      
+      // Load app version
+      try {
+        final packageInfo = await PackageInfo.fromPlatform();
+        _appVersion = packageInfo.version;
+      } catch (e) {
+        _appVersion = 'unknown';
+      }
 
       // Start batch processing timer
       _startBatchTimer();
@@ -192,7 +202,7 @@ class SmartRailwayAnalytics {
       enrichedParams['timestamp'] = DateTime.now().millisecondsSinceEpoch;
       enrichedParams['session_id'] = _sessionId;
       enrichedParams['player_id'] = _playerId;
-      enrichedParams['app_version'] = '1.4.8';
+      enrichedParams['app_version'] = _appVersion ?? 'unknown';
       enrichedParams['platform'] = defaultTargetPlatform.name;
 
       // Smart queuing based on event type and player context

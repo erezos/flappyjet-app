@@ -12,7 +12,8 @@ class AppConfig {
   
   // App information
   static const String appName = 'FlappyJet Pro';
-  static const String appVersion = '1.6.0';
+  // Note: Use PackageInfo.fromPlatform() for dynamic version, not this constant
+  // This is kept for reference only - actual version comes from pubspec.yaml
   static const String packageName = 'com.flappyjet.pro.flappy_jet_pro';
   
   // Backend configuration

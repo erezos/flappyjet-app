@@ -211,7 +211,7 @@ class TournamentController extends ChangeNotifier {
         'coinsEarned': score,
         'continuesUsed': _gameState.stats.continuesUsedThisRun,
         'sessionLength': _gameState.stats.gameDurationSeconds,
-        'gameVersion': '1.0.0',
+        'gameVersion': _playerIdentity.appVersion,
         'platform': 'mobile',
         'livesUsed': _gameState.stats.continuesUsedThisRun,
         'scoreMultiplier': 1.0,
