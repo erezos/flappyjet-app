@@ -142,7 +142,7 @@ class LoadingScreen extends StatefulWidget {
   State<LoadingScreen> createState() => _LoadingScreenState();
 }
 
-class _LoadingScreenState extends State<LoadingScreen> {
+class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserver {
   String _loadingText = 'Starting FlappyJet...';
   double _loadingProgress = 0.0;
   bool _isComplete = false;
@@ -172,7 +172,36 @@ class _LoadingScreenState extends State<LoadingScreen> {
   @override
   void initState() {
     super.initState();
+    // 🔥 NEW: Register lifecycle observer to flush events when app goes to background
+    WidgetsBinding.instance.addObserver(this);
     _initializeAllSystems();
+  }
+  
+  @override
+  void dispose() {
+    // 🔥 NEW: Unregister lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+  
+  /// 🔥 NEW: Handle app lifecycle changes - flush events when going to background
+  /// 
+  /// This is CRITICAL for capturing analytics from users who:
+  /// - Open app briefly then close (before auto-flush timer)
+  /// - Switch to another app
+  /// - Lock their phone
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Forward to EventBus for immediate flush
+    _eventBus.onAppLifecycleChanged(state);
+    
+    if (state == AppLifecycleState.paused) {
+      safePrint('📱 App going to background - events flushed');
+    } else if (state == AppLifecycleState.resumed) {
+      safePrint('📱 App resumed from background');
+    }
   }
 
   /// Initialize all systems with progress tracking (maintains existing flow)

@@ -14,6 +14,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart'; // For AppLifecycleState
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
@@ -31,7 +32,7 @@ class EventBus {
   static const String _backendUrl = 'https://flappyjet-backend-production.up.railway.app';
   static const int _maxQueueSize = 100; // Auto-flush at 100 events
   static const int _maxBatchSize = 50; // Send max 50 events per request
-  static const Duration _autoFlushInterval = Duration(seconds: 30);
+  static const Duration _autoFlushInterval = Duration(seconds: 15); // ✅ Reduced from 30s for better data capture
   static const Duration _requestTimeout = Duration(seconds: 5);
 
   // State
@@ -389,6 +390,29 @@ class EventBus {
 
   /// Check if initialized
   bool get isInitialized => _isInitialized;
+
+  /// 🔥 NEW: Handle app lifecycle changes
+  /// 
+  /// Call this from your app's lifecycle observer when app goes to background.
+  /// Ensures events are flushed before app is suspended/terminated.
+  /// 
+  /// This is CRITICAL for capturing events from users who:
+  /// - Open app briefly then close
+  /// - Switch to another app
+  /// - Lock their phone
+  /// 
+  /// Without this, events would be lost if app closes before auto-flush timer.
+  void onAppLifecycleChanged(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || 
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      // App going to background - flush events immediately!
+      if (_memoryQueue.isNotEmpty) {
+        safePrint('📤 🔥 App going to background - flushing ${_memoryQueue.length} events immediately!');
+        unawaited(flush());
+      }
+    }
+  }
 
   /// Dispose resources
   void dispose() {
