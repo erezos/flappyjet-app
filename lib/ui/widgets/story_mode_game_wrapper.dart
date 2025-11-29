@@ -46,6 +46,10 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
   final ObjectiveTracker _objectiveTracker = ObjectiveTracker();
   bool _levelEnded = false;
   Timer? _updateTimer;
+  
+  // ✅ FIX: Store first attempt status for accurate analytics
+  // This is checked at game START and used at game END
+  bool _wasFirstAttempt = false;
 
   @override
   void initState() {
@@ -67,10 +71,10 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     // 🔥 CRITICAL: Check first attempt status BEFORE marking level as attempted
     // This ensures FlappyWorld can see the correct first-attempt status for bot override
     final levelManager = LevelSystemManager();
-    final isFirstAttempt = levelManager.isFirstAttempt(widget.level.id); // ✅ Use isFirstAttempt() method
-    final attemptNumber = isFirstAttempt ? 1 : 2; // 1 for first, 2+ for retries (we don't track exact count yet)
+    _wasFirstAttempt = levelManager.isFirstAttempt(widget.level.id); // ✅ Store for use in _onLevelCompleted
+    final attemptNumber = _wasFirstAttempt ? 1 : 2; // 1 for first, 2+ for retries (we don't track exact count yet)
     
-    safePrint('🔥 Level ${widget.level.id}: isFirstAttempt=$isFirstAttempt');
+    safePrint('🔥 Level ${widget.level.id}: isFirstAttempt=$_wasFirstAttempt');
 
     // 🔥 Mark this level as attempted (AFTER checking status)
     // This must happen AFTER checking isFirstAttempt but BEFORE game initialization
@@ -88,7 +92,7 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       'objective_type': widget.level.objective.type.toString(),
       'attempt_number': attemptNumber,
       'hearts_remaining': livesManager.currentLives,
-      'is_first_attempt': isFirstAttempt,
+      'is_first_attempt': _wasFirstAttempt, // ✅ FIX: Use stored class member
     });
 
     // Create game instance with story mode configuration
@@ -471,125 +475,140 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
 
     safePrint('🎮 ✅ Level ${widget.level.id} completed!');
 
-    // 🎵 STOP STORY MODE MUSIC: Stop level music before navigating away
-    try {
-      await _game.audioManager.stopMusic();
-      safePrint('🎵 Story mode music stopped on level completion');
-    } catch (e) {
-      safePrint('⚠️ Failed to stop story mode music: $e');
-    }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🚀 PERFORMANCE OPTIMIZATION: Animation-First Architecture
+    // ═══════════════════════════════════════════════════════════════════════════
+    // On low-end devices, heavy operations (DB writes, analytics, achievement checks)
+    // were blocking the main thread, causing 200-300ms stutter at victory.
+    // 
+    // NEW FLOW:
+    // 1. Capture lightweight data synchronously (fast)
+    // 2. Start victory animation IMMEDIATELY (visual feedback)
+    // 3. Defer heavy operations to background (non-blocking)
+    // ═══════════════════════════════════════════════════════════════════════════
 
-    // 🔥 CRITICAL FIX: Sync LivesManager with in-game heart count
-    // The game's _gameStateManager.lives reflects the actual hearts remaining after crashes
+    // 📸 PHASE 1: Capture all data synchronously (fast, ~1-2ms)
+    final levelManager = LevelSystemManager();
     final livesManager = LivesManager();
     final actualHeartsRemaining = _game.gameStateManager.lives;
-    await livesManager.setLives(actualHeartsRemaining);
-    safePrint('💖 Story Mode: Level completed with ${actualHeartsRemaining} hearts remaining (synced to LivesManager)');
-    
-    // Hearts are NOT refilled - they persist across levels (Option 2)
-    // Hearts regenerate naturally over time via LivesManager
-
-    // Calculate time taken (excluding ad pauses)
     final elapsedGameTimeMs = _game.gameStateManager.getElapsedGameTime();
     final timeTaken = (elapsedGameTimeMs / 1000).round();
-    
-    // 🎯 CRITICAL: Track story mode completion for missions/achievements
-    // Use objective progress as "score" for mission tracking
-    final gameEventsTracker = GameEventsTracker();
     final finalScore = _objectiveTracker.currentProgress;
     final usedContinue = _game.gameStateManager.continuesUsedThisRun > 0;
-    
-    // ✅ FIX: Track actual coins earned (level reward + in-game coins)
+    final continuesUsed = _game.gameStateManager.continuesUsedThisRun;
     final levelCoins = widget.level.reward.coins;
     final inGameCoins = _game.gameStateManager.coinsCollectedThisRun;
     final totalCoins = levelCoins + inGameCoins;
-    
-    await gameEventsTracker.onGameEnd(
-      finalScore: finalScore,
-      survivalTimeMs: elapsedGameTimeMs.toInt(),
-      coinsEarned: totalCoins, // ✅ Track level reward + in-game coins
-      usedContinue: usedContinue,
-      cause: 'story_level_completed',
-    );
-    safePrint('🎯 Story mode: Mission/achievement progress updated ($totalCoins coins: $levelCoins reward + $inGameCoins in-game)');
-    
-    // 🏅 Check story mode achievements
-    final achievementsManager = AchievementsManager(); // Use singleton
-    final levelManager = LevelSystemManager();
-    
-    // 📊 ANALYTICS: Fire level_completed event for dashboard tracking
-    final isFirstAttempt = !levelManager.isLevelCompleted(widget.level.id); // First completion if not already completed
-    final continuesUsed = _game.gameStateManager.continuesUsedThisRun;
-    final eventBus = EventBus();
-    eventBus.fire('level_completed', {
-      'level_id': widget.level.id,
-      'zone_id': widget.level.zone,
-      'level_name': widget.level.name,
-      'score': finalScore,
-      'stars': 0, // We don't track stars currently
-      'time_seconds': timeTaken,
-      'hearts_remaining': actualHeartsRemaining,
-      'first_attempt': isFirstAttempt,
-      'objective_type': widget.level.objective.type.toString(),
-      'continues_used': continuesUsed,
-    });
-    safePrint('📊 Analytics: level_completed event fired for level ${widget.level.id} (first_attempt: $isFirstAttempt)');
-    
-    // Calculate total completed levels (count all completed levels in level manager)
-    int totalCompleted = 0;
-    for (int i = 1; i <= 100; i++) { // Check up to 100 levels (adjust as needed)
-      if (levelManager.isLevelCompleted(i)) {
-        totalCompleted++;
-      }
-    }
-    
-    // Check if zone is completed (current level is the last in zone)
+    final isReplay = levelManager.isLevelReplay(widget.level.id);
     final zoneCompleted = levelManager.isZoneCompleted(widget.level.zone) ? widget.level.zone : 0;
-    final wasFlawless = _game.gameStateManager.continuesUsedThisRun == 0;
+    final wasFlawless = continuesUsed == 0;
+    // Use cached count instead of looping 100 times
+    final totalCompleted = levelManager.totalLevelsCompleted;
     
-    await achievementsManager.checkStoryModeAchievements(
-      levelCompleted: true,
-      totalLevelsCompleted: totalCompleted,
+    safePrint('📸 Data captured: score=$finalScore, time=${timeTaken}s, hearts=$actualHeartsRemaining, isReplay=$isReplay');
+
+    // 🎵 PHASE 2: Fire-and-forget audio (non-blocking)
+    unawaited(_game.audioManager.stopMusic().catchError((e) {
+      safePrint('⚠️ Failed to stop story mode music: $e');
+    }));
+
+    // 🎉 PHASE 3: Start victory animation IMMEDIATELY (visual feedback first!)
+    final victoryStarted = _game.victoryController.startVictory(widget.level.id);
+    safePrint('🎉 Victory animation ${victoryStarted ? "started" : "could not start"} for level ${widget.level.id}');
+
+    // 📊 PHASE 4: Defer heavy operations to background (non-blocking)
+    // These run while the animation plays, so user sees smooth visuals
+    unawaited(_performBackgroundOperations(
+      livesManager: livesManager,
+      actualHeartsRemaining: actualHeartsRemaining,
+      finalScore: finalScore,
+      elapsedGameTimeMs: elapsedGameTimeMs,
+      totalCoins: totalCoins,
+      usedContinue: usedContinue,
+      continuesUsed: continuesUsed,
+      timeTaken: timeTaken,
+      totalCompleted: totalCompleted,
       zoneCompleted: zoneCompleted,
       wasFlawless: wasFlawless,
-      objectiveType: widget.level.objective.type.toString(),
-      timeTaken: timeTaken,
-    );
-    safePrint('🏅 Story mode achievements checked');
+    ));
 
-    // ✅ CRITICAL FIX: Check replay status BEFORE showing dialog
-    // This must be done BEFORE rewards are granted (which marks level as complete)
-    // (Reusing levelManager from above - already declared at line 441)
-    final isReplay = levelManager.isLevelReplay(widget.level.id);
-    safePrint('🎉 Level Complete Screen: isReplay = $isReplay (cached BEFORE dialog)');
-    
-    // 🎉 START VICTORY ANIMATION
-    // Animation plays while player celebrates, then popup appears
-    final victoryStarted = _game.victoryController.startVictory(widget.level.id);
-    
+    // 🎬 PHASE 5: Set up victory completion callback
     if (victoryStarted) {
-      safePrint('🎉 Victory animation started for level ${widget.level.id}');
-      
-      // Set callback for when animation completes
       _game.victoryController.onVictoryComplete = () {
         safePrint('🎉 Victory animation complete - showing popup');
-        
-        // ✅ CRITICAL FIX: Pause game engine before showing popup
         _game.pauseEngine();
-        safePrint('⏸️ Game paused - showing level complete popup');
-        
-        // Show popup after animation
         _showLevelCompletePopup(isReplay, levelManager, timeTaken);
       };
     } else {
-      // Victory couldn't start (maybe already in progress) - show popup immediately
+      // Victory couldn't start - show popup immediately
       safePrint('⚠️ Victory animation could not start - showing popup immediately');
-      
-      // ✅ CRITICAL FIX: Pause game engine before showing popup
       _game.pauseEngine();
-      safePrint('⏸️ Game paused - showing level complete popup');
-      
       _showLevelCompletePopup(isReplay, levelManager, timeTaken);
+    }
+  }
+
+  /// 🔄 Perform heavy operations in background (non-blocking)
+  /// These run while the victory animation plays
+  Future<void> _performBackgroundOperations({
+    required LivesManager livesManager,
+    required int actualHeartsRemaining,
+    required int finalScore,
+    required int elapsedGameTimeMs, // ✅ FIX: int, not double
+    required int totalCoins,
+    required bool usedContinue,
+    required int continuesUsed,
+    required int timeTaken,
+    required int totalCompleted,
+    required int zoneCompleted,
+    required bool wasFlawless,
+  }) async {
+    try {
+      // 💖 Sync lives (SharedPreferences write)
+      await livesManager.setLives(actualHeartsRemaining);
+      safePrint('💖 [BG] Lives synced: $actualHeartsRemaining');
+
+      // 🎯 Track missions/achievements
+      final gameEventsTracker = GameEventsTracker();
+      await gameEventsTracker.onGameEnd(
+        finalScore: finalScore,
+        survivalTimeMs: elapsedGameTimeMs.toInt(),
+        coinsEarned: totalCoins,
+        usedContinue: usedContinue,
+        cause: 'story_level_completed',
+      );
+      safePrint('🎯 [BG] Mission progress updated');
+
+      // 📊 Fire analytics event (EventBus is non-blocking)
+      final eventBus = EventBus();
+      eventBus.fire('level_completed', {
+        'level_id': widget.level.id,
+        'zone_id': widget.level.zone,
+        'level_name': widget.level.name,
+        'score': finalScore,
+        'stars': 0,
+        'time_seconds': timeTaken,
+        'hearts_remaining': actualHeartsRemaining,
+        'first_attempt': _wasFirstAttempt,
+        'objective_type': widget.level.objective.type.toString(),
+        'continues_used': continuesUsed,
+      });
+      safePrint('📊 [BG] Analytics event fired');
+
+      // 🏅 Check achievements (can be heavy)
+      final achievementsManager = AchievementsManager();
+      await achievementsManager.checkStoryModeAchievements(
+        levelCompleted: true,
+        totalLevelsCompleted: totalCompleted,
+        zoneCompleted: zoneCompleted,
+        wasFlawless: wasFlawless,
+        objectiveType: widget.level.objective.type.toString(),
+        timeTaken: timeTaken,
+      );
+      safePrint('🏅 [BG] Achievements checked');
+      
+    } catch (e) {
+      // Background errors shouldn't crash the game
+      safePrint('⚠️ [BG] Background operation error (non-fatal): $e');
     }
   }
   

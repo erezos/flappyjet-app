@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
@@ -141,16 +142,22 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   
   void _triggerTurboEffect() {
     try {
-      // Play turbo/nitro sound
-      game.audioManager.playAchievement();
+      // 🎵 PERFORMANCE FIX: Fire-and-forget audio (don't block animation)
+      unawaited(Future(() {
+        try {
+          game.audioManager.playAchievement();
+        } catch (e) {
+          safePrint('⚠️ VictoryController: Audio error (non-blocking): $e');
+        }
+      }));
       
-      // Create particle burst for turbo activation
+      // 🎆 PERFORMANCE FIX: Reduced particles from 50 to 25 for weaker devices
       game.celebrationSystem.createCelebrationBurst(
         game.jet.position,
-        50, // Medium burst for turbo activation
+        25, // Reduced from 50 for better performance on low-end devices
       );
       
-      safePrint('🔥 VictoryController: Turbo activated with particle burst!');
+      safePrint('🔥 VictoryController: Turbo activated with optimized particle burst!');
     } catch (e) {
       safePrint('⚠️ VictoryController: Turbo effect error: $e');
     }
@@ -307,10 +314,10 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     try {
       final jet = game.jet;
       
-      // Create small particle burst behind the jet for turbo trail
+      // 🎆 PERFORMANCE FIX: Reduced trail particles from 5 to 3
       game.celebrationSystem.createCelebrationBurst(
         Vector2(jet.position.x - 30, jet.position.y), // Behind the jet
-        5, // Small burst for trail
+        3, // Reduced from 5 for better performance
       );
     } catch (e) {
       // Ignore trail errors - they're not critical
