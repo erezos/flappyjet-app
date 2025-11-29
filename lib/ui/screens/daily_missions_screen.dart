@@ -5,6 +5,7 @@ import '../../game/systems/achievements_manager.dart';
 import '../widgets/gem_3d_icon.dart';
 import '../widgets/mission_achievement_icons.dart';
 import '../widgets/rewards/reward_claim_popup.dart';
+import '../widgets/rate_us_integration.dart';
 import '../utils/responsive_config.dart';
 
 class DailyMissionsScreen extends StatefulWidget {
@@ -254,6 +255,11 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
           },
         ),
       );
+      
+      // ⭐ Show Rate Us popup after achievement claim (positive experience)
+      if (mounted) {
+        await RateUsIntegration.showAfterPositiveExperience(context);
+      }
     } else {
       // ✅ FIX: Check mounted before showing snackbar
       if (!mounted) return;

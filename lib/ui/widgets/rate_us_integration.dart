@@ -1,10 +1,12 @@
 /// ⭐ Rate Us Integration Helper
 /// Manages when and how to show the rate us popup
+/// Tracks events to both Firebase and Railway backend
 library;
 
 import 'package:flutter/material.dart';
 import '../../game/systems/rate_us_manager.dart';
 import '../../game/systems/firebase_analytics_manager.dart';
+import '../../core/events/event_bus.dart';
 import 'rate_us_popup.dart';
 
 class RateUsIntegration {
@@ -25,45 +27,15 @@ class RateUsIntegration {
   static Future<void> showAfterPositiveExperience(BuildContext context) async {
     if (!shouldShowAfterPositiveExperience) return;
 
+    // Track to Firebase
     FirebaseAnalyticsManager().trackEvent('rate_us_trigger_positive_experience', {
       'session_count': _rateUsManager.sessionCount,
     });
-
-    await _showRateUsPopup(context);
-  }
-
-  /// Show rate us popup on app launch (if conditions are met)
-  /// Call this from main tab navigation or launch screen
-  static Future<void> showOnAppLaunch(BuildContext context) async {
-    if (!shouldShow) return;
-
-    // Add a small delay to let the app settle
-    await Future.delayed(const Duration(seconds: 2));
     
-    if (!context.mounted) return;
-
-    FirebaseAnalyticsManager().trackEvent('rate_us_trigger_app_launch', {
+    // Track to Railway
+    EventBus().fire('rate_us_trigger', {
+      'trigger_type': 'positive_experience',
       'session_count': _rateUsManager.sessionCount,
-    });
-
-    await _showRateUsPopup(context);
-  }
-
-  /// Show rate us popup after completing a level/game
-  /// Call this from game over screen
-  static Future<void> showAfterGameCompletion(BuildContext context, {
-    required int score,
-    required bool isHighScore,
-  }) async {
-    if (!shouldShowAfterPositiveExperience) return;
-
-    // Only show after high scores or good performance
-    if (!isHighScore && score < 10) return;
-
-    FirebaseAnalyticsManager().trackEvent('rate_us_trigger_game_completion', {
-      'session_count': _rateUsManager.sessionCount,
-      'score': score,
-      'is_high_score': isHighScore,
     });
 
     await _showRateUsPopup(context);
@@ -79,18 +51,17 @@ class RateUsIntegration {
     // Only show after longer streaks (user is engaged)
     if (streakDay < 3) return;
 
+    // Track to Firebase
     FirebaseAnalyticsManager().trackEvent('rate_us_trigger_daily_streak', {
       'session_count': _rateUsManager.sessionCount,
       'streak_day': streakDay,
     });
-
-    await _showRateUsPopup(context);
-  }
-
-  /// Show rate us popup manually (for settings or menu)
-  static Future<void> showManually(BuildContext context) async {
-    FirebaseAnalyticsManager().trackEvent('rate_us_trigger_manual', {
+    
+    // Track to Railway
+    EventBus().fire('rate_us_trigger', {
+      'trigger_type': 'daily_streak',
       'session_count': _rateUsManager.sessionCount,
+      'streak_day': streakDay,
     });
 
     await _showRateUsPopup(context);
@@ -105,14 +76,10 @@ class RateUsIntegration {
       barrierDismissible: false,
       builder: (context) => RateUsPopup(
         onRated: () {
-          FirebaseAnalyticsManager().trackEvent('rate_us_completed_from_popup', {
-            'session_count': _rateUsManager.sessionCount,
-          });
+          // Tracking handled in popup
         },
         onDismissed: () {
-          FirebaseAnalyticsManager().trackEvent('rate_us_dismissed', {
-            'session_count': _rateUsManager.sessionCount,
-          });
+          // Tracking handled in popup
         },
       ),
     );

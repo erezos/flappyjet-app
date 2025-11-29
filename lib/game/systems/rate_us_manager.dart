@@ -1,6 +1,6 @@
 /// ⭐ Rate Us Manager - Smart App Rating System
 /// Handles intelligent timing and display of rate us prompts
-/// Features: Session tracking, 50% probability, user-friendly timing
+/// Features: Session tracking, Railway+Firebase tracking, user-friendly timing
 library;
 
 import 'dart:math';
@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'firebase_analytics_manager.dart';
+import '../../core/events/event_bus.dart';
 
 /// Rate us manager for FlappyJet Pro
 class RateUsManager {
@@ -26,7 +27,7 @@ class RateUsManager {
   static const String _keyFirstLaunchDate = 'rate_us_first_launch_date';
 
   // Configuration - Optimized for higher rating conversion
-  static const int _minSessionsBeforePrompt = 10; // Faster engagement threshold
+  static const int _minSessionsBeforePrompt = 3; // Show after 3rd session (engaged user)
   static const int _maxPromptsPerUser = 4; // More opportunities to rate
   static const int _daysBetweenPrompts = 5; // More frequent prompts
   static const double _showProbability = 0.4; // 40% chance for better conversion
@@ -70,7 +71,16 @@ class RateUsManager {
 
       debugPrint('⭐ RateUsManager initialized - Session: $_currentSessionCount, HasRated: $_hasRated');
       
+      // Track to Firebase (existing)
       FirebaseAnalyticsManager().trackEvent('rate_us_manager_initialized', {
+        'session_count': _currentSessionCount,
+        'has_rated': _hasRated,
+        'prompt_count': _promptCount,
+        'days_since_install': _daysSinceFirstLaunch,
+      });
+      
+      // Track to Railway backend for dashboard visibility
+      EventBus().fire('rate_us_initialized', {
         'session_count': _currentSessionCount,
         'has_rated': _hasRated,
         'prompt_count': _promptCount,
@@ -114,7 +124,15 @@ class RateUsManager {
       // Track prompt attempt
       await _recordPromptShown();
       
+      // Track to Firebase
       FirebaseAnalyticsManager().trackEvent('rate_us_prompt_shown', {
+        'session_count': _currentSessionCount,
+        'prompt_count': _promptCount,
+        'days_since_install': _daysSinceFirstLaunch,
+      });
+      
+      // Track to Railway backend
+      EventBus().fire('rate_us_prompt_shown', {
         'session_count': _currentSessionCount,
         'prompt_count': _promptCount,
         'days_since_install': _daysSinceFirstLaunch,
@@ -148,8 +166,15 @@ class RateUsManager {
     try {
       await _inAppReview.openStoreListing();
       
+      // Track to Firebase
       FirebaseAnalyticsManager().trackEvent('rate_us_store_opened_manual', {
         'session_count': _currentSessionCount,
+      });
+      
+      // Track to Railway backend
+      EventBus().fire('rate_us_store_opened', {
+        'session_count': _currentSessionCount,
+        'trigger': 'manual',
       });
       
       debugPrint('⭐ Store listing opened manually');
@@ -180,7 +205,15 @@ class RateUsManager {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyHasRated, true);
     
+    // Track to Firebase
     FirebaseAnalyticsManager().trackEvent('rate_us_completed', {
+      'session_count': _currentSessionCount,
+      'prompt_count': _promptCount,
+      'days_since_install': _daysSinceFirstLaunch,
+    });
+    
+    // Track to Railway backend - this is the conversion event!
+    EventBus().fire('rate_us_completed', {
       'session_count': _currentSessionCount,
       'prompt_count': _promptCount,
       'days_since_install': _daysSinceFirstLaunch,

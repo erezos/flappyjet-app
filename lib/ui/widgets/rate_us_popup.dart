@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../game/systems/rate_us_manager.dart';
 import '../../game/systems/firebase_analytics_manager.dart';
+import '../../core/events/event_bus.dart';
 import 'popups/base_popup.dart';
 import 'buttons/modern_game_button.dart';
 import 'buttons/button_styles.dart';
@@ -53,8 +54,14 @@ class _RateUsPopupState extends State<RateUsPopup>
     // Start star animation
     _starController.repeat(reverse: true);
 
-    // Track popup shown
+    // Track popup shown - Firebase
     FirebaseAnalyticsManager().trackEvent('rate_us_popup_shown', {
+      'session_count': _rateUsManager.sessionCount,
+      'days_since_install': _rateUsManager.daysSinceFirstLaunch,
+    });
+    
+    // Track popup shown - Railway
+    EventBus().fire('rate_us_popup_shown', {
       'session_count': _rateUsManager.sessionCount,
       'days_since_install': _rateUsManager.daysSinceFirstLaunch,
     });
@@ -68,6 +75,9 @@ class _RateUsPopupState extends State<RateUsPopup>
 
   Future<void> _handleRateUs() async {
     FirebaseAnalyticsManager().trackEvent('rate_us_popup_rate_tapped', {});
+    EventBus().fire('rate_us_rate_tapped', {
+      'session_count': _rateUsManager.sessionCount,
+    });
     
     final success = await _rateUsManager.showRateUsPrompt();
     if (success) {
@@ -80,6 +90,9 @@ class _RateUsPopupState extends State<RateUsPopup>
 
   void _handleMaybeLater() {
     FirebaseAnalyticsManager().trackEvent('rate_us_popup_maybe_later', {});
+    EventBus().fire('rate_us_maybe_later', {
+      'session_count': _rateUsManager.sessionCount,
+    });
     
     widget.onDismissed?.call();
     Navigator.of(context).pop();
@@ -87,6 +100,9 @@ class _RateUsPopupState extends State<RateUsPopup>
 
   void _handleNoThanks() {
     FirebaseAnalyticsManager().trackEvent('rate_us_popup_no_thanks', {});
+    EventBus().fire('rate_us_declined', {
+      'session_count': _rateUsManager.sessionCount,
+    });
     
     // Mark as rated to stop showing prompts
     _rateUsManager.markAsRated();
