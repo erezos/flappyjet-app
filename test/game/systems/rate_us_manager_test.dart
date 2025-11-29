@@ -29,14 +29,14 @@ void main() {
       expect(maxPromptsPerUser, equals(4));
     });
 
-    test('Days between prompts should be 5', () {
-      const daysBetweenPrompts = 5;
-      expect(daysBetweenPrompts, equals(5));
+    test('Days between prompts should be 2', () {
+      const daysBetweenPrompts = 2;
+      expect(daysBetweenPrompts, equals(2));
     });
 
-    test('Show probability should be 0.4 (40%)', () {
-      const showProbability = 0.4;
-      expect(showProbability, equals(0.4));
+    test('Show probability should be 0.7 (70%)', () {
+      const showProbability = 0.7;
+      expect(showProbability, equals(0.7));
     });
   });
 
@@ -77,16 +77,16 @@ void main() {
     });
 
     test('Days between prompts check should block recent prompts', () {
-      final lastPromptDate = DateTime.now().subtract(const Duration(days: 3));
-      const daysBetweenPrompts = 5;
+      final lastPromptDate = DateTime.now().subtract(const Duration(days: 1));
+      const daysBetweenPrompts = 2;
       final daysSinceLastPrompt = DateTime.now().difference(lastPromptDate).inDays;
       final shouldShow = daysSinceLastPrompt >= daysBetweenPrompts;
       expect(shouldShow, isFalse);
     });
 
     test('Days between prompts check should allow old prompts', () {
-      final lastPromptDate = DateTime.now().subtract(const Duration(days: 6));
-      const daysBetweenPrompts = 5;
+      final lastPromptDate = DateTime.now().subtract(const Duration(days: 3));
+      const daysBetweenPrompts = 2;
       final daysSinceLastPrompt = DateTime.now().difference(lastPromptDate).inDays;
       final shouldShow = daysSinceLastPrompt >= daysBetweenPrompts;
       expect(shouldShow, isTrue);

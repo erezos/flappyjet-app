@@ -5,7 +5,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'inventory_manager.dart';
-import 'rate_us_manager.dart';
 import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 

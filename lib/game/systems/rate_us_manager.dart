@@ -29,8 +29,8 @@ class RateUsManager {
   // Configuration - Optimized for higher rating conversion
   static const int _minSessionsBeforePrompt = 3; // Show after 3rd session (engaged user)
   static const int _maxPromptsPerUser = 4; // More opportunities to rate
-  static const int _daysBetweenPrompts = 5; // More frequent prompts
-  static const double _showProbability = 0.4; // 40% chance for better conversion
+  static const int _daysBetweenPrompts = 2; // Show every 2 days if eligible
+  static const double _showProbability = 0.7; // 70% chance when conditions met
 
   bool _isInitialized = false;
   int _currentSessionCount = 0;
