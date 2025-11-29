@@ -16,7 +16,6 @@ import io.flutter.plugin.common.MethodChannel.Result
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.io.path.createTempFile
 import kotlin.math.min
 
 /**
@@ -163,8 +162,10 @@ class NativeAudioEngine(private val context: Context, private val channel: Metho
             when (type) {
                 "sfx" -> {
                     // Load into SoundPool for low-latency playback
-                    // Create a temporary file for SoundPool loading
-                    val tempFile = createTempFile("audio_", ".tmp").toFile()
+                    // CRASH FIX: Use java.io.File.createTempFile() instead of kotlin.io.path.createTempFile()
+                    // The kotlin version uses java.nio.file which is only available on API 26+
+                    // This fix supports API 24+ (Android 7.0+) as required by our app
+                    val tempFile = File.createTempFile("audio_", ".tmp", context.cacheDir)
                     try {
                         tempFile.writeBytes(audioData)
                         val soundId = soundPool?.load(tempFile.absolutePath, priority)
@@ -265,8 +266,9 @@ class NativeAudioEngine(private val context: Context, private val channel: Metho
             val musicData = musicAssets[trackId]
             if (musicData != null) {
                 try {
-                    // Create temporary file for MediaPlayer
-                    val tempFile = createTempFile("music_", ".mp3").toFile()
+                    // CRASH FIX: Use java.io.File.createTempFile() for API 24+ compatibility
+                    // The kotlin.io.path version requires API 26+
+                    val tempFile = File.createTempFile("music_", ".mp3", context.cacheDir)
                     tempFile.writeBytes(musicData)
                     
                     // Initialize MediaPlayer with proper settings
