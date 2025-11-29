@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import '../flappy_game.dart';
@@ -21,12 +22,13 @@ enum VictoryPhase {
 /// Controller for victory celebrations in story mode
 /// 
 /// Uses Turbo Exit animation for all levels:
-/// - Jet gets shield (invulnerable) - uses existing neon shield effect
-/// - Particle burst celebration
-/// - Flies straight right off the screen with turbo speed
+/// - Jet gets shield (invulnerable) IMMEDIATELY - prevents any crash during transition
+/// - Smooth transition phase (0.4s) - natural momentum decay, no "stuck" feeling
+/// - Turbo exit phase - flies off screen with increasing speed
 /// 
 /// ✅ Flame best practice: Extends Component for game loop integration
 /// ✅ Flutter best practice: Uses callbacks for UI notification
+/// ✅ UX best practice: Smooth transition prevents abrupt physics changes
 class VictoryController extends Component with HasGameReference<FlappyGame> {
   // Current state
   VictoryPhase _phase = VictoryPhase.idle;
@@ -34,10 +36,15 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   
   // Animation timing
   double _animationTimer = 0;
-  static const double _totalDuration = 2.0; // Turbo exit duration
+  static const double _totalDuration = 2.0; // Total animation duration
+  static const double _transitionDuration = 0.4; // Smooth transition phase
   
   // Turbo animation state
   double? _turboStartY;
+  
+  // ✅ NEW: Initial jet state for smooth transition
+  double? _initialJetY;
+  double? _initialJetVelocityY;
   
   // Callbacks for UI integration
   VoidCallback? onVictoryComplete;
@@ -48,10 +55,13 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   bool get isActive => _phase != VictoryPhase.idle && _phase != VictoryPhase.complete;
   double get progress => _totalDuration > 0 ? (_animationTimer / _totalDuration).clamp(0.0, 1.0) : 0;
   
+  // ✅ NEW: Expose transition duration for testing
+  static double get transitionDurationSeconds => _transitionDuration;
+  
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    safePrint('🎉 VictoryController: Initialized (using procedural effects)');
+    safePrint('🎉 VictoryController: Initialized (with smooth transition)');
   }
   
   /// Start victory sequence for the given level
@@ -59,6 +69,9 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   /// [levelNumber] - The level that was completed
   /// 
   /// Returns false if victory is already in progress or complete
+  /// 
+  /// ✅ CRITICAL: Shield activates IMMEDIATELY to prevent any crash
+  /// during the smooth transition phase
   bool startVictory(int levelNumber) {
     if (_phase != VictoryPhase.idle) {
       safePrint('🎉 VictoryController: Cannot start - already in phase $_phase');
@@ -72,8 +85,12 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     
     safePrint('🎉 VictoryController: Starting Turbo Exit for level $levelNumber');
     
-    // Make jet invulnerable immediately (triggers existing neon shield effect)
+    // 🛡️ FIRST: Make jet invulnerable IMMEDIATELY (triggers existing neon shield effect)
+    // This MUST happen before anything else to prevent crash during transition
     _makeJetInvulnerable();
+    
+    // 📸 SECOND: Capture initial jet state for smooth transition
+    _captureInitialJetState();
     
     // Stop obstacle spawning
     _stopObstacleSpawning();
@@ -82,6 +99,20 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     _startTurboExit();
     
     return true;
+  }
+  
+  /// 📸 Capture the jet's current state for smooth transition blending
+  void _captureInitialJetState() {
+    try {
+      final jet = game.jet;
+      _initialJetY = jet.position.y;
+      _initialJetVelocityY = jet.velocity.y;
+      safePrint('📸 VictoryController: Captured initial state - Y: $_initialJetY, velocityY: $_initialJetVelocityY');
+    } catch (e) {
+      safePrint('⚠️ VictoryController: Failed to capture initial state: $e');
+      _initialJetY = null;
+      _initialJetVelocityY = 0;
+    }
   }
   
   void _makeJetInvulnerable() {
@@ -104,7 +135,7 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   
   void _startTurboExit() {
     _phase = VictoryPhase.animating;
-    safePrint('🚀 VictoryController: Starting Turbo Exit animation');
+    safePrint('🚀 VictoryController: Starting Turbo Exit animation (with ${_transitionDuration}s smooth transition)');
     _triggerTurboEffect();
   }
   
@@ -133,7 +164,7 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     
     _animationTimer += dt;
     
-    // Update turbo exit animation
+    // Update turbo exit animation with smooth transition
     _updateTurboExit(dt);
     
     // Check if animation is complete
@@ -142,67 +173,134 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     }
   }
   
-  /// Update Turbo Exit animation
+  /// Update Turbo Exit animation with SMOOTH TRANSITION
+  /// 
   /// Timeline:
   /// 0.0s: Shield activates (existing neon glow effect)
   /// 0.0s: Particle burst celebrates victory
-  /// 0.1s-2.0s: Jet accelerates and flies right off screen
+  /// 0.0s-0.4s: TRANSITION PHASE - smooth blend from current momentum
+  /// 0.4s-2.0s: FULL TURBO PHASE - locked level flight, accelerating exit
   /// 0.3s+: Continuous particle trail behind jet
   void _updateTurboExit(double dt) {
     final t = _animationTimer;
     
-    // Phase 1: Turbo flight (continuous after 0.1s)
-    if (t >= 0.1) {
-      _updateJetTurboFlight(t);
-    }
+    // Update jet flight with smooth transition
+    _updateJetTurboFlight(dt);
     
-    // Phase 2: Notify UI at 0.5s (for any external banner/UI if needed)
+    // Notify UI at 0.5s (for any external banner/UI if needed)
     if (t >= 0.5 && t < 0.52) {
       onBannerShow?.call();
     }
     
-    // Phase 3: Continuous turbo particle trail
+    // Continuous turbo particle trail (after transition phase)
     if (t >= 0.3 && (t * 10).floor() % 2 == 0) {
       _createTurboTrail();
     }
   }
   
-  void _updateJetTurboFlight(double progress) {
+  /// ✅ NEW: Smooth jet flight with transition phase
+  /// 
+  /// Phase 1 (0-0.4s): TRANSITION
+  /// - Jet's current momentum naturally decays (no abrupt stop)
+  /// - Gradually blend Y position towards level flight
+  /// - Slowly start horizontal movement
+  /// 
+  /// Phase 2 (0.4s-2.0s): FULL TURBO
+  /// - Lock Y position to level flight
+  /// - Full turbo acceleration to exit screen
+  void _updateJetTurboFlight(double dt) {
     try {
       final jet = game.jet;
-      final screenWidth = game.size.x;
+      final t = _animationTimer;
       
-      // Store the starting Y position on first frame
-      _turboStartY ??= jet.position.y;
+      // Calculate target Y (slightly above center for a nice flight path)
+      final screenCenterY = game.size.y * 0.4;
       
-      // Calculate turbo speed - starts slow, then exponential acceleration
-      // This creates a "whoosh" effect
-      final normalizedProgress = (progress / _totalDuration).clamp(0.0, 1.0);
-      final acceleration = _easeIn(normalizedProgress);
-      
-      // Move jet to the right with increasing speed
-      // Start at 150 pixels/sec, end at 1000 pixels/sec for a dramatic exit
-      final speed = 150 + (850 * acceleration);
-      jet.position.x += speed * 0.016; // Assuming ~60fps
-      
-      // Keep jet flying LEVEL - counteract gravity completely
-      // Lock the Y position to starting height with slight upward movement
-      final targetY = _turboStartY! - (normalizedProgress * 30); // Slight rise during turbo
-      jet.position.y = targetY;
-      
-      // Override velocity to prevent gravity from pulling jet down
-      jet.velocity = Vector2.zero();
-      
-      // Keep jet level (no rotation/wobble during turbo)
-      jet.angle = 0;
+      if (t < _transitionDuration) {
+        // === TRANSITION PHASE ===
+        // Smoothly blend from current momentum to level flight
+        _updateTransitionPhase(jet, dt, t, screenCenterY);
+      } else {
+        // === FULL TURBO PHASE ===
+        // Lock to level flight, full speed ahead
+        _updateTurboPhase(jet, dt, t);
+      }
       
       // Log when jet exits screen
-      if (jet.position.x > screenWidth + 100) {
+      if (jet.position.x > game.size.x + 100) {
         safePrint('🚀 VictoryController: Jet has exited screen!');
       }
     } catch (e) {
       safePrint('⚠️ VictoryController: Turbo flight error: $e');
     }
+  }
+  
+  /// ✅ NEW: Smooth transition phase - natural momentum decay
+  void _updateTransitionPhase(dynamic jet, double dt, double t, double screenCenterY) {
+    final transitionProgress = t / _transitionDuration;
+    final easeProgress = _easeOutCubic(transitionProgress);
+    
+    // === VERTICAL MOVEMENT ===
+    // Gradually reduce vertical velocity (natural momentum decay)
+    final initialVelocityY = _initialJetVelocityY ?? 0;
+    final velocityDecay = 1.0 - easeProgress;
+    final currentVelocityY = initialVelocityY * velocityDecay;
+    
+    // Apply decaying velocity to Y position (feels natural)
+    jet.position.y += currentVelocityY * dt;
+    
+    // Gently blend Y position towards target (not instant snap)
+    // Use a soft lerp factor that increases over time
+    final lerpFactor = easeProgress * 0.15; // Max 15% per frame at end of transition
+    final targetY = screenCenterY;
+    jet.position.y = _lerp(jet.position.y, targetY, lerpFactor);
+    
+    // === HORIZONTAL MOVEMENT ===
+    // Start horizontal movement slowly, accelerating through transition
+    final horizontalSpeed = 50 + (150 * easeProgress); // 50 -> 200 pixels/sec
+    jet.position.x += horizontalSpeed * dt;
+    
+    // === ROTATION ===
+    // Gradually level out any rotation
+    jet.angle = (jet.angle as double) * (1 - easeProgress);
+    
+    // === VELOCITY ===
+    // Gradually reduce velocity vector (let behaviors know we're taking over)
+    jet.velocity.y = currentVelocityY;
+    jet.velocity.x = 0; // We control horizontal movement directly
+    
+    // Debug log for transition progress
+    if ((t * 10).floor() % 4 == 0) {
+      safePrint('🔄 Transition: ${(transitionProgress * 100).toInt()}% - Y: ${jet.position.y.toStringAsFixed(1)}, velY: ${currentVelocityY.toStringAsFixed(1)}');
+    }
+  }
+  
+  /// ✅ Existing: Full turbo phase - locked level flight
+  void _updateTurboPhase(dynamic jet, double dt, double t) {
+    // Lock the Y position at start of turbo phase
+    _turboStartY ??= jet.position.y;
+    
+    // Calculate turbo progress within turbo phase
+    final turboProgress = (t - _transitionDuration) / (_totalDuration - _transitionDuration);
+    final acceleration = _easeIn(turboProgress.clamp(0.0, 1.0));
+    
+    // === HORIZONTAL MOVEMENT ===
+    // Full turbo speed - start at 200, end at 1000 pixels/sec
+    final speed = 200 + (800 * acceleration);
+    jet.position.x += speed * dt;
+    
+    // === VERTICAL MOVEMENT ===
+    // Keep Y locked with slight upward drift for dramatic effect
+    final targetY = _turboStartY! - (turboProgress * 30);
+    jet.position.y = targetY;
+    
+    // === PHYSICS OVERRIDE ===
+    // Full control - zero out velocity to prevent gravity
+    jet.velocity = Vector2.zero();
+    
+    // === ROTATION ===
+    // Keep jet perfectly level
+    jet.angle = 0;
   }
   
   void _createTurboTrail() {
@@ -235,6 +333,8 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     _animationTimer = 0;
     _levelNumber = 0;
     _turboStartY = null;
+    _initialJetY = null;
+    _initialJetVelocityY = null;
     
     safePrint('🔄 VictoryController: Reset');
   }
@@ -246,6 +346,14 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     }
   }
   
-  // Easing function for turbo acceleration
-  double _easeIn(double t) => t * t; // Quadratic ease-in (accelerating)
+  // === EASING FUNCTIONS ===
+  
+  /// Quadratic ease-in (accelerating) - for turbo speed
+  double _easeIn(double t) => t * t;
+  
+  /// Cubic ease-out (decelerating) - for smooth transition
+  double _easeOutCubic(double t) => 1 - pow(1 - t, 3).toDouble();
+  
+  /// Linear interpolation
+  double _lerp(double a, double b, double t) => a + (b - a) * t;
 }
