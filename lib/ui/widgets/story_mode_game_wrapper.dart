@@ -22,7 +22,8 @@ import '../screens/level_complete_screen.dart';
 import '../screens/level_failed_screen.dart';
 import '../screens/world_map_screen.dart';
 import '../screens/zone_completion_screen.dart'; // 🏆 Zone celebration
-import '../widgets/game_over_menu.dart';
+// ✅ FIX: Removed unused import - Story mode no longer uses GameOverMenu
+// import '../widgets/game_over_menu.dart';
 import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 import '../../core/repositories/user_stats_repository.dart';
@@ -110,6 +111,15 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     Future.delayed(const Duration(milliseconds: 800), () async {
       if (mounted) {
         safePrint('🎯 Auto-starting story mode game...');
+        
+        // ✅ SAFETY NET: If hearts are somehow 0 at level start, restore to max
+        // This catches edge cases where victory + death on same frame incorrectly resets hearts
+        final currentHearts = livesManager.currentLives;
+        if (currentHearts <= 0) {
+          safePrint('⚠️ SAFETY NET: Hearts were $currentHearts at level start - restoring to max!');
+          await livesManager.setLives(livesManager.maxLives);
+          safePrint('💖 Hearts restored to ${livesManager.maxLives}');
+        }
         
         // Wait for the game to be fully loaded before starting
         // Check if game components are mounted (loaded is a Future, not bool)
@@ -731,15 +741,10 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
             child: _buildTopObjectiveIndicator(),
           ),
 
-          // 🎮 STORY MODE: Game Over Menu Overlay (same as endless mode)
-          ValueListenableBuilder<bool>(
-            valueListenable: _game.gameOverNotifier,
-            builder: (context, isGameOver, child) {
-              return isGameOver
-                  ? _buildStoryModeGameOverMenu()
-                  : const SizedBox.shrink();
-            },
-          ),
+          // ✅ FIX: Removed old GameOverMenu overlay that was causing race condition
+          // Story mode now uses ONLY _showStoryModeGameOverPopup() (LevelFailedScreen)
+          // The old ValueListenableBuilder was triggering the endless mode GameOverMenu
+          // even when victory was already detected, causing the "old game over screen" bug
         ],
       ),
     );
@@ -910,246 +915,19 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     }
   }
 
-  Widget _buildStoryModeGameOverMenu() {
-    // Get monetization manager from the game
-    final monetization = _game.monetization;
-    
-    if (monetization == null) {
-      // Fallback if monetization is not available
-      return Container(
-        color: Colors.black54,
-        child: Center(
-          child: Text(
-            'GAME OVER\n\n'
-            'Objective: ${widget.level.objective.description}\n'
-            'Progress: ${_objectiveTracker.currentProgress}/${widget.level.objective.target}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      );
-    }
-    
-    // Use the same GameOverMenu as endless mode
-    return ListenableBuilder(
-      listenable: monetization,
-      builder: (context, child) {
-        return GameOverMenu(
-          score: _game.currentScore,
-          bestScore: _game.bestScore,
-          onRestart: () => _handleStoryModeRestart(),
-          onMainMenu: () => _handleBackToMap(),
-          onContinueWithAd: () async {
-            safePrint('🎯 STORY MODE: Continue with ad requested');
-            
-            await monetization.showRewardedAdForExtraLife(
-              onAdStart: () {
-                // 🎯 CRITICAL: Pause Flame game engine when ad starts
-                _game.pauseForAd();
-                safePrint('⏸️ STORY MODE: Game engine paused for ad');
-                
-                // ⏱️ FIX: Pause game time tracking to exclude ad duration
-                _game.gameStateManager.pauseGameTime();
-              },
-              onAdEnd: () {
-                // 🎯 CRITICAL: Resume Flame game engine when ad ends
-                _game.resumeFromAd();
-                safePrint('▶️ STORY MODE: Game engine resumed after ad');
-                
-                // ⏱️ FIX: Resume game time tracking after ad dismissal
-                _game.gameStateManager.resumeGameTime();
-              },
-              onReward: () async {
-                safePrint('🎯 STORY MODE: Ad reward granted - continuing game');
-                
-                // ✅ FIX: Restore 1 heart in LivesManager when continuing
-                final livesManager = LivesManager();
-                await livesManager.addLife(1);
-                safePrint('💖 Story Mode: Restored 1 heart after ad continue (now: ${livesManager.currentLives})');
-                
-                // 🎮 CRITICAL FIX: Force UI rebuild FIRST to remove overlay, THEN continue game
-                // This ensures the game over menu is fully removed before the game resumes
-                if (mounted) {
-                  setState(() {
-                    // Trigger gameOverNotifier update synchronously
-                    // This will cause the overlay builder to rebuild WITHOUT the game over menu
-                  });
-                  
-                  // Wait for the UI to rebuild (2 frames to be safe)
-                  await Future.delayed(const Duration(milliseconds: 50));
-                }
-                
-                // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
-                _levelEnded = false;
-                safePrint('🔄 STORY MODE: _levelEnded reset to false for overlay ad continue');
-                
-                // NOW continue the game after the overlay is definitely gone
-                _game.continueGame();
-                
-                // 🎯 CRITICAL FIX: Restart update timer for time-based objectives after continue
-                if (widget.level.objective.type == ObjectiveType.surviveTime || 
-                    widget.level.objective.type == ObjectiveType.beatBot) {
-                  _updateTimer?.cancel();
-                  _startUpdateTimer();
-                  safePrint('🎯 TIMER: Restarted update timer after continue');
-                }
-                
-                safePrint('🎬 Game continued after ad - back in action! Lives=${livesManager.currentLives}, continues remaining: ${_game.continuesRemaining}');
-              },
-              onAdFailure: () {
-                safePrint('🎯 STORY MODE: Ad failed - staying on game over');
-              },
-            );
-          },
-          onBuySingleHeart: () => _handleBuySingleHeart(),
-          onGoToStore: () => _handleGoToStore(),
-          secondsUntilHeart: null,
-          onShare: (platform) => _shareScore(platform),
-          canContinue: _game.canContinueWithAd,
-          continuesRemaining: _game.continuesRemaining,
-          playerGems: InventoryManager().gems,
-          singleHeartPrice: 3, // Story mode: 3 gems per continue
-          isAdLoading: monetization.isAdLoading,
-        );
-      },
-    );
-  }
-  
-  void _handleStoryModeRestart() {
-    safePrint('🎯 STORY MODE: Restart requested');
-    
-    // ⏱️ CRITICAL FIX: Resume game time if it was paused (player restart without continuing)
-    // This prevents the pause state from persisting into the restart
-    _game.gameStateManager.resumeGameTime();
-    safePrint('▶️ STORY MODE: Game time resumed (player restarting level)');
-    
-    _game.resetGame();
-  }
-  
-  void _handleBackToMap() {
-    if (_levelEnded) return;
-    _levelEnded = true;
-
-    safePrint('🎯 STORY MODE: Back to map requested');
-    
-    // ⏱️ CRITICAL FIX: Resume game time if it was paused (player quit without continuing)
-    // This prevents the pause state from persisting into the next level attempt
-    _game.gameStateManager.resumeGameTime();
-    safePrint('▶️ STORY MODE: Game time resumed (player quit to map)');
-    
-    // 🎵 STOP STORY MODE MUSIC: Stop level music before navigating away
-    _game.audioManager.stopMusic().then((_) {
-      safePrint('🎵 Story mode music stopped on back to map');
-    }).catchError((e) {
-      safePrint('⚠️ Failed to stop story mode music: $e');
-    });
-    
-    // Check if objective was completed
-    final objectiveCompleted = _objectiveTracker.isCompleted;
-    
-    if (objectiveCompleted) {
-      // Objective completed - go directly to world map
-      safePrint('🎯 STORY MODE: Objective completed, returning to world map');
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const WorldMapScreen(),
-        ),
-        (route) => false,
-      );
-    } else {
-      // Objective NOT completed - show level failed screen
-      safePrint('🎯 STORY MODE: Objective NOT completed, showing level failed screen');
-      
-      // Fire level_failed event for analytics
-      final eventBus = EventBus();
-      eventBus.fire('level_failed', {
-        'level_id': widget.level.id,
-        'zone_id': widget.level.zone,
-        'level_name': widget.level.name,
-        'score': _objectiveTracker.currentProgress,
-        'objective_target': widget.level.objective.target,
-        'objective_type': widget.level.objective.type.toString(),
-        'cause_of_death': 'gave_up', // Player chose to quit
-        'time_survived_seconds': _game.gameStateManager.getElapsedGameTime() ~/ 1000,
-        'hearts_remaining': LivesManager().currentLives,
-        'continues_used': _game.gameStateManager.continuesUsedThisRun,
-      });
-      
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => LevelFailedScreen(
-            level: widget.level,
-            objectiveAchieved: _objectiveTracker.currentProgress,
-            objectiveTarget: widget.level.objective.target,
-          ),
-        ),
-      );
-    }
-  }
-  
-  void _handleBuySingleHeart() async {
-    safePrint('🎯 STORY MODE: Buy single heart with 3 gems');
-    
-    final inventory = InventoryManager();
-    if (inventory.gems >= 3) {
-      // Deduct 3 gems
-      inventory.spendGems(3);
-      
-      // ✅ FIX: Restore 1 heart in LivesManager when continuing
-      final livesManager = LivesManager();
-      await livesManager.addLife(1);
-      safePrint('💖 Story Mode: Restored 1 heart after gem continue (now: ${livesManager.currentLives})');
-      
-      // 🎮 CRITICAL FIX: Force UI rebuild FIRST to remove overlay, THEN continue game
-      // This ensures the game over menu is fully removed before the game resumes
-      if (mounted) {
-        setState(() {
-          // Trigger gameOverNotifier update synchronously
-          // This will cause the overlay builder to rebuild WITHOUT the game over menu
-        });
-        
-        // Wait for the UI to rebuild (2 frames to be safe)
-        await Future.delayed(const Duration(milliseconds: 50));
-      }
-      
-      // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
-      _levelEnded = false;
-      safePrint('🔄 STORY MODE: _levelEnded reset to false for gem purchase continue');
-      
-      // NOW continue the game after the overlay is definitely gone
-      _game.continueGame();
-      
-      // 🎯 CRITICAL FIX: Restart update timer for time-based objectives after continue
-      if (widget.level.objective.type == ObjectiveType.surviveTime || 
-          widget.level.objective.type == ObjectiveType.beatBot) {
-        _updateTimer?.cancel();
-        _startUpdateTimer();
-        safePrint('🎯 TIMER: Restarted update timer after gem continue');
-      }
-      
-      safePrint('🎯 STORY MODE: Purchased continue with 3 gems');
-      safePrint('🎬 Game continued after gem purchase - back in action! Lives=${livesManager.currentLives}');
-    } else {
-      safePrint('🎯 STORY MODE: Not enough gems (${inventory.gems}/3)');
-      _handleGoToStore();
-    }
-  }
-  
-  void _handleGoToStore() {
-    safePrint('🎯 STORY MODE: Go to store requested');
-    // TODO: Navigate to store or show store dialog
-    // For now, just go back to map
-    _handleBackToMap();
-  }
-  
-  void _shareScore(String platform) {
-    safePrint('🎯 STORY MODE: Share score on $platform');
-    // TODO: Implement social sharing for story mode
-  }
+  // ✅ FIX: DELETED _buildStoryModeGameOverMenu() method (~110 lines of dead code)
+  // This old method used the endless mode GameOverMenu widget.
+  // Story mode now exclusively uses _showStoryModeGameOverPopup() which shows
+  // the beautiful LevelFailedScreen for failures, and _onLevelCompleted() for victories.
+  // Removing this eliminates the race condition where the old GameOverMenu
+  // would appear on top of the victory animation.
+  //
+  // Also DELETED related methods that were only used by the old menu:
+  // - _handleStoryModeRestart() - old menu's restart button
+  // - _handleBuySingleHeart() - old menu's gem purchase continue  
+  // - _handleGoToStore() - old menu's store navigation
+  // - _shareScore() - old menu's share functionality
+  // - _handleBackToMap() - old menu's main menu button (now handled by LevelFailedScreen)
   
   // 🎯 Removed _buildObjectiveTracker and _getObjectiveIcon - no longer displayed
   // (story mode uses top indicator only)

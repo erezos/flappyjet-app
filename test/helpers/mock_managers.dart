@@ -113,17 +113,17 @@ class MockInventoryManager extends Mock implements InventoryManager {
   String get equippedSkinId => _equippedSkinId;
   
   @override
-  Future<void> grantSoftCurrency(int amount) async {
+  Future<void> grantSoftCurrency(int amount, {String source = 'game_reward', String? sourceId}) async {
     _coins += amount;
   }
   
   @override
-  Future<void> grantGems(int amount) async {
+  Future<void> grantGems(int amount, {String source = 'game_reward', String? sourceId}) async {
     _gems += amount;
   }
   
   @override
-  Future<bool> spendGems(int amount) async {
+  Future<bool> spendGems(int amount, {String spentOn = 'purchase', String? itemId}) async {
     if (_gems >= amount) {
       _gems -= amount;
       return true;

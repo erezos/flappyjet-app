@@ -911,8 +911,17 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     
     // 🔥 CRITICAL FIX: Sync LivesManager with game's final life count (should be 0)
     // ⚠️ DEFERRED: Must happen after build phase to avoid "setState during build" error
+    // ✅ EDGE CASE FIX: ONLY set lives to 0 if victory hasn't already been triggered!
+    //    When victory and death happen on same frame, victory takes priority and lives should NOT be reset
     SchedulerBinding.instance.addPostFrameCallback((_) async {
       try {
+        // 🏆 CRITICAL FIX: Check victoryWasTriggered flag (persists after lock)
+        // This prevents resetting lives to 0 when player wins + dies on same frame
+        if (_gameStateManager.victoryWasTriggered) {
+          safePrint('💖 Lives NOT reset to 0 - victory was triggered');
+          return;
+        }
+        
         final livesManager = LivesManager();
         await livesManager.setLives(0);
         safePrint('💀 Updated LivesManager to ${livesManager.currentLives} lives on game over');
@@ -1012,7 +1021,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
         );
 
         final playerIdentity = PlayerIdentityManager();
-        final inventoryManager = InventoryManager();
 
         if (!playerIdentity.isInitialized) {
           await playerIdentity.initialize();

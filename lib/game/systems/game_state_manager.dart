@@ -69,6 +69,10 @@ class GameStateManager extends ChangeNotifier {
   // Prevents race condition where victory + death happen on same frame
   GameEndState _gameEndState = GameEndState.playing;
   
+  // 🏆 Track if victory was triggered (persists after lock)
+  // This is needed because once state is 'locked', we can't tell if it was victory or game over
+  bool _victoryWasTriggered = false;
+  
   // Game over notifier for UI
   final ValueNotifier<bool> gameOverNotifier = ValueNotifier<bool>(false);
 
@@ -118,6 +122,9 @@ class GameStateManager extends ChangeNotifier {
   bool get isGameOverTriggered => _gameEndState == GameEndState.gameOverTriggered;
   bool get isEndStateLocked => _gameEndState == GameEndState.locked;
   
+  // 🏆 Victory priority flag - persists after lock to indicate victory "won"
+  bool get victoryWasTriggered => _victoryWasTriggered;
+  
   /// Attempt to set victory state (objective completed)
   /// Returns true if successful, false if another end state was already triggered
   /// Victory has PRIORITY over game over (player earned it!)
@@ -134,6 +141,7 @@ class GameStateManager extends ChangeNotifier {
     }
     
     _gameEndState = GameEndState.victoryTriggered;
+    _victoryWasTriggered = true; // 🏆 Mark victory as the winner (persists after lock)
     safePrint('🎮 trySetVictory: SUCCESS - victory state set');
     return true;
   }
@@ -167,6 +175,7 @@ class GameStateManager extends ChangeNotifier {
   /// Reset game end state for new game/level
   void resetEndState() {
     _gameEndState = GameEndState.playing;
+    _victoryWasTriggered = false; // 🏆 Clear victory flag for new game/level
     safePrint('🎮 resetEndState: State reset to playing');
   }
 
@@ -217,12 +226,25 @@ class GameStateManager extends ChangeNotifier {
   /// NOTE: This method ONLY sets the game over state. The game_ended event
   /// should be fired by FlappyGame._gameOver() to maintain single source of truth.
   void setGameOver({String causeOfDeath = 'unknown'}) {
+    // 🏆 CRITICAL FIX: Check victory priority BEFORE setting _isGameOver
+    // If victory was triggered, don't mark as game over at all
+    // This prevents the 0-hearts issue when player wins + dies on same frame
+    if (_victoryWasTriggered) {
+      safePrint('🎮 setGameOver BLOCKED - victory was already triggered');
+      return; // Don't set _isGameOver, don't schedule callback
+    }
+    
     _isGameOver = true;
     _causeOfDeath = causeOfDeath;
     
     // 🔥 FIX: Defer ValueNotifier update to avoid setState() during build
     // This can be called during FlappyGame.update() which is part of the build cycle
     SchedulerBinding.instance.addPostFrameCallback((_) {
+      // Additional safety check (in case state changed between call and callback)
+      if (_victoryWasTriggered) {
+        safePrint('🎮 gameOverNotifier NOT set - victory was triggered');
+        return;
+      }
       gameOverNotifier.value = true; // Notify UI after build completes
     });
     
