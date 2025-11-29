@@ -58,12 +58,30 @@ class _StoryPageState extends State<StoryPage>
     _jetAnimation = Tween<double>(begin: -5.0, end: 5.0).animate( // ✅ Smaller range (was -10 to 10)
       CurvedAnimation(parent: _jetController, curve: Curves.easeInOut),
     );
+    
+    // ✅ FIX: Listen to inventory changes to refresh jet skin display
+    // This ensures the equipped jet updates when claimed from daily streak popup
+    _inventory.addListener(_onInventoryChanged);
   }
 
   @override
   void dispose() {
+    // ✅ FIX: Remove listener to prevent memory leaks
+    _inventory.removeListener(_onInventoryChanged);
     _jetController.dispose();
     super.dispose();
+  }
+  
+  /// ✅ FIX: Called when inventory changes (e.g., new jet skin equipped)
+  /// This ensures the displayed jet updates when:
+  /// - User claims a jet from daily streak bonus
+  /// - User equips a different jet in the store
+  void _onInventoryChanged() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild to show newly equipped jet
+      });
+    }
   }
 
   void _navigateToWorldMap() async {

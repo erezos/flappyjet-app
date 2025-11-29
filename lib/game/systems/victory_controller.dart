@@ -249,7 +249,7 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     
     // === VERTICAL MOVEMENT ===
     // Gradually reduce vertical velocity (natural momentum decay)
-    final initialVelocityY = _initialJetVelocityY ?? 0;
+    final initialVelocityY = _initialJetVelocityY ?? 0.0;
     final velocityDecay = 1.0 - easeProgress;
     final currentVelocityY = initialVelocityY * velocityDecay;
     
@@ -260,32 +260,35 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     // Use a soft lerp factor that increases over time
     final lerpFactor = easeProgress * 0.15; // Max 15% per frame at end of transition
     final targetY = screenCenterY;
-    jet.position.y = _lerp(jet.position.y, targetY, lerpFactor);
+    jet.position.y = _lerp(jet.position.y.toDouble(), targetY, lerpFactor);
     
     // === HORIZONTAL MOVEMENT ===
     // Start horizontal movement slowly, accelerating through transition
-    final horizontalSpeed = 50 + (150 * easeProgress); // 50 -> 200 pixels/sec
+    final horizontalSpeed = 50.0 + (150.0 * easeProgress); // 50 -> 200 pixels/sec
     jet.position.x += horizontalSpeed * dt;
     
     // === ROTATION ===
     // Gradually level out any rotation
-    jet.angle = (jet.angle as double) * (1 - easeProgress);
+    // ✅ FIX: Safely convert angle to double to prevent 'int is not a subtype of double' error
+    final currentAngle = (jet.angle is num) ? (jet.angle as num).toDouble() : 0.0;
+    jet.angle = currentAngle * (1.0 - easeProgress);
     
     // === VELOCITY ===
     // Gradually reduce velocity vector (let behaviors know we're taking over)
     jet.velocity.y = currentVelocityY;
-    jet.velocity.x = 0; // We control horizontal movement directly
+    jet.velocity.x = 0.0; // We control horizontal movement directly
     
-    // Debug log for transition progress
-    if ((t * 10).floor() % 4 == 0) {
-      safePrint('🔄 Transition: ${(transitionProgress * 100).toInt()}% - Y: ${jet.position.y.toStringAsFixed(1)}, velY: ${currentVelocityY.toStringAsFixed(1)}');
+    // Debug log for transition progress (reduced logging)
+    if ((t * 10).floor() % 8 == 0) { // Log less frequently
+      safePrint('🔄 Transition: ${(transitionProgress * 100).toInt()}% - Y: ${jet.position.y.toStringAsFixed(1)}');
     }
   }
   
   /// ✅ Existing: Full turbo phase - locked level flight
   void _updateTurboPhase(dynamic jet, double dt, double t) {
     // Lock the Y position at start of turbo phase
-    _turboStartY ??= jet.position.y;
+    // ✅ FIX: Ensure _turboStartY is a double
+    _turboStartY ??= (jet.position.y is num) ? (jet.position.y as num).toDouble() : 0.0;
     
     // Calculate turbo progress within turbo phase
     final turboProgress = (t - _transitionDuration) / (_totalDuration - _transitionDuration);
@@ -293,12 +296,12 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     
     // === HORIZONTAL MOVEMENT ===
     // Full turbo speed - start at 200, end at 1000 pixels/sec
-    final speed = 200 + (800 * acceleration);
+    final speed = 200.0 + (800.0 * acceleration);
     jet.position.x += speed * dt;
     
     // === VERTICAL MOVEMENT ===
     // Keep Y locked with slight upward drift for dramatic effect
-    final targetY = _turboStartY! - (turboProgress * 30);
+    final targetY = _turboStartY! - (turboProgress * 30.0);
     jet.position.y = targetY;
     
     // === PHYSICS OVERRIDE ===
@@ -307,7 +310,7 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     
     // === ROTATION ===
     // Keep jet perfectly level
-    jet.angle = 0;
+    jet.angle = 0.0; // ✅ FIX: Use 0.0 (double) instead of 0 (int)
   }
   
   void _createTurboTrail() {
