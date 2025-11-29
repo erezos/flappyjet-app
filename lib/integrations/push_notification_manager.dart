@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_config.dart';
 import '../core/debug_logger.dart';
+import '../core/utils/notification_permission_guard.dart'; // 🔒 Crash fix
 
 /// Top-level background message handler
 /// This MUST be a top-level function and registered before runApp()
@@ -130,9 +131,14 @@ class PushNotificationManager {
   }
 
   /// Request notification permissions
+  /// 
+  /// 🔒 CRASH FIX: Uses centralized NotificationPermissionGuard to prevent
+  /// DuplicateTaskCompletionException when multiple services call requestPermission()
   Future<void> _requestPermissions() async {
     try {
-      final settings = await _firebaseMessaging.requestPermission(
+      // 🔒 Use centralized guard - handles duplicate request prevention
+      final settings = await NotificationPermissionGuard.requestPermission(
+        _firebaseMessaging,
         alert: true,
         badge: true,
         sound: true,

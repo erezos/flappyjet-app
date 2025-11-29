@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import '../core/debug_logger.dart';
+import '../core/utils/notification_permission_guard.dart'; // 🔒 Crash fix
 import '../game/systems/firebase_analytics_manager.dart';
 import '../core/network/network_manager.dart';
 import '../game/systems/player_identity_manager.dart';
@@ -66,16 +67,18 @@ class FCMService {
   }
 
   /// Request notification permissions
+  /// 
+  /// 🔒 CRASH FIX: Uses centralized NotificationPermissionGuard to prevent
+  /// DuplicateTaskCompletionException when multiple services call requestPermission()
   Future<void> _requestPermissions() async {
     try {
-      final settings = await _messaging!.requestPermission(
+      // 🔒 Use centralized guard - handles duplicate request prevention
+      final settings = await NotificationPermissionGuard.requestPermission(
+        _messaging!,
         alert: true,
-        announcement: false,
         badge: true,
-        carPlay: false,
-        criticalAlert: false,
-        provisional: false,
         sound: true,
+        provisional: false,
       );
 
       safePrint('🔥 FCM: Permission status: ${settings.authorizationStatus}');
