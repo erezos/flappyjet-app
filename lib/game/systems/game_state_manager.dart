@@ -519,10 +519,20 @@ class GameStateManager extends ChangeNotifier {
   void addCoinCollected() {
     _coinsCollectedThisRun++;
   }
+  
+  /// 📊 Track multiple coins collected during this run (for bonuses)
+  void addCoinsCollectedThisRun(int amount) {
+    _coinsCollectedThisRun += amount;
+  }
 
   /// 📊 Track currency collected during this run (for analytics)
   void addGemCollected() {
     _gemsCollectedThisRun++;
+  }
+  
+  /// 📊 Track multiple gems collected during this run (for bonuses)
+  void addGemsCollectedThisRun(int amount) {
+    _gemsCollectedThisRun += amount;
   }
 
   /// Get comprehensive game state for debugging/analytics

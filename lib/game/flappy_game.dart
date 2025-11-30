@@ -38,6 +38,9 @@ import 'systems/obstacle_manager.dart';
 import 'systems/celebration_system.dart';
 import 'systems/theme_manager.dart';
 import 'systems/victory_controller.dart';
+import 'systems/bonus_manager.dart'; // 🎁 In-game bonuses
+import 'components/collectible_bonus.dart'; // 🎁 Bonus base class
+import '../models/bonus_config.dart'; // 🎁 Bonus configuration
 
 // Story Mode
 import '../models/level_data_schema.dart';
@@ -118,6 +121,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   
   // ✅ Victory animation controller
   late VictoryController _victoryController;
+  
+  // 🎁 Bonus system for in-game collectibles
+  late BonusManager _bonusManager;
   
   // 💨 Pre-loaded smoke/fire sprites for on-demand particle creation (performance optimization)
   late List<Sprite> _smokeSprites;
@@ -279,6 +285,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     
     // ✅ Initialize victory controller for end-level animations
     _victoryController = VictoryController();
+    
+    // 🎁 Initialize bonus manager for in-game collectibles
+    _bonusManager = BonusManager();
+    _bonusManager.onBonusCollected = _onBonusCollected;
 
     // Initialize theme manager (will be connected to audio manager later)
     _themeManager = ThemeManager();
@@ -426,6 +436,29 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // ✅ Add VictoryController to receive update() calls for animations
     await _world.add(_victoryController);
     
+    // 🎁 Initialize BonusManager with level config
+    final bonusConfig = (isStoryMode && storyModeLevel != null) 
+        ? storyModeLevel!.bonuses 
+        : BonusConfig.disabled;
+    _bonusManager.initialize(
+      config: bonusConfig,
+      screenWidth: gameWidth,
+      screenHeight: gameHeight,
+      gameWorld: _world,
+    );
+    
+    // 🎁 Connect ObstacleManager to BonusManager for spawn timing
+    _obstacleManager.onObstacleSpawned = (gapCenterY, obstacleX, gapSize, speed) {
+      _bonusManager.setCurrentSpeed(speed);
+      _bonusManager.onObstacleSpawned(
+        obstacleGapCenter: gapCenterY,
+        obstacleX: obstacleX,
+        gapSize: gapSize,
+      );
+    };
+    
+    safePrint('🎁 BonusManager initialized: ${bonusConfig.enabled ? "ENABLED" : "DISABLED"}');
+    
     // ✅ Step 6: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
     _jet = _world.player;
@@ -555,6 +588,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Update obstacle manager
     _obstacleManager.update(dt, _gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
+    
+    // 🎁 Update bonus manager (clean up dead bonuses)
+    _bonusManager.update(dt);
 
     // ❌ DEPRECATED: Scoring now handled via Flame collision detection (ScoreZone)
     // Old manual scoring system commented out to prevent double-counting
@@ -1403,7 +1439,103 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   CelebrationSystem get celebrationSystem => _celebrationSystem;
   HardwareParticleSystem get hardwareParticleSystem => _hardwareParticleSystem;
   VictoryController get victoryController => _victoryController;
-
+  
+  // 🎁 PUBLIC GETTER for bonus manager
+  BonusManager get bonusManager => _bonusManager;
+  
+  // ============================================================================
+  // 🎁 BONUS SYSTEM METHODS
+  // ============================================================================
+  
+  /// Handle bonus collected by player (called from JetPlayer collision)
+  void handleBonusCollected(CollectibleBonus bonus, Map<String, dynamic> rewardData) {
+    _bonusManager.handleBonusCollected(bonus, rewardData);
+  }
+  
+  /// Internal callback when bonus is collected
+  void _onBonusCollected(BonusType type, Map<String, dynamic> rewardData) {
+    switch (type) {
+      case BonusType.shield:
+        _applyShieldBonus(rewardData);
+        break;
+      case BonusType.coins:
+        _applyCoinBonus(rewardData);
+        break;
+      case BonusType.gems:
+        _applyGemBonus(rewardData);
+        break;
+    }
+    
+    // Play collection sound
+    _audioManager.playSFX('bonus_collect.wav', volume: 0.8);
+    
+    // Create celebration particles
+    _celebrationSystem.createCelebrationBurst(_jet.position, _gameStateManager.score);
+    
+    // Track analytics
+    _analytics.trackEvent('bonus_collected', {
+      'bonus_type': type.name,
+      ...rewardData,
+      'level_id': storyModeLevel?.id,
+      'score': _gameStateManager.score,
+    });
+  }
+  
+  /// Apply shield bonus - activate invulnerability
+  void _applyShieldBonus(Map<String, dynamic> rewardData) {
+    final duration = (rewardData['duration'] as double?) ?? 3.0;
+    final tier = rewardData['tier'] as String? ?? 'bronze';
+    
+    // Activate shield on jet
+    _jet.setInvulnerable(true);
+    _gameStateManager.setInvulnerable(true);
+    
+    // Schedule shield deactivation
+    Future.delayed(Duration(milliseconds: (duration * 1000).toInt()), () {
+      if (_gameStateManager.isInvulnerable && !_gameStateManager.isGameOver) {
+        _jet.setInvulnerable(false);
+        _gameStateManager.setInvulnerable(false);
+        safePrint('🛡️ Shield bonus expired (tier: $tier, duration: ${duration}s)');
+      }
+    });
+    
+    safePrint('🛡️ Shield bonus activated! Tier: $tier, Duration: ${duration}s');
+  }
+  
+  /// Apply coin bonus - add coins to inventory
+  void _applyCoinBonus(Map<String, dynamic> rewardData) {
+    final amount = (rewardData['amount'] as int?) ?? 10;
+    
+    // Add coins to inventory (async fire-and-forget)
+    final inventory = InventoryManager();
+    inventory.grantSoftCurrency(amount, source: 'bonus_collected').catchError((e) {
+      safePrint('⚠️ Failed to grant coins: $e');
+    });
+    
+    // Update game state tracking
+    _gameStateManager.addCoinsCollectedThisRun(amount);
+    
+    // Update HUD (TODO: Add coin popup animation)
+    safePrint('🪙 Coins collected: +$amount (total this run: ${_gameStateManager.coinsCollectedThisRun})');
+  }
+  
+  /// Apply gem bonus - add gems to inventory
+  void _applyGemBonus(Map<String, dynamic> rewardData) {
+    final amount = (rewardData['amount'] as int?) ?? 1;
+    
+    // Add gems to inventory (async fire-and-forget)
+    final inventory = InventoryManager();
+    inventory.grantGems(amount, source: 'bonus_collected').catchError((e) {
+      safePrint('⚠️ Failed to grant gems: $e');
+    });
+    
+    // Update game state tracking
+    _gameStateManager.addGemsCollectedThisRun(amount);
+    
+    // Update HUD (TODO: Add gem popup animation)
+    safePrint('💎 Gems collected: +$amount (total this run: ${_gameStateManager.gemsCollectedThisRun})');
+  }
+  
   void testUpdatePerformanceMetrics() => _updatePerformanceMetrics();
   void testRenderCycle() {} // Test method placeholder
 

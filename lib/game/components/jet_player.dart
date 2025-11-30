@@ -12,6 +12,7 @@ import '../core/jet_skins.dart';
 // import 'jet_fire_state.dart';
 import '../flappy_game.dart'; // 🔥 FIX: Add type import for collision handling
 import 'score_zone.dart'; // ✅ REFACTOR v1.7.0: Score trigger zones
+import 'collectible_bonus.dart'; // 🎁 In-game bonuses
 
 // ✅ REFACTOR v1.7.0: Behavior Pattern System (Phase 2)
 import '../behaviors/gravity_behavior.dart';
@@ -672,6 +673,12 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
       return;
     }
     
+    // 🎁 Check if this is a collectible bonus collision
+    if (other is CollectibleBonus) {
+      _handleBonusCollision(other);
+      return;
+    }
+    
     // Ignore collision if invulnerable
     if (_invulnerabilityBehavior.isInvulnerable) {
       safePrint('🛡️ Jet is invulnerable - ignoring collision with ${other.runtimeType}');
@@ -710,6 +717,22 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     if (game is FlappyGame) {
       (game as FlappyGame).incrementScoreFromZone();
     }
+  }
+  
+  /// 🎁 Handle collectible bonus collision
+  void _handleBonusCollision(CollectibleBonus bonus) {
+    if (bonus.isCollected) {
+      return; // Already collected this bonus
+    }
+    
+    safePrint('🎁 Jet collected ${bonus.bonusType.name} bonus!');
+    
+    // Collect the bonus and notify game
+    bonus.collect().then((rewardData) {
+      if (game is FlappyGame) {
+        (game as FlappyGame).handleBonusCollected(bonus, rewardData);
+      }
+    });
   }
   
   // ✅ REFACTOR v1.7.0: onCollisionEnd removed - unnecessary override

@@ -24,6 +24,9 @@ class ObstacleManager {
   
   // 🎯 STORY MODE: Track previous gap center for smooth path generation
   double? _previousGapCenterY;
+  
+  // 🎁 BONUS SYSTEM: Callback when obstacle spawns (for bonus spawning)
+  void Function(double gapCenterY, double obstacleX, double gapSize, double speed)? onObstacleSpawned;
 
   /// Get current obstacles list
   List<DynamicObstacle> get obstacles => List.unmodifiable(_obstacles);
@@ -188,6 +191,9 @@ class ObstacleManager {
     safePrint(
       '🎯 OBSTACLE: Score $score → ${phase.name} (gap: ${gap.toStringAsFixed(1)}, speed: ${speed.toStringAsFixed(1)})',
     );
+    
+    // 🎁 BONUS SYSTEM: Notify callback for bonus spawning opportunity
+    onObstacleSpawned?.call(gapY, spawnX, gap, speed);
   }
 
   /// Add obstacle to game (called from FlappyGame)

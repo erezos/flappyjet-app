@@ -25,6 +25,38 @@
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 6,
+          "maxAmount": 10
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -51,6 +83,38 @@
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 6,
+          "maxAmount": 11
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -75,6 +139,38 @@
         "background": "zone2_desert.png",
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 6,
+          "maxAmount": 11
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": null
     },
@@ -102,6 +198,38 @@
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 7,
+          "maxAmount": 12
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -126,6 +254,38 @@
         "background": "zone2_desert.png",
         "obstacles": "desert_obstacles.png",
         "music": "storm_ace.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 3,
+        "spawnChance": 0.30,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.70,
+          "betweenObstaclesWeight": 0.22,
+          "upperZoneWeight": 0.04,
+          "lowerZoneWeight": 0.04
+        },
+        "shield": {
+          "chance": 0.55,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.30,
+            "green": 0.20
+          }
+        },
+        "coins": {
+          "chance": 0.42,
+          "minAmount": 8,
+          "maxAmount": 13
+        },
+        "gems": {
+          "chance": 0.03,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": {
         "botName": "Desert Storm",
@@ -159,6 +319,38 @@
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 7,
+          "maxAmount": 12
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -183,6 +375,38 @@
         "background": "zone2_desert.png",
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 8,
+          "maxAmount": 13
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": null
     },
@@ -210,6 +434,38 @@
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 8,
+          "maxAmount": 14
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -235,6 +491,38 @@
         "obstacles": "desert_obstacles.png",
         "music": "sky_rookie.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.25,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.50,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.45,
+          "minAmount": 8,
+          "maxAmount": 15
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -259,6 +547,38 @@
         "background": "zone2_desert.png",
         "obstacles": "desert_obstacles.png",
         "music": "void_master.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 2,
+        "maxPerLevel": 3,
+        "spawnChance": 0.30,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.70,
+          "betweenObstaclesWeight": 0.22,
+          "upperZoneWeight": 0.04,
+          "lowerZoneWeight": 0.04
+        },
+        "shield": {
+          "chance": 0.55,
+          "shieldTierWeights": {
+            "blue": 0.45,
+            "red": 0.35,
+            "green": 0.20
+          }
+        },
+        "coins": {
+          "chance": 0.42,
+          "minAmount": 10,
+          "maxAmount": 15
+        },
+        "gems": {
+          "chance": 0.03,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": {
         "botName": "Sky Prince",

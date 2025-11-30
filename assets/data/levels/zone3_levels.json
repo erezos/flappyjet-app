@@ -25,6 +25,38 @@
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 8,
+          "maxAmount": 14
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -51,6 +83,38 @@
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 9,
+          "maxAmount": 15
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -75,6 +139,38 @@
         "background": "lava_zone_bg.png",
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 9,
+          "maxAmount": 15
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": null
     },
@@ -102,6 +198,38 @@
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 10,
+          "maxAmount": 16
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -126,6 +254,38 @@
         "background": "lava_zone_bg.png",
         "obstacles": "lava_obstacle.png",
         "music": "void_master.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 2,
+        "maxPerLevel": 3,
+        "spawnChance": 0.28,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.45,
+          "shieldTierWeights": {
+            "blue": 0.45,
+            "red": 0.35,
+            "green": 0.20
+          }
+        },
+        "coins": {
+          "chance": 0.50,
+          "minAmount": 10,
+          "maxAmount": 16
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": {
         "botName": "Stealth Fire",
@@ -159,6 +319,38 @@
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 10,
+          "maxAmount": 16
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -183,6 +375,38 @@
         "background": "lava_zone_bg.png",
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 10,
+          "maxAmount": 17
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": null
     },
@@ -210,6 +434,38 @@
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 10,
+          "maxAmount": 17
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -235,6 +491,38 @@
         "obstacles": "lava_obstacle.png",
         "music": "storm_ace.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.22,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.06,
+          "lowerZoneWeight": 0.06
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.52,
+          "minAmount": 10,
+          "maxAmount": 18
+        },
+        "gems": {
+          "chance": 0.08,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -259,6 +547,38 @@
         "background": "lava_zone_bg.png",
         "obstacles": "lava_obstacle.png",
         "music": "void_master.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 2,
+        "maxPerLevel": 3,
+        "spawnChance": 0.28,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.65,
+          "betweenObstaclesWeight": 0.25,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.45,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.50,
+          "minAmount": 12,
+          "maxAmount": 18
+        },
+        "gems": {
+          "chance": 0.05,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": {
         "botName": "Molten Devastator",

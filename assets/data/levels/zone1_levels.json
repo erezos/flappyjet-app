@@ -25,6 +25,28 @@
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.50,
+        "minObstaclesBeforeFirstBonus": 0,
+        "minObstaclesBetweenBonuses": 2,
+        "spawnLocations": {
+          "insideGapWeight": 0.85,
+          "betweenObstaclesWeight": 0.12,
+          "upperZoneWeight": 0.015,
+          "lowerZoneWeight": 0.015
+        },
+        "shield": {
+          "chance": 1.0,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        }
+      },
       "botBattle": null
     },
     {
@@ -51,6 +73,28 @@
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.50,
+        "minObstaclesBeforeFirstBonus": 0,
+        "minObstaclesBetweenBonuses": 2,
+        "spawnLocations": {
+          "insideGapWeight": 0.85,
+          "betweenObstaclesWeight": 0.12,
+          "upperZoneWeight": 0.015,
+          "lowerZoneWeight": 0.015
+        },
+        "shield": {
+          "chance": 1.0,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        }
+      },
       "botBattle": null
     },
     {
@@ -75,6 +119,33 @@
         "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.35,
+        "minObstaclesBeforeFirstBonus": 1,
+        "minObstaclesBetweenBonuses": 2,
+        "spawnLocations": {
+          "insideGapWeight": 0.8,
+          "betweenObstaclesWeight": 0.15,
+          "upperZoneWeight": 0.025,
+          "lowerZoneWeight": 0.025
+        },
+        "shield": {
+          "chance": 0.90,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.10,
+          "minAmount": 3,
+          "maxAmount": 6
+        }
       },
       "botBattle": null
     },
@@ -102,6 +173,38 @@
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.30,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.7,
+          "betweenObstaclesWeight": 0.2,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.70,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.28,
+          "minAmount": 4,
+          "maxAmount": 7
+        },
+        "gems": {
+          "chance": 0.02,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -126,6 +229,33 @@
         "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
         "music": "storm_ace.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 3,
+        "spawnChance": 0.35,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.75,
+          "betweenObstaclesWeight": 0.2,
+          "upperZoneWeight": 0.025,
+          "lowerZoneWeight": 0.025
+        },
+        "shield": {
+          "chance": 0.75,
+          "shieldTierWeights": {
+            "blue": 0.50,
+            "red": 0.35,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.25,
+          "minAmount": 5,
+          "maxAmount": 8
+        }
       },
       "botBattle": {
         "botName": "Police Patrol",
@@ -165,6 +295,38 @@
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.28,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.7,
+          "betweenObstaclesWeight": 0.2,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.70,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.28,
+          "minAmount": 5,
+          "maxAmount": 8
+        },
+        "gems": {
+          "chance": 0.02,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -191,6 +353,38 @@
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.28,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.7,
+          "betweenObstaclesWeight": 0.2,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.70,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.28,
+          "minAmount": 5,
+          "maxAmount": 9
+        },
+        "gems": {
+          "chance": 0.02,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -215,6 +409,38 @@
         "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.28,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.7,
+          "betweenObstaclesWeight": 0.2,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.70,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.28,
+          "minAmount": 5,
+          "maxAmount": 9
+        },
+        "gems": {
+          "chance": 0.02,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": null
     },
@@ -242,6 +468,38 @@
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.28,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.7,
+          "betweenObstaclesWeight": 0.2,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.70,
+          "shieldTierWeights": {
+            "blue": 0.55,
+            "red": 0.30,
+            "green": 0.15
+          }
+        },
+        "coins": {
+          "chance": 0.28,
+          "minAmount": 5,
+          "maxAmount": 10
+        },
+        "gems": {
+          "chance": 0.02,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -266,6 +524,38 @@
         "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
         "music": "void_master.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 2,
+        "maxPerLevel": 3,
+        "spawnChance": 0.35,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.75,
+          "betweenObstaclesWeight": 0.2,
+          "upperZoneWeight": 0.025,
+          "lowerZoneWeight": 0.025
+        },
+        "shield": {
+          "chance": 0.75,
+          "shieldTierWeights": {
+            "blue": 0.45,
+            "red": 0.35,
+            "green": 0.20
+          }
+        },
+        "coins": {
+          "chance": 0.23,
+          "minAmount": 6,
+          "maxAmount": 10
+        },
+        "gems": {
+          "chance": 0.02,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": {
         "botName": "Green Lightning",

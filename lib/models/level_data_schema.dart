@@ -4,6 +4,8 @@
 /// Levels are loaded from JSON and parsed into these models.
 library;
 
+import 'bonus_config.dart';
+
 
 /// Main level data model
 class LevelData {
@@ -15,6 +17,7 @@ class LevelData {
   final LevelReward reward;
   final LevelTheme theme;
   final BotBattle? botBattle; // Null if not a bot level
+  final BonusConfig bonuses; // 🎁 In-game bonus configuration
 
   const LevelData({
     required this.id,
@@ -25,6 +28,7 @@ class LevelData {
     required this.reward,
     required this.theme,
     this.botBattle,
+    this.bonuses = BonusConfig.disabled,
   });
 
   /// Parse from JSON
@@ -40,6 +44,9 @@ class LevelData {
       botBattle: json['botBattle'] != null 
           ? BotBattle.fromJson(json['botBattle'] as Map<String, dynamic>)
           : null,
+      bonuses: json['bonuses'] != null
+          ? BonusConfig.fromJson(json['bonuses'] as Map<String, dynamic>)
+          : BonusConfig.disabled,
     );
   }
 
@@ -54,6 +61,7 @@ class LevelData {
       'reward': reward.toJson(),
       'theme': theme.toJson(),
       'botBattle': botBattle?.toJson(),
+      if (bonuses.enabled) 'bonuses': bonuses.toJson(),
     };
   }
 

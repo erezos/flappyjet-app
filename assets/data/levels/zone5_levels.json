@@ -25,6 +25,38 @@
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 12,
+          "maxAmount": 20
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -51,6 +83,38 @@
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 13,
+          "maxAmount": 21
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -75,6 +139,38 @@
         "background": "frozen_peaks.png",
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 14,
+          "maxAmount": 22
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": null
     },
@@ -102,6 +198,38 @@
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 14,
+          "maxAmount": 23
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -126,6 +254,38 @@
         "background": "frozen_peaks.png",
         "obstacles": "ice_obstacles.png",
         "music": "storm_ace.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 2,
+        "maxPerLevel": 3,
+        "spawnChance": 0.24,
+        "minObstaclesBeforeFirstBonus": 3,
+        "minObstaclesBetweenBonuses": 4,
+        "spawnLocations": {
+          "insideGapWeight": 0.60,
+          "betweenObstaclesWeight": 0.30,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.35,
+          "shieldTierWeights": {
+            "blue": 0.35,
+            "red": 0.35,
+            "green": 0.30
+          }
+        },
+        "coins": {
+          "chance": 0.55,
+          "minAmount": 15,
+          "maxAmount": 23
+        },
+        "gems": {
+          "chance": 0.10,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": {
         "botName": "Stealth Dragon",
@@ -159,6 +319,38 @@
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 15,
+          "maxAmount": 24
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -183,6 +375,38 @@
         "background": "frozen_peaks.png",
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 15,
+          "maxAmount": 24
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": null
     },
@@ -210,6 +434,38 @@
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 16,
+          "maxAmount": 25
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -235,6 +491,38 @@
         "obstacles": "ice_obstacles.png",
         "music": "space_cadet.mp3"
       },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 1,
+        "maxPerLevel": 2,
+        "spawnChance": 0.18,
+        "minObstaclesBeforeFirstBonus": 4,
+        "minObstaclesBetweenBonuses": 5,
+        "spawnLocations": {
+          "insideGapWeight": 0.55,
+          "betweenObstaclesWeight": 0.32,
+          "upperZoneWeight": 0.065,
+          "lowerZoneWeight": 0.065
+        },
+        "shield": {
+          "chance": 0.30,
+          "shieldTierWeights": {
+            "blue": 0.40,
+            "red": 0.35,
+            "green": 0.25
+          }
+        },
+        "coins": {
+          "chance": 0.57,
+          "minAmount": 16,
+          "maxAmount": 25
+        },
+        "gems": {
+          "chance": 0.13,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
+      },
       "botBattle": null
     },
     {
@@ -259,6 +547,38 @@
         "background": "frozen_peaks.png",
         "obstacles": "ice_obstacles.png",
         "music": "void_master.mp3"
+      },
+      "bonuses": {
+        "enabled": true,
+        "minPerLevel": 2,
+        "maxPerLevel": 4,
+        "spawnChance": 0.28,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 3,
+        "spawnLocations": {
+          "insideGapWeight": 0.62,
+          "betweenObstaclesWeight": 0.28,
+          "upperZoneWeight": 0.05,
+          "lowerZoneWeight": 0.05
+        },
+        "shield": {
+          "chance": 0.40,
+          "shieldTierWeights": {
+            "blue": 0.30,
+            "red": 0.35,
+            "green": 0.35
+          }
+        },
+        "coins": {
+          "chance": 0.50,
+          "minAmount": 18,
+          "maxAmount": 25
+        },
+        "gems": {
+          "chance": 0.10,
+          "minAmount": 1,
+          "maxAmount": 1
+        }
       },
       "botBattle": {
         "botName": "Lord Of War",

@@ -8,6 +8,7 @@
 library;
 
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -41,7 +42,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   DateTime? _lastSessionDate;
   bool _isInitialized = false;
   bool _isFirstLaunch = false;
-  String _nickname = 'Pilot'; // ✅ NEW: Default nickname
+  String _nickname = ''; // Will be set to 'Pilot####' in _loadNickname()
   
   // Device info
   String? _deviceModel;
@@ -53,7 +54,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   // Getters
   String get userId => _userId ?? '';
   String get sessionId => _sessionId ?? '';
-  String get nickname => _nickname; // ✅ NEW: Nickname getter
+  String get nickname => _nickname.isNotEmpty ? _nickname : 'Pilot'; // Fallback if not initialized
   DateTime? get installDate => _installDate;
   DateTime? get lastSessionDate => _lastSessionDate;
   bool get isInitialized => _isInitialized;
@@ -341,10 +342,28 @@ class DeviceIdentityManager extends ChangeNotifier {
   // ============================================================================
 
   /// Load nickname from storage
+  /// Generates a unique default (Pilot####) if none exists
   Future<void> _loadNickname() async {
     final prefs = await SharedPreferences.getInstance();
-    _nickname = prefs.getString(_keyNickname) ?? 'Pilot';
-    safePrint('🆔 Loaded nickname: $_nickname');
+    final savedNickname = prefs.getString(_keyNickname);
+    
+    if (savedNickname != null && savedNickname.isNotEmpty) {
+      _nickname = savedNickname;
+      safePrint('🆔 Loaded nickname: $_nickname');
+    } else {
+      // Generate unique default nickname (same format as PlayerIdentityManager)
+      _nickname = _generateDefaultNickname();
+      await prefs.setString(_keyNickname, _nickname);
+      safePrint('🆔 Generated new nickname: $_nickname');
+    }
+  }
+  
+  /// Generate a unique default nickname (Pilot####)
+  /// Matches PlayerIdentityManager format for consistency
+  String _generateDefaultNickname() {
+    final rng = math.Random();
+    final num = 1000 + rng.nextInt(9000);
+    return 'Pilot$num';
   }
 
   /// Set player nickname

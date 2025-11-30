@@ -3,12 +3,15 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
 import '../../game/systems/menu_audio_manager.dart';
+import '../../game/systems/daily_streak_manager.dart';
 import '../../core/debug_logger.dart';
 import '../widgets/navigation/bottom_navigator_bar.dart';
+import '../widgets/exit_confirmation_popup.dart';
 import 'store_page.dart';
 import 'tournaments_page.dart';
 import 'story_page.dart';
@@ -83,9 +86,72 @@ class _HomeNavigatorScreenState extends State<HomeNavigatorScreen>
     );
   }
 
+  /// 🚪 Handle back button press - show exit confirmation on Story tab only
+  Future<bool> _onWillPop() async {
+    // Only show exit confirmation when on Story tab (index 2 = homepage)
+    if (_currentPage == 2) {
+      // Generate contextual reminder message
+      final reminderMessage = _getReminderMessage();
+      
+      final shouldExit = await showExitConfirmation(
+        context,
+        reminderMessage: reminderMessage,
+      );
+      
+      if (shouldExit) {
+        safePrint('🚪 User confirmed exit from homepage');
+        // Exit the app
+        SystemNavigator.pop();
+        return true;
+      }
+      
+      safePrint('🚪 User chose to stay');
+      return false;
+    }
+    
+    // On other tabs, navigate to Story tab instead of exiting
+    _pageController.animateToPage(
+      2, // Story tab
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+    return false;
+  }
+  
+  /// Get contextual reminder message based on user state
+  String? _getReminderMessage() {
+    try {
+      final streakManager = DailyStreakManager();
+      
+      // Check if daily streak reward is available (not yet claimed today)
+      if (streakManager.shouldShowPopup) {
+        return "Don't forget to claim your daily streak reward! 🎁";
+      }
+      
+      // Check if close to weekly milestone
+      final currentDay = streakManager.currentStreak;
+      if (currentDay > 0 && currentDay % 7 == 6) {
+        return "You're 1 day away from a weekly milestone! Keep your streak alive! 🔥";
+      }
+      
+      // Default message
+      return "Your jet is ready for more adventures! ✈️";
+    } catch (e) {
+      // If streak manager isn't available, use default
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // 🚪 Wrap with PopScope to handle back button
+    return PopScope(
+      canPop: false, // We handle all back button presses manually
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // Already popped, do nothing
+        await _onWillPop();
+      },
+      child: Scaffold(
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
@@ -125,6 +191,7 @@ class _HomeNavigatorScreenState extends State<HomeNavigatorScreen>
       bottomNavigationBar: BottomNavigatorBar(
         currentIndex: _currentPage,
         onTap: _onNavTap,
+      ),
       ),
     );
   }
