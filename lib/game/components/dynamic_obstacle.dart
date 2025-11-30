@@ -81,24 +81,13 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       // and extends from bottom upward, so obstacles must reach screen bottom to cover it
       final localBottomOfScreen = game.size.y - position.y;  // Extend to actual bottom
       
-      // 🐛 DEBUG: Log coordinate calculations
-      safePrint('🐛 OBSTACLE DEBUG: position.y=${position.y}, game.size.y=${game.size.y}');
-      safePrint('🐛 OBSTACLE DEBUG: gapSize=$gapSize, localGapBottom=$localGapBottom');
-      safePrint('🐛 OBSTACLE DEBUG: localBottomOfScreen=$localBottomOfScreen (extends to screen bottom)');
-      
       // Calculate pillar heights
       final topHeight = localGapTop - localTopOfScreen;  // From top of screen to gap top
       final bottomHeight = localBottomOfScreen - localGapBottom;  // From gap bottom to bottom of screen
       
-      safePrint('🐛 OBSTACLE DEBUG: topHeight=$topHeight, bottomHeight=$bottomHeight');
-      
-      // 🔍 DETAILED DEBUG: World coordinates for visual rendering
+      // World coordinates for collision detection
       final worldGapTop = position.y + localGapTop;  // Gap top in world coords
       final worldGapBottom = position.y + localGapBottom;  // Gap bottom in world coords
-      final worldVisualBottom = position.y + localBottomOfScreen;  // Visual bottom in world coords
-      safePrint('🔍 VISUAL DEBUG: Gap top (world)=$worldGapTop, Gap bottom (world)=$worldGapBottom');
-      safePrint('🔍 VISUAL DEBUG: Visual extends from $worldGapBottom to $worldVisualBottom (should be ${game.size.y})');
-      safePrint('🔍 VISUAL DEBUG: Visual bottom gap = ${game.size.y - worldVisualBottom} pixels');
       
       // Use slight overscan + clip to ensure image always fills collision width
       const overscanRatio = 0.0; // Disabled after robust trimming
@@ -130,10 +119,6 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       );  // ✅ FIX: Don't set anchor - use ClipComponent's default
       _bottomObstacle = bottomClip;
       
-      // 🔍 DEBUG: Log ClipComponent details
-      safePrint('🔍 CLIP DEBUG: bottomClip position=(${bottomClip.position.x}, ${bottomClip.position.y})');
-      safePrint('🔍 CLIP DEBUG: bottomClip size=(${bottomClip.size.x}, ${bottomClip.size.y})');
-      safePrint('🔍 CLIP DEBUG: bottomClip anchor=${bottomClip.anchor}');
       final bottomSprite = SpriteComponent(
         sprite: trimmedSprite,
         size: Vector2(expandedWidth, bottomHeight),

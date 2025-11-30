@@ -41,24 +41,24 @@ class CelebrationSystem {
   /// Create celebration burst for score milestones
   void createCelebrationBurst(Vector2 center, int score) {
     // 🚀 HARDWARE-ACCELERATED: Use pre-rendered sprites for maximum performance
+    // Note: HardwareParticleSystem already logs, so we don't duplicate here
     _hardwareParticleSystem.createCelebrationBurst(center, score);
-    safePrint('🚀 Hardware-accelerated celebration burst created at ${center.toString()} for score $score');
   }
 
   /// Create crash burst for collision effects
   void createCrashBurst(Vector2 center) {
     // 🚀 HARDWARE-ACCELERATED: Use pre-rendered sprites for maximum performance
+    // Note: HardwareParticleSystem already logs, so we don't duplicate here
     _hardwareParticleSystem.createCrashBurst(center);
-    safePrint('🚀 Hardware-accelerated crash burst created at ${center.toString()}');
   }
 
   /// Create sparkle confetti for special moments
   void createSparkleConfetti(Vector2 center, int score) {
     // 🚀 HARDWARE-ACCELERATED: Use pre-rendered sprites for maximum performance
     // Create a special celebration burst with extra sparkles for milestones
+    // Note: HardwareParticleSystem already logs, so we don't duplicate here
     final extraSparkles = score % 10 == 0 ? 12 : 0;
     _hardwareParticleSystem.createCelebrationBurst(center, score + extraSparkles);
-    safePrint('🚀 Hardware-accelerated sparkle confetti created at ${center.toString()}');
   }
 
   /// Show motivational text

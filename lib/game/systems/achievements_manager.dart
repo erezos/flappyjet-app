@@ -689,8 +689,7 @@ class AchievementsManager extends ChangeNotifier {
     safePrint('🏅 Current achievement state: ${achievement.id}, progress: ${achievement.progress}/${achievement.target}, unlocked: ${achievement.unlocked}');
     
     if (achievement.unlocked) {
-      safePrint('🏅 ❌ Achievement already unlocked: $achievementId');
-      return; // Already unlocked
+      return; // Already unlocked - skip silently
     }
     
     final newProgress = (achievement.progress + progress).clamp(0, achievement.target);

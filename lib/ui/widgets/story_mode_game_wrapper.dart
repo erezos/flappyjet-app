@@ -165,10 +165,8 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       if (widget.level.objective.type == ObjectiveType.surviveTime) {
         // ⏱️ FIX: Use getElapsedGameTime() to exclude ad pauses
         final elapsedGameTimeMs = _game.gameStateManager.getElapsedGameTime();
-        // Only log every second to avoid spam
-        if (DateTime.now().millisecond < 200) {
-          safePrint('🎯 TIMER TICK: elapsedGameTimeMs = $elapsedGameTimeMs');
-        }
+        // 🛑 PERFORMANCE: Timer tick logging removed to reduce log spam
+        // Only the TIME UPDATE logs (every second) remain for debugging
         _objectiveTracker.updateTimeProgress(elapsedGameTimeMs);
       } else if (widget.level.objective.type == ObjectiveType.beatBot) {
         // Update bot battle scores from game
@@ -321,6 +319,7 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       'time_survived_seconds': _game.gameStateManager.getElapsedGameTime() ~/ 1000,
       'hearts_remaining': LivesManager().currentLives,
       'continues_used': _game.gameStateManager.continuesUsedThisRun,
+      'is_first_attempt': _wasFirstAttempt, // ✅ NEW: Track if this was user's first attempt
     });
     
     Navigator.of(context).push(

@@ -28,6 +28,24 @@ class ObstacleManager {
   // 🎁 BONUS SYSTEM: Callback when obstacle spawns (for bonus spawning)
   void Function(double gapCenterY, double obstacleX, double gapSize, double speed)? onObstacleSpawned;
 
+  // 🛑 PERFORMANCE FIX: Pause flag to stop spawning during victory animation
+  bool _isPaused = false;
+  
+  /// Pause obstacle spawning (e.g., during victory animation)
+  void pause() {
+    _isPaused = true;
+    safePrint('🛑 ObstacleManager: Spawning PAUSED');
+  }
+  
+  /// Resume obstacle spawning
+  void resume() {
+    _isPaused = false;
+    safePrint('▶️ ObstacleManager: Spawning RESUMED');
+  }
+  
+  /// Check if spawning is paused
+  bool get isPaused => _isPaused;
+
   /// Get current obstacles list
   List<DynamicObstacle> get obstacles => List.unmodifiable(_obstacles);
 
@@ -36,6 +54,23 @@ class ObstacleManager {
 
   /// Update obstacle manager
   void update(double dt, int score, Size gameSize, GameTheme currentTheme) {
+    // 🛑 PERFORMANCE FIX: Skip spawning if paused (but still update existing obstacles)
+    if (_isPaused) {
+      // Update existing obstacles (they still need to move)
+      for (final obstacle in _obstacles) {
+        obstacle.update(dt);
+      }
+      // Remove off-screen obstacles
+      _obstacles.removeWhere((obstacle) {
+        if (obstacle.position.x < -100) {
+          obstacle.removeFromParent();
+          return true;
+        }
+        return false;
+      });
+      return;
+    }
+    
     // Spawn obstacles based on difficulty
     _timeSinceLastObstacle += dt;
     
@@ -232,6 +267,7 @@ class ObstacleManager {
     _obstacles.clear();
     _timeSinceLastObstacle = 0.0;
     _previousGapCenterY = null; // 🎯 Reset path tracking
+    _isPaused = false; // 🛑 Reset pause state
     safePrint('🗑️ All obstacles cleared');
   }
 

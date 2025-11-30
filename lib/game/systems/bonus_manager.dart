@@ -14,6 +14,7 @@ import '../components/bonuses/gem_bonus.dart';
 /// - Configurable bonus types and probabilities
 /// - Tracks bonus collection for level completion
 /// - Performance-optimized (max active bonuses limit)
+/// - Time-based level detection (forces inside-gap spawning)
 class BonusManager {
   /// Current bonus configuration
   BonusConfig _config = BonusConfig.disabled;
@@ -33,6 +34,11 @@ class BonusManager {
   int _bonusesSpawnedThisLevel = 0;
   int _bonusesCollectedThisLevel = 0;
   
+  /// 🎯 Track collected rewards for analytics
+  int _totalShieldsCollected = 0;
+  int _totalCoinsCollected = 0;
+  int _totalGemsCollected = 0;
+  
   /// Game dimensions (set during initialization)
   double _screenWidth = 400;
   double _screenHeight = 800;
@@ -43,35 +49,65 @@ class BonusManager {
   /// Reference to the game world for adding bonuses
   Component? _gameWorld;
   
+  /// 🎯 Force inside-gap spawning (for time-based levels)
+  bool _forceInsideGapOnly = false;
+  
+  // 🛑 PERFORMANCE FIX: Pause flag to stop spawning during victory animation
+  bool _isPaused = false;
+  
   /// Callback when a bonus is collected
   void Function(BonusType type, Map<String, dynamic> rewardData)? onBonusCollected;
+  
+  /// Pause bonus spawning (e.g., during victory animation)
+  void pause() {
+    _isPaused = true;
+    safePrint('🛑 BonusManager: Spawning PAUSED');
+  }
+  
+  /// Resume bonus spawning
+  void resume() {
+    _isPaused = false;
+    safePrint('▶️ BonusManager: Spawning RESUMED');
+  }
+  
+  /// Check if spawning is paused
+  bool get isPaused => _isPaused;
   
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
   
   /// Initialize the bonus manager with configuration
+  /// [forceInsideGapOnly] - For time-based levels, force all bonuses to spawn inside gaps
   void initialize({
     required BonusConfig config,
     required double screenWidth,
     required double screenHeight,
     required Component gameWorld,
+    bool forceInsideGapOnly = false,
   }) {
     _config = config;
     _screenWidth = screenWidth;
     _screenHeight = screenHeight;
     _gameWorld = gameWorld;
+    _forceInsideGapOnly = forceInsideGapOnly;
     
     // Reset tracking state
     _obstaclesPassed = 0;
     _obstaclesSinceLastBonus = 0;
     _bonusesSpawnedThisLevel = 0;
     _bonusesCollectedThisLevel = 0;
+    _totalShieldsCollected = 0;
+    _totalCoinsCollected = 0;
+    _totalGemsCollected = 0;
     _activeBonuses.clear();
     
     safePrint('🎁 BonusManager initialized: ${config.enabled ? "ENABLED" : "DISABLED"}');
     if (config.enabled) {
       safePrint('🎁 Config: chance=${config.spawnChance}, min=${config.minPerLevel}, max=${config.maxPerLevel}');
+      if (_forceInsideGapOnly) {
+        safePrint('🎁 ⚠️ Time-based level: FORCING inside-gap-only spawning');
+      }
     }
   }
   
@@ -93,6 +129,8 @@ class BonusManager {
     required double obstacleX,
     required double gapSize,
   }) {
+    // 🛑 PERFORMANCE FIX: Skip spawning if paused
+    if (_isPaused) return;
     if (!_config.enabled) return;
     
     _obstaclesPassed++;
@@ -111,7 +149,10 @@ class BonusManager {
     }
     
     // Determine spawn location
-    final spawnLocation = _config.spawnLocations.selectLocation(_random.nextDouble());
+    // 🎯 For time-based levels, ALWAYS spawn inside the gap (only way to collect)
+    final spawnLocation = _forceInsideGapOnly 
+        ? BonusSpawnLocation.insideGap 
+        : _config.spawnLocations.selectLocation(_random.nextDouble());
     final spawnPosition = _calculateSpawnPosition(
       spawnLocation: spawnLocation,
       obstacleGapCenter: obstacleGapCenter,
@@ -317,6 +358,19 @@ class BonusManager {
     _bonusesCollectedThisLevel++;
     _activeBonuses.remove(bonus);
     
+    // 🎯 Track rewards for analytics
+    switch (bonus.bonusType) {
+      case BonusType.shield:
+        _totalShieldsCollected++;
+        break;
+      case BonusType.coins:
+        _totalCoinsCollected += (rewardData['amount'] as int?) ?? 0;
+        break;
+      case BonusType.gems:
+        _totalGemsCollected += (rewardData['amount'] as int?) ?? 0;
+        break;
+    }
+    
     onBonusCollected?.call(bonus.bonusType, rewardData);
     
     safePrint('🎁 Bonus collected: ${bonus.bonusType.name}, total: $_bonusesCollectedThisLevel');
@@ -348,6 +402,7 @@ class BonusManager {
     _obstaclesSinceLastBonus = 0;
     _bonusesSpawnedThisLevel = 0;
     _bonusesCollectedThisLevel = 0;
+    _isPaused = false; // 🛑 Reset pause state
   }
   
   /// Get statistics for analytics
@@ -355,6 +410,10 @@ class BonusManager {
     'bonusesSpawned': _bonusesSpawnedThisLevel,
     'bonusesCollected': _bonusesCollectedThisLevel,
     'activeBonuses': _activeBonuses.length,
+    // 🎯 Detailed reward tracking
+    'shieldsCollected': _totalShieldsCollected,
+    'coinsCollected': _totalCoinsCollected,
+    'gemsCollected': _totalGemsCollected,
   };
   
   // ============================================================================
@@ -365,5 +424,11 @@ class BonusManager {
   int get bonusesSpawnedThisLevel => _bonusesSpawnedThisLevel;
   int get bonusesCollectedThisLevel => _bonusesCollectedThisLevel;
   List<CollectibleBonus> get activeBonuses => List.unmodifiable(_activeBonuses);
+  
+  /// 🎯 Detailed reward tracking for analytics
+  int get totalShieldsCollected => _totalShieldsCollected;
+  int get totalCoinsCollected => _totalCoinsCollected;
+  int get totalGemsCollected => _totalGemsCollected;
+  bool get forceInsideGapOnly => _forceInsideGapOnly;
 }
 

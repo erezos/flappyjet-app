@@ -141,7 +141,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       );
     });
     
-    safePrint('📍 Calculated ${_nodePath.length} node positions for zone ${_levelSystemManager.currentZone}');
+    // 🛑 PERFORMANCE: Node position log removed - called multiple times during layout
   }
   
   /// ✅ NEW: Animate jet from completed level to next level (or from center)

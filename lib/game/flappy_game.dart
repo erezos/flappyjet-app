@@ -440,11 +440,19 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     final bonusConfig = (isStoryMode && storyModeLevel != null) 
         ? storyModeLevel!.bonuses 
         : BonusConfig.disabled;
+    
+    // 🎯 For time-based levels (surviveTime), force bonuses to spawn inside gaps only
+    // because the jet follows a narrow path and can't reach bonuses elsewhere
+    final isTimeBased = isStoryMode && 
+        storyModeLevel != null && 
+        storyModeLevel!.objective.type == ObjectiveType.surviveTime;
+    
     _bonusManager.initialize(
       config: bonusConfig,
       screenWidth: gameWidth,
       screenHeight: gameHeight,
       gameWorld: _world,
+      forceInsideGapOnly: isTimeBased, // ✅ Force inside-gap for time-based levels
     );
     
     // 🎁 Connect ObstacleManager to BonusManager for spawn timing
@@ -457,7 +465,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       );
     };
     
-    safePrint('🎁 BonusManager initialized: ${bonusConfig.enabled ? "ENABLED" : "DISABLED"}');
+    safePrint('🎁 BonusManager initialized: ${bonusConfig.enabled ? "ENABLED" : "DISABLED"}${isTimeBased ? " (time-based: inside-gap only)" : ""}');
     
     // ✅ Step 6: Setup legacy references (for gradual migration in Task 1.4)
     // Point to World's components so existing code still works
@@ -1443,6 +1451,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   // 🎁 PUBLIC GETTER for bonus manager
   BonusManager get bonusManager => _bonusManager;
   
+  // 🛑 PUBLIC GETTER for obstacle manager (for VictoryController pause)
+  ObstacleManager get obstacleManager => _obstacleManager;
+  
   // ============================================================================
   // 🎁 BONUS SYSTEM METHODS
   // ============================================================================
@@ -1472,12 +1483,28 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Create celebration particles
     _celebrationSystem.createCelebrationBurst(_jet.position, _gameStateManager.score);
     
-    // Track analytics
+    // Track analytics (Firebase)
     _analytics.trackEvent('bonus_collected', {
       'bonus_type': type.name,
       ...rewardData,
       'level_id': storyModeLevel?.id,
       'score': _gameStateManager.score,
+    });
+    
+    // 🎯 Track in Railway backend for dashboard analytics
+    EventBus().fire('bonus_collected', {
+      'bonus_type': type.name,
+      'level_id': storyModeLevel?.id,
+      'zone_id': storyModeLevel?.zone,
+      'score_at_collection': _gameStateManager.score,
+      // Bonus-specific data
+      if (type == BonusType.shield) ...{
+        'shield_tier': rewardData['tier'],
+        'shield_duration': rewardData['duration'],
+      },
+      if (type == BonusType.coins || type == BonusType.gems) ...{
+        'amount': rewardData['amount'],
+      },
     });
   }
   

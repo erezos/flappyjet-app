@@ -47,6 +47,13 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   double? _initialJetY;
   double? _initialJetVelocityY;
   
+  // 🛑 PERFORMANCE FIX: Proper throttling for turbo trail particles
+  double _lastTrailTime = 0;
+  static const double _trailInterval = 0.15; // Spawn trail every 150ms
+  
+  // 🛑 PERFORMANCE FIX: One-time exit log
+  bool _hasLoggedScreenExit = false;
+  
   // Callbacks for UI integration
   VoidCallback? onVictoryComplete;
   VoidCallback? onBannerShow;
@@ -128,7 +135,10 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   
   void _stopObstacleSpawning() {
     try {
-      safePrint('🛑 VictoryController: Obstacle spawning should be stopped');
+      // 🛑 PERFORMANCE FIX: Actually pause obstacle and bonus spawning
+      game.obstacleManager.pause();
+      game.bonusManager.pause();
+      safePrint('🛑 VictoryController: Obstacle & bonus spawning PAUSED');
     } catch (e) {
       safePrint('⚠️ VictoryController: Failed to stop obstacles: $e');
     }
@@ -187,7 +197,7 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
   /// 0.0s: Particle burst celebrates victory
   /// 0.0s-0.4s: TRANSITION PHASE - smooth blend from current momentum
   /// 0.4s-2.0s: FULL TURBO PHASE - locked level flight, accelerating exit
-  /// 0.3s+: Continuous particle trail behind jet
+  /// 0.3s+: Continuous particle trail behind jet (throttled)
   void _updateTurboExit(double dt) {
     final t = _animationTimer;
     
@@ -199,9 +209,11 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
       onBannerShow?.call();
     }
     
-    // Continuous turbo particle trail (after transition phase)
-    if (t >= 0.3 && (t * 10).floor() % 2 == 0) {
+    // 🛑 PERFORMANCE FIX: Properly throttled turbo particle trail
+    // Only create trail after transition phase AND with proper time interval
+    if (t >= 0.3 && (t - _lastTrailTime) >= _trailInterval) {
       _createTurboTrail();
+      _lastTrailTime = t;
     }
   }
   
@@ -233,8 +245,9 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
         _updateTurboPhase(jet, dt, t);
       }
       
-      // Log when jet exits screen
-      if (jet.position.x > game.size.x + 100) {
+      // 🛑 PERFORMANCE FIX: Log only once when jet exits screen
+      if (!_hasLoggedScreenExit && jet.position.x > game.size.x + 100) {
+        _hasLoggedScreenExit = true;
         safePrint('🚀 VictoryController: Jet has exited screen!');
       }
     } catch (e) {
@@ -278,10 +291,7 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     jet.velocity.y = currentVelocityY;
     jet.velocity.x = 0.0; // We control horizontal movement directly
     
-    // Debug log for transition progress (reduced logging)
-    if ((t * 10).floor() % 8 == 0) { // Log less frequently
-      safePrint('🔄 Transition: ${(transitionProgress * 100).toInt()}% - Y: ${jet.position.y.toStringAsFixed(1)}');
-    }
+    // 🛑 PERFORMANCE: Transition progress logging removed - was causing log spam
   }
   
   /// ✅ Existing: Full turbo phase - locked level flight
@@ -345,6 +355,8 @@ class VictoryController extends Component with HasGameReference<FlappyGame> {
     _turboStartY = null;
     _initialJetY = null;
     _initialJetVelocityY = null;
+    _lastTrailTime = 0; // 🛑 Reset trail throttle
+    _hasLoggedScreenExit = false; // 🛑 Reset exit log flag
     
     safePrint('🔄 VictoryController: Reset');
   }

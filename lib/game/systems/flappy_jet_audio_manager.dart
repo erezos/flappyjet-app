@@ -150,6 +150,15 @@ class FlappyJetAudioManager {
       volume: 1.0,
       preload: true,
     ));
+    
+    // Bonus collection sound
+    await _nativeAudio.registerTrack(AudioTrack(
+      id: 'bonus_collect',
+      assetPath: 'assets/audio/bonus_collect.wav',
+      type: AudioTrackType.sfx,
+      volume: 0.8,
+      preload: true,
+    ));
   }
 
   /// Play jump sound effect
@@ -215,6 +224,18 @@ class FlappyJetAudioManager {
       await _nativeAudio.playSFX('theme_unlock', volume: 1.0);
     } catch (e) {
       safePrint('🎵 FlappyJetAudioManager: Theme unlock sound failed: $e');
+    }
+  }
+
+  /// Play bonus collection sound effect
+  Future<void> playBonusCollect() async {
+    if (!_isInitialized || !_settings.shouldPlaySound()) return;
+    
+    try {
+      await _nativeAudio.playSFX('bonus_collect', volume: 0.8);
+      safePrint('🎵 🔊 SFX played: bonus_collect');
+    } catch (e) {
+      safePrint('🎵 FlappyJetAudioManager: Bonus collect sound failed: $e');
     }
   }
 

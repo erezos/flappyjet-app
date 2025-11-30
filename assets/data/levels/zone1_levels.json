@@ -29,7 +29,7 @@
         "enabled": true,
         "minPerLevel": 1,
         "maxPerLevel": 2,
-        "spawnChance": 0.50,
+        "spawnChance": 0.90,
         "minObstaclesBeforeFirstBonus": 0,
         "minObstaclesBetweenBonuses": 2,
         "spawnLocations": {
@@ -41,9 +41,9 @@
         "shield": {
           "chance": 1.0,
           "shieldTierWeights": {
-            "blue": 0.50,
-            "red": 0.35,
-            "green": 0.15
+            "blue": 0.10,
+            "red": 0.45,
+            "green": 0.45
           }
         }
       },
@@ -77,9 +77,9 @@
         "enabled": true,
         "minPerLevel": 1,
         "maxPerLevel": 2,
-        "spawnChance": 0.50,
-        "minObstaclesBeforeFirstBonus": 0,
-        "minObstaclesBetweenBonuses": 2,
+        "spawnChance": 0.90,
+        "minObstaclesBeforeFirstBonus": 2,
+        "minObstaclesBetweenBonuses": 6,
         "spawnLocations": {
           "insideGapWeight": 0.85,
           "betweenObstaclesWeight": 0.12,
@@ -89,9 +89,9 @@
         "shield": {
           "chance": 1.0,
           "shieldTierWeights": {
-            "blue": 0.50,
-            "red": 0.35,
-            "green": 0.15
+            "blue": 0.10,
+            "red": 0.45,
+            "green": 0.45
           }
         }
       },
@@ -124,9 +124,9 @@
         "enabled": true,
         "minPerLevel": 1,
         "maxPerLevel": 2,
-        "spawnChance": 0.35,
+        "spawnChance": 0.85,
         "minObstaclesBeforeFirstBonus": 1,
-        "minObstaclesBetweenBonuses": 2,
+        "minObstaclesBetweenBonuses": 3,
         "spawnLocations": {
           "insideGapWeight": 0.8,
           "betweenObstaclesWeight": 0.15,
@@ -177,9 +177,9 @@
         "enabled": true,
         "minPerLevel": 1,
         "maxPerLevel": 2,
-        "spawnChance": 0.30,
+        "spawnChance": 0.60,
         "minObstaclesBeforeFirstBonus": 2,
-        "minObstaclesBetweenBonuses": 3,
+        "minObstaclesBetweenBonuses": 6,
         "spawnLocations": {
           "insideGapWeight": 0.7,
           "betweenObstaclesWeight": 0.2,
@@ -187,7 +187,7 @@
           "lowerZoneWeight": 0.05
         },
         "shield": {
-          "chance": 0.70,
+          "chance": 0.00,
           "shieldTierWeights": {
             "blue": 0.55,
             "red": 0.30,
@@ -195,12 +195,12 @@
           }
         },
         "coins": {
-          "chance": 0.28,
+          "chance": 0.00,
           "minAmount": 4,
           "maxAmount": 7
         },
         "gems": {
-          "chance": 0.02,
+          "chance": 1.0,
           "minAmount": 1,
           "maxAmount": 1
         }
@@ -236,7 +236,7 @@
         "maxPerLevel": 3,
         "spawnChance": 0.35,
         "minObstaclesBeforeFirstBonus": 2,
-        "minObstaclesBetweenBonuses": 3,
+        "minObstaclesBetweenBonuses": 4,
         "spawnLocations": {
           "insideGapWeight": 0.75,
           "betweenObstaclesWeight": 0.2,
@@ -301,7 +301,7 @@
         "maxPerLevel": 2,
         "spawnChance": 0.28,
         "minObstaclesBeforeFirstBonus": 2,
-        "minObstaclesBetweenBonuses": 3,
+        "minObstaclesBetweenBonuses": 4,
         "spawnLocations": {
           "insideGapWeight": 0.7,
           "betweenObstaclesWeight": 0.2,
@@ -356,10 +356,10 @@
       "bonuses": {
         "enabled": true,
         "minPerLevel": 1,
-        "maxPerLevel": 2,
-        "spawnChance": 0.28,
+        "maxPerLevel": 8,
+        "spawnChance": 0.75,
         "minObstaclesBeforeFirstBonus": 2,
-        "minObstaclesBetweenBonuses": 3,
+        "minObstaclesBetweenBonuses": 1,
         "spawnLocations": {
           "insideGapWeight": 0.7,
           "betweenObstaclesWeight": 0.2,
@@ -367,7 +367,7 @@
           "lowerZoneWeight": 0.05
         },
         "shield": {
-          "chance": 0.70,
+          "chance": 0.10,
           "shieldTierWeights": {
             "blue": 0.55,
             "red": 0.30,
@@ -375,12 +375,12 @@
           }
         },
         "coins": {
-          "chance": 0.28,
-          "minAmount": 5,
-          "maxAmount": 9
+          "chance": 0.90,
+          "minAmount": 1,
+          "maxAmount": 5
         },
         "gems": {
-          "chance": 0.02,
+          "chance": 0.00,
           "minAmount": 1,
           "maxAmount": 1
         }

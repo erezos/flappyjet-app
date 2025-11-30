@@ -268,18 +268,19 @@ class HardwareParticleSystem extends Component {
       _activeParticles.add(particle);
     }
     
-    safePrint('🚀 Hardware-accelerated crash burst created at [$position]');
+    // 🛑 PERFORMANCE FIX: Removed verbose logging for crash burst
+    // (Crash is already logged elsewhere)
   }
 
   /// Create celebration burst for score milestones with vibrant effects
   void createCelebrationBurst(Vector2 position, int score) {
-    // ✅ USER REQUEST: Enhanced celebration - more beautiful, modern, and casual
+    // ✅ PERFORMANCE OPTIMIZED: Reduced particle counts for smoother gameplay
     final random = math.Random();
     
-    // Calculate particle count based on score milestones - Subtle and polished
-    final int baseCount = 8; // Fewer particles for cleaner look
-    final int bonus5 = (score % 5 == 0) ? 4 : 0; // Small bonus for every 5th
-    final int bonus10 = (score % 10 == 0) ? 8 : 0; // Larger burst for every 10th
+    // 🛑 PERFORMANCE FIX: Further reduced particle counts
+    final int baseCount = 5; // Reduced from 8 for better performance
+    final int bonus5 = (score % 5 == 0) ? 3 : 0; // Reduced from 4
+    final int bonus10 = (score % 10 == 0) ? 5 : 0; // Reduced from 8
     final int count = baseCount + bonus5 + bonus10;
     
     final bool isMilestone = score % 10 == 0;
@@ -287,7 +288,8 @@ class HardwareParticleSystem extends Component {
     
     // === RING WAVE EFFECT ===
     // Create an expanding ring of particles for modern, satisfying feedback
-    final ringParticleCount = isMilestone ? 10 : (isHalfMilestone ? 6 : 4);
+    // 🛑 PERFORMANCE FIX: Reduced ring particle counts
+    final ringParticleCount = isMilestone ? 6 : (isHalfMilestone ? 4 : 3);
     for (int i = 0; i < ringParticleCount; i++) {
       final particle = _pool.acquire();
       if (particle == null) continue;
@@ -361,33 +363,39 @@ class HardwareParticleSystem extends Component {
     }
     
     // === SECONDARY WAVE ===
-    // Delayed secondary burst for satisfying "thump" feeling
-    Future.delayed(const Duration(milliseconds: 120), () {
-      for (int i = 0; i < 4; i++) { // Fewer secondary particles (was 12)
-        final particle = _pool.acquire();
-        if (particle == null) continue;
-        
-        final angle = random.nextDouble() * 2 * math.pi;
-        final speed = 140 + random.nextDouble() * 120;
-        
-        particle.position = position.clone();
-        particle.velocity = Vector2(
-          math.cos(angle) * speed,
-          math.sin(angle) * speed - 60, // Upward bias for excitement
-        );
-        particle.lifetime = 0.8 + random.nextDouble() * 0.4;
-        particle.size = 6.0 + random.nextDouble() * 6.0; // Smaller (was 10-22)
-        particle.type = ParticleType.star; // Stars for secondary wave
-        particle.rotation = random.nextDouble() * 2 * math.pi;
-        particle.angularVelocity = (random.nextDouble() - 0.5) * 15.0;
-        particle.alpha = 0.75 + random.nextDouble() * 0.25;
-        particle.sizeGrowthPerSecond = -2.0;
-        
-        _activeParticles.add(particle);
-      }
-    });
+    // 🛑 PERFORMANCE FIX: Disabled secondary wave for regular scores
+    // Only create secondary wave for milestones (10, 20, 30...)
+    if (isMilestone) {
+      Future.delayed(const Duration(milliseconds: 120), () {
+        for (int i = 0; i < 3; i++) { // Reduced from 4
+          final particle = _pool.acquire();
+          if (particle == null) continue;
+          
+          final angle = random.nextDouble() * 2 * math.pi;
+          final speed = 140 + random.nextDouble() * 120;
+          
+          particle.position = position.clone();
+          particle.velocity = Vector2(
+            math.cos(angle) * speed,
+            math.sin(angle) * speed - 60, // Upward bias for excitement
+          );
+          particle.lifetime = 0.8 + random.nextDouble() * 0.4;
+          particle.size = 6.0 + random.nextDouble() * 6.0;
+          particle.type = ParticleType.star;
+          particle.rotation = random.nextDouble() * 2 * math.pi;
+          particle.angularVelocity = (random.nextDouble() - 0.5) * 15.0;
+          particle.alpha = 0.75 + random.nextDouble() * 0.25;
+          particle.sizeGrowthPerSecond = -2.0;
+          
+          _activeParticles.add(particle);
+        }
+      });
+    }
     
-    safePrint('🚀 Hardware-accelerated celebration burst created at [$position] for score $score');
+    // 🛑 PERFORMANCE FIX: Only log milestones to reduce log spam
+    if (isMilestone) {
+      safePrint('🚀 Celebration burst (milestone $score) - ${count + ringParticleCount} particles');
+    }
   }
 
   @override
