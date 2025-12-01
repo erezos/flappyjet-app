@@ -190,6 +190,63 @@ class MissionsManager extends ChangeNotifier {
   List<Mission> get dailyMissions => _dailyMissions;
   PlayerStats? get playerStats => _playerStats;
   bool get isInitialized => _isInitialized;
+  
+  // ============================================================================
+  // 🎯 CLAIMABLE REWARDS GETTERS - For notification badges and UI
+  // ============================================================================
+  
+  /// Get count of missions that are completed but not yet claimed
+  /// Used for notification badges on the missions banner
+  int get claimableMissionsCount {
+    return _dailyMissions.where((m) => m.completed && !m.claimed).length;
+  }
+  
+  /// Get total potential reward from claimable missions (coins)
+  /// Used to show "Claim X coins!" on the banner
+  int get claimableMissionsReward {
+    return _dailyMissions
+        .where((m) => m.completed && !m.claimed)
+        .fold(0, (sum, m) => sum + m.reward);
+  }
+  
+  /// Check if any rewards are ready to claim
+  /// Used for showing/hiding notification badges and glow effects
+  bool get hasClaimableRewards => claimableMissionsCount > 0;
+  
+  /// Get the time until daily missions reset (Duration)
+  /// Returns Duration.zero if reset time has passed
+  Duration get timeUntilReset {
+    if (_lastResetDate == null) return Duration.zero;
+    
+    // Reset happens 24 hours after last reset
+    final nextReset = _lastResetDate!.add(const Duration(hours: 24));
+    final now = DateTime.now();
+    
+    if (now.isAfter(nextReset)) return Duration.zero;
+    return nextReset.difference(now);
+  }
+  
+  /// Get formatted time until reset (e.g., "5h 23m")
+  /// Returns "Reset now" if reset time has passed
+  String get timeUntilResetFormatted {
+    final duration = timeUntilReset;
+    if (duration == Duration.zero) return 'Reset now';
+    
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    }
+    return '${minutes}m';
+  }
+  
+  /// Get mission completion summary (e.g., "2/4 Complete")
+  String get completionSummary {
+    final completed = _dailyMissions.where((m) => m.completed).length;
+    final total = _dailyMissions.length;
+    return '$completed/$total';
+  }
 
   /// Initialize missions system
   Future<void> initialize() async {

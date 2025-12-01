@@ -19,7 +19,11 @@ import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
 import '../widgets/no_hearts_dialog.dart';
 import '../../game/systems/monetization_manager.dart';
+import '../../game/systems/missions_manager.dart';
+import '../../game/systems/achievements_manager.dart';
 import '../../integrations/ftue_integration.dart';
+import '../widgets/floating_missions_banner.dart';
+import 'daily_missions_screen.dart';
 
 class WorldMapScreen extends StatefulWidget {
   /// ✅ NEW: Parameters for jet animation flow
@@ -511,7 +515,72 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
             ),
           ),
         ),
+        
+        // 🎯 Floating Missions Banner (top-left corner, below safe area)
+        // Uses SafeArea-aware positioning for consistent appearance across devices
+        Positioned(
+          left: 16,
+          top: MediaQuery.of(context).padding.top + 80, // Below zone selector header
+          child: FloatingMissionsBanner(
+            onTap: _showMissionsPopup,
+            size: 85, // Larger for better visibility
+          ),
+        ),
       ],
+    );
+  }
+  
+  /// Show missions popup when banner is tapped
+  void _showMissionsPopup() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1A237E),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Stack(
+            children: [
+              // Main content
+              DailyMissionsScreen(
+                missionsManager: MissionsManager(),
+                achievementsManager: AchievementsManager(),
+              ),
+              // X close button (top-right)
+              Positioned(
+                right: 12,
+                top: 12,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

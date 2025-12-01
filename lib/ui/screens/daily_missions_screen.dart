@@ -363,30 +363,6 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
           ),
 
           const Spacer(),
-
-          // Refresh button
-          _buildPremiumButton(
-            onTap: _refreshData,
-            child: _isRefreshing
-                ? SizedBox(
-                    width: isTablet ? 20 : 16,
-                    height: isTablet ? 20 : 16,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Icon(
-                    Icons.refresh,
-                    color: Colors.white,
-                    size: isTablet ? 28 : 24,
-                  ),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFff9800), Color(0xFFe65100)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
         ],
       ),
     );
@@ -865,33 +841,7 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     }
   }
 
-  Widget _buildPremiumButton({
-    required VoidCallback onTap,
-    required Widget child,
-    required Gradient gradient,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(child: child),
-      ),
-    );
-  }
-
-  // Removed unused _refreshMissions method
+  // Removed unused _buildPremiumButton and _refreshMissions methods
 }
 
 class PremiumMissionCard extends StatelessWidget {

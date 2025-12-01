@@ -162,6 +162,45 @@ class AchievementsManager extends ChangeNotifier {
       ? totalUnlocked / totalAchievements 
       : 0.0;
 
+  // ============================================================================
+  // 🏅 CLAIMABLE REWARDS GETTERS - For notification badges and UI
+  // ============================================================================
+  
+  /// Get count of achievements that are unlocked but not yet claimed
+  /// Used for notification badges on the missions/achievements banner
+  int get claimableAchievementsCount {
+    return _achievements.values.where((a) => a.unlocked && !a.claimed).length;
+  }
+  
+  /// Get total potential coin reward from claimable achievements
+  /// Used to show total claimable coins on UI
+  int get claimableAchievementsCoinReward {
+    return _achievements.values
+        .where((a) => a.unlocked && !a.claimed)
+        .fold(0, (sum, a) => sum + a.coinReward);
+  }
+  
+  /// Get total potential gem reward from claimable achievements
+  /// Used to show total claimable gems on UI
+  int get claimableAchievementsGemReward {
+    return _achievements.values
+        .where((a) => a.unlocked && !a.claimed)
+        .fold(0, (sum, a) => sum + a.gemReward);
+  }
+  
+  /// Check if any achievements are ready to claim
+  /// Used for showing/hiding notification badges and glow effects
+  bool get hasClaimableAchievements => claimableAchievementsCount > 0;
+  
+  /// Get list of claimable achievements (unlocked but not claimed)
+  /// Sorted by rarity (highest first) for UI display
+  List<Achievement> get claimableAchievements {
+    return _achievements.values
+        .where((a) => a.unlocked && !a.claimed)
+        .toList()
+      ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
+  }
+
   /// Initialize achievements system
   Future<void> initialize() async {
     if (_isInitialized) return;
