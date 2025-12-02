@@ -153,26 +153,33 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
         _claimingMissions.remove(missionId);
       });
       
-      // ✅ CRITICAL FIX: Double-check mounted right before showDialog
-      // This is the exact point where the error occurred
+      // ✅ CRITICAL FIX: Check mounted before showDialog
       if (!mounted) return;
       
       // Show beautiful reward claim popup
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => RewardClaimPopup(
-          title: 'Mission Complete!',
-          rewardName: mission.title,
-          description: mission.description,
-          coinReward: mission.reward,
-          gemReward: 0, // Missions don't give gems currently
-          themeColor: const Color(0xFF4caf50), // Green for missions
-          onClose: () {
-            // Nothing special to do on close
-          },
-        ),
-      );
+      // Wrapped in try-catch to handle race condition where user navigates away
+      // between the mounted check and the actual dialog display
+      try {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => RewardClaimPopup(
+            title: 'Mission Complete!',
+            rewardName: mission.title,
+            description: mission.description,
+            coinReward: mission.reward,
+            gemReward: 0, // Missions don't give gems currently
+            themeColor: const Color(0xFF4caf50), // Green for missions
+            onClose: () {
+              // Nothing special to do on close
+            },
+          ),
+        );
+      } catch (e) {
+        // Context became invalid during navigation - silently ignore
+        // The reward was already claimed successfully, just the popup couldn't show
+        debugPrint('⚠️ Reward popup dismissed due to navigation: $e');
+      }
     } else {
       setState(() {
         _claimingMissions.remove(missionId);
