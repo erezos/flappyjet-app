@@ -414,26 +414,39 @@ class MissionsManager extends ChangeNotifier {
     safePrint('🎯 Smart play target: ${_playerStats!.smartPlayTarget} (yesterday: ${_playerStats!.gamesPlayedYesterday}, avg: ${_playerStats!.averageDailyGames})');
 
     // 🆕 SMART MISSION GENERATION - Adapts to player behavior
+    // Track used mission types to prevent duplicates
+    final usedMissionTypes = <MissionType>{};
+    
     // Mission 1: Play games (now uses smart adaptation!)
     missions.add(_generateSmartPlayGamesMission(_playerStats!, MissionDifficulty.easy, now));
+    usedMissionTypes.add(MissionType.playGames);
     
     // Mission 2: Level-based mission (if player has story mode progress) or bonus collection
     if (_playerStats!.highestLevelCompleted > 0) {
       missions.add(_generateLevelMission(_playerStats!, MissionDifficulty.easy, now));
+      usedMissionTypes.add(MissionType.completeLevel);
     } else {
       missions.add(_generateBonusMission(_playerStats!, MissionDifficulty.easy, now));
+      usedMissionTypes.add(MissionType.collectBonuses);
     }
     
     // Mission 3: Streak mission (encourages consistency)
     missions.add(_generateStreakMission(_playerStats!, MissionDifficulty.medium, now));
+    usedMissionTypes.add(MissionType.maintainStreak);
     
     // Mission 4: Random from varied types for engagement
+    // 🐛 FIX: Exclude already-used mission types to prevent duplicates
     final fourthMissionTypes = [
       MissionType.useContinue, 
       MissionType.collectCoins, 
       MissionType.surviveTime,
       MissionType.collectBonuses,
-    ];
+    ].where((type) => !usedMissionTypes.contains(type)).toList();
+    
+    // Fallback if all types are used (shouldn't happen, but safety first)
+    if (fourthMissionTypes.isEmpty) {
+      fourthMissionTypes.add(MissionType.collectCoins);
+    }
     
     final randomType = fourthMissionTypes[random.nextInt(fourthMissionTypes.length)];
     final difficulty = _playerStats!.skillLevel.index >= 3 ? MissionDifficulty.hard : MissionDifficulty.medium;

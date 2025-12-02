@@ -318,6 +318,106 @@ void main() {
       }
     });
   });
+
+  group('Duplicate Mission Prevention', () {
+    test('Generated missions should have unique types', () async {
+      // Setup: Player with NO story mode progress (highestLevelCompleted = 0)
+      // This was the bug case: Mission 2 = collectBonuses, Mission 4 could also = collectBonuses
+      SharedPreferences.setMockInitialValues({
+        'stats_best_score': 10,
+        'stats_best_streak': 3,
+        'stats_total_games': 20,
+        'stats_total_continues': 5,
+        'stats_avg_score': 8,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 5,
+        'stats_avg_daily_games': 4,
+        'stats_highest_level_completed': 0, // KEY: No story progress!
+        'stats_total_levels_completed': 0,
+        'stats_total_bonuses_collected': 10,
+      });
+
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final missions = manager.dailyMissions;
+
+      // Extract mission types
+      final missionTypes = missions.map((m) => m.type).toList();
+      final uniqueTypes = missionTypes.toSet();
+
+      // Verify all missions have unique types (no duplicates)
+      expect(
+        uniqueTypes.length, 
+        equals(missionTypes.length),
+        reason: 'Each mission should have a unique type. Found: $missionTypes',
+      );
+    });
+
+    test('Generated missions should have unique types for story mode players', () async {
+      // Setup: Player with story mode progress
+      SharedPreferences.setMockInitialValues({
+        'stats_best_score': 25,
+        'stats_best_streak': 8,
+        'stats_total_games': 50,
+        'stats_total_continues': 10,
+        'stats_avg_score': 15,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 6,
+        'stats_avg_daily_games': 5,
+        'stats_highest_level_completed': 10, // Has story progress
+        'stats_total_levels_completed': 10,
+        'stats_total_bonuses_collected': 30,
+      });
+
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final missions = manager.dailyMissions;
+
+      // Extract mission types
+      final missionTypes = missions.map((m) => m.type).toList();
+      final uniqueTypes = missionTypes.toSet();
+
+      // Verify all missions have unique types (no duplicates)
+      expect(
+        uniqueTypes.length, 
+        equals(missionTypes.length),
+        reason: 'Each mission should have a unique type. Found: $missionTypes',
+      );
+    });
+
+    test('collectBonuses should not appear twice', () async {
+      // Run multiple times to catch randomness edge cases
+      for (int i = 0; i < 10; i++) {
+        SharedPreferences.setMockInitialValues({
+          'stats_best_score': 10,
+          'stats_best_streak': 3,
+          'stats_total_games': 20,
+          'stats_total_continues': 5,
+          'stats_avg_score': 8,
+          'stats_games_today': 0,
+          'stats_games_yesterday': 5,
+          'stats_avg_daily_games': 4,
+          'stats_highest_level_completed': 0, // No story progress - bug trigger
+          'stats_total_levels_completed': 0,
+          'stats_total_bonuses_collected': 10,
+        });
+
+        final manager = MissionsManager();
+        await manager.initialize();
+
+        final missions = manager.dailyMissions;
+        final bonusMissions = missions.where((m) => m.type == MissionType.collectBonuses).toList();
+
+        expect(
+          bonusMissions.length, 
+          lessThanOrEqualTo(1),
+          reason: 'Should have at most 1 collectBonuses mission (iteration $i). Found: ${bonusMissions.length}',
+        );
+      }
+    });
+  });
 }
 
 
