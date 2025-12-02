@@ -125,6 +125,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   // 🎁 Bonus system for in-game collectibles
   late BonusManager _bonusManager;
   
+  // 🛡️ Shield stacking system - tracks remaining shield duration
+  double _shieldRemainingTime = 0.0;
+  String _currentShieldTier = 'none';
+  
   // 💨 Pre-loaded smoke/fire sprites for on-demand particle creation (performance optimization)
   late List<Sprite> _smokeSprites;
   late List<Sprite> _fireSprites;
@@ -593,6 +597,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     }
 
     if (_gameStateManager.isGameOver) return;
+
+    // 🛡️ Update shield timer (handles stacked shield durations)
+    _updateShieldTimer(dt);
 
     // Update obstacle manager
     _obstacleManager.update(dt, _gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
@@ -1261,6 +1268,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Reset game state
     _gameStateManager.resetGame();
+    
+    // 🛡️ Reset shield stacking state
+    _shieldRemainingTime = 0.0;
+    _currentShieldTier = 'none';
 
     // Create fresh jet
     String equippedId2 = InventoryManager().equippedSkinId;
@@ -1506,28 +1517,65 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
         'amount': rewardData['amount'],
       },
     });
+    
+    // 🎯 Update mission progress for collectBonuses mission type
+    _missionsManager.updatePlayerStats(bonusesCollected: 1);
   }
   
-  /// Apply shield bonus - activate invulnerability
+  /// Apply shield bonus - activate invulnerability with STACKING support
+  /// 
+  /// 🛡️ SHIELD STACKING: If user already has a shield active, the new shield's
+  /// duration is ADDED to the remaining time, not replaced.
+  /// 
+  /// Example:
+  /// - User collects 3-second shield at T=0
+  /// - At T=2 (1 second remaining), user collects 2-second shield
+  /// - New remaining time = 1 + 2 = 3 seconds
+  /// - Shield expires at T=5 (not T=4!)
   void _applyShieldBonus(Map<String, dynamic> rewardData) {
     final duration = (rewardData['duration'] as double?) ?? 3.0;
     final tier = rewardData['tier'] as String? ?? 'bronze';
     
-    // Activate shield on jet
-    _jet.setInvulnerable(true);
-    _gameStateManager.setInvulnerable(true);
+    // 🛡️ STACKING: Add new duration to remaining time
+    final previousRemaining = _shieldRemainingTime;
+    _shieldRemainingTime += duration;
+    _currentShieldTier = tier;
     
-    // Schedule shield deactivation
-    Future.delayed(Duration(milliseconds: (duration * 1000).toInt()), () {
-      if (_gameStateManager.isInvulnerable && !_gameStateManager.isGameOver) {
+    // Activate shield on jet (if not already active)
+    if (!_gameStateManager.isInvulnerable) {
+      _jet.setInvulnerable(true);
+      _gameStateManager.setInvulnerable(true);
+      safePrint('🛡️ Shield activated! Tier: $tier, Duration: ${duration}s');
+    } else {
+      safePrint('🛡️ Shield STACKED! +${duration}s added to ${previousRemaining.toStringAsFixed(1)}s remaining = ${_shieldRemainingTime.toStringAsFixed(1)}s total');
+    }
+  }
+  
+  /// Update shield timer - called from game update loop
+  /// Handles shield expiration using game time (not Future.delayed)
+  void _updateShieldTimer(double dt) {
+    if (_shieldRemainingTime <= 0) return;
+    
+    _shieldRemainingTime -= dt;
+    
+    if (_shieldRemainingTime <= 0) {
+      _shieldRemainingTime = 0;
+      
+      // Only deactivate if game is still running
+      if (!_gameStateManager.isGameOver) {
         _jet.setInvulnerable(false);
         _gameStateManager.setInvulnerable(false);
-        safePrint('🛡️ Shield bonus expired (tier: $tier, duration: ${duration}s)');
+        safePrint('🛡️ Shield expired! (tier: $_currentShieldTier)');
+        _currentShieldTier = 'none';
       }
-    });
-    
-    safePrint('🛡️ Shield bonus activated! Tier: $tier, Duration: ${duration}s');
+    }
   }
+  
+  /// Get remaining shield time (for HUD display or testing)
+  double get shieldRemainingTime => _shieldRemainingTime;
+  
+  /// Check if shield is active (for testing)
+  bool get isShieldActive => _shieldRemainingTime > 0;
   
   /// Apply coin bonus - add coins to inventory
   void _applyCoinBonus(Map<String, dynamic> rewardData) {

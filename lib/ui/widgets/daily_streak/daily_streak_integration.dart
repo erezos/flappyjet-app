@@ -19,6 +19,9 @@ class DailyStreakIntegration {
   }
   
   /// Show daily streak popup
+  /// 
+  /// ⚠️ FIX: Rate us popup now uses PARENT context (not dialog context)
+  /// to avoid "context not mounted" issues after dialog closes.
   static Future<void> showDailyStreakPopup(BuildContext context, {
     VoidCallback? onComplete,
   }) async {
@@ -27,6 +30,9 @@ class DailyStreakIntegration {
       return;
     }
     
+    // Store streak day BEFORE showing popup (in case it changes)
+    final streakDayForRating = _streakManager.currentStreak;
+    
     // Track popup view
     FirebaseAnalyticsManager().trackEvent('daily_streak_popup_shown', {
       'streak_day': _streakManager.currentStreak,
@@ -34,26 +40,22 @@ class DailyStreakIntegration {
       'reward_type': _streakManager.todayReward.type.name,
     });
     
+    // Track if user claimed (to show rate us after)
+    bool userClaimed = false;
+    
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => DailyStreakPopupStable(
         streakManager: _streakManager,
-        onClaim: () async {
+        onClaim: () {
           // The popup already handled the claim - just close and track
           _trackClaimSuccess();
+          userClaimed = true;
           
           // Close the dialog
           if (dialogContext.mounted && Navigator.canPop(dialogContext)) {
             Navigator.of(dialogContext).pop();
-          }
-          
-          // Check for rate us after successful daily streak claim
-          if (dialogContext.mounted) {
-            await RateUsIntegration.showAfterDailyStreak(
-              dialogContext,
-              streakDay: _streakManager.currentStreak,
-            );
           }
         },
         onClose: () {
@@ -65,6 +67,15 @@ class DailyStreakIntegration {
         },
       ),
     );
+    
+    // ⚠️ FIX: Show rate us popup AFTER dialog closes, using PARENT context
+    // This avoids the "context not mounted" bug from using dialogContext
+    if (userClaimed && context.mounted) {
+      await RateUsIntegration.showAfterDailyStreak(
+        context, // Use PARENT context, not dialogContext!
+        streakDay: streakDayForRating,
+      );
+    }
     
     onComplete?.call();
   }

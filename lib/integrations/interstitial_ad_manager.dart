@@ -41,6 +41,12 @@ class InterstitialAdManager {
   
   /// Extended cooldown after user watches a rewarded video
   static const Duration _rewardedVideoCooldown = Duration(minutes: 3);
+  
+  /// Cooldown after loss streak ad (gives user a break)
+  static const Duration _lossStreakAdCooldown = Duration(minutes: 3);
+  
+  /// Number of consecutive losses to trigger an ad
+  static const int _lossStreakThreshold = 3;
 
   // ============================================================================
   // STATE
@@ -49,6 +55,12 @@ class InterstitialAdManager {
   InterstitialAd? _interstitialAd;
   bool _isAdLoading = false;
   bool _isAdReady = false;
+  
+  /// Track consecutive losses for loss streak ad trigger
+  int _consecutiveLosses = 0;
+  
+  /// Flag to indicate loss streak ad should be shown before next game
+  bool _lossStreakAdPending = false;
   
   /// Store callback to call when ad is ACTUALLY dismissed
   VoidCallback? _pendingOnAdClosed;
@@ -61,6 +73,10 @@ class InterstitialAdManager {
   
   /// Track if user clicked the ad (positive engagement)
   bool _currentAdWasClicked = false;
+  
+  /// 📊 ANALYTICS: Track WHY the ad was triggered (for backend differentiation)
+  /// Values: 'win_milestone', 'loss_streak', 'unknown'
+  String _currentAdTriggerReason = 'unknown';
   
   /// Total level wins in lifetime (across all sessions)
   int _totalLifetimeWins = 0;
@@ -170,11 +186,13 @@ class InterstitialAdManager {
         _currentAdWasClicked = false; // Reset click tracking
         
         // Track analytics to Firebase
+        // 📊 ANALYTICS: Include trigger_reason to differentiate win vs loss ads
         UnifiedAnalyticsManager().trackEvent('interstitial_shown', {
           'wins_this_session': _winsThisSession,
           'lifetime_wins': _totalLifetimeWins,
           'time_since_last_ad': timeSinceLastAd,
           'current_cooldown_minutes': _currentCooldown.inMinutes,
+          'trigger_reason': _currentAdTriggerReason, // 'win_milestone' or 'loss_streak'
         });
         
         // 📊 Send to Railway backend via EventBus
@@ -182,6 +200,7 @@ class InterstitialAdManager {
           'wins_this_session': _winsThisSession,
           'lifetime_wins': _totalLifetimeWins,
           'time_since_last_ad': timeSinceLastAd,
+          'trigger_reason': _currentAdTriggerReason, // 'win_milestone' or 'loss_streak'
         });
         
         // 💰 Ad revenue is now tracked via onPaidEvent callback (real AdMob data)
@@ -215,11 +234,13 @@ class InterstitialAdManager {
         }
         
         // Track analytics to Firebase
+        // 📊 ANALYTICS: Include trigger_reason to differentiate win vs loss ads
         UnifiedAnalyticsManager().trackEvent('interstitial_dismissed', {
           'wins_this_session': _winsThisSession,
           'view_duration_seconds': viewDurationSeconds,
           'is_early_dismissal': isEarlyDismissal,
           'was_clicked': _currentAdWasClicked,
+          'trigger_reason': _currentAdTriggerReason, // 'win_milestone' or 'loss_streak'
         });
         
         // 📊 Send to Railway backend via EventBus
@@ -228,9 +249,12 @@ class InterstitialAdManager {
           'view_duration_seconds': viewDurationSeconds,
           'is_early_dismissal': isEarlyDismissal,
           'was_clicked': _currentAdWasClicked,
+          'trigger_reason': _currentAdTriggerReason, // 'win_milestone' or 'loss_streak'
         });
         
-        _currentAdWasClicked = false; // Reset
+        // Reset tracking state
+        _currentAdWasClicked = false;
+        _currentAdTriggerReason = 'unknown'; // Reset for next ad
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         safePrint('❌ Interstitial ad failed to show: ${error.message}');
@@ -321,6 +345,10 @@ class InterstitialAdManager {
     _winsThisSession++;
     _totalLifetimeWins++;
     
+    // Reset loss streak on win
+    _consecutiveLosses = 0;
+    _lossStreakAdPending = false;
+    
     // Save state
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -330,6 +358,93 @@ class InterstitialAdManager {
     }
     
     safePrint('🏆 Level won! Session wins: $_winsThisSession, Lifetime wins: $_totalLifetimeWins');
+    safePrint('📺 Loss streak reset to 0');
+  }
+
+  /// Call this when player loses/fails a level
+  /// Returns true if loss streak ad is now pending
+  bool onLevelFailed() {
+    _consecutiveLosses++;
+    
+    safePrint('💔 Level failed! Consecutive losses: $_consecutiveLosses/$_lossStreakThreshold');
+    
+    // Check if loss streak threshold reached AND user has completed level 3+
+    if (_consecutiveLosses >= _lossStreakThreshold && _totalLifetimeWins >= _firstAdAfterLevels) {
+      _lossStreakAdPending = true;
+      safePrint('📺 Loss streak ad PENDING - will show before next game');
+      
+      UnifiedAnalyticsManager().trackEvent('loss_streak_ad_pending', {
+        'consecutive_losses': _consecutiveLosses,
+        'lifetime_wins': _totalLifetimeWins,
+      });
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  /// Check if a loss streak ad should be shown before starting next game
+  /// Call this from "Start Over" button or World Map "Play" button
+  bool shouldShowLossStreakAd() {
+    // Not pending
+    if (!_lossStreakAdPending) {
+      return false;
+    }
+    
+    // Ad not ready
+    if (!_isAdReady) {
+      safePrint('📺 Loss streak ad pending but ad not ready');
+      return false;
+    }
+    
+    // Check cooldown (same cooldown applies to all interstitials)
+    if (_lastAdShownTime != null) {
+      final timeSinceLastAd = DateTime.now().difference(_lastAdShownTime!);
+      if (timeSinceLastAd < _currentCooldown) {
+        final remainingSeconds = (_currentCooldown - timeSinceLastAd).inSeconds;
+        safePrint('📺 Loss streak ad pending but cooldown active (${remainingSeconds}s remaining)');
+        return false;
+      }
+    }
+    
+    safePrint('📺 Loss streak ad should show! ($_consecutiveLosses consecutive losses)');
+    return true;
+  }
+
+  /// Show loss streak ad and reset state
+  /// Returns true if ad was shown
+  Future<bool> showLossStreakAdIfNeeded({VoidCallback? onAdClosed}) async {
+    if (!shouldShowLossStreakAd()) {
+      return false;
+    }
+    
+    // Track analytics
+    UnifiedAnalyticsManager().trackEvent('loss_streak_ad_shown', {
+      'consecutive_losses': _consecutiveLosses,
+      'lifetime_wins': _totalLifetimeWins,
+    });
+    
+    EventBus().fire('loss_streak_ad_shown', {
+      'consecutive_losses': _consecutiveLosses,
+      'lifetime_wins': _totalLifetimeWins,
+    });
+    
+    // Reset loss streak state BEFORE showing ad
+    _lossStreakAdPending = false;
+    _consecutiveLosses = 0;
+    
+    // Set cooldown to loss streak cooldown (3 minutes)
+    _currentCooldown = _lossStreakAdCooldown;
+    
+    // 📊 ANALYTICS: Set trigger reason for backend differentiation
+    _currentAdTriggerReason = 'loss_streak';
+    
+    // Show the ad
+    await showAd(onAdClosed: onAdClosed);
+    
+    safePrint('📺 Loss streak ad shown, cooldown set to ${_currentCooldown.inMinutes} minutes');
+    return true;
   }
 
   /// Call this when user watches a rewarded video (for continue)
@@ -427,6 +542,8 @@ class InterstitialAdManager {
     final shouldShow = await shouldShowAd();
     
     if (shouldShow) {
+      // 📊 ANALYTICS: Set trigger reason for backend differentiation
+      _currentAdTriggerReason = 'win_milestone';
       await showAd(onAdClosed: onAdClosed);
       return true;
     }
@@ -473,11 +590,18 @@ class InterstitialAdManager {
       'cooldown_remaining_seconds': _lastAdShownTime != null
           ? (_currentCooldown.inSeconds - DateTime.now().difference(_lastAdShownTime!).inSeconds).clamp(0, 999)
           : 0,
+      // Loss streak state
+      'consecutive_losses': _consecutiveLosses,
+      'loss_streak_ad_pending': _lossStreakAdPending,
+      // 📊 Analytics differentiation
+      'current_ad_trigger_reason': _currentAdTriggerReason,
       'config': {
         'first_ad_after_levels': _firstAdAfterLevels,
         'ad_frequency_levels': _adFrequencyLevels,
         'default_cooldown_minutes': _defaultCooldown.inMinutes,
         'rewarded_video_cooldown_minutes': _rewardedVideoCooldown.inMinutes,
+        'loss_streak_threshold': _lossStreakThreshold,
+        'loss_streak_cooldown_minutes': _lossStreakAdCooldown.inMinutes,
       },
     };
   }
@@ -502,6 +626,8 @@ class InterstitialAdManager {
     _winsThisSession = 0;
     _currentCooldown = _defaultCooldown;
     _lastAdShownTime = null;
+    _consecutiveLosses = 0;
+    _lossStreakAdPending = false;
     
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -512,5 +638,24 @@ class InterstitialAdManager {
     }
     
     safePrint('🧪 InterstitialAdManager reset for testing');
+  }
+  
+  // ============================================================================
+  // GETTERS FOR TESTING
+  // ============================================================================
+  
+  /// Get consecutive losses count (for testing)
+  int get consecutiveLosses => _consecutiveLosses;
+  
+  /// Check if loss streak ad is pending (for testing)
+  bool get lossStreakAdPending => _lossStreakAdPending;
+  
+  /// Get loss streak threshold (for testing)
+  static int get lossStreakThreshold => _lossStreakThreshold;
+  
+  /// Set lifetime wins for testing
+  void setLifetimeWinsForTesting(int wins) {
+    _totalLifetimeWins = wins;
+    safePrint('🧪 Set lifetime wins to $wins for testing');
   }
 }

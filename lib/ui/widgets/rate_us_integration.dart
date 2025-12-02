@@ -1,12 +1,16 @@
 /// ⭐ Rate Us Integration Helper
-/// Manages when and how to show the rate us popup
-/// Tracks events to both Firebase and Railway backend
+/// 
+/// Manages when and how to show the rate us popup.
+/// Best practices for casual mobile games:
+/// - Check eligibility ONCE before showing popup
+/// - Never re-check when user taps "Rate"
+/// - Show after positive experiences only
+/// - Respect user's choice to decline
 library;
 
 import 'package:flutter/material.dart';
 import '../../game/systems/rate_us_manager.dart';
-import '../../game/systems/firebase_analytics_manager.dart';
-import '../../core/events/event_bus.dart';
+import '../../core/debug_logger.dart';
 import 'rate_us_popup.dart';
 
 class RateUsIntegration {
@@ -23,85 +27,83 @@ class RateUsIntegration {
   }
 
   /// Show rate us popup after a positive game experience
-  /// Call this after user achieves high score, completes achievements, etc.
+  /// 
+  /// Call this after:
+  /// - User claims an achievement
+  /// - User completes a difficult level
+  /// - User reaches a new high score
+  /// 
+  /// ⚠️ IMPORTANT: Pass the PARENT context, not dialog context!
   static Future<void> showAfterPositiveExperience(BuildContext context) async {
-    if (!shouldShowAfterPositiveExperience) return;
+    if (!shouldShowAfterPositiveExperience) {
+      safePrint('⭐ Rate us: Not eligible for positive experience trigger');
+      return;
+    }
 
-    // Track to Firebase
-    FirebaseAnalyticsManager().trackEvent('rate_us_trigger_positive_experience', {
-      'session_count': _rateUsManager.sessionCount,
-    });
-    
-    // Track to Railway
-    EventBus().fire('rate_us_trigger', {
-      'trigger_type': 'positive_experience',
-      'session_count': _rateUsManager.sessionCount,
-    });
-
-    await _showRateUsPopup(context);
+    await _showRateUsPopup(context, triggerType: 'positive_experience');
   }
 
   /// Show rate us popup after user claims daily streak
-  /// Call this after successful daily streak claim
-  static Future<void> showAfterDailyStreak(BuildContext context, {
+  /// 
+  /// ⚠️ IMPORTANT: Pass the PARENT context, not dialog context!
+  /// The daily streak dialog should pass down the parent context.
+  static Future<void> showAfterDailyStreak(
+    BuildContext context, {
     required int streakDay,
   }) async {
-    if (!shouldShowAfterPositiveExperience) return;
+    if (!_rateUsManager.shouldPromptAfterDailyStreak(streakDay)) {
+      safePrint('⭐ Rate us: Not eligible for daily streak trigger (day $streakDay)');
+      return;
+    }
 
-    // Only show after longer streaks (user is engaged)
-    if (streakDay < 3) return;
-
-    // Track to Firebase
-    FirebaseAnalyticsManager().trackEvent('rate_us_trigger_daily_streak', {
-      'session_count': _rateUsManager.sessionCount,
-      'streak_day': streakDay,
-    });
-    
-    // Track to Railway
-    EventBus().fire('rate_us_trigger', {
-      'trigger_type': 'daily_streak',
-      'session_count': _rateUsManager.sessionCount,
-      'streak_day': streakDay,
-    });
-
-    await _showRateUsPopup(context);
+    await _showRateUsPopup(context, triggerType: 'daily_streak', streakDay: streakDay);
   }
 
   /// Internal method to show the popup
-  static Future<void> _showRateUsPopup(BuildContext context) async {
-    if (!context.mounted) return;
+  static Future<void> _showRateUsPopup(
+    BuildContext context, {
+    required String triggerType,
+    int? streakDay,
+  }) async {
+    // Verify context is still valid
+    if (!context.mounted) {
+      safePrint('⭐ Rate us: Context not mounted, skipping');
+      return;
+    }
+
+    safePrint('⭐ Rate us: Showing popup (trigger: $triggerType)');
 
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => RateUsPopup(
+      builder: (dialogContext) => RateUsPopup(
         onRated: () {
-          // Tracking handled in popup
+          safePrint('⭐ Rate us: User tapped rate');
         },
         onDismissed: () {
-          // Tracking handled in popup
+          safePrint('⭐ Rate us: User dismissed');
         },
       ),
     );
   }
 
-  /// Open store listing directly (for manual rating)
+  /// Open store listing directly (for settings menu)
   static Future<void> openStoreListing() async {
     await _rateUsManager.openStoreListing();
   }
 
   /// Check if user has already rated
-  static bool get hasUserRated {
-    return _rateUsManager.hasRated;
-  }
+  static bool get hasUserRated => _rateUsManager.hasRated;
+
+  /// Check if user has declined
+  static bool get hasUserDeclined => _rateUsManager.hasDeclined;
 
   /// Get current session count
-  static int get sessionCount {
-    return _rateUsManager.sessionCount;
-  }
+  static int get sessionCount => _rateUsManager.sessionCount;
 
   /// Get days since first launch
-  static int get daysSinceFirstLaunch {
-    return _rateUsManager.daysSinceFirstLaunch;
-  }
+  static int get daysSinceFirstLaunch => _rateUsManager.daysSinceFirstLaunch;
+
+  /// Get debug state for troubleshooting
+  static Map<String, dynamic> get debugState => _rateUsManager.getDebugState();
 }

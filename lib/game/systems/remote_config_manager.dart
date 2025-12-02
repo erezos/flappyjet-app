@@ -48,12 +48,12 @@ class RemoteConfigManager extends ChangeNotifier {
   /// Load development defaults for testing
   Future<void> _loadDevelopmentDefaults() async {
     _cachedConfig = {
-      // Skin pricing (coins)
+      // Skin pricing (coins) - Doubled in v2.2.3 for enhanced missions economy
       'skin_prices': {
-        'common': 400,
-        'rare': 800,
-        'epic': 1600,
-        'legendary': 3200,
+        'common': 800,
+        'rare': 1600,
+        'epic': 3200,
+        'legendary': 6400,
       },
       
       // Ad rewards

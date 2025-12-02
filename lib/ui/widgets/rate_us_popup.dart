@@ -1,13 +1,18 @@
 /// ⭐ Rate Us Popup - Beautiful & Engaging Rating Prompt
-/// Responsive design with FlappyJet theme and engaging copy
-/// Migrated to use BasePopup for consistent animations
+/// 
+/// Responsive design with FlappyJet theme and engaging copy.
+/// Uses BasePopup for consistent animations.
+/// 
+/// Best practices for casual game rating prompts:
+/// - Show after positive experiences (not after failures)
+/// - Clear, friendly messaging
+/// - Easy to dismiss without penalty
+/// - "No Thanks" respected permanently
 library;
 
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../game/systems/rate_us_manager.dart';
-import '../../game/systems/firebase_analytics_manager.dart';
-import '../../core/events/event_bus.dart';
 import 'popups/base_popup.dart';
 import 'buttons/modern_game_button.dart';
 import 'buttons/button_styles.dart';
@@ -37,7 +42,7 @@ class _RateUsPopupState extends State<RateUsPopup>
   void initState() {
     super.initState();
     
-    // Only keep the star pulse animation (BasePopup handles entrance)
+    // Star pulse animation (BasePopup handles entrance)
     _starController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -51,20 +56,10 @@ class _RateUsPopupState extends State<RateUsPopup>
       curve: Curves.easeInOut,
     ));
 
-    // Start star animation
     _starController.repeat(reverse: true);
 
-    // Track popup shown - Firebase
-    FirebaseAnalyticsManager().trackEvent('rate_us_popup_shown', {
-      'session_count': _rateUsManager.sessionCount,
-      'days_since_install': _rateUsManager.daysSinceFirstLaunch,
-    });
-    
-    // Track popup shown - Railway
-    EventBus().fire('rate_us_popup_shown', {
-      'session_count': _rateUsManager.sessionCount,
-      'days_since_install': _rateUsManager.daysSinceFirstLaunch,
-    });
+    // Record that popup was shown (for analytics funnel)
+    _rateUsManager.recordPopupShown();
   }
 
   @override
@@ -73,52 +68,73 @@ class _RateUsPopupState extends State<RateUsPopup>
     super.dispose();
   }
 
+  /// Handle user tapping "Rate FlappyJet" button
+  /// ⚠️ CRITICAL: Call requestReview() DIRECTLY - no eligibility re-check!
+  /// 
+  /// Error handling ensures popup never crashes the app
   Future<void> _handleRateUs() async {
-    FirebaseAnalyticsManager().trackEvent('rate_us_popup_rate_tapped', {});
-    EventBus().fire('rate_us_rate_tapped', {
-      'session_count': _rateUsManager.sessionCount,
-    });
-    
-    final success = await _rateUsManager.showRateUsPrompt();
-    if (success) {
-      widget.onRated?.call();
+    try {
+      // Request the native review directly (no double-check!)
+      final success = await _rateUsManager.requestReview();
+      
+      if (success) {
+        widget.onRated?.call();
+      }
+    } catch (e) {
+      // Silently fail - rate us should never crash the app
+      debugPrint('⭐ Error in handleRateUs: $e');
+    } finally {
+      // Always close popup, even on error
       if (mounted) {
         Navigator.of(context).pop();
       }
     }
   }
 
+  /// Handle "Maybe Later" - will show again after cooldown
   void _handleMaybeLater() {
-    FirebaseAnalyticsManager().trackEvent('rate_us_popup_maybe_later', {});
-    EventBus().fire('rate_us_maybe_later', {
-      'session_count': _rateUsManager.sessionCount,
-    });
-    
-    widget.onDismissed?.call();
-    Navigator.of(context).pop();
+    try {
+      _rateUsManager.handleMaybeLater();
+      widget.onDismissed?.call();
+    } catch (e) {
+      debugPrint('⭐ Error in handleMaybeLater: $e');
+    } finally {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
+  /// Handle "No Thanks" - respect user's choice permanently
   void _handleNoThanks() {
-    FirebaseAnalyticsManager().trackEvent('rate_us_popup_no_thanks', {});
-    EventBus().fire('rate_us_declined', {
-      'session_count': _rateUsManager.sessionCount,
-    });
-    
-    // Mark as rated to stop showing prompts
-    _rateUsManager.markAsRated();
-    widget.onDismissed?.call();
-    Navigator.of(context).pop();
+    try {
+      _rateUsManager.handleDeclined();
+      widget.onDismissed?.call();
+    } catch (e) {
+      debugPrint('⭐ Error in handleNoThanks: $e');
+    } finally {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final screenHeight = screenSize.height;
-    final isSmallScreen = screenHeight < 700;
-    final isVerySmallScreen = screenHeight < 600;
+    final screenWidth = screenSize.width;
+    
+    // Responsive breakpoints for all device sizes
+    final isVerySmallScreen = screenHeight < 600;  // Small phones (iPhone SE)
+    final isSmallScreen = screenHeight < 700;       // Regular phones
+    final isTablet = screenWidth > 600;             // Tablets
+    
+    // Adaptive max width for tablets
+    final maxPopupWidth = isTablet ? 450.0 : 400.0;
 
     return BasePopup(
-      maxWidthPixels: 400,
+      maxWidthPixels: maxPopupWidth,
       padding: EdgeInsets.zero, // Handle padding in child
       backgroundColor: Colors.transparent, // Use custom gradient
       child: Container(
@@ -145,30 +161,32 @@ class _RateUsPopupState extends State<RateUsPopup>
             // Background sparkles
             ..._buildSparkles(),
             
-            // Main content
-            Padding(
-              padding: EdgeInsets.all(isVerySmallScreen ? 16 : 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Animated stars header
-                  _buildStarsHeader(isVerySmallScreen),
-                  
-                  SizedBox(height: isVerySmallScreen ? 12 : 16),
-                  
-                  // Title
-                  _buildTitle(isVerySmallScreen),
-                  
-                  SizedBox(height: isVerySmallScreen ? 8 : 12),
-                  
-                  // Engaging message
-                  _buildMessage(isVerySmallScreen, isSmallScreen),
-                  
-                  SizedBox(height: isVerySmallScreen ? 16 : 24),
-                  
-                  // Action buttons
-                  _buildActionButtons(isVerySmallScreen),
-                ],
+            // Main content - wrapped in SingleChildScrollView for very small screens
+            SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.all(isVerySmallScreen ? 16 : 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Animated stars header
+                    _buildStarsHeader(isVerySmallScreen),
+                    
+                    SizedBox(height: isVerySmallScreen ? 12 : 16),
+                    
+                    // Title
+                    _buildTitle(isVerySmallScreen),
+                    
+                    SizedBox(height: isVerySmallScreen ? 8 : 12),
+                    
+                    // Engaging message
+                    _buildMessage(isVerySmallScreen, isSmallScreen),
+                    
+                    SizedBox(height: isVerySmallScreen ? 16 : 24),
+                    
+                    // Action buttons
+                    _buildActionButtons(isVerySmallScreen),
+                  ],
+                ),
               ),
             ),
             

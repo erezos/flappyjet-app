@@ -22,6 +22,7 @@ import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
 import '../../integrations/ftue_integration.dart';
+import '../../integrations/interstitial_ad_manager.dart';
 import '../widgets/floating_missions_banner.dart';
 import 'daily_missions_screen.dart';
 
@@ -516,14 +517,15 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           ),
         ),
         
-        // 🎯 Floating Missions Banner (top-left corner, below safe area)
+        // 🎯 Floating Missions Banner (top-left corner, directly below header)
         // Uses SafeArea-aware positioning for consistent appearance across devices
+        // Position: Right under header for easy access, leaves room for more floating banners below
         Positioned(
           left: 16,
-          top: MediaQuery.of(context).padding.top + 80, // Below zone selector header
+          top: MediaQuery.of(context).padding.top + 8, // Directly under header
           child: FloatingMissionsBanner(
             onTap: _showMissionsPopup,
-            size: 85, // Larger for better visibility
+            size: 55, // Smaller banner
           ),
         ),
       ],
@@ -799,6 +801,23 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       return;
     }
 
+    // 📺 Check for loss streak ad before starting game
+    final adShown = await InterstitialAdManager().showLossStreakAdIfNeeded(
+      onAdClosed: () {
+        if (!mounted) return;
+        // Continue to level after ad is closed
+        _proceedToLevel(level);
+      },
+    );
+    
+    // If no ad was shown, proceed immediately
+    if (!adShown) {
+      await _proceedToLevel(level);
+    }
+  }
+  
+  /// Helper method to proceed to level (after potential ad)
+  Future<void> _proceedToLevel(LevelData level) async {
     // 🎮 TUTORIAL: Always show tutorial before Level 1 (repeatable for practice)
     if (level.id == 1) {
       safePrint('🎮 Tutorial: Showing before Level 1');

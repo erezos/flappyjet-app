@@ -39,7 +39,7 @@ void main() {
         // Complete missions by updating progress many times
         for (int i = 0; i < 50; i++) {
           await manager.updateMissionProgress(MissionType.playGames, 1);
-          await manager.updateMissionProgress(MissionType.reachScore, 100);
+          await manager.updateMissionProgress(MissionType.collectCoins, 100);
         }
         
         // Wait for async operations
@@ -84,7 +84,7 @@ void main() {
         // Complete missions
         for (int i = 0; i < 50; i++) {
           await manager.updateMissionProgress(MissionType.playGames, 1);
-          await manager.updateMissionProgress(MissionType.reachScore, 100);
+          await manager.updateMissionProgress(MissionType.collectCoins, 100);
         }
         
         await Future.delayed(const Duration(milliseconds: 100));
@@ -194,7 +194,7 @@ void main() {
       // Complete some missions
       for (int i = 0; i < 30; i++) {
         await manager.updateMissionProgress(MissionType.playGames, 1);
-        await manager.updateMissionProgress(MissionType.reachScore, 50);
+        await manager.updateMissionProgress(MissionType.collectCoins, 50);
       }
       
       await Future.delayed(const Duration(milliseconds: 100));

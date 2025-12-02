@@ -13,13 +13,15 @@ import '../../core/events/event_bus.dart';
 
 /// Mission types that adapt to player skill level
 enum MissionType {
-  playGames,        // Play X games
-  reachScore,       // Reach Y score in a single game
+  playGames,        // Play X games (any mode)
   maintainStreak,   // Get Z consecutive games above threshold
   useContinue,      // Use continue R times
   collectCoins,     // Collect X coins (from any source)
   surviveTime,      // Survive for X seconds in a game
   shareScore,       // Share score on social media
+  completeLevel,    // Complete story level X
+  completeZone,     // Complete all levels in zone X
+  collectBonuses,   // Collect X in-game bonuses (shields, magnets, etc.)
 }
 
 /// Mission difficulty levels that determine rewards
@@ -138,6 +140,11 @@ class PlayerStats {
   final int totalContinuesUsed;
   final int averageScore;
   final int gamesPlayedToday;
+  final int gamesPlayedYesterday;    // 🆕 For smart adaptation
+  final int averageDailyGames;       // 🆕 For smart adaptation
+  final int highestLevelCompleted;   // 🆕 For level-based missions
+  final int totalLevelsCompleted;    // 🆕 For zone-based missions
+  final int totalBonusesCollected;   // 🆕 For bonus missions
   final DateTime lastPlayedDate;
   final bool hasChangedNickname;
 
@@ -148,6 +155,11 @@ class PlayerStats {
     required this.totalContinuesUsed,
     required this.averageScore,
     required this.gamesPlayedToday,
+    this.gamesPlayedYesterday = 0,
+    this.averageDailyGames = 0,
+    this.highestLevelCompleted = 0,
+    this.totalLevelsCompleted = 0,
+    this.totalBonusesCollected = 0,
     required this.lastPlayedDate,
     required this.hasChangedNickname,
   });
@@ -159,6 +171,30 @@ class PlayerStats {
     if (bestScore < 50) return PlayerSkillLevel.intermediate;
     if (bestScore < 100) return PlayerSkillLevel.advanced;
     return PlayerSkillLevel.expert;
+  }
+  
+  /// 🆕 Smart play target based on actual daily activity
+  int get smartPlayTarget {
+    // If player played 8+ games yesterday, challenge them with 10% more
+    if (gamesPlayedYesterday >= 8) {
+      return (gamesPlayedYesterday * 1.1).round().clamp(8, 15);
+    }
+    // If player has a consistent average, use that + 20%
+    if (averageDailyGames >= 5) {
+      return (averageDailyGames * 1.2).round().clamp(5, 12);
+    }
+    // Fall back to skill-based for new/casual players
+    return _getSkillBasedPlayTarget();
+  }
+  
+  int _getSkillBasedPlayTarget() {
+    switch (skillLevel) {
+      case PlayerSkillLevel.beginner: return 3;
+      case PlayerSkillLevel.novice: return 4;
+      case PlayerSkillLevel.intermediate: return 5;
+      case PlayerSkillLevel.advanced: return 6;
+      case PlayerSkillLevel.expert: return 8;
+    }
   }
 }
 
@@ -287,6 +323,11 @@ class MissionsManager extends ChangeNotifier {
         ? (prefs.getInt('stats_total_score') ?? 0) ~/ totalGamesPlayed
         : 0;
     final gamesPlayedToday = prefs.getInt('stats_games_today') ?? 0;
+    final gamesPlayedYesterday = prefs.getInt('stats_games_yesterday') ?? 0;
+    final averageDailyGames = prefs.getInt('stats_avg_daily_games') ?? 0;
+    final highestLevelCompleted = prefs.getInt('stats_highest_level') ?? 0;
+    final totalLevelsCompleted = prefs.getInt('stats_total_levels') ?? 0;
+    final totalBonusesCollected = prefs.getInt('stats_total_bonuses') ?? 0;
     final lastPlayedMs = prefs.getInt('stats_last_played') ?? 0;
     final lastPlayedDate = lastPlayedMs > 0 
         ? DateTime.fromMillisecondsSinceEpoch(lastPlayedMs)
@@ -300,6 +341,11 @@ class MissionsManager extends ChangeNotifier {
       totalContinuesUsed: totalContinuesUsed,
       averageScore: averageScore,
       gamesPlayedToday: gamesPlayedToday,
+      gamesPlayedYesterday: gamesPlayedYesterday,
+      averageDailyGames: averageDailyGames,
+      highestLevelCompleted: highestLevelCompleted,
+      totalLevelsCompleted: totalLevelsCompleted,
+      totalBonusesCollected: totalBonusesCollected,
       lastPlayedDate: lastPlayedDate,
       hasChangedNickname: hasChangedNickname,
     );
@@ -353,7 +399,7 @@ class MissionsManager extends ChangeNotifier {
     }
   }
 
-  /// Generate new adaptive daily missions based on player skill
+  /// Generate new adaptive daily missions based on player skill and behavior
   Future<void> _generateNewDailyMissions() async {
     if (_playerStats == null) {
       safePrint('🎯 ⚠️ Cannot generate missions: player stats not loaded');
@@ -365,16 +411,30 @@ class MissionsManager extends ChangeNotifier {
     final now = DateTime.now();
 
     safePrint('🎯 Generating missions for skill level: ${_playerStats!.skillLevel}');
+    safePrint('🎯 Smart play target: ${_playerStats!.smartPlayTarget} (yesterday: ${_playerStats!.gamesPlayedYesterday}, avg: ${_playerStats!.averageDailyGames})');
 
-    // Generate 4 missions: 2 easy, 1 medium, 1 hard/expert
-    missions.add(_generatePlayGamesMission(_playerStats!, MissionDifficulty.easy, now));
-    missions.add(_generateScoreMission(_playerStats!, MissionDifficulty.easy, now));
+    // 🆕 SMART MISSION GENERATION - Adapts to player behavior
+    // Mission 1: Play games (now uses smart adaptation!)
+    missions.add(_generateSmartPlayGamesMission(_playerStats!, MissionDifficulty.easy, now));
+    
+    // Mission 2: Level-based mission (if player has story mode progress) or bonus collection
+    if (_playerStats!.highestLevelCompleted > 0) {
+      missions.add(_generateLevelMission(_playerStats!, MissionDifficulty.easy, now));
+    } else {
+      missions.add(_generateBonusMission(_playerStats!, MissionDifficulty.easy, now));
+    }
+    
+    // Mission 3: Streak mission (encourages consistency)
     missions.add(_generateStreakMission(_playerStats!, MissionDifficulty.medium, now));
     
-    // Fourth mission varies based on player behavior
-    final fourthMissionTypes = [MissionType.useContinue, MissionType.collectCoins, MissionType.surviveTime];
+    // Mission 4: Random from varied types for engagement
+    final fourthMissionTypes = [
+      MissionType.useContinue, 
+      MissionType.collectCoins, 
+      MissionType.surviveTime,
+      MissionType.collectBonuses,
+    ];
     
-    // Always generate a random mission from the available types (nickname mission removed since we have Identity Established achievement)
     final randomType = fourthMissionTypes[random.nextInt(fourthMissionTypes.length)];
     final difficulty = _playerStats!.skillLevel.index >= 3 ? MissionDifficulty.hard : MissionDifficulty.medium;
     missions.add(_generateMissionByType(randomType, _playerStats!, difficulty, now));
@@ -383,76 +443,76 @@ class MissionsManager extends ChangeNotifier {
     safePrint('🎯 Generated ${missions.length} new daily missions');
   }
 
-  /// Generate play games mission
-  Mission _generatePlayGamesMission(PlayerStats stats, MissionDifficulty difficulty, DateTime createdAt) {
-    int target;
-    int reward;
+  /// 🆕 Smart play games mission - adapts to player's actual daily activity
+  Mission _generateSmartPlayGamesMission(PlayerStats stats, MissionDifficulty difficulty, DateTime createdAt) {
+    // Use the smart target from PlayerStats
+    final target = stats.smartPlayTarget;
     
-    switch (stats.skillLevel) {
-      case PlayerSkillLevel.beginner:
-        target = 3;
-        reward = 80;  // Optimized: 60-100 range
-        break;
-      case PlayerSkillLevel.novice:
-        target = 4;
-        reward = 120; // Optimized: 80-120 range
-        break;
-      case PlayerSkillLevel.intermediate:
-        target = 5;
-        reward = 180; // Optimized: 150-220 range
-        break;
-      case PlayerSkillLevel.advanced:
-        target = 6;
-        reward = 250; // Optimized: 180-250 range
-        break;
-      case PlayerSkillLevel.expert:
-        target = 8;
-        reward = 400; // Optimized: 400-600 range
-        break;
-    }
+    // Reward scales with target
+    final reward = (target * 25).clamp(75, 500);
 
     return Mission(
       id: 'daily_play_${createdAt.millisecondsSinceEpoch}',
       type: MissionType.playGames,
       difficulty: difficulty,
       title: 'Take Flight',
-      description: 'Play $target games today (any mode)', // ✅ Added "any mode"
+      description: 'Play $target games today (any mode)',
       target: target,
       reward: reward,
       createdAt: createdAt,
     );
   }
 
-  /// Generate score mission adapted to player skill
-  Mission _generateScoreMission(PlayerStats stats, MissionDifficulty difficulty, DateTime createdAt) {
+  /// 🆕 Level-based mission - challenges player to progress in story mode
+  Mission _generateLevelMission(PlayerStats stats, MissionDifficulty difficulty, DateTime createdAt) {
+    // Target is 1-3 levels ahead of current progress (achievable but challenging)
+    final currentLevel = stats.highestLevelCompleted;
+    final targetLevel = (currentLevel + 2).clamp(1, 30);
+    
+    // Reward scales with level difficulty
+    final reward = 100 + (targetLevel * 15);
+
+    return Mission(
+      id: 'daily_level_${createdAt.millisecondsSinceEpoch}',
+      type: MissionType.completeLevel,
+      difficulty: difficulty,
+      title: 'Level Up',
+      description: 'Complete Level $targetLevel in Story Mode',
+      target: targetLevel,
+      reward: reward,
+      createdAt: createdAt,
+    );
+  }
+
+  /// 🆕 Bonus collection mission - encourages collecting in-game bonuses
+  Mission _generateBonusMission(PlayerStats stats, MissionDifficulty difficulty, DateTime createdAt) {
     int target;
     int reward;
     
-    final baseScore = stats.bestScore;
-    
-    if (baseScore <= 5) {
-      target = 3;
-      reward = 90;  // Optimized: beginner tier
-    } else if (baseScore <= 10) {
-      target = (baseScore * 0.6).round().clamp(5, 8);
-      reward = 140; // Optimized: novice tier
-    } else if (baseScore <= 25) {
-      target = (baseScore * 0.7).round();
-      reward = 200; // Optimized: intermediate tier
-    } else if (baseScore <= 50) {
-      target = (baseScore * 0.75).round();
-      reward = 300; // Optimized: advanced tier
-    } else {
-      target = (baseScore * 0.8).round();
-      reward = 500; // Optimized: expert tier
+    switch (stats.skillLevel) {
+      case PlayerSkillLevel.beginner:
+        target = 3;
+        reward = 75;
+      case PlayerSkillLevel.novice:
+        target = 5;
+        reward = 100;
+      case PlayerSkillLevel.intermediate:
+        target = 8;
+        reward = 150;
+      case PlayerSkillLevel.advanced:
+        target = 12;
+        reward = 200;
+      case PlayerSkillLevel.expert:
+        target = 15;
+        reward = 300;
     }
 
     return Mission(
-      id: 'daily_score_${createdAt.millisecondsSinceEpoch}',
-      type: MissionType.reachScore,
+      id: 'daily_bonus_${createdAt.millisecondsSinceEpoch}',
+      type: MissionType.collectBonuses,
       difficulty: difficulty,
-      title: 'Sky Achievement',
-      description: 'Reach $target points in a single game',
+      title: 'Bonus Hunter',
+      description: 'Collect $target power-ups (shields, magnets, etc.)',
       target: target,
       reward: reward,
       createdAt: createdAt,
@@ -559,15 +619,36 @@ class MissionsManager extends ChangeNotifier {
           createdAt: createdAt,
         );
       
-      default:
-        return _generatePlayGamesMission(stats, difficulty, createdAt);
+      case MissionType.collectBonuses:
+        return _generateBonusMission(stats, difficulty, createdAt);
+      
+      case MissionType.completeLevel:
+        return _generateLevelMission(stats, difficulty, createdAt);
+      
+      case MissionType.completeZone:
+        // Zone completion mission - complete all levels in current zone
+        final currentZone = ((stats.highestLevelCompleted - 1) ~/ 10) + 1;
+        final targetZone = currentZone.clamp(1, 3);
+        return Mission(
+          id: 'daily_zone_${createdAt.millisecondsSinceEpoch}',
+          type: MissionType.completeZone,
+          difficulty: MissionDifficulty.hard,
+          title: 'Zone Conqueror',
+          description: 'Complete Zone $targetZone (all 10 levels)',
+          target: targetZone,
+          reward: 500 + (targetZone * 100),
+          createdAt: createdAt,
+        );
+      
+      case MissionType.playGames:
+      case MissionType.maintainStreak:
+        return _generateSmartPlayGamesMission(stats, difficulty, createdAt);
     }
   }
 
   /// Update mission progress
   Future<void> updateMissionProgress(MissionType type, int amount) async {
     // ✅ REDUCED LOGGING: Only log when missions are actually updated, not for every check
-    // Removed verbose logs: "Updating progress for $type", "Current missions count", "Checking mission..."
     
     bool hasUpdates = false;
     
@@ -576,9 +657,13 @@ class MissionsManager extends ChangeNotifier {
       if (mission.type == type && !mission.completed) {
         int newProgress;
         
-        // For reach score missions, use the highest score achieved
-        if (type == MissionType.reachScore) {
-          newProgress = math.max(mission.progress, amount);
+        // For level-based missions, check if the target level was reached/exceeded
+        if (type == MissionType.completeLevel) {
+          // amount = completed level number, target = target level
+          newProgress = amount >= mission.target ? mission.target : mission.progress;
+        } else if (type == MissionType.completeZone) {
+          // amount = completed zone number
+          newProgress = amount >= mission.target ? mission.target : mission.progress;
         } else {
           // For other missions, accumulate progress
           newProgress = (mission.progress + amount).clamp(0, mission.target);
@@ -693,6 +778,9 @@ class MissionsManager extends ChangeNotifier {
     bool? changedNickname,
     int? coinsEarned,
     int? survivalTime,
+    int? completedLevel,      // 🆕 Story mode level completed
+    int? completedZone,       // 🆕 Story mode zone completed
+    int? bonusesCollected,    // 🆕 In-game bonuses collected
   }) async {
     final prefs = await SharedPreferences.getInstance();
     
@@ -705,9 +793,6 @@ class MissionsManager extends ChangeNotifier {
       
       // Update mission progress
       await updateMissionProgress(MissionType.playGames, 1);
-      if (newScore > 0) {
-        await updateMissionProgress(MissionType.reachScore, newScore);
-      }
       
       // Handle streak missions
       await _updateStreakMissions(newScore);
@@ -729,6 +814,28 @@ class MissionsManager extends ChangeNotifier {
     
     if (survivalTime != null && survivalTime > 0) {
       await updateMissionProgress(MissionType.surviveTime, survivalTime);
+    }
+    
+    // 🆕 Story mode level completion
+    if (completedLevel != null && completedLevel > 0) {
+      final currentHighest = prefs.getInt('stats_highest_level') ?? 0;
+      if (completedLevel > currentHighest) {
+        await prefs.setInt('stats_highest_level', completedLevel);
+      }
+      await prefs.setInt('stats_total_levels', (prefs.getInt('stats_total_levels') ?? 0) + 1);
+      await updateMissionProgress(MissionType.completeLevel, completedLevel);
+    }
+    
+    // 🆕 Story mode zone completion
+    if (completedZone != null && completedZone > 0) {
+      await updateMissionProgress(MissionType.completeZone, completedZone);
+    }
+    
+    // 🆕 Bonus collection (shields, magnets, etc.)
+    if (bonusesCollected != null && bonusesCollected > 0) {
+      await prefs.setInt('stats_total_bonuses', 
+          (prefs.getInt('stats_total_bonuses') ?? 0) + bonusesCollected);
+      await updateMissionProgress(MissionType.collectBonuses, bonusesCollected);
     }
     
     // Reload stats

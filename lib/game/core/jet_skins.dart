@@ -93,7 +93,7 @@ class JetSkinCatalog {
 
   // 💰 ALL PREMIUM SKINS - Manually curated for perfect balance
   static final List<JetSkin> _allPremiumSkins = [
-    // ⚪ COMMON SKINS (6 jets) - 299 coins - Easy early goals
+    // ⚪ COMMON SKINS (6 jets) - 800 coins - Easy early goals
     JetSkin(
       id: 'police_patrol',
       displayName: 'Police Patrol',
@@ -178,7 +178,7 @@ class JetSkinCatalog {
       thrustTint: Color(0xFF3F51B5),
     ),
 
-    // 🔵 RARE SKINS (8 jets) - 599 coins - Mid-game progression
+    // 🔵 RARE SKINS (8 jets) - 1,600 coins - Mid-game progression
     JetSkin(
       id: 'defender',
       displayName: 'Defender',
@@ -293,7 +293,7 @@ class JetSkinCatalog {
       thrustTint: Color(0xFFFF5722),
     ),
 
-    // 🟣 EPIC SKINS (7 jets) - 1,199 coins - Long-term objectives
+    // 🟣 EPIC SKINS (7 jets) - 3,200 coins - Long-term objectives
     JetSkin(
       id: 'space_destroyer',
       displayName: 'Space Destroyer',
@@ -397,7 +397,7 @@ class JetSkinCatalog {
       thrustTint: Color(0xFFFF69B4),
     ),
 
-    // 🟡 LEGENDARY SKINS (4 jets) - 2,399 coins - Premium achievements
+    // 🟡 LEGENDARY SKINS (4 jets) - 6,400 coins - Premium achievements
     JetSkin(
       id: 'supreme_commander',
       displayName: 'Supreme Commander',

@@ -670,6 +670,68 @@ class AchievementsManager extends ChangeNotifier {
       gemReward: 15,
       iconPath: 'achievements/no_continues_hero.png',
     ));
+
+    // === NEW ENGAGEMENT ACHIEVEMENTS === 🆕
+    
+    _registerAchievement(Achievement(
+      id: 'daily_grinder',
+      title: 'Daily Grinder',
+      description: 'Play 10+ games in a single day',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.silver,
+      target: 10,
+      coinReward: 200,
+      gemReward: 5,
+      iconPath: 'achievements/daily_grinder.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'weekly_warrior',
+      title: 'Weekly Warrior',
+      description: 'Complete all daily missions for 7 consecutive days',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.platinum,
+      target: 7,
+      coinReward: 1000,
+      gemReward: 30,
+      iconPath: 'achievements/weekly_warrior.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'bonus_hunter',
+      title: 'Bonus Hunter',
+      description: 'Collect 100 power-ups (shields, magnets, etc.)',
+      category: AchievementCategory.collection,
+      rarity: AchievementRarity.gold,
+      target: 100,
+      coinReward: 400,
+      gemReward: 10,
+      iconPath: 'achievements/bonus_hunter.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'mission_master',
+      title: 'Mission Master',
+      description: 'Complete 100 daily missions total',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.diamond,
+      target: 100,
+      coinReward: 2000,
+      gemReward: 50,
+      iconPath: 'achievements/mission_master.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'level_champion',
+      title: 'Level Champion',
+      description: 'Complete all 30 story levels',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.diamond,
+      target: 30,
+      coinReward: 3000,
+      gemReward: 100,
+      iconPath: 'achievements/level_champion.png',
+    ));
   }
 
   /// Register a single achievement
@@ -909,10 +971,35 @@ class AchievementsManager extends ChangeNotifier {
     
     if (missionsCompleted != null) {
       await setProgress('perfectionist', missionsCompleted);
+      await setProgress('mission_master', missionsCompleted); // 🆕 New achievement
     }
     
     if (daysPlayed != null) {
       await setProgress('dedication_incarnate', daysPlayed);
+    }
+  }
+
+  /// 🆕 Check and update engagement achievements (new mission-related achievements)
+  Future<void> checkEngagementAchievements({
+    int? gamesPlayedToday,
+    int? consecutiveDaysWithAllMissions,
+    int? totalBonusesCollected,
+    int? totalLevelsCompleted,
+  }) async {
+    if (gamesPlayedToday != null && gamesPlayedToday >= 10) {
+      await updateProgress('daily_grinder', 1);
+    }
+    
+    if (consecutiveDaysWithAllMissions != null) {
+      await setProgress('weekly_warrior', consecutiveDaysWithAllMissions);
+    }
+    
+    if (totalBonusesCollected != null) {
+      await setProgress('bonus_hunter', totalBonusesCollected);
+    }
+    
+    if (totalLevelsCompleted != null) {
+      await setProgress('level_champion', totalLevelsCompleted);
     }
   }
 

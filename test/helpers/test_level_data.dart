@@ -7,15 +7,15 @@ import '../../lib/models/level_data_schema.dart';
 
 /// Common test level configurations
 class TestLevelData {
-  /// Simple level with reach score objective
-  static LevelData get simpleScoreLevel => LevelData(
+  /// Simple level with pass obstacles objective
+  static LevelData get simpleObstacleLevel => LevelData(
     id: 1,
-    name: 'Test Score Level',
+    name: 'Test Obstacle Level',
     zone: 1,
     objective: LevelObjective(
-      type: ObjectiveType.reachScore,
+      type: ObjectiveType.passObstacles,
       target: 10,
-      description: 'Reach score of 10',
+      description: 'Pass 10 obstacles',
     ),
     difficulty: LevelDifficulty(
       speedMultiplier: 1.0,
@@ -59,32 +59,6 @@ class TestLevelData {
     ),
   );
   
-  /// Level with collect coins objective
-  static LevelData get collectCoinsLevel => LevelData(
-    id: 3,
-    name: 'Test Coin Collection Level',
-    zone: 1,
-    objective: LevelObjective(
-      type: ObjectiveType.collectCoins,
-      target: 15,
-      description: 'Collect 15 coins',
-    ),
-    difficulty: LevelDifficulty(
-      speedMultiplier: 1.0,
-      obstacleGap: 220,
-      obstacleFrequency: 1.8,
-    ),
-    reward: LevelReward(
-      coins: 70,
-      gems: 5,
-    ),
-    theme: LevelTheme(
-      background: 'peaceful_sky.png',
-      obstacles: 'wooden_pipes.png',
-      music: 'sky_rookie.mp3',
-    ),
-  );
-  
   /// Level with bot battle objective
   static LevelData get botBattleLevel => LevelData(
     id: 10,
@@ -118,41 +92,15 @@ class TestLevelData {
     ),
   );
   
-  /// Level with no crashes objective (perfect run)
-  static LevelData get noCrashLevel => LevelData(
-    id: 5,
-    name: 'Test Perfect Run',
-    zone: 2,
-    objective: LevelObjective(
-      type: ObjectiveType.noCrash,
-      target: 20,
-      description: 'Complete without crashing (20 obstacles)',
-    ),
-    difficulty: LevelDifficulty(
-      speedMultiplier: 1.1,
-      obstacleGap: 190,
-      obstacleFrequency: 2.1,
-    ),
-    reward: LevelReward(
-      coins: 80,
-      gems: 10,
-    ),
-    theme: LevelTheme(
-      background: 'afternoon_sky.png',
-      obstacles: 'stone_pillars.png',
-      music: 'space_cadet.mp3',
-    ),
-  );
-  
   /// Difficult level for stress testing
   static LevelData get difficultLevel => LevelData(
     id: 50,
     name: 'Test Extreme Challenge',
     zone: 5,
     objective: LevelObjective(
-      type: ObjectiveType.reachScore,
+      type: ObjectiveType.passObstacles,
       target: 30,
-      description: 'Reach score of 30 with extreme difficulty',
+      description: 'Pass 30 obstacles with extreme difficulty',
     ),
     difficulty: LevelDifficulty(
       speedMultiplier: 1.8,

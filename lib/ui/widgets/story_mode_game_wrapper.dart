@@ -17,6 +17,7 @@ import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/level_system_manager.dart'; // 🔥 NEW
 import '../../game/systems/game_events_tracker.dart'; // 🎯 For mission/achievement tracking
 import '../../game/systems/achievements_manager.dart'; // 🏅 For story mode achievements
+import '../../game/systems/missions_manager.dart'; // 🎯 For level completion mission tracking
 import '../../integrations/interstitial_ad_manager.dart'; // 📺 For interstitial ads
 import '../screens/level_complete_screen.dart';
 import '../screens/level_failed_screen.dart';
@@ -592,6 +593,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
         'continues_used': continuesUsed,
       });
       safePrint('📊 [BG] Analytics event fired');
+
+      // 🎯 Update mission progress for completeLevel mission type
+      final missionsManager = MissionsManager();
+      await missionsManager.updatePlayerStats(
+        completedLevel: widget.level.id,
+        completedZone: zoneCompleted > 0 ? zoneCompleted : null,
+      );
+      safePrint('🎯 [BG] Level completion mission progress updated');
 
       // 🏅 Check achievements (can be heavy)
       final achievementsManager = AchievementsManager();

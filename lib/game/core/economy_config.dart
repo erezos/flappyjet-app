@@ -11,12 +11,12 @@ class EconomyConfig extends ChangeNotifier {
 
   // === JET SKIN PRICING ===
   /// 🎯 WORLD-CLASS PRICING STRATEGY (Optimized for mobile game economy)
-  /// Balanced progression with clear monetization tiers
+  /// Balanced progression with enhanced missions economy (doubled prices v2.2.3)
   static const Map<JetRarity, int> _defaultSkinPrices = {
-    JetRarity.common: 299,     // 1 day effort - Easy early goals
-    JetRarity.rare: 599,       // 2-3 days effort - Mid-game progression  
-    JetRarity.epic: 1199,      // 3-5 days effort - Long-term objectives
-    JetRarity.legendary: 2399, // 6-8 days effort - Premium achievements
+    JetRarity.common: 800,      // 2-3 days effort - Easy early goals
+    JetRarity.rare: 1600,       // 4-5 days effort - Mid-game progression  
+    JetRarity.epic: 3200,       // 6-8 days effort - Long-term objectives
+    JetRarity.legendary: 6400,  // 10-14 days effort - Premium achievements
     // Mythic skins use gem pricing (handled separately)
   };
 

@@ -50,8 +50,6 @@ class Mission3DIcon extends StatelessWidget {
       // === GAMEPLAY MISSIONS ===
       case MissionIconType.playGames:
         return 'assets/images/icons/missions/pilot_helmet_icon.png'; // Pilot helmet for playing games
-      case MissionIconType.reachScore:
-        return 'assets/images/icons/missions/target_icon.png'; // Target for score goals
       case MissionIconType.surviveTime:
         return 'assets/images/icons/missions/timer_icon.png'; // Timer for survival
       case MissionIconType.perfectStart:
@@ -78,6 +76,8 @@ class Mission3DIcon extends StatelessWidget {
         return 'assets/images/icons/missions/surviving_hearts_icon.png'; // Hearts for saving lives
       case MissionIconType.bargainHunter:
         return 'assets/images/icons/missions/gold_star_badge_icon.png'; // Gold badge for bargains
+      case MissionIconType.collectBonuses:
+        return 'assets/images/icons/missions/shild_icon.png'; // Shield for bonus collection
 
       // === SKILL MISSIONS ===
       case MissionIconType.streakMaster:
@@ -101,6 +101,12 @@ class Mission3DIcon extends StatelessWidget {
       case MissionIconType.jetCollector:
         return 'assets/images/icons/missions/pilot_helmet_icon.png'; // Pilot helmet for jet collection
 
+      // === STORY MODE MISSIONS === 🆕
+      case MissionIconType.completeLevel:
+        return 'assets/images/icons/missions/target_icon.png'; // Target for level completion
+      case MissionIconType.completeZone:
+        return 'assets/images/icons/missions/gold_trophy.png'; // Trophy for zone completion
+
       // === SPECIAL MISSIONS ===
       case MissionIconType.dailyChallenge:
         return 'assets/images/icons/missions/gold_star_badge_icon.png'; // Gold badge for daily challenges
@@ -117,8 +123,6 @@ class Mission3DIcon extends StatelessWidget {
     switch (type) {
       case MissionIconType.playGames:
         return Icons.videogame_asset;
-      case MissionIconType.reachScore:
-        return Icons.emoji_events;
       case MissionIconType.surviveTime:
         return Icons.timer;
       case MissionIconType.perfectStart:
@@ -143,6 +147,8 @@ class Mission3DIcon extends StatelessWidget {
         return Icons.favorite_border;
       case MissionIconType.bargainHunter:
         return Icons.card_giftcard;
+      case MissionIconType.collectBonuses:
+        return Icons.auto_awesome;
       case MissionIconType.streakMaster:
         return Icons.local_fire_department;
       case MissionIconType.consistency:
@@ -161,6 +167,10 @@ class Mission3DIcon extends StatelessWidget {
         return Icons.person;
       case MissionIconType.jetCollector:
         return Icons.flight;
+      case MissionIconType.completeLevel:
+        return Icons.flag;
+      case MissionIconType.completeZone:
+        return Icons.map;
       case MissionIconType.dailyChallenge:
         return Icons.calendar_today;
       case MissionIconType.communityGoal:
@@ -298,7 +308,6 @@ class Achievement3DIcon extends StatelessWidget {
 enum MissionIconType {
   // Gameplay
   playGames,
-  reachScore,
   surviveTime,
   perfectStart,
   closeCalls,
@@ -313,6 +322,7 @@ enum MissionIconType {
   gemHunter,
   heartSaver,
   bargainHunter,
+  collectBonuses,   // 🆕 Power-up collection
 
   // Skill
   streakMaster,
@@ -327,6 +337,10 @@ enum MissionIconType {
   profilePolish,
   jetCollector,
 
+  // Story Mode 🆕
+  completeLevel,
+  completeZone,
+  
   // Special
   dailyChallenge,
   communityGoal,
@@ -375,9 +389,6 @@ class MissionIconMapper {
       case 'playgames':
       case 'play_games':
         return MissionIconType.playGames;
-      case 'reachscore':
-      case 'reach_score':
-        return MissionIconType.reachScore;
       case 'survivetime':
       case 'survive_time':
         return MissionIconType.surviveTime;
@@ -387,6 +398,15 @@ class MissionIconMapper {
       case 'collectcoins':
       case 'collect_coins':
         return MissionIconType.collectCoins;
+      case 'collectbonuses':
+      case 'collect_bonuses':
+        return MissionIconType.collectBonuses;
+      case 'completelevel':
+      case 'complete_level':
+        return MissionIconType.completeLevel;
+      case 'completezone':
+      case 'complete_zone':
+        return MissionIconType.completeZone;
       case 'changenickname':
       case 'change_nickname':
         return MissionIconType.profilePolish;

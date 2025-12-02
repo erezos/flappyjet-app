@@ -73,7 +73,7 @@ void main() {
       // Act: Fire multiple updates rapidly (simulating real gameplay)
       // Note: Only updates that actually change mission state trigger notifications
       await manager.updateMissionProgress(MissionType.playGames, 1);
-      await manager.updateMissionProgress(MissionType.reachScore, 10);
+      await manager.updateMissionProgress(MissionType.collectBonuses, 5);
       await manager.updateMissionProgress(MissionType.collectCoins, 50);
 
       // Assert: At least some updates should trigger notifications
@@ -231,7 +231,7 @@ void main() {
       // Update many times to potentially complete a mission
       for (int i = 0; i < 50; i++) {
         await manager.updateMissionProgress(MissionType.playGames, 1);
-        await manager.updateMissionProgress(MissionType.reachScore, 100);
+        await manager.updateMissionProgress(MissionType.collectCoins, 100);
       }
 
       // Try to claim any completed mission

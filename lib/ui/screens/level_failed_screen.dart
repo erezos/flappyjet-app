@@ -11,6 +11,7 @@ import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
 import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
+import '../../integrations/interstitial_ad_manager.dart';
 import 'world_map_screen.dart';
 import 'level_objective_popup.dart';
 import '../widgets/buttons/modern_game_button.dart';
@@ -96,6 +97,9 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
 
     // Start animations
     _animationController.forward();
+
+    // 📺 Track level failure for loss streak ad trigger
+    InterstitialAdManager().onLevelFailed();
 
     safePrint('💀 STORY MODE: Game Over popup shown - ${widget.objectiveAchieved}/${widget.objectiveTarget}');
   }
@@ -1211,6 +1215,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   }
 
   /// 🚀 START OVER: Refills hearts and restarts level (free-to-play!)
+  /// 📺 Shows loss streak ad if user has lost 3+ times in a row
   void _onStartOver() async {
     // ✅ ALWAYS refill hearts to max when restarting level (free-to-play!)
     await _livesManager.refillToMax();
@@ -1218,12 +1223,27 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     
     if (!mounted) return;
 
-    // ❤️ Navigate back to level objective popup with full hearts
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => LevelObjectivePopup(level: widget.level),
-      ),
+    // 📺 Check for loss streak ad before starting next game
+    final adShown = await InterstitialAdManager().showLossStreakAdIfNeeded(
+      onAdClosed: () {
+        if (!mounted) return;
+        // Navigate after ad is closed
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => LevelObjectivePopup(level: widget.level),
+          ),
+        );
+      },
     );
+    
+    // If no ad was shown, navigate immediately
+    if (!adShown) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => LevelObjectivePopup(level: widget.level),
+        ),
+      );
+    }
   }
 
 }
