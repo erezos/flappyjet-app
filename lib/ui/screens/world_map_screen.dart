@@ -24,6 +24,8 @@ import '../../game/systems/achievements_manager.dart';
 import '../../integrations/ftue_integration.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 import '../widgets/floating_missions_banner.dart';
+import '../widgets/floating_store_banner.dart';
+import '../widgets/store_bottom_sheet.dart';
 import 'daily_missions_screen.dart';
 
 class WorldMapScreen extends StatefulWidget {
@@ -517,19 +519,56 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           ),
         ),
         
-        // 🎯 Floating Missions Banner (top-left corner, directly below header)
+        // 🎯 Floating Banners Column (top-left corner)
         // Uses SafeArea-aware positioning for consistent appearance across devices
-        // Position: Right under header for easy access, leaves room for more floating banners below
+        // Position: Right under header for easy access
         Positioned(
           left: 16,
-          top: MediaQuery.of(context).padding.top + 8, // Directly under header
-          child: FloatingMissionsBanner(
-            onTap: _showMissionsPopup,
-            size: 55, // Smaller banner
-          ),
+          top: MediaQuery.of(context).padding.top + 8,
+          child: _buildFloatingBannersColumn(context),
         ),
       ],
     );
+  }
+  
+  /// Build vertically stacked floating banners (Missions + Store)
+  /// Responsive spacing based on screen size
+  Widget _buildFloatingBannersColumn(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Responsive gap between banners
+    final double bannerGap = screenWidth < 360 
+        ? 4.0 
+        : (screenHeight > 800 ? 10.0 : 6.0);
+    
+    // Banner size (same for both for visual consistency)
+    const double bannerSize = 55;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Missions Banner (top)
+        FloatingMissionsBanner(
+          onTap: _showMissionsPopup,
+          size: bannerSize,
+        ),
+        
+        SizedBox(height: bannerGap),
+        
+        // Store Banner (below missions)
+        FloatingStoreBanner(
+          onTap: _showStorePopup,
+          size: bannerSize,
+        ),
+      ],
+    );
+  }
+  
+  /// Show store popup when banner is tapped
+  void _showStorePopup() {
+    showStoreBottomSheet(context);
   }
   
   /// Show missions popup when banner is tapped
