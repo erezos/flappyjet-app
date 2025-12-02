@@ -13,7 +13,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 330,
+        "obstacleGap": 347,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -70,7 +70,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 320,
+        "obstacleGap": 336,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -128,7 +128,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.08,
-        "obstacleGap": 310,
+        "obstacleGap": 326,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -185,7 +185,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.08,
-        "obstacleGap": 310,
+        "obstacleGap": 326,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -243,7 +243,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 260,
+        "obstacleGap": 273,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -307,7 +307,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.10,
-        "obstacleGap": 300,
+        "obstacleGap": 315,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -364,7 +364,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.10,
-        "obstacleGap": 290,
+        "obstacleGap": 305,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -421,7 +421,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.10,
-        "obstacleGap": 290,
+        "obstacleGap": 305,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -479,7 +479,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 280,
+        "obstacleGap": 294,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -536,7 +536,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 250,
+        "obstacleGap": 263,
         "obstacleFrequency": 2.1
       },
       "reward": {
