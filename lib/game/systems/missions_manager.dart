@@ -421,14 +421,10 @@ class MissionsManager extends ChangeNotifier {
     missions.add(_generateSmartPlayGamesMission(_playerStats!, MissionDifficulty.easy, now));
     usedMissionTypes.add(MissionType.playGames);
     
-    // Mission 2: Level-based mission (if player has story mode progress) or bonus collection
-    if (_playerStats!.highestLevelCompleted > 0) {
-      missions.add(_generateLevelMission(_playerStats!, MissionDifficulty.easy, now));
-      usedMissionTypes.add(MissionType.completeLevel);
-    } else {
-      missions.add(_generateBonusMission(_playerStats!, MissionDifficulty.easy, now));
-      usedMissionTypes.add(MissionType.collectBonuses);
-    }
+    // Mission 2: ALWAYS have a level-based mission (story mode progression)
+    // New players get "reach level 3", others get currentLevel + 3
+    missions.add(_generateLevelMission(_playerStats!, MissionDifficulty.easy, now));
+    usedMissionTypes.add(MissionType.completeLevel);
     
     // Mission 3: Streak mission (encourages consistency)
     missions.add(_generateStreakMission(_playerStats!, MissionDifficulty.medium, now));
@@ -477,10 +473,17 @@ class MissionsManager extends ChangeNotifier {
   }
 
   /// 🆕 Level-based mission - challenges player to progress in story mode
+  /// 
+  /// Target: currentLevel + 3 (where currentLevel = highestLevelCompleted + 1)
+  /// - New players (completed 0): target level 3 (achievable intro)
+  /// - Player at level 6: target level 9
+  /// - Max target: 30 (game max)
   Mission _generateLevelMission(PlayerStats stats, MissionDifficulty difficulty, DateTime createdAt) {
-    // Target is 1-3 levels ahead of current progress (achievable but challenging)
-    final currentLevel = stats.highestLevelCompleted;
-    final targetLevel = (currentLevel + 2).clamp(1, 30);
+    // Current level is next level to play
+    final currentLevel = stats.highestLevelCompleted + 1;
+    
+    // Target is current + 3, minimum 3 for new players, max 30
+    final targetLevel = (currentLevel + 3).clamp(3, 30);
     
     // Reward scales with level difficulty
     final reward = 100 + (targetLevel * 15);

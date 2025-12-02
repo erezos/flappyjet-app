@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flappy_jet_pro/game/systems/missions_manager.dart';
+import 'package:flappy_jet_pro/game/systems/lives_manager.dart';
 
 /// 🎯 SMART MISSION ADAPTATION TESTS
 /// 
@@ -14,6 +15,16 @@ import 'package:flappy_jet_pro/game/systems/missions_manager.dart';
 /// achievable but challenging missions based on their actual behavior.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  /// Helper to reset all managers before each test
+  Future<void> resetManagers() async {
+    // Reset MissionsManager singleton
+    MissionsManager().resetForTesting();
+    
+    // Reset LivesManager singleton and re-initialize with new prefs
+    await LivesManager().forceResetToNewPlayer();
+    await LivesManager().initialize();
+  }
 
   group('PlayerStats Smart Play Target', () {
     test('smartPlayTarget returns skill-based target for new players', () {
@@ -321,32 +332,28 @@ void main() {
 
   group('Duplicate Mission Prevention', () {
     test('Generated missions should have unique types', () async {
-      // Setup: Player with NO story mode progress (highestLevelCompleted = 0)
-      // This was the bug case: Mission 2 = collectBonuses, Mission 4 could also = collectBonuses
       SharedPreferences.setMockInitialValues({
-        'stats_best_score': 10,
-        'stats_best_streak': 3,
+        'lm_best_score': 10,
+        'lm_best_streak': 3,
         'stats_total_games': 20,
         'stats_total_continues': 5,
-        'stats_avg_score': 8,
+        'stats_total_score': 160,
         'stats_games_today': 0,
         'stats_games_yesterday': 5,
         'stats_avg_daily_games': 4,
-        'stats_highest_level_completed': 0, // KEY: No story progress!
-        'stats_total_levels_completed': 0,
-        'stats_total_bonuses_collected': 10,
+        'stats_highest_level': 0,
+        'stats_total_levels': 0,
+        'stats_total_bonuses': 10,
       });
 
+      await resetManagers();
       final manager = MissionsManager();
       await manager.initialize();
 
       final missions = manager.dailyMissions;
-
-      // Extract mission types
       final missionTypes = missions.map((m) => m.type).toList();
       final uniqueTypes = missionTypes.toSet();
 
-      // Verify all missions have unique types (no duplicates)
       expect(
         uniqueTypes.length, 
         equals(missionTypes.length),
@@ -355,31 +362,28 @@ void main() {
     });
 
     test('Generated missions should have unique types for story mode players', () async {
-      // Setup: Player with story mode progress
       SharedPreferences.setMockInitialValues({
-        'stats_best_score': 25,
-        'stats_best_streak': 8,
+        'lm_best_score': 25,
+        'lm_best_streak': 8,
         'stats_total_games': 50,
         'stats_total_continues': 10,
-        'stats_avg_score': 15,
+        'stats_total_score': 750,
         'stats_games_today': 0,
         'stats_games_yesterday': 6,
         'stats_avg_daily_games': 5,
-        'stats_highest_level_completed': 10, // Has story progress
-        'stats_total_levels_completed': 10,
-        'stats_total_bonuses_collected': 30,
+        'stats_highest_level': 10,
+        'stats_total_levels': 10,
+        'stats_total_bonuses': 30,
       });
 
+      await resetManagers();
       final manager = MissionsManager();
       await manager.initialize();
 
       final missions = manager.dailyMissions;
-
-      // Extract mission types
       final missionTypes = missions.map((m) => m.type).toList();
       final uniqueTypes = missionTypes.toSet();
 
-      // Verify all missions have unique types (no duplicates)
       expect(
         uniqueTypes.length, 
         equals(missionTypes.length),
@@ -388,22 +392,22 @@ void main() {
     });
 
     test('collectBonuses should not appear twice', () async {
-      // Run multiple times to catch randomness edge cases
       for (int i = 0; i < 10; i++) {
         SharedPreferences.setMockInitialValues({
-          'stats_best_score': 10,
-          'stats_best_streak': 3,
+          'lm_best_score': 10,
+          'lm_best_streak': 3,
           'stats_total_games': 20,
           'stats_total_continues': 5,
-          'stats_avg_score': 8,
+          'stats_total_score': 160,
           'stats_games_today': 0,
           'stats_games_yesterday': 5,
           'stats_avg_daily_games': 4,
-          'stats_highest_level_completed': 0, // No story progress - bug trigger
-          'stats_total_levels_completed': 0,
-          'stats_total_bonuses_collected': 10,
+          'stats_highest_level': 0,
+          'stats_total_levels': 0,
+          'stats_total_bonuses': 10,
         });
 
+        await resetManagers();
         final manager = MissionsManager();
         await manager.initialize();
 
@@ -415,6 +419,240 @@ void main() {
           lessThanOrEqualTo(1),
           reason: 'Should have at most 1 collectBonuses mission (iteration $i). Found: ${bonusMissions.length}',
         );
+      }
+    });
+  });
+
+  group('Required Mission Types', () {
+    test('MUST have exactly 1 playGames mission with minimum 3 games', () async {
+      SharedPreferences.setMockInitialValues({
+        'lm_best_score': 5,      // LivesManager key
+        'lm_best_streak': 2,     // LivesManager key
+        'stats_total_games': 10,
+        'stats_total_continues': 2,
+        'stats_total_score': 40,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 0,
+        'stats_avg_daily_games': 0,
+        'stats_highest_level': 0,    // Correct key
+        'stats_total_levels': 0,     // Correct key
+        'stats_total_bonuses': 5,    // Correct key
+      });
+
+      await resetManagers();
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final missions = manager.dailyMissions;
+      final playMissions = missions.where((m) => m.type == MissionType.playGames).toList();
+
+      // MUST have exactly 1 playGames mission
+      expect(playMissions.length, equals(1), reason: 'Must have exactly 1 playGames mission');
+      
+      // Minimum 3 games
+      expect(playMissions.first.target, greaterThanOrEqualTo(3), 
+        reason: 'playGames mission must require minimum 3 games');
+    });
+
+    test('playGames target adapts to high activity players', () async {
+      SharedPreferences.setMockInitialValues({
+        'lm_best_score': 50,
+        'lm_best_streak': 10,
+        'stats_total_games': 200,
+        'stats_total_continues': 20,
+        'stats_total_score': 7000,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 10, // High activity!
+        'stats_avg_daily_games': 8,
+        'stats_highest_level': 20,
+        'stats_total_levels': 20,
+        'stats_total_bonuses': 100,
+      });
+
+      await resetManagers();
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final missions = manager.dailyMissions;
+      final playMission = missions.firstWhere((m) => m.type == MissionType.playGames);
+
+      // High activity player should get higher target (10 * 1.1 = 11)
+      expect(playMission.target, greaterThanOrEqualTo(8), 
+        reason: 'High activity player should get higher play target');
+    });
+
+    test('playGames target range is 3-15', () async {
+      // Test beginner (min = 3)
+      SharedPreferences.setMockInitialValues({
+        'lm_best_score': 5,
+        'lm_best_streak': 1,
+        'stats_total_games': 2,
+        'stats_total_continues': 0,
+        'stats_total_score': 6,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 0,
+        'stats_avg_daily_games': 0,
+        'stats_highest_level': 0,
+        'stats_total_levels': 0,
+        'stats_total_bonuses': 0,
+      });
+
+      await resetManagers();
+      var manager = MissionsManager();
+      await manager.initialize();
+      var playMission = manager.dailyMissions.firstWhere((m) => m.type == MissionType.playGames);
+      
+      expect(playMission.target, greaterThanOrEqualTo(3), reason: 'Minimum should be 3');
+      expect(playMission.target, lessThanOrEqualTo(15), reason: 'Maximum should be 15');
+    });
+
+    test('MUST have exactly 1 completeLevel mission', () async {
+      SharedPreferences.setMockInitialValues({
+        'lm_best_score': 25,
+        'lm_best_streak': 5,
+        'stats_total_games': 50,
+        'stats_total_continues': 10,
+        'stats_total_score': 750,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 5,
+        'stats_avg_daily_games': 4,
+        'stats_highest_level': 5,
+        'stats_total_levels': 5,
+        'stats_total_bonuses': 20,
+      });
+
+      await resetManagers();
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final missions = manager.dailyMissions;
+      final levelMissions = missions.where((m) => m.type == MissionType.completeLevel).toList();
+
+      // MUST have exactly 1 completeLevel mission
+      expect(levelMissions.length, equals(1), reason: 'Must have exactly 1 completeLevel mission');
+    });
+
+    test('completeLevel target is currentLevel + 3 for story mode players', () async {
+      // Player completed level 5, so current level is 6
+      // Target should be 6 + 3 = 9
+      SharedPreferences.setMockInitialValues({
+        'lm_best_score': 25,
+        'lm_best_streak': 5,
+        'stats_total_games': 50,
+        'stats_total_continues': 10,
+        'stats_total_score': 750,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 5,
+        'stats_avg_daily_games': 4,
+        'stats_highest_level': 5,  // Completed level 5
+        'stats_total_levels': 5,
+        'stats_total_bonuses': 20,
+      });
+
+      await resetManagers();
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final levelMission = manager.dailyMissions.firstWhere((m) => m.type == MissionType.completeLevel);
+
+      // Current level is 6 (completed 5 + 1), target should be 6 + 3 = 9
+      expect(levelMission.target, equals(9), 
+        reason: 'Player at level 6 should get target 9 (current + 3)');
+    });
+
+    test('completeLevel target is 4 for new players (level 1 + 3)', () async {
+      // New player (completed 0), current level is 1
+      // Target = 1 + 3 = 4
+      SharedPreferences.setMockInitialValues({
+        'lm_best_score': 5,
+        'lm_best_streak': 1,
+        'stats_total_games': 2,
+        'stats_total_continues': 0,
+        'stats_total_score': 6,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 0,
+        'stats_avg_daily_games': 0,
+        'stats_highest_level': 0,  // New player!
+        'stats_total_levels': 0,
+        'stats_total_bonuses': 0,
+      });
+
+      await resetManagers();
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final levelMission = manager.dailyMissions.firstWhere((m) => m.type == MissionType.completeLevel);
+
+      // New player: current = 1, target = 1 + 3 = 4
+      expect(levelMission.target, equals(4), 
+        reason: 'New player should get target 4 (level 1 + 3)');
+      expect(levelMission.target, greaterThanOrEqualTo(3), 
+        reason: 'Level mission target should be minimum 3');
+    });
+
+    test('completeLevel target is capped at 30', () async {
+      // Player at high level (completed 28)
+      // Current = 29, target would be 32, but capped at 30
+      SharedPreferences.setMockInitialValues({
+        'lm_best_score': 100,
+        'lm_best_streak': 20,
+        'stats_total_games': 500,
+        'stats_total_continues': 50,
+        'stats_total_score': 30000,
+        'stats_games_today': 0,
+        'stats_games_yesterday': 10,
+        'stats_avg_daily_games': 8,
+        'stats_highest_level': 28,  // High level player
+        'stats_total_levels': 28,
+        'stats_total_bonuses': 200,
+      });
+
+      await resetManagers();
+      final manager = MissionsManager();
+      await manager.initialize();
+
+      final levelMission = manager.dailyMissions.firstWhere((m) => m.type == MissionType.completeLevel);
+
+      // Current = 29, target = 29 + 3 = 32, clamped to 30
+      expect(levelMission.target, equals(30), 
+        reason: 'Level mission target should be capped at 30');
+    });
+
+    test('Level mission formula examples', () async {
+      // Test multiple examples of the formula: target = (highestCompleted + 1) + 3
+      final testCases = [
+        {'completed': 0, 'expected': 4},   // Level 1 + 3 = 4
+        {'completed': 2, 'expected': 6},   // Level 3 + 3 = 6
+        {'completed': 5, 'expected': 9},   // Level 6 + 3 = 9
+        {'completed': 10, 'expected': 14}, // Level 11 + 3 = 14
+        {'completed': 20, 'expected': 24}, // Level 21 + 3 = 24
+        {'completed': 27, 'expected': 30}, // Level 28 + 3 = 31, capped to 30
+        {'completed': 30, 'expected': 30}, // Level 31 + 3 = 34, capped to 30
+      ];
+
+      for (final testCase in testCases) {
+        SharedPreferences.setMockInitialValues({
+          'lm_best_score': 50,
+          'lm_best_streak': 10,
+          'stats_total_games': 100,
+          'stats_total_continues': 10,
+          'stats_total_score': 3000,
+          'stats_games_today': 0,
+          'stats_games_yesterday': 5,
+          'stats_avg_daily_games': 4,
+          'stats_highest_level': testCase['completed'] as int,
+          'stats_total_levels': testCase['completed'] as int,
+          'stats_total_bonuses': 50,
+        });
+
+        await resetManagers();
+        final manager = MissionsManager();
+        await manager.initialize();
+
+        final levelMission = manager.dailyMissions.firstWhere((m) => m.type == MissionType.completeLevel);
+
+        expect(levelMission.target, equals(testCase['expected']), 
+          reason: 'Completed ${testCase['completed']} -> target should be ${testCase['expected']}');
       }
     });
   });
