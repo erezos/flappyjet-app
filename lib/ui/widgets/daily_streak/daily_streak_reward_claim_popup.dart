@@ -12,6 +12,7 @@ import '../popups/base_popup.dart';
 import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
 import '../gem_3d_icon.dart';
+import '../coin_3d_icon.dart';
 import '../../utils/responsive_config.dart';
 
 class DailyStreakRewardClaimPopup extends StatefulWidget {
@@ -200,6 +201,10 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
   /// Build appropriate header icon based on reward type
   Widget _buildHeaderIcon(double iconSize) {
     switch (widget.reward.type) {
+      case DailyStreakRewardType.coins:
+        // ✅ Use our consistent Coin3DIcon for coins
+        return Center(child: Coin3DIcon(size: iconSize * 1.2));
+      
       case DailyStreakRewardType.gems:
         // Use our custom Gem3DIcon for gems
         return Center(child: Gem3DIcon(size: iconSize * 1.2));
@@ -379,8 +384,10 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Reward icon - Use Gem3DIcon for gems, jet image for jets, regular icon for others
-            if (widget.reward.type == DailyStreakRewardType.gems)
+            // Reward icon - Use Coin3DIcon for coins, Gem3DIcon for gems, jet image for jets
+            if (widget.reward.type == DailyStreakRewardType.coins)
+              Coin3DIcon(size: iconSize) // ✅ Using consistent coin asset
+            else if (widget.reward.type == DailyStreakRewardType.gems)
               Gem3DIcon(size: iconSize)
             else if (widget.reward.type == DailyStreakRewardType.jetSkin)
               _buildJetSkinIcon(iconSize)
@@ -622,11 +629,11 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
     }
   }
 
-  /// Get reward-specific icon
+  /// Get reward-specific icon (fallback only - we use Coin3DIcon/Gem3DIcon for actual display)
   IconData _getRewardIcon() {
     switch (widget.reward.type) {
       case DailyStreakRewardType.coins:
-        return Icons.monetization_on;
+        return Icons.paid; // Fallback only - Coin3DIcon used in actual display
       case DailyStreakRewardType.gems:
         return Icons.diamond;
       case DailyStreakRewardType.heartBooster:

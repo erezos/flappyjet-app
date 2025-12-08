@@ -19,6 +19,7 @@ import '../../services/nickname_validation_service.dart';
 import '../../core/analytics/unified_analytics_manager.dart';
 // Removed inventory_manager import - not used directly
 import '../../core/identity/unified_id_manager.dart';
+import '../../core/identity/device_identity_manager.dart';
 import '../../core/events/event_bus.dart';
 // Removed railway_leaderboard_service import - consumers will initialize as needed
 
@@ -726,6 +727,14 @@ class PlayerIdentityManager extends ChangeNotifier {
       if (globalService.isInitialized &&
           globalService.playerName != _playerName) {
         await globalService.registerPlayer(playerName: _playerName);
+      }
+      
+      // 🔧 FIX: Also update DeviceIdentityManager for event tracking
+      // This ensures the nickname is included in all events sent to the backend
+      final deviceIdentity = DeviceIdentityManager();
+      if (deviceIdentity.isInitialized && deviceIdentity.nickname != _playerName) {
+        await deviceIdentity.setNickname(_playerName);
+        safePrint('🆔 ✅ DeviceIdentityManager nickname synced: $_playerName');
       }
     } catch (e) {
       safePrint('⚠️ Failed to sync to all systems: $e');

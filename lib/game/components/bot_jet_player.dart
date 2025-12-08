@@ -8,30 +8,21 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import '../../core/debug_logger.dart';
 import '../core/game_config.dart';
+import '../core/jet_skins.dart';
 import '../behaviors/gravity_behavior.dart';
 import '../behaviors/jump_behavior.dart';
 import '../flappy_game.dart'; // For FlappyGame type cast
 
-/// Map bot theme names to actual jet sprite files
-String _getBotJetSpriteFileName(String botJetSkin) {
-  // Direct mapping - bot skin IDs to actual asset file names
-  const botToSpriteMap = {
-    'police_patrol': 'police',
-    'green_lightning': 'green_lightning',
-    'desert_storm': 'desert_storm',
-    'sky_prince': 'sky_prince',
-    'stealth_fire': 'stealth_fire',
-    'molten_devastator': 'magma_fracture',
-    'storm_chaser': 'storm',
-    'diamond_storm': 'diamond_jet',
-    'stealth_dragon': 'stealth_dragon',
-    'lord_of_war': 'lord_of_war',
-    'blaze': 'blaze',
-    'storm': 'storm',
-    'stealth_bomber': 'stealth_bomber',
-  };
+/// Get the asset path for a bot jet skin using the JetSkinCatalog
+String _getBotJetAssetPath(String botJetSkin) {
+  // Use JetSkinCatalog as the source of truth for asset paths
+  final skin = JetSkinCatalog.getSkinById(botJetSkin);
+  if (skin != null) {
+    return skin.assetPath;
+  }
   
-  return botToSpriteMap[botJetSkin] ?? botJetSkin;  // Use skin name directly if not in map
+  // Fallback: Try constructing path from ID (for legacy compatibility)
+  return 'jets/$botJetSkin.png';
 }
 
 /// ✅ REFACTOR v1.7.0: Using HasGameReference instead of deprecated HasGameRef
@@ -64,6 +55,9 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   // Bot AI parameters - with human-like randomization
   double _timeSinceLastJump = 0;
   final Random _random = Random();
+  
+  // 📊 Log spam reduction - verbose "missed jump" logs removed entirely
+  // These logs were firing 50+ times per obstacle at high mistake rates
   
   // Visual parameters (slightly larger than player jet for better visibility)
   static const double botSize = 75.0; // Bigger than player jet (60)
@@ -121,15 +115,14 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   
   @override
   Future<void> onLoad() async {
-    // Load bot jet skin with proper mapping
-    final actualSkinName = _getBotJetSpriteFileName(skinId);
-    final skinPath = 'jets/$actualSkinName.png';
+    // Load bot jet skin using JetSkinCatalog for correct asset path
+    final skinPath = _getBotJetAssetPath(skinId);
     
     safePrint('🤖 Loading bot jet skin: $skinId -> $skinPath');
     
     try {
       sprite = await game.loadSprite(skinPath);
-      safePrint('🤖 ✅ Bot jet skin loaded successfully: $actualSkinName');
+      safePrint('🤖 ✅ Bot jet skin loaded successfully: $skinId');
     } catch (e) {
       safePrint('🤖 ❌ Failed to load bot skin: $e, using fallback');
       // Use sky_jet as final fallback
@@ -157,8 +150,8 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
       _jumpBehavior,
     ]);
     
-    safePrint('🤖 Bot jet loaded at position: $position');
-    safePrint('🤖 Bot parameters: skill=$skillLevel, reaction=${reactionTime}s, mistakes=$mistakeRate');
+    Logger.d('🤖 Bot jet loaded at position: $position');
+    safePrint('🤖 Bot initialized: skin=$skinId, skill=$skillLevel, reaction=${reactionTime}s, mistakes=$mistakeRate, minPass=$minObstaclesToPass');
   }
   
   @override
@@ -185,7 +178,7 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
           (game as FlappyGame).createBotGroundExplosion(groundPosition);
         }
         
-        safePrint('💥 Bot hit the ground! Creating explosion at ground level');
+        Logger.d('💥 Bot hit the ground! Creating explosion at ground level');
       }
       
       // Stop sinking when off-screen (performance optimization)
@@ -260,15 +253,12 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
           // Apply mistake rate: sometimes the bot fails to jump
           final jumpSuccess = _random.nextDouble() > currentMistakeRate;
           if (jumpSuccess) {
-            if (isInGuaranteePhase) {
-              safePrint('🤖 GUARANTEE JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px)');
-            } else {
-              safePrint('🤖 JUMP: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (below by ${(currentY - _targetY).toStringAsFixed(0)}px) [Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
-            }
+            // Per-jump logs removed - too verbose even for debug
             _jump();
             return;
           } else {
-            safePrint('🤖 MISTAKE: Missed jump (${(currentMistakeRate * 100).toStringAsFixed(0)}% rate)');
+            // 📊 Time-throttled logging to reduce spam (max once per 2 seconds)
+            // Missed jumps happen very frequently at high mistake rates - no need to log each one
           }
         }
       }
@@ -277,12 +267,11 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
       // If bot is falling and below target, jump immediately
       if (isInGuaranteePhase && velocity.y > 0 && currentY > _targetY) {
         if (_timeSinceLastJump >= (effectiveReactionTime * 0.5)) {
-          safePrint('🤖 GUARANTEE RECOVERY: Y=${currentY.toStringAsFixed(0)} → Target=${_targetY.toStringAsFixed(0)} (emergency)');
+          // Emergency recovery - log removed (too verbose)
           _jump();
           return;
         }
       }
-      // Removed spammy "coast down" and "in target zone" logs
       
     } else {
       // No obstacle found, maintain center height
@@ -294,7 +283,7 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     
     // Emergency: prevent hitting ground
     if (position.y > game.size.y - 100 && velocity.y > 0) {
-      safePrint('🤖 EMERGENCY: Near ground at Y=${position.y.toStringAsFixed(0)} - JUMP!');
+      // Emergency ground avoidance - log removed (too verbose)
       _jump();
     }
   }
@@ -305,9 +294,6 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     
     final flappyGame = game as FlappyGame;
     final obstacles = flappyGame.getObstacles();
-    
-    // Store previous state to detect changes
-    final hadObstacle = _nextObstacleGapY != null;
     
     // Find the closest obstacle ahead of us
     double? closestX;
@@ -336,12 +322,8 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     _nextObstacleX = closestX;
     _nextObstacleGapY = closestGapY;
     
-    // Only log when obstacle state changes (found new one or lost current one)
-    if (_nextObstacleGapY != null && !hadObstacle) {
-      safePrint('🤖 NEW TARGET: Gap at Y=${_nextObstacleGapY!.toStringAsFixed(0)}, dist=${(closestX! - position.x).toStringAsFixed(0)}px ahead');
-    } else if (_nextObstacleGapY == null && hadObstacle) {
-      safePrint('🤖 LOST TARGET: No obstacles ahead');
-    }
+    // Only log when obstacle state changes (found new one or lost current one) - DEBUG level
+    // NEW TARGET / LOST TARGET logs removed - too verbose
   }
   
   /// Make the bot jump
@@ -361,7 +343,7 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
   /// Increment bot score when it passes an obstacle
   void incrementScore() {
     if (!_isActive) {
-      safePrint('🤖 ⚠️ incrementScore() called but bot is inactive (score=$_score)');
+      Logger.w('🤖 incrementScore() called but bot is inactive (score=$_score)');
       return;
     }
     
@@ -372,18 +354,17 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
     final phase = _getCurrentPhase();
     final oldPhase = _getPhaseForScore(oldScore);
     
-    // Log phase transitions
+    // Log phase transitions (important - keep as safePrint)
     if (oldPhase != phase) {
       safePrint('🤖 🔄 PHASE TRANSITION: Score $_score → $phase (was: $oldPhase)');
       safePrint('🤖 📊 Current values: Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%');
     }
     
-    // ✅ NEW: Log skill/mistake rate transitions during minimum obstacle phase
+    // 📊 Reduced logging - only log milestones to reduce spam
+    // During guarantee phase: log every 3rd score
+    // After guarantee: log every 5th score or first 3
     if (minObstaclesToPass > 0 && _score <= minObstaclesToPass + 5) {
-      safePrint('🤖 SCORE: $_score/${minObstaclesToPass} [Phase=$phase, Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
-    } else if (_score % 5 == 0 || _score <= 3) {
-      // Only log milestone scores to reduce spam (after transition)
-      safePrint('🤖 SCORE: $_score [Phase=$phase, Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%]');
+      // Score logs removed - too verbose (only log at milestones via other systems)
     }
   }
   

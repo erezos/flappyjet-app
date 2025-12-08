@@ -5,6 +5,7 @@ import '../popups/base_popup.dart';
 import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
 import '../gem_3d_icon.dart';
+import '../coin_3d_icon.dart';
 import '../../utils/responsive_config.dart';
 
 /// Generic reward claim popup for Daily Missions and Achievements
@@ -209,18 +210,7 @@ class _RewardClaimPopupState extends State<RewardClaimPopup>
         if (hasCoins) ...[
           Column(
             children: [
-              Image.asset(
-                'assets/images/icons/coin_stack.png',
-                height: iconSize,
-                width: iconSize,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.monetization_on,
-                    size: iconSize,
-                    color: Colors.amber,
-                  );
-                },
-              ),
+              Coin3DIcon(size: iconSize), // ✅ Using consistent coin asset
               SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
               Text(
                 '+${widget.coinReward}',

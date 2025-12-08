@@ -254,24 +254,11 @@ class FlappyJetAudioManager {
 
   /// Play background music
   Future<void> playMusic(String musicFile, {double volume = 0.7}) async {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final stackTrace = StackTrace.current.toString().split('\n').take(5).join('\n');
-    
-    safePrint('🎵 🔍 MUSIC REQUEST: $musicFile at $timestamp');
-    safePrint('🎵 🔍 CURRENT STATE: _currentMusic=$_currentMusic, _musicPlaying=$_musicPlaying, _initialized=$_isInitialized');
-    safePrint('🎵 🔍 CALL STACK:\n$stackTrace');
-    
-    if (!_isInitialized || !_settings.shouldPlayMusic()) {
-      safePrint('🎵 🔍 REJECTED: initialized=$_isInitialized, musicEnabled=${_settings.shouldPlayMusic()}');
-      return;
-    }
+    if (!_isInitialized || !_settings.shouldPlayMusic()) return;
     
     try {
-      safePrint('🎵 🔍 PROCESSING: Playing music: $musicFile');
-      
       // Stop current music if different
       if (_currentMusic != musicFile && _musicPlaying) {
-        safePrint('🎵 🔍 STOPPING: Current music $_currentMusic before playing $musicFile');
         await stopMusic();
       }
       
@@ -281,13 +268,10 @@ class FlappyJetAudioManager {
       
       // Clean filename and play directly
       final trackId = musicFile.toLowerCase().replaceAll('.mp3', '').replaceAll('.wav', '');
-      safePrint('🎵 🔍 NATIVE CALL: About to call native playMusic with trackId=$trackId, volume=$volume');
       await _nativeAudio.playMusic(trackId, volume: volume, loop: true);
-      
-      safePrint('🎵 🔍 SUCCESS: Music started successfully - $musicFile');
     } catch (e) {
       _musicPlaying = false;
-      safePrint('🎵 🔍 ERROR: Music playback failed: $e');
+      safePrint('🎵 ERROR: Music playback failed: $e');
     }
   }
 
@@ -298,27 +282,15 @@ class FlappyJetAudioManager {
 
   /// Stop background music
   Future<void> stopMusic() async {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final stackTrace = StackTrace.current.toString().split('\n').take(5).join('\n');
-    
-    safePrint('🎵 🔍 STOP REQUEST: at $timestamp');
-    safePrint('🎵 🔍 STOP STATE: _currentMusic=$_currentMusic, _musicPlaying=$_musicPlaying');
-    safePrint('🎵 🔍 STOP STACK:\n$stackTrace');
-    
-    if (!_isInitialized) {
-      safePrint('🎵 🔍 STOP REJECTED: Not initialized');
-      return;
-    }
+    if (!_isInitialized) return;
     
     try {
-      safePrint('🎵 🔍 STOP NATIVE: Calling native stopMusic');
       await _nativeAudio.stopMusic();
       _musicPlaying = false;
       _musicPaused = false;
       _currentMusic = null;
-      safePrint('🎵 🔍 STOP SUCCESS: Music stopped');
     } catch (e) {
-      safePrint('🎵 🔍 STOP ERROR: Stop music failed: $e');
+      safePrint('🎵 ERROR: Stop music failed: $e');
     }
   }
 

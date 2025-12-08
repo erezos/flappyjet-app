@@ -2,7 +2,6 @@ import 'package:flame/components.dart';
 import 'package:flame/effects.dart'; // ✅ REFACTOR v1.7.0 Phase 3: Effect system for animations
 import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
-import '../../core/debug_logger.dart';
 
 /// Invisible score trigger zone for detecting when player passes obstacles
 /// ✅ REFACTOR v1.7.0: Uses Flame's collision system for score detection
@@ -32,15 +31,14 @@ class ScoreZone extends PositionComponent {
       anchor: Anchor.topLeft,
       collisionType: CollisionType.passive,
     ));
-    
-    safePrint('🎯 ScoreZone created at x=${position.x}, width=${size.x}, height=${size.y}');
+    // ScoreZone creation log removed - too verbose
   }
   
   /// Mark this zone as scored
   void markScored() {
     if (!_scored) {
       _scored = true;
-      safePrint('✅ ScoreZone marked as scored at x=${position.x}');
+      // ScoreZone scored log removed - too verbose
       
       // ✅ REFACTOR v1.7.0 Phase 3: Trigger celebration effects
       onScored();

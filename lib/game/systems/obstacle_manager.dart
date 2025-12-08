@@ -2,13 +2,17 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
+import '../../models/tournament_config.dart'; // 🎪 TOURNAMENT: ObstaclePattern
 import '../core/game_config.dart';
 import '../core/game_themes.dart';
 import '../components/dynamic_obstacle.dart';
+import '../components/obstacle_movement_config.dart'; // 🎪 TOURNAMENT: Moving obstacles
 import 'difficulty_system.dart';
 
 /// Manages obstacle spawning, updating, and cleanup
 /// Separated from FlappyGame for better testability and maintainability
+/// 
+/// 🎪 TOURNAMENT v2.3.0: Supports moving obstacle patterns
 class ObstacleManager {
   final List<DynamicObstacle> _obstacles = [];
   double _timeSinceLastObstacle = 0.0;
@@ -21,6 +25,9 @@ class ObstacleManager {
   double? storyModeObstacleGap;        // Gap size in pixels
   double? storyModeSpeedMultiplier;    // Speed multiplier
   double? storyModeMaxGapShift;        // Max vertical shift between gaps (pixels)
+  
+  // 🎪 TOURNAMENT: Pattern selector for moving obstacles
+  ObstaclePatternSelector? patternSelector;
   
   // 🎯 STORY MODE: Track previous gap center for smooth path generation
   double? _previousGapCenterY;
@@ -109,7 +116,10 @@ class ObstacleManager {
       gap = storyModeObstacleGap!;
       speed = DifficultySystem.getBaseObstacleSpeed() * storyModeSpeedMultiplier!;
       
-      safePrint('🎯 STORY MODE OBSTACLE: gap=${gap.toStringAsFixed(1)}, speed=${speed.toStringAsFixed(1)}, freq=${storyModeObstacleFrequency?.toStringAsFixed(2)}s');
+      // Verbose obstacle spawn log - only every 5th obstacle to reduce spam
+      if (score % 5 == 0) {
+        Logger.d('🎯 STORY MODE: gap=${gap.toStringAsFixed(0)}, speed=${speed.toStringAsFixed(0)}, score=$score');
+      }
     } else {
       // Endless mode: Use continuous difficulty curves + micro-variance + breathers/assist
       gap = DifficultySystem.getGapRatioContinuous(score) * screenH;
@@ -171,14 +181,14 @@ class ObstacleManager {
         gapY = minCenter + math.Random().nextDouble() * (maxCenter - minCenter);
       }
       
-      safePrint('🎯 PATH: prev=${prevCenter.toStringAsFixed(0)}, shift=${(gapY - prevCenter).toStringAsFixed(0)}, max=±${maxShift.toStringAsFixed(0)}');
+      // Path logs removed - too verbose even for debug mode
     } else if (storyModeMaxGapShift != null && _previousGapCenterY == null) {
       // First obstacle in constrained path: start in middle 60% of screen
       final safeMin = math.max(minCenterAllowed, gameSize.height * 0.2);
       final safeMax = math.min(maxCenterAllowed, gameSize.height * 0.8);
       gapY = safeMin + math.Random().nextDouble() * (safeMax - safeMin);
       
-      safePrint('🎯 PATH: first obstacle at ${gapY.toStringAsFixed(0)} (maxShift=${storyModeMaxGapShift!.toStringAsFixed(0)})');
+      // Path logs removed - too verbose even for debug mode
     } else {
       // Endless mode or no constraint: use fairness bands
       final bandMinRatio = score < 25 ? 0.35 : 0.25;
@@ -210,6 +220,10 @@ class ObstacleManager {
     // So position should be gapY - (gap / 2) to place anchor at gap top
     final gapTopY = gapY - (gap / 2);
     
+    // 🎪 TOURNAMENT: Get movement config from pattern selector if available
+    final movementConfig = patternSelector?.selectMovementConfig() 
+        ?? const ObstacleMovementConfig();
+    
     final obstacle = DynamicObstacle(
       position: Vector2(spawnX, gapTopY),
       theme: currentTheme,
@@ -217,14 +231,16 @@ class ObstacleManager {
       speed: speed,
       currentScore: score,
       storyModeObstacleAsset: storyModeObstacleAsset, // 🎯 STORY MODE: Pass story mode asset if set
+      movementConfig: movementConfig, // 🎪 TOURNAMENT: Pass movement config
     );
     obstacle.priority = 0; // FLAME PRIORITY: Obstacles render at base level (above background, below jet)
     
     _obstacles.add(obstacle);
 
-    // 🎯 DEBUG: Show difficulty progression
+    // 🎯 DEBUG: Show difficulty progression (with movement info)
+    final movementStr = movementConfig.hasMovement ? ', ${movementConfig.type.name}' : '';
     safePrint(
-      '🎯 OBSTACLE: Score $score → ${phase.name} (gap: ${gap.toStringAsFixed(1)}, speed: ${speed.toStringAsFixed(1)})',
+      '🎯 OBSTACLE: Score $score → ${phase.name} (gap: ${gap.toStringAsFixed(1)}, speed: ${speed.toStringAsFixed(1)}$movementStr)',
     );
     
     // 🎁 BONUS SYSTEM: Notify callback for bonus spawning opportunity
@@ -268,7 +284,30 @@ class ObstacleManager {
     _timeSinceLastObstacle = 0.0;
     _previousGapCenterY = null; // 🎯 Reset path tracking
     _isPaused = false; // 🛑 Reset pause state
+    patternSelector?.reset(); // 🎪 Reset pattern selector
     safePrint('🗑️ All obstacles cleared');
+  }
+  
+  /// 🎪 TOURNAMENT: Configure pattern selector from obstacle patterns
+  void configurePatterns(List<dynamic>? patterns) {
+    if (patterns == null || patterns.isEmpty) {
+      patternSelector = null;
+      safePrint('🎪 No obstacle patterns configured (static obstacles)');
+      return;
+    }
+    
+    // Convert to ObstaclePattern if coming from tournament config
+    final obstaclePatterns = patterns.map((p) {
+      if (p is ObstaclePattern) return p;
+      // Shouldn't happen but handle gracefully
+      return const ObstaclePattern(
+        type: ObstaclePatternType.static,
+        weight: 100,
+      );
+    }).toList();
+    
+    patternSelector = ObstaclePatternSelector(patterns: obstaclePatterns);
+    safePrint('🎪 Configured ${obstaclePatterns.length} obstacle patterns');
   }
 
   /// Get obstacle statistics for debugging

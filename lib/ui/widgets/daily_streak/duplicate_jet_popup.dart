@@ -9,6 +9,7 @@ import '../../../game/core/jet_skins.dart';
 import '../popups/base_popup.dart';
 import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
+import '../coin_3d_icon.dart';
 
 class DuplicateJetPopup extends StatefulWidget {
   final String jetSkinId;
@@ -277,10 +278,8 @@ class _DuplicateJetPopupState extends State<DuplicateJetPopup>
                   ),
                 ],
               ),
-              child: Icon(
-                Icons.monetization_on,
-                color: Colors.white,
-                size: isSmallScreen ? 20 : 22,
+              child: Coin3DIcon(
+                size: isSmallScreen ? 20 : 22, // ✅ Using consistent coin asset
               ),
             ),
             

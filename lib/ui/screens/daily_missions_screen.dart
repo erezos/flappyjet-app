@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
 import '../widgets/gem_3d_icon.dart';
+import '../widgets/coin_3d_icon.dart';
 import '../widgets/mission_achievement_icons.dart';
 import '../widgets/rewards/reward_claim_popup.dart';
 import '../widgets/rate_us_integration.dart';
@@ -1062,11 +1063,7 @@ class PremiumMissionCard extends StatelessWidget {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      Icons.monetization_on,
-                                      color: Colors.white,
-                                      size: iconSize,
-                                    ),
+                                    Coin3DIcon(size: iconSize),
                                     SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
                                     Text(
                                       '${mission.reward}',
@@ -1296,7 +1293,7 @@ class PremiumMissionCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
           shadowColor: const Color(0xFFffc107).withValues(alpha: 0.3),
-          icon: Icons.monetization_on,
+          icon: Icons.paid, // Changed from monetization_on - we use Coin3DIcon for display
           iconBackgroundColor: const Color(0xFFffc107),
         );
       case 'survivetime':
@@ -1569,9 +1566,7 @@ class PremiumAchievementCard extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.monetization_on,
-                                    color: Colors.white,
+                                  Coin3DIcon(
                                     size: isTablet
                                         ? 16
                                         : (isLargePhone ? 14 : 13),

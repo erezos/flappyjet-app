@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import '../../models/level_data_schema.dart';
 import '../../core/debug_logger.dart';
 import '../../core/repositories/level_progress_repository.dart';
+import '../../core/analytics/conversion_events_manager.dart';
 
 class LevelSystemManager extends ChangeNotifier {
   static final LevelSystemManager _instance = LevelSystemManager._internal();
@@ -505,6 +506,9 @@ class LevelSystemManager extends ChangeNotifier {
     
     await _saveProgress();
     notifyListeners();
+    
+    // 🎯 Track level completion for conversion events (non-blocking)
+    ConversionEventsManager().onLevelCompleted(levelId);
     
     safePrint('📖 ✅ Level $levelId completed! (+$coinsEarned 🪙, +$gemsEarned 💎)');
   }

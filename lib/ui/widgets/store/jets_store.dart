@@ -6,6 +6,7 @@ import '../../../game/core/jet_skins.dart';
 import '../../../game/core/economy_config.dart';
 import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
+import '../coin_3d_icon.dart';
 
 class JetsStore extends StatelessWidget {
   final InventoryManager inventory;
@@ -358,9 +359,7 @@ class ModernJetCard extends StatelessWidget {
                         size: isTablet ? 14 : 12,
                         // No primaryColor to match navigation bar appearance
                       )
-                    : Icon(
-                        Icons.monetization_on,
-                        color: Colors.white,
+                    : Coin3DIcon(
                         size: isTablet ? 14 : 12,
                       ),
                 SizedBox(width: isTablet ? 4 : 2),

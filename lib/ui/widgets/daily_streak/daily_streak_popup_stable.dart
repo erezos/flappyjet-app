@@ -5,6 +5,7 @@ import '../../../game/systems/daily_streak_manager.dart';
 import '../../../game/core/jet_skins.dart';
 import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
+import '../coin_3d_icon.dart';
 import 'daily_streak_reward_claim_popup.dart';
 import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
@@ -409,22 +410,10 @@ class _DailyStreakPopupStableState extends State<DailyStreakPopupStable>
     
     switch (reward.type) {
       case DailyStreakRewardType.coins:
-        // Use coin icon like in store
-        return Icon(
-          Icons.monetization_on,
-          size: iconSize,
-          color: isLocked 
-              ? const Color(0xFFFFD700).withValues(alpha: 0.4)
-              : isClaimed 
-                  ? const Color(0xFFFFD700).withValues(alpha: 0.7)
-                  : const Color(0xFFFFD700),
-          shadows: [
-            Shadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              offset: const Offset(1, 1),
-              blurRadius: 2,
-            ),
-          ],
+        // Use coin icon like in store - wrapped with opacity for states
+        return Opacity(
+          opacity: isLocked ? 0.4 : isClaimed ? 0.7 : 1.0,
+          child: Coin3DIcon(size: iconSize), // ✅ Using consistent coin asset
         );
         
       case DailyStreakRewardType.gems:

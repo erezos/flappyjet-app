@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../game/core/economy_config.dart';
 import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
+import '../coin_3d_icon.dart';
 import '../../utils/responsive_config.dart';
 
 class CoinsStore extends StatelessWidget {
@@ -175,13 +176,15 @@ class ModernCoinPackCard extends StatelessWidget {
                           maxScale: 1.2,
                         ).clamp(35.0, 50.0),
                         child: Center(
-                          child: Icon(
-                            Icons.monetization_on,
-                            size: iconSize,
-                            color: canAfford
-                                ? const Color(0xFFFFD700)
-                                : Colors.grey.shade300,
-                          ),
+                          child: canAfford
+                              ? Coin3DIcon(size: iconSize)
+                              : ColorFiltered(
+                                  colorFilter: const ColorFilter.mode(
+                                    Colors.grey,
+                                    BlendMode.saturation,
+                                  ),
+                                  child: Coin3DIcon(size: iconSize),
+                                ),
                         ),
                       ),
 

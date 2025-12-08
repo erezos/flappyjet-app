@@ -64,20 +64,16 @@ class DailyStreakButton extends StatelessWidget {
     // ✅ BEST PRACTICE: Percentage-based responsive sizing (works on ALL devices)
     final screenWidth = MediaQuery.of(context).size.width;
     
-    // Use percentage of screen width with min/max constraints for safety
-    final iconSize = (screenWidth * 0.065).clamp(22.0, 36.0);        // 6.5% of width, 22-36px range
+    // BIGGER icon without box - increased from 6.5% to 9% of screen width
+    final iconSize = (screenWidth * 0.09).clamp(32.0, 48.0);        // 9% of width, 32-48px range
     final fontSize = (screenWidth * 0.04).clamp(12.0, 18.0);         // 4% of width, 12-18px range
-    final padding = (screenWidth * 0.035).clamp(10.0, 18.0);         // 3.5% of width, 10-18px range
-    final verticalPadding = (screenWidth * 0.022).clamp(6.0, 12.0);  // 2.2% of width, 6-12px range
-    final borderRadius = (iconSize * 0.7).clamp(16.0, 24.0);         // Proportional to icon size
-    final spacing = (iconSize * 0.25).clamp(4.0, 9.0);               // 25% of icon size
+    final spacing = (iconSize * 0.2).clamp(4.0, 8.0);                // 20% of icon size
     
     return ListenableBuilder(
       listenable: DailyStreakIntegration.streakManager,
       builder: (context, child) {
         final hasNotification = DailyStreakIntegration.hasNotification;
         final currentStreak = DailyStreakIntegration.streakManager.currentStreak;
-        final borderWidth = hasNotification ? (iconSize / 12).clamp(2.0, 3.0) : 1.0;  // Proportional to icon
         
         // Hide if no streak and no notification
         if (!hasNotification && currentStreak == 0) {
@@ -87,7 +83,7 @@ class DailyStreakButton extends StatelessWidget {
         return Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(borderRadius),
+            borderRadius: BorderRadius.circular(iconSize / 2),
             onTap: () {
               if (onTap != null) {
                 onTap!();
@@ -95,56 +91,30 @@ class DailyStreakButton extends StatelessWidget {
                 _showDailyStreakPopup(context);
               }
             },
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: padding, vertical: verticalPadding),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: hasNotification
-                      ? [
-                          Colors.amber.withValues(alpha: 0.3),
-                          Colors.orange.withValues(alpha: 0.2),
-                        ]
-                      : [
-                          Colors.blue.withValues(alpha: 0.2),
-                          Colors.blue.withValues(alpha: 0.1),
-                        ],
-                ),
-                borderRadius: BorderRadius.circular(borderRadius),
-                border: Border.all(
-                  color: hasNotification
-                      ? Colors.amber.withValues(alpha: 0.8)
-                      : Colors.blue.withValues(alpha: 0.5),
-                  width: borderWidth,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: hasNotification
-                        ? Colors.amber.withValues(alpha: 0.4)
-                        : Colors.blue.withValues(alpha: 0.2),
-                    blurRadius: hasNotification ? (iconSize / 3).clamp(6.0, 12.0) : 4,  // Proportional glow
-                    spreadRadius: hasNotification ? 1 : 0,
-                  ),
-                ],
-              ),
+            // No container/box - just the icon with optional streak count
+            child: Padding(
+              padding: const EdgeInsets.all(4), // Small tap padding
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Stack(
+                    clipBehavior: Clip.none,
                     children: [
+                      // Calendar icon - now BIGGER without box around it
                       Image.asset(
                         'assets/images/icons/calendar.png',
                         width: iconSize,
                         height: iconSize,
                       ),
-                      // ✅ UPDATED: Replaced red dot with "1" badge (gaming standard)
+                      // ✅ Notification badge with "1" (gaming standard)
                       if (hasNotification)
                         Positioned(
-                          top: -4,
-                          right: -4,
+                          top: -6,
+                          right: -6,
                           child: Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: (iconSize * 0.2).clamp(4.0, 7.0),  // 20% of icon
-                              vertical: (iconSize * 0.1).clamp(2.0, 4.0),    // 10% of icon
+                              horizontal: (iconSize * 0.18).clamp(5.0, 8.0),
+                              vertical: (iconSize * 0.08).clamp(2.0, 4.0),
                             ),
                             decoration: BoxDecoration(
                               color: Colors.red,
@@ -165,7 +135,7 @@ class DailyStreakButton extends StatelessWidget {
                               '1',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: (iconSize * 0.38).clamp(9.0, 13.0),  // 38% of icon size
+                                fontSize: (iconSize * 0.32).clamp(10.0, 14.0),
                                 fontWeight: FontWeight.bold,
                                 height: 1.0,
                               ),
@@ -179,9 +149,16 @@ class DailyStreakButton extends StatelessWidget {
                     Text(
                       '$currentStreak',
                       style: TextStyle(
-                        color: hasNotification ? Colors.amber : Colors.white70,
+                        color: hasNotification ? Colors.amber : Colors.white,
                         fontSize: fontSize,
                         fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.5),
+                            offset: const Offset(1, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
                       ),
                     ),
                   ],

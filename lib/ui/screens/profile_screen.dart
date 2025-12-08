@@ -14,6 +14,7 @@ import '../../game/core/economy_config.dart';
 import '../widgets/profile/profile_component_system.dart';
 import '../../game/systems/audio_settings_manager.dart';
 import '../widgets/gem_3d_icon.dart';
+import '../widgets/coin_3d_icon.dart';
 import '../widgets/settings_toggle_buttons.dart';
 import '../widgets/notification_analytics_dashboard.dart';
 import '../widgets/daily_streak/daily_streak_test_widget.dart';
@@ -577,7 +578,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text('Purchase ${skin.displayName}?'),
           content: Row(
             children: [
-              const Icon(Icons.monetization_on, color: Color(0xFFFFD700)),
+              const Coin3DIcon(size: 24), // ✅ Using consistent coin asset
               const SizedBox(width: 8),
               Text('$price coins'),
             ],

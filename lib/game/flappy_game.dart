@@ -27,9 +27,9 @@ import 'systems/inventory_manager.dart';
 import 'systems/missions_manager.dart';
 import 'systems/game_events_tracker.dart';
 import 'core/jet_skins.dart';
-import '../services/tournament_service.dart';
+// Tournament service removed - new tournament system coming in Phase 2
 import 'systems/firebase_analytics_manager.dart';
-import 'systems/player_identity_manager.dart';
+// PlayerIdentityManager import removed - was only used for old tournament system
 
 // Extracted modules
 import 'systems/game_state_manager.dart';
@@ -1020,8 +1020,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       }
     }();
 
-    // 🏆 Submit score to tournament system
-    _submitTournamentScore();
+    // 🏆 Tournament score submission removed - new system coming in Phase 2
 
     // Save best scores (only if they're actually new records)
     // Note: saveBestScore and saveBestStreak check internally if it's a new record
@@ -1063,75 +1062,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     );
   }
 
-  /// Submit score to tournament system
-  void _submitTournamentScore() {
-    () async {
-      try {
-        final tournamentService = TournamentService(
-          baseUrl: 'https://flappyjet-backend-production.up.railway.app',
-        );
-
-        final playerIdentity = PlayerIdentityManager();
-
-        if (!playerIdentity.isInitialized) {
-          await playerIdentity.initialize();
-        }
-
-        final currentTournamentResult = await tournamentService.getCurrentTournament();
-
-        if (currentTournamentResult.isSuccess && currentTournamentResult.data != null) {
-          final tournament = currentTournamentResult.data!;
-
-          if (tournament.isActive) {
-            final gameData = {
-              'survivalTime': (DateTime.now().millisecondsSinceEpoch - _gameStateManager.gameStartTime) ~/ 1000,
-              'theme': _gameStateManager.currentTheme.displayName,
-              'jetSkin': _jet.currentSkin.assetPath,
-              'coinsEarned': _gameStateManager.score,
-              'continuesUsed': _gameStateManager.continuesUsedThisRun,
-              'sessionLength': (DateTime.now().millisecondsSinceEpoch - _gameStateManager.gameStartTime) ~/ 1000,
-              'gameVersion': playerIdentity.appVersion,
-              'platform': 'mobile',
-              'livesUsed': _gameStateManager.continuesUsedThisRun,
-              'scoreMultiplier': 1.0,
-              'deviceId': playerIdentity.deviceId,
-            };
-
-            final authToken = playerIdentity.authToken;
-            if (authToken.isEmpty) {
-              safePrint('⚠️ No valid auth token available for tournament submission');
-              return;
-            }
-
-            // Auth token and player ID are no longer needed for InventoryManager
-            // (Prize distribution will be handled differently in Phase 4)
-
-            final sessionResult = await tournamentService.handleTournamentSession(
-                  tournamentId: tournament.id,
-                  action: 'submit_score',
-              score: _gameStateManager.score,
-                  gameData: gameData,
-                );
-
-            if (sessionResult.isSuccess && sessionResult.data != null) {
-              final data = sessionResult.data!;
-              safePrint('🏆 Tournament session completed: ${data.tournament.name}');
-              safePrint('🎯 Player rank: ${data.player.rank}, Best score: ${data.player.bestScore}');
-            } else {
-              safePrint('⚠️ Failed to submit tournament score: ${sessionResult.error}');
-            }
-          } else {
-            safePrint('ℹ️ No active tournament for score submission (Status: ${tournament.status})');
-          }
-        } else {
-          safePrint('ℹ️ No current tournament available');
-        }
-      } catch (e, stackTrace) {
-        safePrint('⚠️ Failed to submit score to tournament: $e');
-        safePrint('Stack trace: $stackTrace');
-      }
-    }();
-  }
+  // _submitTournamentScore removed - new tournament system coming in Phase 2
 
   /// Check for theme transitions
   Future<void> _checkThemeTransition() async {

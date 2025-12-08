@@ -25,8 +25,10 @@ import '../../integrations/ftue_integration.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 import '../widgets/floating_missions_banner.dart';
 import '../widgets/floating_store_banner.dart';
+import '../widgets/floating_tournaments_banner.dart';
 import '../widgets/store_bottom_sheet.dart';
 import 'daily_missions_screen.dart';
+import 'home_navigator_screen.dart';
 
 class WorldMapScreen extends StatefulWidget {
   /// ✅ NEW: Parameters for jet animation flow
@@ -527,6 +529,13 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           top: MediaQuery.of(context).padding.top + 8,
           child: _buildFloatingBannersColumn(context),
         ),
+        
+        // 🏆 Tournament Banner (top-right corner, aligned with missions banner)
+        Positioned(
+          right: 16,
+          top: MediaQuery.of(context).padding.top + 8,
+          child: _buildTournamentBanner(context),
+        ),
       ],
     );
   }
@@ -563,6 +572,32 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           size: bannerSize,
         ),
       ],
+    );
+  }
+  
+  /// Build tournament banner (top-right, bigger for visibility)
+  Widget _buildTournamentBanner(BuildContext context) {
+    const double bannerSize = 100; // Bigger than missions/store for prominence
+    
+    return FloatingTournamentsBanner(
+      onTap: _showTournamentsScreen,
+      size: bannerSize,
+    );
+  }
+  
+  /// Navigate to tournaments tab when banner is tapped
+  void _showTournamentsScreen() {
+    // Navigate to HomeNavigatorScreen with tournaments tab selected (index 1)
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => HomeNavigatorScreen(
+          firebaseEnabled: true,
+          monetization: MonetizationManager(),
+          missions: MissionsManager(),
+          achievements: AchievementsManager(),
+          initialTabIndex: 1, // Tournaments tab
+        ),
+      ),
     );
   }
   

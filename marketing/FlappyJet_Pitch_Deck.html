@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlappyJet Pro - Investor Pitch Deck</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0a0a1a;
+            color: #ffffff;
+        }
+        
+        .slide {
+            width: 100%;
+            min-height: 100vh;
+            padding: 60px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            page-break-after: always;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Slide 1 - Title */
+        .slide-title {
+            background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 50%, #0d1b2a 100%);
+            text-align: center;
+        }
+        
+        .logo-container {
+            margin-bottom: 40px;
+        }
+        
+        .logo-emoji {
+            font-size: 120px;
+            display: block;
+            margin-bottom: 20px;
+        }
+        
+        .game-title {
+            font-size: 72px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00D4FF 0%, #00E5FF 50%, #00B8D4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 60px rgba(0, 212, 255, 0.3);
+            margin-bottom: 20px;
+        }
+        
+        .tagline {
+            font-size: 28px;
+            color: #FFD700;
+            font-weight: 600;
+            letter-spacing: 3px;
+            margin-bottom: 60px;
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #8b9dc3;
+            font-weight: 300;
+        }
+        
+        .version-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #00D4FF, #00B8D4);
+            color: #000;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-weight: 700;
+            margin-top: 40px;
+        }
+        
+        /* Slide 2 - Problem */
+        .slide-problem {
+            background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%);
+        }
+        
+        .slide-header {
+            font-size: 14px;
+            color: #00D4FF;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        h2 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 50px;
+        }
+        
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+        
+        .problem-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .problem-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .problem-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #FF6B6B;
+        }
+        
+        .problem-desc {
+            font-size: 16px;
+            color: #a0a0c0;
+            line-height: 1.6;
+        }
+        
+        /* Slide 3 - Solution */
+        .slide-solution {
+            background: linear-gradient(135deg, #0a2818 0%, #1a4028 100%);
+        }
+        
+        .solution-title {
+            color: #00E676;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        
+        .feature-card {
+            background: rgba(0, 230, 118, 0.1);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        
+        .feature-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+        }
+        
+        .feature-content h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #00E676;
+        }
+        
+        .feature-content p {
+            font-size: 14px;
+            color: #a0c0b0;
+            line-height: 1.5;
+        }
+        
+        /* Slide 4 - Market */
+        .slide-market {
+            background: linear-gradient(135deg, #2a1a0a 0%, #4a3020 100%);
+        }
+        
+        .market-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-bottom: 50px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 200, 0, 0.1));
+            border: 2px solid rgba(255, 165, 0, 0.4);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 56px;
+            font-weight: 900;
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 16px;
+            color: #d4a574;
+            font-weight: 500;
+        }
+        
+        .market-insight {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .market-insight p {
+            font-size: 18px;
+            color: #c0a080;
+            line-height: 1.6;
+        }
+        
+        /* Slide 5 - Product */
+        .slide-product {
+            background: linear-gradient(135deg, #0a1628 0%, #162544 100%);
+        }
+        
+        .product-showcase {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        .product-visual {
+            text-align: center;
+        }
+        
+        .phone-mockup {
+            font-size: 200px;
+        }
+        
+        .product-features {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .product-feature {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .product-feature .check {
+            font-size: 24px;
+        }
+        
+        .product-feature span {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        /* Slide 6 - Business Model */
+        .slide-business {
+            background: linear-gradient(135deg, #1a0a28 0%, #2a1a3a 100%);
+        }
+        
+        .revenue-streams {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .revenue-card {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.1));
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            border-radius: 20px;
+            padding: 35px;
+            text-align: center;
+        }
+        
+        .revenue-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        
+        .revenue-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #DDA0DD;
+            margin-bottom: 10px;
+        }
+        
+        .revenue-desc {
+            font-size: 14px;
+            color: #a080c0;
+            line-height: 1.5;
+        }
+        
+        .revenue-percent {
+            font-size: 28px;
+            font-weight: 800;
+            color: #9370DB;
+            margin-top: 15px;
+        }
+        
+        /* Slide 7 - Traction */
+        .slide-traction {
+            background: linear-gradient(135deg, #0a2028 0%, #1a3040 100%);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .metric-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 42px;
+            font-weight: 900;
+            color: #00D4FF;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #80b0c0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .milestone-timeline {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            padding-top: 40px;
+        }
+        
+        .milestone-timeline::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00D4FF, #00E676);
+            border-radius: 2px;
+        }
+        
+        .milestone {
+            text-align: center;
+            position: relative;
+        }
+        
+        .milestone::before {
+            content: '✓';
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 24px;
+            background: #00E676;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .milestone h4 {
+            font-size: 14px;
+            color: #00D4FF;
+            margin-bottom: 5px;
+        }
+        
+        .milestone p {
+            font-size: 12px;
+            color: #80a0b0;
+        }
+        
+        /* Slide 8 - Team */
+        .slide-team {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%);
+        }
+        
+        .team-intro {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .team-intro p {
+            font-size: 20px;
+            color: #a0a0c0;
+        }
+        
+        .tech-stack {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+        
+        .tech-badge {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 25px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        /* Slide 9 - The Ask */
+        .slide-ask {
+            background: linear-gradient(135deg, #0a1a28 0%, #1a2a48 100%);
+            text-align: center;
+        }
+        
+        .ask-amount {
+            font-size: 80px;
+            font-weight: 900;
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+        
+        .ask-purpose {
+            font-size: 24px;
+            color: #c0c0e0;
+            margin-bottom: 60px;
+        }
+        
+        .use-of-funds {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+        }
+        
+        .fund-item {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+        }
+        
+        .fund-percent {
+            font-size: 36px;
+            font-weight: 800;
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+        
+        .fund-label {
+            font-size: 14px;
+            color: #c0a080;
+        }
+        
+        /* Slide 10 - Contact */
+        .slide-contact {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+            text-align: center;
+        }
+        
+        .contact-emoji {
+            font-size: 100px;
+            margin-bottom: 30px;
+        }
+        
+        .contact-title {
+            font-size: 56px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 40px;
+        }
+        
+        .contact-info {
+            font-size: 24px;
+            color: #c0c0e0;
+            margin-bottom: 60px;
+        }
+        
+        .store-badges {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+        
+        .store-badge {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px 40px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        .slide-footer {
+            position: absolute;
+            bottom: 30px;
+            left: 80px;
+            right: 80px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Print styles */
+        @media print {
+            .slide {
+                page-break-after: always;
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<div class="slide slide-title">
+    <div class="logo-container">
+        <span class="logo-emoji">🚀</span>
+    </div>
+    <h1 class="game-title">FLAPPYJET PRO</h1>
+    <p class="tagline">THE BLOCKBUSTER MOBILE ARCADE ADVENTURE</p>
+    <p class="subtitle">Where Endless Runner Meets Story-Driven Gaming</p>
+    <span class="version-badge">v2.2.5 • Live on App Store & Google Play</span>
+    <div class="slide-footer">
+        <span>CONFIDENTIAL</span>
+        <span>2024 Investor Pitch Deck</span>
+    </div>
+</div>
+
+<!-- SLIDE 2: Problem -->
+<div class="slide slide-problem">
+    <span class="slide-header">THE PROBLEM</span>
+    <h2>The Mobile Gaming Market is Saturated with Low-Quality Clones</h2>
+    
+    <div class="problem-grid">
+        <div class="problem-card">
+            <div class="problem-icon">😴</div>
+            <h3 class="problem-title">Repetitive Gameplay</h3>
+            <p class="problem-desc">90% of casual games offer no progression, story, or meaningful goals - just endless repetition.</p>
+        </div>
+        <div class="problem-card">
+            <div class="problem-icon">💸</div>
+            <h3 class="problem-title">Aggressive Monetization</h3>
+            <p class="problem-desc">Pay-to-win mechanics frustrate players and lead to 1-star reviews and high churn rates.</p>
+        </div>
+        <div class="problem-card">
+            <div class="problem-icon">📉</div>
+            <h3 class="problem-title">Poor Retention</h3>
+            <p class="problem-desc">Average Day 1 retention for hyper-casual games is only 25-30%. No reason to return.</p>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>2 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 3: Solution -->
+<div class="slide slide-solution">
+    <span class="slide-header">OUR SOLUTION</span>
+    <h2 class="solution-title">A Premium Arcade Adventure with AAA Polish</h2>
+    
+    <div class="feature-grid">
+        <div class="feature-card">
+            <span class="feature-icon">🎮</span>
+            <div class="feature-content">
+                <h3>50 Handcrafted Levels</h3>
+                <p>Story-driven campaign across 5 unique themed zones with increasing challenge and visual variety.</p>
+            </div>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">🤖</span>
+            <div class="feature-content">
+                <h3>10 AI Boss Battles</h3>
+                <p>Epic 1v1 confrontations with unique AI opponents. Not just obstacles - real competition!</p>
+            </div>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">🏆</span>
+            <div class="feature-content">
+                <h3>Tournament System</h3>
+                <p>Weekly global competitions with playoff brackets, prizes, and leaderboards.</p>
+            </div>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">📊</span>
+            <div class="feature-content">
+                <h3>35 Achievements + Daily Missions</h3>
+                <p>Progressive unlock system that keeps players engaged for months, not minutes.</p>
+            </div>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">✈️</span>
+            <div class="feature-content">
+                <h3>30+ Collectible Jet Skins</h3>
+                <p>From Common to Mythic rarity. Cosmetic customization drives engagement and monetization.</p>
+            </div>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">🔥</span>
+            <div class="feature-content">
+                <h3>Daily Streak System</h3>
+                <p>7-day reward cycles with escalating prizes. Proven retention mechanic from top games.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>3 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 4: Market Opportunity -->
+<div class="slide slide-market">
+    <span class="slide-header">MARKET OPPORTUNITY</span>
+    <h2>The $93B Mobile Gaming Market Demands Quality</h2>
+    
+    <div class="market-stats">
+        <div class="stat-card">
+            <div class="stat-value">$93B</div>
+            <div class="stat-label">Mobile Gaming Revenue 2024</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">3.2B</div>
+            <div class="stat-label">Mobile Gamers Worldwide</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">52%</div>
+            <div class="stat-label">Of Total Gaming Revenue</div>
+        </div>
+    </div>
+    
+    <div class="market-insight">
+        <p>🎯 <strong>Our Target:</strong> Casual gamers aged 18-35 who want more than endless runners but less commitment than RPGs. The "5-minute break" segment that plays 3-5x daily.</p>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>4 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 5: Product -->
+<div class="slide slide-product">
+    <span class="slide-header">THE PRODUCT</span>
+    <h2>Built with Flame Engine & Flutter for Cross-Platform Excellence</h2>
+    
+    <div class="product-showcase">
+        <div class="product-visual">
+            <div class="phone-mockup">📱</div>
+            <p style="color: #80a0c0; margin-top: 20px;">iOS & Android Native Performance</p>
+        </div>
+        <div class="product-features">
+            <div class="product-feature">
+                <span class="check">✅</span>
+                <span>2 Game Modes: Story Campaign + Endless Classic</span>
+            </div>
+            <div class="product-feature">
+                <span class="check">✅</span>
+                <span>50 Levels Across 5 Themed Zones</span>
+            </div>
+            <div class="product-feature">
+                <span class="check">✅</span>
+                <span>10 Unique AI Boss Opponents</span>
+            </div>
+            <div class="product-feature">
+                <span class="check">✅</span>
+                <span>30+ Collectible Jet Skins (5 Rarity Tiers)</span>
+            </div>
+            <div class="product-feature">
+                <span class="check">✅</span>
+                <span>Weekly Tournaments with Global Leaderboards</span>
+            </div>
+            <div class="product-feature">
+                <span class="check">✅</span>
+                <span>Push Notifications & Analytics Backend</span>
+            </div>
+            <div class="product-feature">
+                <span class="check">✅</span>
+                <span>15,000+ Lines of Custom Code (No Templates)</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>5 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 6: Business Model -->
+<div class="slide slide-business">
+    <span class="slide-header">BUSINESS MODEL</span>
+    <h2>Dual-Currency Economy with Ethical Monetization</h2>
+    
+    <div class="revenue-streams">
+        <div class="revenue-card">
+            <div class="revenue-icon">💎</div>
+            <h3 class="revenue-name">Gem Purchases (IAP)</h3>
+            <p class="revenue-desc">Premium hard currency for Mythic jet skins, heart boosters, and coin packs. $0.99-$49.99 tiers.</p>
+            <div class="revenue-percent">45%</div>
+        </div>
+        <div class="revenue-card">
+            <div class="revenue-icon">📺</div>
+            <h3 class="revenue-name">Rewarded Video Ads</h3>
+            <p class="revenue-desc">Opt-in ads for extra lives, double rewards, and continues. Unity Ads + AdMob Mediation.</p>
+            <div class="revenue-percent">35%</div>
+        </div>
+        <div class="revenue-card">
+            <div class="revenue-icon">🎫</div>
+            <h3 class="revenue-name">Tournament Entry Fees</h3>
+            <p class="revenue-desc">Coin-based entry with gem-boosted rewards. Creates competitive sink for soft currency.</p>
+            <div class="revenue-percent">20%</div>
+        </div>
+    </div>
+    
+    <div class="market-insight">
+        <p>💡 <strong>Key Insight:</strong> We monetize cosmetics and convenience, NOT power. Players never feel forced to pay - they WANT to collect skins and compete.</p>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>6 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 7: Traction -->
+<div class="slide slide-traction">
+    <span class="slide-header">TRACTION</span>
+    <h2>Live Product with Real Users and Growing Metrics</h2>
+    
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-value">2.2.5</div>
+            <div class="metric-label">Current Version</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">240+</div>
+            <div class="metric-label">Daily Active Users</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">4.5★</div>
+            <div class="metric-label">App Store Rating</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">131MB</div>
+            <div class="metric-label">App Size (Premium Feel)</div>
+        </div>
+    </div>
+    
+    <div class="milestone-timeline">
+        <div class="milestone">
+            <h4>v1.0</h4>
+            <p>MVP Launch</p>
+        </div>
+        <div class="milestone">
+            <h4>v1.5</h4>
+            <p>Story Mode</p>
+        </div>
+        <div class="milestone">
+            <h4>v2.0</h4>
+            <p>Boss Battles</p>
+        </div>
+        <div class="milestone">
+            <h4>v2.1</h4>
+            <p>Tournaments</p>
+        </div>
+        <div class="milestone">
+            <h4>v2.2</h4>
+            <p>Push Notifications</p>
+        </div>
+        <div class="milestone">
+            <h4>v3.0</h4>
+            <p>Multiplayer (Q1 2025)</p>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>7 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 8: Tech Stack -->
+<div class="slide slide-team">
+    <span class="slide-header">TECHNOLOGY</span>
+    <h2>Modern Tech Stack Built for Scale</h2>
+    
+    <div class="team-intro">
+        <p>Built with industry-leading technologies and best practices</p>
+    </div>
+    
+    <div class="tech-stack">
+        <span class="tech-badge">🎮 Flame Engine</span>
+        <span class="tech-badge">📱 Flutter 3.16+</span>
+        <span class="tech-badge">🔥 Firebase Suite</span>
+        <span class="tech-badge">🚂 Railway Backend</span>
+        <span class="tech-badge">🐘 PostgreSQL</span>
+        <span class="tech-badge">📊 Custom Analytics</span>
+        <span class="tech-badge">💳 AdMob Mediation</span>
+        <span class="tech-badge">🛒 StoreKit/Play Billing</span>
+    </div>
+    
+    <div class="market-insight" style="margin-top: 50px;">
+        <p>⚡ <strong>Why This Matters:</strong> Single codebase for iOS + Android. 60fps gameplay. Real-time tournament sync. Production-ready infrastructure that scales to millions.</p>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>8 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 9: The Ask -->
+<div class="slide slide-ask">
+    <span class="slide-header">THE ASK</span>
+    <h2>Seed Round Investment</h2>
+    
+    <div class="ask-amount">$500K</div>
+    <p class="ask-purpose">To scale user acquisition and accelerate feature development</p>
+    
+    <div class="use-of-funds">
+        <div class="fund-item">
+            <div class="fund-percent">40%</div>
+            <div class="fund-label">User Acquisition (Paid UA, Influencers)</div>
+        </div>
+        <div class="fund-item">
+            <div class="fund-percent">30%</div>
+            <div class="fund-label">Product Development (Multiplayer, New Modes)</div>
+        </div>
+        <div class="fund-item">
+            <div class="fund-percent">20%</div>
+            <div class="fund-label">Team Expansion (2-3 Engineers)</div>
+        </div>
+        <div class="fund-item">
+            <div class="fund-percent">10%</div>
+            <div class="fund-label">Operations & Reserve</div>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>FLAPPYJET PRO</span>
+        <span>9 / 10</span>
+    </div>
+</div>
+
+<!-- SLIDE 10: Contact -->
+<div class="slide slide-contact">
+    <div class="contact-emoji">🚀🏆</div>
+    <h2 class="contact-title">LET'S FLY TOGETHER</h2>
+    <p class="contact-info">Ready to discuss how FlappyJet Pro can become the next mobile gaming phenomenon</p>
+    
+    <div class="store-badges">
+        <span class="store-badge">📱 App Store</span>
+        <span class="store-badge">🤖 Google Play</span>
+    </div>
+    
+    <p style="margin-top: 60px; font-size: 16px; color: #606080;">
+        FlappyJet Pro • v2.2.5 • 15,000+ Lines of Code • 50 Levels • 30+ Jets • Global Tournaments
+    </p>
+    
+    <div class="slide-footer">
+        <span>CONFIDENTIAL • FOR INVESTOR PURPOSES ONLY</span>
+        <span>10 / 10</span>
+    </div>
+</div>
+
+</body>
+</html>
+
+

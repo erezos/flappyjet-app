@@ -9,9 +9,12 @@ import '../systems/visual_asset_manager.dart';
 import '../core/game_config.dart';
 import '../core/game_themes.dart';
 import 'score_zone.dart'; // ✅ REFACTOR v1.7.0: Score trigger zones
+import 'obstacle_movement_config.dart'; // 🎪 TOURNAMENT: Moving obstacles
+import '../behaviors/obstacle_movement_behavior.dart'; // 🎪 TOURNAMENT: Movement behavior
 
 /// Dynamic obstacle that changes appearance based on current game score/difficulty
 /// ✅ REFACTOR v1.7.0: Now uses Flame's native collision detection with RectangleHitboxes
+/// 🎪 TOURNAMENT v2.3.0: Supports moving obstacle patterns (oscillate, approach, diagonal)
 class DynamicObstacle extends PositionComponent with HasGameReference {
   bool scored = false; // Legacy field (kept for backward compatibility)
   final GameTheme theme;
@@ -21,6 +24,10 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   
   // 🎯 STORY MODE: Override asset path for story mode levels
   final String? storyModeObstacleAsset;
+  
+  // 🎪 TOURNAMENT: Movement configuration for dynamic obstacles
+  final ObstacleMovementConfig movementConfig;
+  ObstacleMovementBehavior? _movementBehavior;
   
   PositionComponent? _topObstacle;
   PositionComponent? _bottomObstacle;
@@ -37,6 +44,7 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     required this.speed,
     required this.currentScore,
     this.storyModeObstacleAsset,
+    this.movementConfig = const ObstacleMovementConfig(), // Default: static
   }) : super(
       position: position, 
       size: Vector2(GameConfig.obstacleWidth, 150), 
@@ -50,12 +58,39 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
     // Load appropriate obstacle sprite for current score/difficulty
     await _loadObstacleSprites();
     
+    // 🎪 TOURNAMENT: Add movement behavior if configured
+    if (movementConfig.hasMovement) {
+      await _addMovementBehavior();
+    }
+    
     // ✅ REFACTOR v1.7.0: Spawn effects removed per user request (no scale animation)
     
     // Fade in from invisible using OpacityEffect
     // Note: This requires the component to be rendered with child components
     // For now, the scale effect provides sufficient visual feedback
   }
+  
+  /// 🎪 TOURNAMENT: Add movement behavior to this obstacle
+  Future<void> _addMovementBehavior() async {
+    // Calculate screen bounds for clamping (prevent obstacles from going off-screen)
+    final minY = gapSize / 2;  // Top pillar needs at least half gap to remain visible
+    final maxY = game.size.y - gapSize / 2;  // Bottom pillar needs room too
+    
+    _movementBehavior = ObstacleMovementBehavior(
+      config: movementConfig,
+      basePositionY: position.y,
+      minY: minY,
+      maxY: maxY,
+      clampToScreen: true,
+    );
+    
+    await add(_movementBehavior!);
+    
+    safePrint('🎪 MOVING OBSTACLE: $movementConfig');
+  }
+  
+  /// 🎪 TOURNAMENT: Get the movement behavior (for testing/debugging)
+  ObstacleMovementBehavior? get movementBehavior => _movementBehavior;
   
   /// Load obstacle sprites based on current difficulty phase
   Future<void> _loadObstacleSprites() async {
@@ -422,7 +457,8 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
   /// Get obstacle info for debugging
   String getObstacleInfo() {
     final assetPath = VisualAssetManager.getObstacleAsset(currentScore);
-    return 'Score: $currentScore, Asset: $assetPath, Gap: $gapSize, Speed: ${speed.toStringAsFixed(1)}';
+    final movementStr = movementConfig.hasMovement ? ', Movement: $movementConfig' : '';
+    return 'Score: $currentScore, Asset: $assetPath, Gap: $gapSize, Speed: ${speed.toStringAsFixed(1)}$movementStr';
   }
   
   /// ✅ REFACTOR v1.7.0: Removal effects removed per user request

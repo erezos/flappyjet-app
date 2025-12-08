@@ -11,6 +11,7 @@ import '../../game/systems/level_system_manager.dart';
 import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import '../utils/responsive_config.dart';
+import '../widgets/coin_3d_icon.dart';
 import 'world_map_screen.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 
@@ -549,7 +550,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildRewardItem(
-              icon: Icons.monetization_on,
+              coinIcon: true, // Use Coin3DIcon instead of material icon
               iconColor: const Color(0xFFFFD700),
               value: _isReplay ? '+20' : '+${widget.level.reward.coins}',
             ),
@@ -649,7 +650,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
   /// ✅ NEW: Reward item with icon/asset and value
   Widget _buildRewardItem({
-    IconData? icon,
+    bool coinIcon = false, // ✅ Use Coin3DIcon for coins
     Color? iconColor,
     String? assetPath,
     required String value,
@@ -657,7 +658,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (icon != null)
+        if (coinIcon)
           Container(
             width: 36,
             height: 36,
@@ -665,7 +666,10 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               shape: BoxShape.circle,
               color: Colors.black.withOpacity(0.3),
             ),
-            child: Icon(icon, color: iconColor, size: 22),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Coin3DIcon(size: 28), // ✅ Using consistent coin asset
+            ),
           )
         else if (assetPath != null)
           Container(

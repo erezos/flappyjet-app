@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 2.2.5+84
+version: 2.3.0+85
 
 environment:
   sdk: '^3.8.0'
@@ -124,6 +124,7 @@ flutter:
     - assets/images/ui/missions/      # Floating missions banner assets
     - assets/images/ui/store/         # Store banner assets
     - assets/images/icons/missions/   # Mission 3D icons
+    - assets/images/tournaments/      # Tournament banner images
     - assets/images/backgrounds/   # Background elements
     - assets/images/text/          # Custom text assets
     - assets/audio/

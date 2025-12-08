@@ -13,7 +13,7 @@ import '../../core/debug_logger.dart';
 import '../widgets/navigation/bottom_navigator_bar.dart';
 import '../widgets/exit_confirmation_popup.dart';
 import 'store_page.dart';
-import 'tournaments_page.dart';
+import 'tournament_hub_screen.dart';  // 🏆 NEW: Replaces old tournaments_page
 import 'story_page.dart';
 import 'missions_page.dart';
 import 'profile_page.dart';
@@ -23,6 +23,7 @@ class HomeNavigatorScreen extends StatefulWidget {
   final MonetizationManager monetization;
   final MissionsManager missions;
   final AchievementsManager achievements;
+  final int? initialTabIndex; // NEW: Optional tab index to start on
 
   const HomeNavigatorScreen({
     super.key,
@@ -30,6 +31,7 @@ class HomeNavigatorScreen extends StatefulWidget {
     required this.monetization,
     required this.missions,
     required this.achievements,
+    this.initialTabIndex,
   });
 
   @override
@@ -39,7 +41,7 @@ class HomeNavigatorScreen extends StatefulWidget {
 class _HomeNavigatorScreenState extends State<HomeNavigatorScreen> 
     with WidgetsBindingObserver {
   late PageController _pageController;
-  int _currentPage = 2; // Start at Story page (center)
+  late int _currentPage;
   
   // 🎵 Menu audio manager for background music
   late MenuAudioManager _menuAudio;
@@ -49,6 +51,8 @@ class _HomeNavigatorScreenState extends State<HomeNavigatorScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
+    // Use initialTabIndex if provided, otherwise default to Story page (index 2)
+    _currentPage = widget.initialTabIndex ?? 2;
     _pageController = PageController(initialPage: _currentPage);
     
     // 🎵 Initialize menu audio
@@ -161,8 +165,8 @@ class _HomeNavigatorScreenState extends State<HomeNavigatorScreen>
             monetization: widget.monetization,
           ),
           
-          // Page 1: Tournaments
-          TournamentsPage(
+          // Page 1: Tournaments (NEW SYSTEM)
+          TournamentHubScreen(
             monetization: widget.monetization,
             missions: widget.missions,
           ),

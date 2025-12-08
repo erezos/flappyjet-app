@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import '../debug_logger.dart';
 import 'unified_analytics_manager.dart';
+import 'conversion_events_manager.dart';
 
 /// App Lifecycle Analytics Manager
 class AppLifecycleAnalytics with WidgetsBindingObserver {
@@ -15,6 +16,7 @@ class AppLifecycleAnalytics with WidgetsBindingObserver {
   AppLifecycleAnalytics._internal();
 
   final UnifiedAnalyticsManager _analytics = UnifiedAnalyticsManager();
+  final ConversionEventsManager _conversionEvents = ConversionEventsManager();
   
   DateTime? _sessionStartTime;
   DateTime? _lastActiveTime;
@@ -42,6 +44,10 @@ class AppLifecycleAnalytics with WidgetsBindingObserver {
       action: 'session_start',
       dailyPlayCount: _sessionCount,
     );
+
+    // 🎯 Initialize conversion events and track session milestone
+    await _conversionEvents.initialize();
+    await _conversionEvents.onAppOpen();
 
     _isInitialized = true;
     safePrint('📊 App Lifecycle Analytics initialized');

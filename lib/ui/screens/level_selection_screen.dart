@@ -12,6 +12,7 @@ import '../../game/systems/monetization_manager.dart';
 import '../../models/level_data_schema.dart';
 import 'level_objective_popup.dart';
 import '../widgets/no_hearts_dialog.dart';
+import '../widgets/coin_3d_icon.dart';
 
 class LevelSelectionScreen extends StatefulWidget {
   const LevelSelectionScreen({super.key});
@@ -203,8 +204,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                     Row(
                       children: [
                         // Coin reward
-                        const Icon(Icons.monetization_on,
-                            color: Colors.amber, size: 16),
+                        const Coin3DIcon(size: 16), // ✅ Using consistent coin asset
                         const SizedBox(width: 4),
                         Text(
                           '${level.reward.coins}',

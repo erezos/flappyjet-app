@@ -4,6 +4,7 @@ import 'popups/base_popup.dart';
 import 'buttons/modern_game_button.dart';
 import 'buttons/button_styles.dart';
 import 'gem_3d_icon.dart';
+import 'coin_3d_icon.dart';
 import 'rate_us_popup.dart';
 import '../../core/debug_logger.dart';
 import '../../game/systems/inventory_manager.dart';
@@ -194,8 +195,7 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
     final contentPadding = (24 * scaleFactor).clamp(16.0, 24.0);
     final contentVerticalPadding = (32 * scaleFactor).clamp(20.0, 32.0);
     final iconSize = (120 * scaleFactor).clamp(90.0, 120.0);
-    final iconEmojiSize = (64 * scaleFactor).clamp(48.0, 64.0);
-    final gemIconSize = (64 * scaleFactor).clamp(48.0, 64.0);
+    final gemIconSize = (64 * scaleFactor).clamp(48.0, 64.0); // Used for both coin and gem icons
     final spacingBetween = (24 * scaleFactor).clamp(16.0, 24.0);
     final spacingSmall = (12 * scaleFactor).clamp(8.0, 12.0);
     final buttonHeight = (54 * scaleFactor).clamp(48.0, 54.0);
@@ -314,10 +314,7 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
                               ),
                               child: Center(
                                 child: widget.rewardType == 'coins'
-                                    ? Text(
-                                        '🪙',
-                                        style: TextStyle(fontSize: iconEmojiSize),
-                                      )
+                                    ? Coin3DIcon(size: gemIconSize)
                                     : Gem3DIcon(size: gemIconSize),
                               ),
                             ),

@@ -9,10 +9,15 @@ import 'package:flutter/material.dart';
 import '../../models/level_data_schema.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
+import '../../game/systems/monetization_manager.dart';
+import '../../game/systems/missions_manager.dart';
+import '../../game/systems/achievements_manager.dart';
 import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
+import '../../core/events/event_bus.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 import 'world_map_screen.dart';
+import 'home_navigator_screen.dart';
 import 'level_objective_popup.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
@@ -26,6 +31,18 @@ class LevelFailedScreen extends StatefulWidget {
   final int continuesRemaining;
   final VoidCallback? onContinueWithAd;
   final VoidCallback? onContinueWithGems;
+  // Tournament mode overrides
+  final bool isTournamentMode;
+  final String? tournamentStageName;
+  final String? tournamentName;
+  final int? tournamentTriesRemaining;
+  final int? tournamentEntryFee;
+  final String? tournamentEntryType;
+  final VoidCallback? onStartOverOverride;
+  // 🏆 Tournament discount restart (when all tries used)
+  final int? tournamentDiscountedFee;
+  final int? tournamentDiscountPercent;
+  final bool tournamentIsFreeRestart;
 
   const LevelFailedScreen({
     super.key,
@@ -36,6 +53,16 @@ class LevelFailedScreen extends StatefulWidget {
     this.continuesRemaining = 0,
     this.onContinueWithAd,
     this.onContinueWithGems,
+    this.isTournamentMode = false,
+    this.tournamentStageName,
+    this.tournamentName,
+    this.tournamentTriesRemaining,
+    this.tournamentEntryFee,
+    this.tournamentEntryType,
+    this.onStartOverOverride,
+    this.tournamentDiscountedFee,
+    this.tournamentDiscountPercent,
+    this.tournamentIsFreeRestart = true,
   });
 
   @override
@@ -140,21 +167,25 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  /// 🎮 FLAME BEST PRACTICE: Responsive popup - NO SCROLLING
+  /// 🎮 FLAME BEST PRACTICE: Responsive popup - MINIMAL SCROLLING
   /// Uses ConstrainedBox + FittedBox for automatic scaling
+  /// Allows scroll only as a fallback for very small screens
   Widget _buildResponsivePopup(Size screenSize) {
     // 🎮 RESPONSIVE CONSTRAINTS: Use ResponsiveConfig for consistent sizing
+    // Tournament mode needs more height for stage name + all buttons
+    final isTournament = widget.isTournamentMode;
     final popupWidth = ResponsiveConfig.responsivePopupWidth(
       screenSize,
-      percent: 0.85,
-      minWidth: 300.0,
-      maxWidth: 450.0,
+      percent: 0.88,
+      minWidth: 280.0,
+      maxWidth: 420.0,
     );
+    // Use more of the screen height to reduce scrolling need
     final maxPopupHeight = ResponsiveConfig.responsivePopupHeight(
       screenSize,
-      percent: 0.75,
-      minHeight: 400.0,
-      maxHeight: 700.0,
+      percent: isTournament ? 0.85 : 0.80, // Tournament needs more space
+      minHeight: 380.0,
+      maxHeight: 680.0,
     );
     
     return ConstrainedBox(
@@ -283,6 +314,9 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   /// 🎨 HEADER: Crashed jet animation + "GAME OVER" title
   Widget _buildHeader(Size screenSize) {
     final padding = ResponsiveConfig.responsivePadding(20.0, screenSize);
+    final stageLabel = widget.isTournamentMode
+        ? (widget.tournamentStageName ?? widget.level.name)
+        : widget.level.name;
     return Container(
       padding: EdgeInsets.fromLTRB(padding, padding, padding, ResponsiveConfig.responsivePadding(12.0, screenSize)),
       decoration: BoxDecoration(
@@ -300,15 +334,18 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
       ),
       child: Column(
         children: [
-          // 🚀 CRASHED JET: Player's jet with smoke animation (MUCH BIGGER - responsive size)
+          // 🚀 CRASHED JET: Player's jet with smoke animation (responsive size)
           Builder(
             builder: (context) {
-              // ✅ MUCH BIGGER: Increased from 90px to 140px base, with larger range
-              final jetSize = ResponsiveConfig.responsiveSize(140.0, screenSize, minScale: 0.9, maxScale: 1.2);
-              return _buildCrashedPlayerJet(jetSize.clamp(120.0, 180.0));
+              // Smaller jet in tournament mode to save vertical space
+              final baseSize = widget.isTournamentMode ? 110.0 : 130.0;
+              final minClamp = widget.isTournamentMode ? 90.0 : 110.0;
+              final maxClamp = widget.isTournamentMode ? 140.0 : 160.0;
+              final jetSize = ResponsiveConfig.responsiveSize(baseSize, screenSize, minScale: 0.85, maxScale: 1.15);
+              return _buildCrashedPlayerJet(jetSize.clamp(minClamp, maxClamp));
             },
           ),
-          SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+          SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
           Builder(
             builder: (context) {
               final fontSize = ResponsiveConfig.responsiveFontSize(24.0, screenSize, context);
@@ -334,7 +371,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             builder: (context) {
               final fontSize = ResponsiveConfig.responsiveFontSize(14.0, screenSize, context);
               return Text(
-                widget.level.name,
+                stageLabel,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -802,6 +839,10 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
 
   /// 📊 COMPACT PROGRESS SECTION: Smaller circular progress (responsive size)
   Widget _buildCompactProgressSection(double progress, Size screenSize) {
+    if (widget.isTournamentMode) {
+      // In tournament mode we hide progress rings and focus on stage + actions.
+      return const SizedBox.shrink();
+    }
     final isVsMode = widget.level.objective.type == ObjectiveType.beatBot;
     
     // 🎮 VS MODE: Show random 80-95% to create urgency
@@ -1181,25 +1222,166 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   }
 
   /// 🚀 START OVER BUTTON: Replaces "Try Again", opens heart refill dialog if needed
+  /// Tournament mode: "START OVER" button that restarts tournament
   Widget _buildStartOverButton(Size screenSize) {
     final hasHearts = _livesManager.currentLives > 0;
     final buttonHeight = ResponsiveConfig.responsiveButtonHeight(48.0, screenSize);
     
+    // 🏆 Tournament mode: "START OVER" - restarts entire tournament
+    if (widget.isTournamentMode) {
+      return _buildTournamentStartOverButton(screenSize, buttonHeight);
+    }
+    
+    // Story mode: shows hearts remaining
+    final label = hasHearts 
+        ? 'START OVER (${_livesManager.currentLives} ❤️)'
+        : 'START OVER';
+    
     return SizedBox(
       width: double.infinity,
       child: ModernGameButton(
-        label: hasHearts 
-          ? 'START OVER (${_livesManager.currentLives} ❤️)'
-          : 'START OVER',
+        label: label,
         onPressed: _onStartOver,
         height: buttonHeight,
         style: hasHearts ? ModernButtonStyle.gold : ModernButtonStyle.secondary,
-        enabled: true, // Always enabled (will show heart refill dialog if no hearts)
+        enabled: true,
       ),
+    );
+  }
+  
+  /// 🏆 TOURNAMENT START OVER BUTTON
+  /// Free tournament: "START OVER" + interstitial
+  /// Paid tournament: "START OVER" + original price crossed out + discounted price
+  Widget _buildTournamentStartOverButton(Size screenSize, double buttonHeight) {
+    final isFree = widget.tournamentIsFreeRestart;
+    final originalFee = widget.tournamentEntryFee ?? 0;
+    final discountedFee = widget.tournamentDiscountedFee ?? originalFee;
+    final discountPercent = widget.tournamentDiscountPercent ?? 0;
+    final entryType = widget.tournamentEntryType ?? 'coins';
+    final currencyIcon = entryType == 'gems' ? '💎' : '🪙';
+    
+    if (isFree) {
+      // Free restart - simple "START OVER" button
+      return SizedBox(
+        width: double.infinity,
+        child: ModernGameButton(
+          label: 'START OVER',
+          onPressed: widget.onStartOverOverride ?? _onTournamentStartOverFree,
+          height: buttonHeight,
+          style: ModernButtonStyle.gold,
+          enabled: true,
+        ),
+      );
+    } else {
+      // Paid restart with discount - show original price crossed out + discounted price
+      return SizedBox(
+        width: double.infinity,
+        child: GestureDetector(
+          onTap: widget.onStartOverOverride,
+          child: Container(
+            height: buttonHeight,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.orange.shade600, Colors.amber.shade700],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'START OVER',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Original price (crossed out)
+                if (discountPercent > 0) ...[
+                  Text(
+                    '$originalFee $currencyIcon',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: Colors.red,
+                      decorationThickness: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // Discount badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$discountedFee $currencyIcon',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // No discount, just show the fee
+                  Text(
+                    '$originalFee $currencyIcon',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+  
+  /// 🏆 FREE TOURNAMENT START OVER: Shows interstitial → restarts tournament
+  void _onTournamentStartOverFree() async {
+    safePrint('🏆 TOURNAMENT: Free restart - showing interstitial first');
+    
+    // Fire analytics event
+    EventBus().fire('tournament_start_over', {
+      'tournament_name': widget.tournamentName ?? 'unknown',
+      'stage': widget.tournamentStageName ?? 'unknown',
+      'is_free': true,
+    });
+    
+    // Show interstitial with 90s tournament timeout
+    await InterstitialAdManager().showTournamentStartOverAd(
+      onAdClosed: () {
+        // Navigate back and trigger restart via onStartOverOverride
+        if (widget.onStartOverOverride != null) {
+          widget.onStartOverOverride!();
+        }
+      },
     );
   }
 
   void _onBackToMap() async {
+    if (widget.isTournamentMode) {
+      // ✅ TOURNAMENT MODE: Show interstitial ad and navigate to tournaments tab
+      await _showTournamentInterstitialAndNavigate('x_button');
+      return;
+    }
     // ✅ NEW: Refill hearts to max when returning to world map
     await _livesManager.refillToMax();
     safePrint('🗺️ STORY MODE: Returning to world map - Hearts refilled to max');
@@ -1244,6 +1426,45 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
         ),
       );
     }
+  }
+
+  /// 🏆 TOURNAMENT: Show interstitial and navigate to tournaments tab (X button)
+  /// Uses 90-second tournament timeout for interstitials
+  Future<void> _showTournamentInterstitialAndNavigate(String triggerSource) async {
+    // 📤 Fire event for backend analytics
+    EventBus().fire('tournament_game_over_dismissed', {
+      'trigger': triggerSource,
+      'tournament_name': widget.tournamentName ?? 'unknown',
+      'stage': widget.tournamentStageName ?? 'unknown',
+    });
+    
+    safePrint('🏆 TOURNAMENT: $triggerSource pressed - Showing interstitial ad (90s cooldown)');
+    
+    // Show interstitial ad with tournament timeout (90s)
+    await InterstitialAdManager().showTournamentGameOverAd(
+      onAdClosed: () {
+        _navigateToTournamentsTab();
+      },
+    );
+  }
+
+  /// Navigate to tournaments tab (after interstitial ad)
+  void _navigateToTournamentsTab() {
+    if (!mounted) return;
+    
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => HomeNavigatorScreen(
+          firebaseEnabled: true,
+          monetization: MonetizationManager(),
+          missions: MissionsManager(),
+          achievements: AchievementsManager(),
+          initialTabIndex: 1, // 🏆 Tournaments tab
+        ),
+      ),
+      (route) => false, // Remove all previous routes
+    );
+    safePrint('🏆 TOURNAMENT: Navigated to tournaments tab');
   }
 
 }

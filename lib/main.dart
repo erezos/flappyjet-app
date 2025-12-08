@@ -28,14 +28,6 @@ import 'core/database/local_database_manager.dart';
 import 'core/repositories/user_stats_repository.dart';
 import 'core/repositories/inventory_repository.dart';
 import 'core/repositories/level_progress_repository.dart';
-import 'core/repositories/leaderboard_repository.dart';
-
-// Phase 3: Hybrid leaderboard system
-import 'services/hybrid_leaderboard_service.dart';
-
-// Phase 4: Prize distribution system
-import 'core/repositories/prize_repository.dart';
-import 'services/prize_service.dart';
 
 import 'game/systems/monetization_manager.dart';
 import 'game/systems/player_identity_manager.dart';
@@ -163,11 +155,7 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
   late InventoryRepository _inventory;
   late LevelProgressRepository _levelProgress;
   
-  // Phase 3: Hybrid leaderboard system
-  late LeaderboardRepository _leaderboard;
-  late HybridLeaderboardService _leaderboardService;
-  late PrizeRepository _prizeRepository;
-  late PrizeService _prizeService;
+  // Note: Old leaderboard/prize services removed - replaced by new tournament system
 
   @override
   void initState() {
@@ -244,7 +232,6 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
       _userStats = UserStatsRepository(_database);
       _inventory = InventoryRepository(_database);
       _levelProgress = LevelProgressRepository(_database);
-      _leaderboard = LeaderboardRepository(_database); // Phase 3
       
       // Set user ID in database
       await _userStats.setUserId(_deviceIdentity.userId);
@@ -253,30 +240,6 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
       safePrint('📊 User stats initialized: ${await _userStats.getUserStats()}');
       safePrint('🎒 Inventory initialized');
       safePrint('🎮 Level progress initialized: ${await _levelProgress.getLevelProgress()}');
-      safePrint('🏆 Leaderboard repository initialized');
-      
-      // Initialize Phase 3: Hybrid Leaderboard Service
-      _leaderboardService = HybridLeaderboardService(
-        repository: _leaderboard,
-        identity: _deviceIdentity,
-        eventBus: _eventBus,
-        backendUrl: 'https://flappyjet-backend.railway.app', // Railway backend
-      );
-      await _leaderboardService.initialize();
-      safePrint('🏆 Hybrid leaderboard service initialized');
-
-      // Phase 4: Initialize prize system
-      _prizeRepository = PrizeRepository(_database);
-      safePrint('🏆 Prize repository initialized');
-      
-      _prizeService = PrizeService(
-        prizeRepository: _prizeRepository,
-        inventory: InventoryManager(),
-        eventBus: _eventBus,
-        identity: _deviceIdentity,
-      );
-      await _prizeService.initialize();
-      safePrint('🏆 Prize service initialized');
 
       // ✅ MIGRATED: Inject repositories into managers
       // GameStateManager injection happens via constructor in flappy_game.dart

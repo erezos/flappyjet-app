@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/debug_logger.dart';
-import '../../models/level_data_schema.dart';
 import '../../game/systems/level_system_manager.dart';
 import '../../game/systems/inventory_manager.dart';
 import '../../game/core/jet_skins.dart'; // ✅ FIXED: Correct import path for JetSkinCatalog
 import '../screens/world_map_screen.dart';
+import '../widgets/coin_3d_icon.dart';
+import '../widgets/gem_3d_icon.dart';
 
 /// 🏆 ZONE COMPLETION CELEBRATION SCREEN
 /// 
@@ -269,11 +270,11 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
               right: 24,
               child: Column(
                 children: [
-                  _buildStatRow('🪙', 'Coins', widget.coinsEarned),
+                  _buildStatRow(icon: const Coin3DIcon(size: 24), label: 'Coins', value: widget.coinsEarned),
                   const SizedBox(height: 12),
-                  _buildStatRow('💎', 'Gems', widget.gemsEarned),
+                  _buildStatRow(icon: const Gem3DIcon(size: 24), label: 'Gems', value: widget.gemsEarned),
                   const SizedBox(height: 12),
-                  _buildStatRow('🏆', 'Levels', widget.levelsCompleted),
+                  _buildStatRow(emoji: '🏆', label: 'Levels', value: widget.levelsCompleted),
                 ],
               ),
             ),
@@ -324,8 +325,8 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
     );
   }
 
-  /// Build a stat row (emoji + label + value)
-  Widget _buildStatRow(String emoji, String label, int value) {
+  /// Build a stat row (icon/emoji + label + value)
+  Widget _buildStatRow({String? emoji, Widget? icon, required String label, required int value}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
@@ -341,10 +342,13 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
         children: [
           Row(
             children: [
-              Text(
-                emoji,
-                style: const TextStyle(fontSize: 24),
-              ),
+              if (icon != null)
+                icon
+              else if (emoji != null)
+                Text(
+                  emoji,
+                  style: const TextStyle(fontSize: 24),
+                ),
               const SizedBox(width: 12),
               Text(
                 label,

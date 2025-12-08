@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
+import '../coin_3d_icon.dart';
 
 /// Reusable widget that displays coins and gems in a single chip
 /// 
@@ -59,8 +60,8 @@ class CoinsGemsDisplay extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Coins
-            Icon(Icons.monetization_on, color: Colors.amber, size: iconSize),
+            // Coins - using consistent coin asset
+            Coin3DIcon(size: iconSize),
             SizedBox(width: spacing),
             Flexible(
               child: ValueListenableBuilder<int>(

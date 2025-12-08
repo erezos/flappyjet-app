@@ -42,6 +42,9 @@ class InterstitialAdManager {
   /// Extended cooldown after user watches a rewarded video
   static const Duration _rewardedVideoCooldown = Duration(minutes: 3);
   
+  /// 🏆 TOURNAMENT: 90-second cooldown after rewarded ad continue or round win
+  static const Duration _tournamentCooldown = Duration(seconds: 90);
+  
   /// Cooldown after loss streak ad (gives user a break)
   static const Duration _lossStreakAdCooldown = Duration(minutes: 3);
   
@@ -458,6 +461,143 @@ class InterstitialAdManager {
     UnifiedAnalyticsManager().trackEvent('interstitial_cooldown_extended', {
       'reason': 'rewarded_video',
       'new_cooldown_minutes': _currentCooldown.inMinutes,
+    });
+  }
+
+  // ============================================================================
+  // TOURNAMENT INTERSTITIAL MANAGEMENT
+  // ============================================================================
+  
+  /// 🏆 TOURNAMENT: Called when user continues with rewarded ad in tournament
+  /// Sets 90-second timeout before next interstitial
+  void onTournamentRewardedAdContinue() {
+    _currentCooldown = _tournamentCooldown;
+    _lastAdShownTime = DateTime.now();
+    
+    safePrint('🏆 Tournament rewarded ad continue - 90s cooldown activated');
+    
+    UnifiedAnalyticsManager().trackEvent('tournament_interstitial_cooldown', {
+      'reason': 'rewarded_ad_continue',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
+    });
+    
+    EventBus().fire('tournament_interstitial_cooldown', {
+      'reason': 'rewarded_ad_continue',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
+    });
+  }
+  
+  /// 🏆 TOURNAMENT: Check if we're in cooldown (gracefully handles timeout)
+  /// Returns true if we're NOT in cooldown (can show ad)
+  /// Returns false if we're in cooldown (should NOT show ad)
+  bool canShowTournamentInterstitial() {
+    if (!_isAdReady) {
+      safePrint('📺 Tournament: Ad not ready');
+      return false;
+    }
+    
+    if (_lastAdShownTime == null) {
+      return true; // No previous ad, can show
+    }
+    
+    final timeSinceLastAd = DateTime.now().difference(_lastAdShownTime!);
+    final isInCooldown = timeSinceLastAd < _currentCooldown;
+    
+    if (isInCooldown) {
+      final remainingSeconds = (_currentCooldown - timeSinceLastAd).inSeconds;
+      safePrint('📺 Tournament: In cooldown, ${remainingSeconds}s remaining');
+    }
+    
+    return !isInCooldown;
+  }
+  
+  /// 🏆 TOURNAMENT: Show interstitial after round win (if not in cooldown)
+  /// Sets 90-second timeout after showing
+  /// Returns true if ad was shown, false if skipped due to cooldown/unavailability
+  Future<bool> showTournamentRoundWinAd({VoidCallback? onAdClosed}) async {
+    if (!canShowTournamentInterstitial()) {
+      safePrint('📺 Tournament: Skipping ad (cooldown or unavailable)');
+      onAdClosed?.call(); // Call callback immediately if skipping
+      return false;
+    }
+    
+    // Set trigger reason for analytics
+    _currentAdTriggerReason = 'tournament_round_win';
+    
+    // Show the ad
+    await showAd(onAdClosed: onAdClosed);
+    
+    // Set tournament cooldown (90 seconds)
+    _currentCooldown = _tournamentCooldown;
+    
+    safePrint('📺 Tournament round win ad shown - 90s cooldown activated');
+    
+    UnifiedAnalyticsManager().trackEvent('tournament_interstitial_shown', {
+      'trigger': 'round_win',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
+    });
+    
+    EventBus().fire('tournament_interstitial_shown', {
+      'trigger': 'round_win',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
+    });
+    
+    return true;
+  }
+  
+  /// 🏆 TOURNAMENT: Show interstitial for "Start Over" action
+  /// Sets 90-second timeout after showing
+  Future<void> showTournamentStartOverAd({VoidCallback? onAdClosed}) async {
+    if (!canShowTournamentInterstitial()) {
+      safePrint('📺 Tournament Start Over: Skipping ad (cooldown or unavailable)');
+      onAdClosed?.call();
+      return;
+    }
+    
+    _currentAdTriggerReason = 'tournament_start_over';
+    
+    await showAd(onAdClosed: onAdClosed);
+    
+    _currentCooldown = _tournamentCooldown;
+    
+    safePrint('📺 Tournament start over ad shown - 90s cooldown activated');
+    
+    UnifiedAnalyticsManager().trackEvent('tournament_interstitial_shown', {
+      'trigger': 'start_over',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
+    });
+    
+    EventBus().fire('tournament_interstitial_shown', {
+      'trigger': 'start_over',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
+    });
+  }
+  
+  /// 🏆 TOURNAMENT: Show interstitial for game over dismiss (X button or Back)
+  /// Sets 90-second timeout after showing
+  Future<void> showTournamentGameOverAd({VoidCallback? onAdClosed}) async {
+    if (!canShowTournamentInterstitial()) {
+      safePrint('📺 Tournament Game Over: Skipping ad (cooldown or unavailable)');
+      onAdClosed?.call();
+      return;
+    }
+    
+    _currentAdTriggerReason = 'tournament_game_over';
+    
+    await showAd(onAdClosed: onAdClosed);
+    
+    _currentCooldown = _tournamentCooldown;
+    
+    safePrint('📺 Tournament game over ad shown - 90s cooldown activated');
+    
+    UnifiedAnalyticsManager().trackEvent('tournament_interstitial_shown', {
+      'trigger': 'game_over_dismiss',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
+    });
+    
+    EventBus().fire('tournament_interstitial_shown', {
+      'trigger': 'game_over_dismiss',
+      'cooldown_seconds': _tournamentCooldown.inSeconds,
     });
   }
 

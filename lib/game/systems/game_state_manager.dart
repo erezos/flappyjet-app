@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
+import '../../core/analytics/conversion_events_manager.dart';
 import '../core/game_config.dart';
 import '../core/game_themes.dart';
 import '../../core/repositories/user_stats_repository.dart';
@@ -198,6 +199,9 @@ class GameStateManager extends ChangeNotifier {
     
     // ✅ EDGE CASE FIX: Reset end state for new run
     resetEndState();
+    
+    // 🎯 Track game played for conversion events (non-blocking)
+    ConversionEventsManager().onGamePlayed();
 
 
     safePrint('🚀 Game is now in playing state - tap to make the jet jump!');

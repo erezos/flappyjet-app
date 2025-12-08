@@ -9,6 +9,7 @@ import '../../core/debug_logger.dart';
 import '../widgets/story_mode_game_wrapper.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
+import '../widgets/coin_3d_icon.dart';
 import '../../game/core/jet_skins.dart';
 import 'world_map_screen.dart';
 import '../utils/responsive_config.dart';
@@ -580,7 +581,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
               ),
                   child: Row(
                     children: [
-                      Icon(Icons.monetization_on, color: Colors.amber, size: iconSize),
+                      Coin3DIcon(size: iconSize), // ✅ Using consistent coin asset
                       SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
                       Text(
                         '${widget.level.reward.coins}',

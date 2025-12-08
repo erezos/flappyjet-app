@@ -136,7 +136,7 @@ class Mission3DIcon extends StatelessWidget {
       case MissionIconType.comeback:
         return Icons.favorite;
       case MissionIconType.collectCoins:
-        return Icons.monetization_on;
+        return Icons.paid; // Fallback icon for coin collection
       case MissionIconType.coinStreak:
         return Icons.stars;
       case MissionIconType.bigSpender:
@@ -282,7 +282,7 @@ class Achievement3DIcon extends StatelessWidget {
       case AchievementIconType.survivalEndurance:
         return Icons.timer;
       case AchievementIconType.coinMaster:
-        return Icons.monetization_on;
+        return Icons.paid; // Fallback icon for coin master
       case AchievementIconType.gemCollector:
         return Icons.diamond;
       case AchievementIconType.jetCollector:

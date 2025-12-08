@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import '../gem_3d_icon.dart';
+import '../coin_3d_icon.dart';
 
 class StoreNavigation extends StatelessWidget {
   final List<String> categories;
@@ -105,21 +106,20 @@ class StoreNavigation extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Use gem icon widget for Gems category, emoji for others
+                      // Use icon widgets for Gems and Coins, emoji for others
                       Center(
                         child: category == 'Gems'
-                            ? Gem3DIcon(
-                                size: iconSize,
-                                // Beautiful asset gem icon
-                              )
-                            : Text(
-                                categoryIcon,
-                                style: TextStyle(
-                                  fontSize: iconSize,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
+                            ? Gem3DIcon(size: iconSize)
+                            : category == 'Coins'
+                                ? Coin3DIcon(size: iconSize)
+                                : Text(
+                                    categoryIcon,
+                                    style: TextStyle(
+                                      fontSize: iconSize,
+                                      color: Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
                       ),
                       SizedBox(height: iconSpacing),
                       Text(

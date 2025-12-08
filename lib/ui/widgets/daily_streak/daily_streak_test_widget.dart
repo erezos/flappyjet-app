@@ -294,7 +294,7 @@ class _DebugPopupMenu extends StatelessWidget {
   IconData _getRewardIcon(DailyStreakRewardType type) {
     switch (type) {
       case DailyStreakRewardType.coins:
-        return Icons.monetization_on;
+        return Icons.paid; // Note: We use Coin3DIcon in actual display
       case DailyStreakRewardType.gems:
         return Icons.diamond;
       case DailyStreakRewardType.heartBooster:
