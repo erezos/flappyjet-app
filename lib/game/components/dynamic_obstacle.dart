@@ -173,9 +173,7 @@ class DynamicObstacle extends PositionComponent with HasGameReference {
       await _addCollisionHitboxes(worldGapTop, worldGapBottom);
       
       _isLoaded = true;
-      
-      safePrint('🎨 OBSTACLE LOADED: Score $currentScore → $assetPath');
-      
+      // Obstacle loaded log removed - too verbose during gameplay
     } catch (e) {
       safePrint('🎨 ⚠️ Failed to load obstacle sprite: $assetPath - $e');
       

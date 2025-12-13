@@ -872,11 +872,11 @@ class PremiumMissionCard extends StatelessWidget {
     // Use ResponsiveConfig for consistent sizing
     // Card height based on aspect ratio (~3.5:1 width:height)
     final cardHeight = ResponsiveConfig.responsiveSize(
-      screenSize.width / 3.5,
+      screenSize.width / 3.2,
       screenSize,
-      minScale: 0.9,
+      minScale: 0.95,
       maxScale: 1.2,
-    ).clamp(120.0, 160.0);
+    ).clamp(120.0, 170.0);
 
     // Get mission-specific styling
     final missionStyle = _getMissionStyle(mission.type);
@@ -1364,10 +1364,13 @@ class PremiumAchievementCard extends StatelessWidget {
     final isTablet = screenSize.width > 600;
     final isLargePhone = screenSize.width > 400;
     final isSmallPhone = screenSize.width < 360;
-    // Increased card heights for better content fit and engagement
-    final cardHeight = isTablet
-        ? 140.0
-        : (isLargePhone ? 125.0 : (isSmallPhone ? 115.0 : 110.0));
+    // Align height/feel with daily mission cards (responsive, compact, no stripe)
+    final cardHeight = ResponsiveConfig.responsiveSize(
+      screenSize.width / 3.5,
+      screenSize,
+      minScale: 0.9,
+      maxScale: 1.2,
+    ).clamp(120.0, 160.0);
 
     // Get achievement-specific styling based on rarity
     final achievementStyle = _getAchievementStyle(achievement.rarity);
@@ -1395,49 +1398,9 @@ class PremiumAchievementCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            // Rarity indicator stripe
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 6,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      achievementStyle.rarityColor,
-                      achievementStyle.rarityColor.withValues(alpha: 0.7),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Subtle highlight effect
-            Positioned(
-              top: 0,
-              left: 6,
-              right: 0,
-              height: cardHeight * 0.3,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.2),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
             // Main content
             Padding(
-              padding: EdgeInsets.all(isTablet ? 20 : (isLargePhone ? 16 : 14)),
+              padding: EdgeInsets.all(isTablet ? 18 : (isLargePhone ? 14 : 12)),
               child: Column(
                 children: [
                   // Top row with icon, details, and rewards
@@ -1447,20 +1410,18 @@ class PremiumAchievementCard extends StatelessWidget {
                       children: [
                         // Achievement icon - Larger and more engaging
                         Container(
-                          width: isTablet ? 55 : (isLargePhone ? 48 : 44),
-                          height: isTablet ? 55 : (isLargePhone ? 48 : 44),
+                          width: isTablet ? 68 : (isLargePhone ? 62 : 56),
+                          height: isTablet ? 68 : (isLargePhone ? 62 : 56),
                           decoration: BoxDecoration(
+                            shape: BoxShape.circle,
                             gradient: LinearGradient(
                               colors: [
-                                achievementStyle.rarityColor,
-                                achievementStyle.rarityColor.withValues(
-                                  alpha: 0.8,
-                                ),
+                                achievementStyle.rarityColor.withValues(alpha: 0.9),
+                                achievementStyle.rarityColor.withValues(alpha: 0.7),
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
                                 color: achievementStyle.rarityColor.withValues(
@@ -1480,7 +1441,7 @@ class PremiumAchievementCard extends StatelessWidget {
                                       .last,
                                   achievement.rarity.toString().split('.').last,
                                 ),
-                            size: isTablet ? 28 : (isLargePhone ? 25 : 23),
+                            size: isTablet ? 34 : (isLargePhone ? 30 : 28),
                             // Remove tintColor to show original icon colors
                           ),
                         ),
@@ -1498,8 +1459,8 @@ class PremiumAchievementCard extends StatelessWidget {
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: isTablet
-                                      ? 16
-                                      : (isLargePhone ? 14 : 13),
+                                      ? 18
+                                      : (isLargePhone ? 16 : 15),
                                   fontWeight: FontWeight.w900, // Extra bold
                                   shadows: [
                                     Shadow(
@@ -1520,8 +1481,8 @@ class PremiumAchievementCard extends StatelessWidget {
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: isTablet
-                                      ? 12
-                                      : (isLargePhone ? 11 : 10),
+                                      ? 14
+                                      : (isLargePhone ? 13 : 12),
                                   fontWeight: FontWeight.w600, // Bolder
                                 ),
                                 maxLines: 1,
@@ -1539,9 +1500,9 @@ class PremiumAchievementCard extends StatelessWidget {
                             Container(
                               padding: EdgeInsets.symmetric(
                                 horizontal: isTablet
-                                    ? 16
-                                    : (isLargePhone ? 14 : 12),
-                                vertical: isTablet ? 8 : (isLargePhone ? 7 : 6),
+                                    ? 18
+                                    : (isLargePhone ? 16 : 14),
+                                vertical: isTablet ? 9 : (isLargePhone ? 8 : 7),
                               ),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
@@ -1568,8 +1529,8 @@ class PremiumAchievementCard extends StatelessWidget {
                                 children: [
                                   Coin3DIcon(
                                     size: isTablet
-                                        ? 16
-                                        : (isLargePhone ? 14 : 13),
+                                        ? 18
+                                        : (isLargePhone ? 16 : 15),
                                   ),
                                   const SizedBox(width: 3),
                                   Text(
@@ -1577,8 +1538,8 @@ class PremiumAchievementCard extends StatelessWidget {
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: isTablet
-                                          ? 13
-                                          : (isLargePhone ? 12 : 11),
+                                          ? 15
+                                          : (isLargePhone ? 14 : 13),
                                       fontWeight: FontWeight.w900, // Extra bold
                                     ),
                                   ),
@@ -1590,8 +1551,8 @@ class PremiumAchievementCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Container(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: isTablet ? 10 : 8,
-                                  vertical: isTablet ? 6 : 5,
+                                  horizontal: isTablet ? 12 : 10,
+                                  vertical: isTablet ? 7 : 6,
                                 ),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
@@ -1609,8 +1570,8 @@ class PremiumAchievementCard extends StatelessWidget {
                                   children: [
                                     Gem3DIcon(
                                       size: isTablet
-                                          ? 14
-                                          : (isLargePhone ? 12 : 11),
+                                          ? 16
+                                          : (isLargePhone ? 14 : 13),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -1618,8 +1579,8 @@ class PremiumAchievementCard extends StatelessWidget {
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: isTablet
-                                            ? 13
-                                            : (isLargePhone ? 12 : 11),
+                                            ? 15
+                                            : (isLargePhone ? 14 : 13),
                                         fontWeight:
                                             FontWeight.w900, // Extra bold
                                       ),
@@ -1645,8 +1606,8 @@ class PremiumAchievementCard extends StatelessWidget {
                           // Progress indicator (centered)
                           Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: isTablet ? 14 : 12,
-                              vertical: isTablet ? 6 : 5,
+                              horizontal: isTablet ? 16 : 14,
+                              vertical: isTablet ? 7 : 6,
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.4),
@@ -1661,8 +1622,8 @@ class PremiumAchievementCard extends StatelessWidget {
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: isTablet
-                                    ? 12
-                                    : (isLargePhone ? 11 : 10),
+                                    ? 14
+                                    : (isLargePhone ? 13 : 12),
                                 fontWeight: FontWeight.w700, // Bolder
                               ),
                             ),
@@ -1700,8 +1661,8 @@ class PremiumAchievementCard extends StatelessWidget {
       // Claimed achievement - show completed indicator
       return Container(
         padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 10 : (isLargePhone ? 8 : 6),
-          vertical: isTablet ? 5 : (isLargePhone ? 4 : 3),
+          horizontal: isTablet ? 12 : (isLargePhone ? 10 : 8),
+          vertical: isTablet ? 6 : (isLargePhone ? 5 : 4),
         ),
         decoration: BoxDecoration(
           gradient: const LinearGradient(

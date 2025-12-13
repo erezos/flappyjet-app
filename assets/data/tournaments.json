@@ -109,16 +109,16 @@
       },
       
       "levels": [
-        { "round": 1, "name": "Quarter Finals", "reward": { "coins": 50, "gems": 3 } },
-        { "round": 2, "name": "Semi Finals", "reward": { "coins": 200, "gems": 7 } },
-        { "round": 3, "name": "Grand Finals", "reward": { "coins": 350, "gems": 10 } }
+        { "round": 1, "name": "Quarter Finals", "reward": { "coins": 100, "gems": 3 } },
+        { "round": 2, "name": "Semi Finals", "reward": { "coins": 200, "gems": 6 } },
+        { "round": 3, "name": "Grand Finals", "reward": { "coins": 300, "gems": 9 } }
       ],
       
       "completion_reward": {
-        "coins": 1200,
-        "gems": 30,
+        "coins": 400,
+        "gems": 22,
         "trophy_id": "bosses_showdown_champion",
-        "skin_id": "space_destroyer"
+        "free_ticket_tier": "silver"
       },
       
       "lose_all_tries_offer": {
@@ -148,7 +148,7 @@
       
       "entry": {
         "type": "coins",
-        "amount": 1000,
+        "amount": 400,
         "free_ticket_tier": "silver"
       },
       
@@ -165,135 +165,186 @@
       "levels": [
         {
           "round": 1,
-          "name": "The Wobbler",
-          "background": "city",
+          "name": "Desert Drift",
+          "background": "phase2_sunny_complete.png",
           "opponent_jet": null,
           "difficulty": {
-            "speedMultiplier": 0.9,
-            "obstacleGap": 420,
-            "obstacleFrequency": 2.8,
-            "maxGapShift": 40,
-            "requiredDistance": 45
+            "speedMultiplier": 1.0,
+            "obstacleGap": 350,
+            "obstacleFrequency": 3.5,
+            "maxGapShift": 50,
+            "requiredDistance": 20,
+            "_comment": "EASY: 20 sec survival, slow obstacles, small size"
           },
           "obstacles": {
             "pattern_mix": [
-              { "type": "static", "weight": 60 },
-              { "type": "verticalOscillate", "weight": 40, "params": { "amplitude": 30, "frequency": 0.5 } }
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 60, "frequency": 0.3 } }
             ]
           },
-          "reward": {
-            "coins": 150,
-            "gems": 2
-          }
-        },
-        {
-          "round": 2,
-          "name": "Wave Rider",
-          "background": "ocean",
-          "opponent_jet": null,
-          "difficulty": {
-            "speedMultiplier": 0.95,
-            "obstacleGap": 400,
-            "obstacleFrequency": 2.6,
-            "maxGapShift": 45,
-            "requiredDistance": 55
-          },
-          "obstacles": {
-            "pattern_mix": [
-              { "type": "static", "weight": 40 },
-              { "type": "verticalOscillate", "weight": 60, "params": { "amplitude": 40, "frequency": 0.6 } }
-            ]
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "obstacles/moving_obstacle_spikes1.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 3.0,
+            "spawn_variance": 0.1,
+            "scroll_speed": 160,
+            "vertical_amplitude_percent": 0.12,
+            "vertical_frequency": 0.30,
+            "one_at_a_time": true
           },
           "reward": {
-            "coins": 200,
+            "coins": 100,
             "gems": 3
           }
         },
         {
-          "round": 3,
-          "name": "The Gauntlet",
-          "background": "mountains",
+          "round": 2,
+          "name": "Frozen Peaks",
+          "background": "frozen_peaks.png",
           "opponent_jet": null,
           "difficulty": {
             "speedMultiplier": 1.0,
-            "obstacleGap": 380,
-            "obstacleFrequency": 2.4,
+            "obstacleGap": 350,
+            "obstacleFrequency": 3.0,
             "maxGapShift": 50,
-            "requiredDistance": 65
+            "requiredDistance": 25,
+            "_comment": "EASY-MEDIUM: 25 sec survival"
           },
           "obstacles": {
             "pattern_mix": [
-              { "type": "static", "weight": 30 },
-              { "type": "verticalOscillate", "weight": 40, "params": { "amplitude": 45, "frequency": 0.7 } },
-              { "type": "horizontalApproach", "weight": 30, "params": { "approachSpeed": 50 } }
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 70, "frequency": 0.35 } }
             ]
           },
-          "reward": {
-            "coins": 250,
-            "gems": 4
-          }
-        },
-        {
-          "round": 4,
-          "name": "Chaos Zone",
-          "background": "storm",
-          "opponent_jet": null,
-          "difficulty": {
-            "speedMultiplier": 1.05,
-            "obstacleGap": 360,
-            "obstacleFrequency": 2.3,
-            "maxGapShift": 55,
-            "requiredDistance": 75
-          },
-          "obstacles": {
-            "pattern_mix": [
-              { "type": "static", "weight": 20 },
-              { "type": "verticalOscillate", "weight": 40, "params": { "amplitude": 50, "frequency": 0.8 } },
-              { "type": "horizontalApproach", "weight": 40, "params": { "approachSpeed": 60 } }
-            ]
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "obstacles/moving_obstacle_spikes1.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 2.6,
+            "spawn_variance": 0.1,
+            "scroll_speed": 175,
+            "vertical_amplitude_percent": 0.14,
+            "vertical_frequency": 0.38,
+            "one_at_a_time": true
           },
           "reward": {
-            "coins": 300,
+            "coins": 200,
             "gems": 5
           }
         },
         {
-          "round": 5,
-          "name": "Ultimate Stunt Master",
-          "background": "volcano",
+          "round": 3,
+          "name": "Stone Gauntlet",
+          "background": "phase3_afternoon_complete.png",
           "opponent_jet": null,
           "difficulty": {
-            "speedMultiplier": 1.1,
-            "obstacleGap": 340,
-            "obstacleFrequency": 2.2,
-            "maxGapShift": 60,
-            "requiredDistance": 90
+            "speedMultiplier": 1.0,
+            "obstacleGap": 350,
+            "obstacleFrequency": 2.5,
+            "maxGapShift": 50,
+            "requiredDistance": 30,
+            "_comment": "MEDIUM: 30 sec survival, moderate difficulty"
           },
           "obstacles": {
             "pattern_mix": [
-              { "type": "static", "weight": 10 },
-              { "type": "verticalOscillate", "weight": 45, "params": { "amplitude": 55, "frequency": 0.9 } },
-              { "type": "horizontalApproach", "weight": 35, "params": { "approachSpeed": 70 } },
-              { "type": "diagonal", "weight": 10, "params": { "angle": 15, "speed": 40 } }
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 80, "frequency": 0.4 } }
             ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "obstacles/moving_obstacle_spikes1.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 2.2,
+            "spawn_variance": 0.1,
+            "scroll_speed": 200,
+            "vertical_amplitude_percent": 0.20,
+            "vertical_frequency": 0.50,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 300,
+            "gems": 6
+          }
+        },
+        {
+          "round": 4,
+          "name": "Storm Surge",
+          "background": "phase4_storm_complete.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.05,
+            "obstacleGap": 350,
+            "obstacleFrequency": 2.2,
+            "maxGapShift": 55,
+            "requiredDistance": 35,
+            "_comment": "MEDIUM-HARD: 35 sec survival, faster obstacles"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 90, "frequency": 0.5 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "obstacles/moving_obstacle_spikes1.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 2.0,
+            "spawn_variance": 0.1,
+            "scroll_speed": 190,
+            "vertical_amplitude_percent": 0.24,
+            "vertical_frequency": 0.52,
+            "one_at_a_time": true
           },
           "reward": {
             "coins": 400,
             "gems": 8
           }
+        },
+        {
+          "round": 5,
+          "name": "Lava Inferno",
+          "background": "lava_zone_bg.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.1,
+            "obstacleGap": 340,
+            "obstacleFrequency": 1.8,
+            "maxGapShift": 60,
+            "requiredDistance": 45,
+            "_comment": "HARD: 45 sec survival, fast large obstacles"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 100, "frequency": 0.6 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "obstacles/moving_obstacle_spikes1.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 1.8,
+            "spawn_variance": 0.1,
+            "scroll_speed": 205,
+            "vertical_amplitude_percent": 0.27,
+            "vertical_frequency": 0.58,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 500,
+            "gems": 10
+          }
         }
       ],
       
       "completion_reward": {
-        "coins": 2000,
-        "gems": 30,
-        "skin_id": "space_destroyer",
+        "coins": 1500,
+        "gems": 68,
+        "skin_id": "stunt_master",
         "trophy_id": "stunt_master_trophy",
         "free_ticket_tier": "gold"
       },
       
       "lose_all_tries_offer": {
-        "enabled": true,
+        "enabled": false,
         "discount_percent": 50,
         "extra_tries": 2,
         "base_gem_cost": 250
@@ -315,7 +366,7 @@
     {
       "id": "chopper_adventures",
       "name": "🚁 Chopper Adventures",
-      "description": "The ultimate helicopter showdown! Face elite chopper pilots in a 3-round playoff!",
+      "description": "The ultimate helicopter showdown! Face elite chopper pilots in a 5-round playoff!",
       "tier": "gold",
       "status": "active",
       "progression_type": "playoff",
@@ -339,90 +390,137 @@
       "playoff_config": {
         "_note": "opponent_jet/display_name in rounds are FALLBACKS ONLY. Actual opponent is resolved dynamically from bracket state (bracketWinners + bracketJetOrder). The opponent_jet_skins array defines which jets participate.",
         "total_opponents": 8,
-        "opponent_jet_skins": ["defender", "red_alert", "stealth_bomber", "diamond_storm", "void_flames", "space_destroyer", "supreme_commander", "lord_of_war"],
+        "opponent_jet_skins": [
+          "doink_chopper",
+          "night_falcon",
+          "crimson_viper",
+          "iron_fang",
+          "commander_buzz",
+          "eagle_force_one",
+          "firehawk",
+          "starwhirl"
+        ],
         "rounds": [
           {
             "round_number": 1,
-            "stage_name": "Quarter Finals",
-            "opponent_jet": "defender",
-            "display_name": "Defender",
-            "opponent_nickname": "The Iron Shield",
+            "stage_name": "Round of 8",
+            "opponent_jet": "doink_chopper",
+            "display_name": "Doink Chopper",
+            "opponent_nickname": "Harbor Phantom",
             "boss_battle": {
               "background": "phase2_sunny_complete.png",
               "obstacle_theme": "phase1_wooden_pipes.png",
               "music": "space_cadet",
-              "skill_level": 0.05,
+              "skill_level": 0.10,
               "reaction_time": 0.45,
-              "mistake_rate": 0.95,
-              "required_distance": 3,
+              "mistake_rate": 0.85,
+              "required_distance": 5,
               "speed_multiplier": 1.0,
-              "obstacle_gap": 315,
+              "obstacle_gap": 360,
+              "obstacle_frequency": 2.6,
+              "max_gap_shift": 40
+            }
+          },
+          {
+            "round_number": 2,
+            "stage_name": "Quarter Finals",
+            "opponent_jet": "night_falcon",
+            "display_name": "Night Falcon",
+            "opponent_nickname": "Crimson Ace",
+            "boss_battle": {
+            "background": "phase1_dawn_complete.png",
+              "obstacle_theme": "lava_obstacle.png",
+              "music": "storm_ace",
+              "skill_level": 0.15,
+              "reaction_time": 0.42,
+              "mistake_rate": 0.80,
+              "required_distance": 8,
+              "speed_multiplier": 1.04,
+              "obstacle_gap": 345,
               "obstacle_frequency": 2.5,
               "max_gap_shift": 45
             }
           },
           {
-            "round_number": 2,
+            "round_number": 3,
             "stage_name": "Semi Finals",
-            "opponent_jet": "red_alert",
-            "display_name": "Red Alert",
-            "opponent_nickname": "The Crimson Fury",
+            "opponent_jet": "crimson_viper",
+            "display_name": "Crimson Viper",
+            "opponent_nickname": "Jungle Warden",
             "boss_battle": {
-              "background": "phase4_storm_complete.png",
-              "obstacle_theme": "phase1_wooden_pipes.png",
+              "background": "phase5_lightning_complete.png",
+              "obstacle_theme": "ice_obstacles.png",
               "music": "void_master",
-              "skill_level": 0.65,
-              "reaction_time": 0.22,
-              "mistake_rate": 0.14,
-              "required_distance": 55,
-              "speed_multiplier": 1.05,
-              "obstacle_gap": 360,
-              "obstacle_frequency": 2.3,
+              "skill_level": 0.20,
+              "reaction_time": 0.40,
+              "mistake_rate": 0.75,
+              "required_distance": 12,
+              "speed_multiplier": 1.08,
+              "obstacle_gap": 330,
+              "obstacle_frequency": 2.4,
               "max_gap_shift": 50
             }
           },
           {
-            "round_number": 3,
-            "stage_name": "Grand Finals",
-            "opponent_jet": "space_destroyer",
-            "display_name": "Space Destroyer",
-            "opponent_nickname": "The Cosmic Overlord",
+            "round_number": 4,
+            "stage_name": "Finals",
+            "opponent_jet": "iron_fang",
+            "display_name": "Iron Fang",
+            "opponent_nickname": "Inferno Lance",
             "boss_battle": {
               "background": "phase8_cosmic_complete.png",
-              "obstacle_theme": "phase1_wooden_pipes.png",
+              "obstacle_theme": "tesla_tower.png",
               "music": "legend",
-              "skill_level": 0.78,
-              "reaction_time": 0.16,
-              "mistake_rate": 0.08,
-              "required_distance": 70,
-              "speed_multiplier": 1.1,
-              "obstacle_gap": 340,
-              "obstacle_frequency": 2.2,
+              "skill_level": 0.25,
+              "reaction_time": 0.38,
+              "mistake_rate": 0.70,
+              "required_distance": 25,
+              "speed_multiplier": 1.12,
+              "obstacle_gap": 320,
+              "obstacle_frequency": 2.25,
               "max_gap_shift": 55
+            }
+          },
+          {
+            "round_number": 5,
+            "stage_name": "Champion of Champions",
+            "opponent_jet": "commander_buzz",
+            "display_name": "Commander Buzz",
+            "opponent_nickname": "Sky Marshal",
+            "boss_battle": {
+              "background": "phase6_altitude_complete.png",
+              "obstacle_theme": "desert_obstacles.png",
+              "music": "legend",
+              "skill_level": 0.50,
+              "reaction_time": 0.35,
+              "mistake_rate": 0.50,
+              "required_distance": 40,
+              "speed_multiplier": 1.16,
+              "obstacle_gap": 300,
+              "obstacle_frequency": 2.1,
+              "max_gap_shift": 60
             }
           }
         ]
       },
       
       "levels": [
-        { "round": 1, "name": "Quarter Finals", "reward": { "coins": 200, "gems": 5 } },
-        { "round": 2, "name": "Semi Finals", "reward": { "coins": 300, "gems": 8 } },
-        { "round": 3, "name": "Grand Finals", "reward": { "coins": 400, "gems": 10 } }
+        { "round": 1, "name": "Round of 8", "reward": { "coins": 100, "gems": 3 } },
+        { "round": 2, "name": "Quarter Finals", "reward": { "coins": 150, "gems": 6 } },
+        { "round": 3, "name": "Semi Finals", "reward": { "coins": 200, "gems": 7 } },
+        { "round": 4, "name": "Finals", "reward": { "coins": 300, "gems": 10 } },
+        { "round": 5, "name": "Champion of Champions", "reward": { "coins": 450, "gems": 14 } }
       ],
       
       "completion_reward": {
-        "coins": 3000,
-        "gems": 75,
-        "skin_id": "lord_of_war",
-        "trophy_id": "chopper_champion_trophy",
-        "booster": {
-          "type": "hearts6For24Hours",
-          "duration_hours": 48
-        }
+        "coins": 1800,
+        "gems": 960,
+        "skin_id": "eagle_force_one",
+        "trophy_id": "chopper_champion_trophy"
       },
       
       "lose_all_tries_offer": {
-        "enabled": true,
+        "enabled": false,
         "discount_percent": 60,
         "extra_tries": 3,
         "base_gem_cost": 400

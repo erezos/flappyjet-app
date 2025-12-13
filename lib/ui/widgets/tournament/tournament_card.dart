@@ -43,16 +43,19 @@ class TournamentCard extends StatelessWidget {
     );
 
     // Responsive sizing
+    final isUltraNarrow = screenSize.width < 340;
     final cardHeight = ResponsiveConfig.responsiveSize(170, screenSize, minScale: 0.9, maxScale: 1.15);
-    final imageWidth = ResponsiveConfig.responsiveSize(115, screenSize, minScale: 0.85, maxScale: 1.1);
-    final padding = ResponsiveConfig.responsiveSize(12, screenSize);
+    final imageWidth = isUltraNarrow
+        ? ResponsiveConfig.responsiveSize(88, screenSize, minScale: 0.7, maxScale: 1.0)
+        : ResponsiveConfig.responsiveSize(110, screenSize, minScale: 0.82, maxScale: 1.05);
+    final padding = ResponsiveConfig.responsiveSize(isUltraNarrow ? 8 : 12, screenSize);
     final borderRadius = ResponsiveConfig.responsiveSize(16, screenSize, minScale: 0.9, maxScale: 1.1);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.5),
-        height: cardHeight,
+        constraints: BoxConstraints(minHeight: cardHeight),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(borderRadius),
           // Glowing cyan/blue border
@@ -89,6 +92,7 @@ class TournamentCard extends StatelessWidget {
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Left: Tournament Banner Image
                 _buildBannerImage(imageWidth, cardHeight, borderRadius),
@@ -99,14 +103,18 @@ class TournamentCard extends StatelessWidget {
                     padding: EdgeInsets.all(padding),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Top: Full Name & Type
+                        // Top: Full Name & Type (kept compact)
                         _buildTitleSection(screenSize),
-                        
-                        // Middle: Prizes Preview
+
+                        SizedBox(height: ResponsiveConfig.responsiveSize(6, screenSize, minScale: 0.6, maxScale: 1.0)),
+
+                        // Middle: Prizes Preview gets extra priority; wrap to avoid overflows
                         _buildPrizesRow(screenSize),
-                        
+
+                        SizedBox(height: ResponsiveConfig.responsiveSize(6, screenSize, minScale: 0.6, maxScale: 1.0)),
+
                         // Bottom: Entry Button
                         _buildEntryButton(canEnterResult, screenSize),
                       ],
@@ -332,10 +340,26 @@ class TournamentCard extends StatelessWidget {
 
   /// Build prizes section - BIGGER and more prominent!
   Widget _buildPrizesRow(Size screenSize) {
-    // Much bigger sizes for prizes section
-    final fontSize = ResponsiveConfig.responsiveSize(16, screenSize, minScale: 0.9, maxScale: 1.15);
-    final iconSize = ResponsiveConfig.responsiveSize(22, screenSize, minScale: 0.9, maxScale: 1.15);
-    final trophySize = ResponsiveConfig.responsiveSize(20, screenSize, minScale: 0.9, maxScale: 1.15);
+    // Much bigger sizes for prizes section (but allow smaller on ultra-narrow)
+    final isUltraNarrow = screenSize.width < 340;
+    final fontSize = ResponsiveConfig.responsiveSize(
+      isUltraNarrow ? 16 : 19,
+      screenSize,
+      minScale: 0.8,
+      maxScale: 1.2,
+    );
+    final iconSize = ResponsiveConfig.responsiveSize(
+      isUltraNarrow ? 22 : 28,
+      screenSize,
+      minScale: 0.8,
+      maxScale: 1.2,
+    );
+    final trophySize = ResponsiveConfig.responsiveSize(
+      isUltraNarrow ? 20 : 24,
+      screenSize,
+      minScale: 0.8,
+      maxScale: 1.2,
+    );
     
     final totalCoins = tournament.completionReward.coins + tournament.totalCoinsFromRounds;
     final totalGems = tournament.completionReward.gems + tournament.totalGemsFromRounds;
@@ -343,117 +367,91 @@ class TournamentCard extends StatelessWidget {
     final hasTicket = tournament.completionReward.freeTicketTier != null;
     final hasBooster = tournament.completionReward.booster != null;
     
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        // Darker background with gradient for premium feel
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.black.withOpacity(0.45),
-            Colors.black.withOpacity(0.35),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFFFD700).withOpacity(0.25),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFD700).withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Tournament-specific trophy image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.asset(
-              'assets/images/tournaments/trophy_${tournament.id}.png',
-              width: trophySize + 8,
-              height: trophySize + 8,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                // Fallback to emoji if image not found
-                return Text('🏆', style: TextStyle(fontSize: trophySize));
-              },
-            ),
-          ),
-          const SizedBox(width: 10),
-          
-          // Expandable prizes content
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Coins - bigger and bolder!
-                  Coin3DIcon(size: iconSize),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$totalCoins',
-                    style: TextStyle(
-                      color: const Color(0xFFFFD54F),
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 3,
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Gems (if any)
-                  if (totalGems > 0) ...[
-                    const SizedBox(width: 12),
-                    Gem3DIcon(size: iconSize),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$totalGems',
-                      style: TextStyle(
-                        color: const Color(0xFF4FC3F7),
-                        fontSize: fontSize,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.5),
-                            blurRadius: 3,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  
-                  // Jet Skin reward (show actual skin thumbnail!) - bigger!
-                  if (skinId != null) ...[
-                    const SizedBox(width: 10),
-                    _buildSkinThumbnail(skinId, iconSize + 8),
-                  ],
-                  if (hasTicket) ...[
-                    const SizedBox(width: 8),
-                    TournamentTicketIcon(
-                      tier: tournament.completionReward.freeTicketTier ?? TournamentTier.silver,
-                      size: iconSize + 4,
-                    ),
-                  ],
-                  if (hasBooster) ...[
-                    const SizedBox(width: 6),
-                    Text('⚡', style: TextStyle(fontSize: iconSize - 2)),
-                  ],
-                ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      child: SizedBox(
+        width: double.infinity,
+        child: FittedBox(
+          alignment: Alignment.centerLeft,
+          fit: BoxFit.scaleDown,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Tournament-specific trophy image (kept compact)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.asset(
+                  'assets/images/tournaments/trophy_${tournament.id}.png',
+                  width: trophySize + 8,
+                  height: trophySize + 8,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Fallback to emoji if image not found
+                    return Text('🏆', style: TextStyle(fontSize: trophySize));
+                  },
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              
+              // Coins
+              Coin3DIcon(size: iconSize),
+              const SizedBox(width: 4),
+              Text(
+                '$totalCoins',
+                style: TextStyle(
+                  color: const Color(0xFFFFD54F),
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 3,
+                    ),
+                  ],
+                ),
+              ),
+
+              if (totalGems > 0) ...[
+                const SizedBox(width: 10),
+                Gem3DIcon(size: iconSize),
+                const SizedBox(width: 4),
+                Text(
+                  '$totalGems',
+                  style: TextStyle(
+                    color: const Color(0xFF4FC3F7),
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 3,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              if (skinId != null) ...[
+                const SizedBox(width: 10),
+                _buildSkinThumbnail(skinId, iconSize + 6),
+              ],
+
+              if (hasTicket) ...[
+                const SizedBox(width: 8),
+                TournamentTicketIcon(
+                  tier: tournament.completionReward.freeTicketTier ?? TournamentTier.silver,
+                  size: iconSize + 2,
+                ),
+              ],
+
+              if (hasBooster) ...[
+                const SizedBox(width: 8),
+                Text('⚡', style: TextStyle(fontSize: iconSize - 4)),
+              ],
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -486,9 +484,9 @@ class TournamentCard extends StatelessWidget {
   }
 
   Widget _buildEntryButton(CanEnterResult canEnterResult, Size screenSize) {
-    // Smaller, more compact fee button
-    final buttonHeight = ResponsiveConfig.responsiveSize(30, screenSize, minScale: 0.9, maxScale: 1.1);
-    final buttonFontSize = ResponsiveConfig.responsiveSize(11, screenSize, minScale: 0.9, maxScale: 1.1);
+    // Larger CTA for better readability
+    final buttonHeight = ResponsiveConfig.responsiveSize(36, screenSize, minScale: 0.95, maxScale: 1.15);
+    final buttonFontSize = ResponsiveConfig.responsiveSize(13, screenSize, minScale: 0.95, maxScale: 1.15);
     
     if (hasActiveEntry) {
       return _buildPremiumButton(

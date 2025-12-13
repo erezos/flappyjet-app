@@ -1,7 +1,6 @@
 /// 🎯 ENHANCED DIFFICULTY SYSTEM - Score-Based Progression
 /// Replaces fragmented difficulty systems with unified, precise control
 library;
-import '../../core/debug_logger.dart';
 
 /// Represents a difficulty phase with all its properties
 class DifficultyPhase {
@@ -326,11 +325,9 @@ class DifficultySystem {
     }
   }
   
-  /// Debug: Print current difficulty info
+  /// Debug: Print current difficulty info (disabled to reduce log spam)
   static void debugPrintDifficulty(int score) {
-    final phase = getPhaseForScore(score);
-    safePrint('🎯 DIFFICULTY: Score $score → ${phase.toString()}');
-    safePrint('🎨 VISUAL: Background=${getBackgroundTheme(score)}, Ground=${getGroundTheme(score)}, Obstacles=${getObstacleTheme(score)}');
-    safePrint('🎵 AUDIO: Theme=${getAudioTheme(score)}');
+    // Difficulty/Visual/Audio theme logs removed - too verbose during gameplay
+    // Enable for debugging: safePrint('🎯 DIFFICULTY: Score $score → ${getPhaseForScore(score)}');
   }
 }

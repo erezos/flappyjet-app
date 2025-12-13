@@ -721,16 +721,150 @@ class AchievementsManager extends ChangeNotifier {
       iconPath: 'achievements/mission_master.png',
     ));
 
+    // === TOURNAMENT ACHIEVEMENTS (ENTRY) ===
     _registerAchievement(Achievement(
-      id: 'level_champion',
-      title: 'Level Champion',
-      description: 'Complete all 30 story levels',
+      id: 'tournament_rookie',
+      title: 'Tournament Rookie',
+      description: 'Enter 1 tournament',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.bronze,
+      target: 1,
+      coinReward: 150,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'tournament_participant',
+      title: 'Tournament Participant',
+      description: 'Enter 5 tournaments',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.silver,
+      target: 5,
+      coinReward: 350,
+      gemReward: 5,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'tournament_regular',
+      title: 'Tournament Regular',
+      description: 'Enter 10 tournaments',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 10,
+      coinReward: 700,
+      gemReward: 12,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'tournament_grinder',
+      title: 'Tournament Grinder',
+      description: 'Enter 50 tournaments',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.platinum,
+      target: 50,
+      coinReward: 1500,
+      gemReward: 30,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'tournament_veteran',
+      title: 'Tournament Veteran',
+      description: 'Enter 100 tournaments',
       category: AchievementCategory.mastery,
       rarity: AchievementRarity.diamond,
-      target: 30,
-      coinReward: 3000,
+      target: 100,
+      coinReward: 2800,
+      gemReward: 60,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'tournament_legend',
+      title: 'Tournament Legend',
+      description: 'Enter 200 tournaments',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.diamond,
+      target: 200,
+      coinReward: 4500,
       gemReward: 100,
       iconPath: 'achievements/level_champion.png',
+      isSecret: true,
+    ));
+
+    // === TOURNAMENT ACHIEVEMENTS (ROUND WINS) ===
+    _registerAchievement(Achievement(
+      id: 'round_winner',
+      title: 'Round Winner',
+      description: 'Win 1 tournament round',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.bronze,
+      target: 1,
+      coinReward: 150,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'round_challenger',
+      title: 'Round Challenger',
+      description: 'Win 5 tournament rounds',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.silver,
+      target: 5,
+      coinReward: 400,
+      gemReward: 6,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'round_contender',
+      title: 'Round Contender',
+      description: 'Win 10 tournament rounds',
+      category: AchievementCategory.special,
+      rarity: AchievementRarity.gold,
+      target: 10,
+      coinReward: 800,
+      gemReward: 14,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'round_grinder',
+      title: 'Round Grinder',
+      description: 'Win 50 tournament rounds',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.platinum,
+      target: 50,
+      coinReward: 1800,
+      gemReward: 35,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'round_veteran',
+      title: 'Round Veteran',
+      description: 'Win 100 tournament rounds',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.diamond,
+      target: 100,
+      coinReward: 3200,
+      gemReward: 70,
+      iconPath: 'achievements/level_champion.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'round_legend',
+      title: 'Round Legend',
+      description: 'Win 200 tournament rounds',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.diamond,
+      target: 200,
+      coinReward: 5200,
+      gemReward: 120,
+      iconPath: 'achievements/level_champion.png',
+      isSecret: true,
     ));
   }
 
@@ -999,7 +1133,34 @@ class AchievementsManager extends ChangeNotifier {
     }
     
     if (totalLevelsCompleted != null) {
-      await setProgress('level_champion', totalLevelsCompleted);
+    }
+  }
+
+  /// Check and update tournament-related achievements
+  Future<void> checkTournamentAchievements({
+    int tournamentsEntered = 0,
+    int roundsWon = 0,
+  }) async {
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    if (tournamentsEntered > 0) {
+      await updateProgress('tournament_rookie', tournamentsEntered);
+      await updateProgress('tournament_participant', tournamentsEntered);
+      await updateProgress('tournament_regular', tournamentsEntered);
+      await updateProgress('tournament_grinder', tournamentsEntered);
+      await updateProgress('tournament_veteran', tournamentsEntered);
+      await updateProgress('tournament_legend', tournamentsEntered);
+    }
+
+    if (roundsWon > 0) {
+      await updateProgress('round_winner', roundsWon);
+      await updateProgress('round_challenger', roundsWon);
+      await updateProgress('round_contender', roundsWon);
+      await updateProgress('round_grinder', roundsWon);
+      await updateProgress('round_veteran', roundsWon);
+      await updateProgress('round_legend', roundsWon);
     }
   }
 

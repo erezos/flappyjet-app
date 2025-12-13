@@ -223,9 +223,7 @@ class NativeAudioEngine {
       });
 
       if (result == true) {
-        if (kDebugMode) {
-          safePrint('🎵 🔊 SFX played: $trackId');
-        }
+        // SFX log removed - too verbose during gameplay
         return true;
       }
       return false;

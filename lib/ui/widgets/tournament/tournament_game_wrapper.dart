@@ -63,6 +63,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
   @override
   void initState() {
     super.initState();
+    _tournamentManager.selectTournamentContext(widget.tournament.id);
     _initializeGame();
   }
 
@@ -154,9 +155,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
 
   void _onObstaclePassed() {
     if (_roundEnded) return;
-    
-    safePrint('🏆 Obstacle passed: ${_game.currentScore}/$_obstacleTarget');
-
+    // Obstacle passed log removed - too verbose during gameplay
     // Check if round objective completed
     if (_game.currentScore >= _obstacleTarget) {
       _onRoundCompleted();
@@ -192,6 +191,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
       heartsUsed: heartsUsed,
       continuesUsed: continuesUsed,
       duration: duration,
+      tournamentId: widget.tournament.id,
     );
 
     // Grant rewards
@@ -234,6 +234,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
       heartsUsed: heartsUsed,
       continuesUsed: continuesUsed,
       duration: duration,
+      tournamentId: widget.tournament.id,
     );
 
     // Stop music
@@ -251,6 +252,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
     await _tournamentManager.completeTournament(
       bonusCoins: widget.tournament.completionReward.coins,
       bonusGems: widget.tournament.completionReward.gems,
+      tournamentId: widget.tournament.id,
     );
 
     // Grant completion rewards
@@ -268,7 +270,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
       MaterialPageRoute(
         builder: (_) => TournamentVictoryScreen(
           tournament: widget.tournament,
-          entry: _tournamentManager.activeEntry!,
+          entry: _tournamentManager.activeEntryFor(widget.tournament.id) ?? widget.entry,
           // No callback needed - TournamentVictoryScreen handles its own navigation
         ),
       ),
@@ -333,7 +335,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
     safePrint('🏆 Continue with ad requested');
 
     // Track continue usage
-    await _tournamentManager.useContinue();
+    await _tournamentManager.useContinue(tournamentId: widget.tournament.id);
 
     // Restore hearts
     final maxHearts = _livesManager.maxLives;
@@ -374,7 +376,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
     }
 
     // Track continue usage
-    await _tournamentManager.useContinue();
+    await _tournamentManager.useContinue(tournamentId: widget.tournament.id);
 
     // Restore hearts
     final maxHearts = _livesManager.maxLives;
@@ -401,7 +403,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
   void _handleTryFailed() async {
     safePrint('🏆 Try failed, checking remaining tries');
 
-    final status = await _tournamentManager.failCurrentTry();
+    final status = await _tournamentManager.failCurrentTry(tournamentId: widget.tournament.id);
 
     if (status == TournamentEntryStatus.failed) {
       // All tries exhausted
@@ -446,7 +448,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
 
   void _handleQuit() {
     safePrint('🏆 Quitting tournament');
-    _tournamentManager.abandonTournament();
+    _tournamentManager.abandonTournament(tournamentId: widget.tournament.id);
     _returnToHub();
   }
 
@@ -457,7 +459,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
       MaterialPageRoute(
         builder: (_) => TournamentFailedScreen(
           tournament: widget.tournament,
-          entry: _tournamentManager.activeEntry!,
+          entry: widget.entry,
           // No onReturnToHub callback - TournamentFailedScreen handles its own navigation
           onPurchaseExtraTries: _handlePurchaseExtraTries,
         ),
@@ -484,6 +486,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
       extraTries: deal.extraTries,
       cost: cost,
       costType: EntryFeeType.gems,
+      tournamentId: widget.tournament.id,
     );
 
     if (success && mounted) {
@@ -492,7 +495,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
         MaterialPageRoute(
           builder: (_) => TournamentGameWrapper(
             tournament: widget.tournament,
-            entry: _tournamentManager.activeEntry!,
+            entry: _tournamentManager.activeEntryFor(widget.tournament.id) ?? widget.entry,
           ),
         ),
       );
@@ -501,7 +504,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
 
   void _returnToHub() {
     // Clear active entry and return to hub
-    _tournamentManager.clearActiveEntry();
+    _tournamentManager.clearActiveEntry(tournamentId: widget.tournament.id);
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 

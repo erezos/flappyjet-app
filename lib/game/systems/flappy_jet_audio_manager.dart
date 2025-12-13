@@ -233,7 +233,7 @@ class FlappyJetAudioManager {
     
     try {
       await _nativeAudio.playSFX('bonus_collect', volume: 0.8);
-      safePrint('🎵 🔊 SFX played: bonus_collect');
+      // SFX log removed - too verbose during gameplay
     } catch (e) {
       safePrint('🎵 FlappyJetAudioManager: Bonus collect sound failed: $e');
     }

@@ -15,6 +15,8 @@ import '../../models/tournament_config.dart';
 import '../../models/tournament_entry.dart';
 import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
+import 'achievements_manager.dart';
+import 'missions_manager.dart';
 
 /// Tournament Manager - Singleton pattern for consistent state
 class TournamentManager extends ChangeNotifier {
@@ -24,26 +26,29 @@ class TournamentManager extends ChangeNotifier {
   TournamentManager._internal();
 
   // SharedPreferences keys
-  static const String _keyAvailableTournaments = 'tournaments_available';
-  static const String _keyActiveEntry = 'tournaments_active_entry';
+  static const String _keyActiveEntry = 'tournaments_active_entry'; // legacy single-entry key
+  static const String _keyActiveEntries = 'tournaments_active_entries'; // new multi-entry map
+  static const String _keyCurrentTournament = 'tournaments_current_tournament';
   static const String _keyCompletedTournaments = 'tournaments_completed';
   static const String _keyFreeTickets = 'tournaments_free_tickets';
   static const String _keyTournamentHistory = 'tournaments_history';
-  static const String _keyLastRefresh = 'tournaments_last_refresh';
-
   // State
   List<TournamentConfig> _availableTournaments = [];
-  TournamentEntry? _activeEntry;
+  final Map<String, TournamentEntry> _activeEntries = {};
+  String? _currentTournamentId;
   Set<String> _completedTournamentIds = {};
   Map<String, int> _freeTickets = {}; // tier -> count
   List<TournamentHistoryEntry> _history = [];
   bool _isInitialized = false;
-  DateTime? _lastRefresh;
 
   // Getters
   List<TournamentConfig> get availableTournaments => _availableTournaments;
-  TournamentEntry? get activeEntry => _activeEntry;
-  bool get hasActiveEntry => _activeEntry != null && _activeEntry!.status.isActive;
+  Map<String, TournamentEntry> get activeEntries => Map.unmodifiable(_activeEntries);
+  TournamentEntry? get activeEntry => _currentTournamentId != null ? _activeEntries[_currentTournamentId] : null;
+  bool get hasActiveEntry => activeEntry?.status.isActive ?? false;
+  bool get hasAnyActiveEntry => _activeEntries.values.any((e) => e.status.isActive);
+  TournamentEntry? activeEntryFor(String tournamentId) => _activeEntries[tournamentId];
+  bool hasActiveEntryFor(String tournamentId) => activeEntryFor(tournamentId)?.status.isActive ?? false;
   bool get isInitialized => _isInitialized;
   Set<String> get completedTournamentIds => _completedTournamentIds;
   List<TournamentHistoryEntry> get history => _history;
@@ -57,6 +62,13 @@ class TournamentManager extends ChangeNotifier {
 
   /// Get count of free tickets for a specific tier
   int getFreeTickets(TournamentTier tier) => _freeTickets[tier.name] ?? 0;
+
+  /// Set the current tournament context (used by game flows)
+  void selectTournamentContext(String tournamentId) {
+    if (_activeEntries.containsKey(tournamentId)) {
+      _setCurrentTournament(tournamentId);
+    }
+  }
 
   /// Get total free tickets across all tiers
   int get totalFreeTickets => 
@@ -91,7 +103,7 @@ class TournamentManager extends ChangeNotifier {
       // Fire initialization event (async, non-blocking)
       _fireEvent('tournament_manager_initialized', {
         'available_count': _availableTournaments.length,
-        'has_active_entry': hasActiveEntry,
+        'has_active_entry': hasAnyActiveEntry,
         'total_free_tickets': totalFreeTickets,
       });
     } catch (e) {
@@ -100,21 +112,50 @@ class TournamentManager extends ChangeNotifier {
     }
   }
 
+  String? _selectDefaultCurrentTournamentId() {
+    // Prefer an in-progress entry; otherwise pick any existing entry.
+    for (final entry in _activeEntries.entries) {
+      if (entry.value.status.isActive) return entry.key;
+    }
+    if (_activeEntries.isNotEmpty) return _activeEntries.keys.first;
+    return null;
+  }
+
   /// Load persisted state from SharedPreferences
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Load active entry
-    final activeEntryJson = prefs.getString(_keyActiveEntry);
-    if (activeEntryJson != null) {
+    // Load active entries (multi-entry). Migrate from legacy single entry if needed.
+    final activeEntriesJson = prefs.getString(_keyActiveEntries);
+    if (activeEntriesJson != null) {
       try {
-        _activeEntry = TournamentEntry.fromJsonString(activeEntryJson);
-        safePrint('🏆 Loaded active entry: ${_activeEntry?.tournamentName}');
+        final decoded = jsonDecode(activeEntriesJson) as Map<String, dynamic>;
+        decoded.forEach((tournamentId, entryJson) {
+          _activeEntries[tournamentId] = TournamentEntry.fromJson(entryJson as Map<String, dynamic>);
+        });
+        safePrint('🏆 Loaded ${_activeEntries.length} active entries');
       } catch (e) {
-        safePrint('🏆 ⚠️ Failed to load active entry: $e');
-        _activeEntry = null;
+        safePrint('🏆 ⚠️ Failed to load active entries: $e');
+        _activeEntries.clear();
+      }
+    } else {
+      // Legacy migration: single active entry key
+      final legacyActiveEntryJson = prefs.getString(_keyActiveEntry);
+      if (legacyActiveEntryJson != null) {
+        try {
+          final entry = TournamentEntry.fromJsonString(legacyActiveEntryJson);
+          _activeEntries[entry.tournamentId] = entry;
+          _currentTournamentId = entry.tournamentId;
+          safePrint('🏆 Migrated legacy active entry: ${entry.tournamentName}');
+          await prefs.remove(_keyActiveEntry);
+        } catch (e) {
+          safePrint('🏆 ⚠️ Failed to migrate legacy active entry: $e');
+        }
       }
     }
+
+    // Load current tournament context (for single-entry APIs during gameplay)
+    _currentTournamentId = prefs.getString(_keyCurrentTournament) ?? _selectDefaultCurrentTournamentId();
 
     // Load completed tournament IDs
     final completedList = prefs.getStringList(_keyCompletedTournaments) ?? [];
@@ -146,11 +187,6 @@ class TournamentManager extends ChangeNotifier {
       }
     }
 
-    // Load last refresh time
-    final lastRefreshMs = prefs.getInt(_keyLastRefresh) ?? 0;
-    _lastRefresh = lastRefreshMs > 0 
-        ? DateTime.fromMillisecondsSinceEpoch(lastRefreshMs) 
-        : null;
   }
 
   /// Load tournament configurations from assets
@@ -176,7 +212,7 @@ class TournamentManager extends ChangeNotifier {
     required int playerGems,
   }) {
     // Check if already has an active entry in THIS tournament
-    if (hasActiveEntry && _activeEntry!.tournamentId == tournament.id) {
+    if (hasActiveEntryFor(tournament.id)) {
       return CanEnterResult(
         canEnter: false,
         reason: 'Already in progress',
@@ -243,9 +279,11 @@ class TournamentManager extends ChangeNotifier {
     TournamentConfig tournament, {
     required bool useFreeTicket,
   }) async {
-    if (hasActiveEntry && _activeEntry!.tournamentId == tournament.id) {
+    final existingEntry = activeEntryFor(tournament.id);
+    if (existingEntry != null && existingEntry.status.isActive) {
       safePrint('🏆 ⚠️ Already have active entry for ${tournament.name}');
-      return _activeEntry;
+      _setCurrentTournament(tournament.id);
+      return existingEntry;
     }
 
     // Use free ticket if applicable
@@ -258,13 +296,15 @@ class TournamentManager extends ChangeNotifier {
     }
 
     // Create new entry
-    _activeEntry = TournamentEntry.start(
+    final entry = TournamentEntry.start(
       tournamentId: tournament.id,
       tournamentName: tournament.name,
       totalTries: tournament.tries.count,
     );
 
-    await _saveActiveEntry();
+    _activeEntries[tournament.id] = entry;
+    _setCurrentTournament(tournament.id);
+    await _saveActiveEntries();
     notifyListeners();
 
     safePrint('🏆 ✅ Entered tournament: ${tournament.name}');
@@ -279,18 +319,31 @@ class TournamentManager extends ChangeNotifier {
       'total_tries': tournament.tries.count,
     });
 
-    return _activeEntry;
+    // Track achievements and missions
+    try {
+      await AchievementsManager().checkTournamentAchievements(tournamentsEntered: 1);
+      final missions = MissionsManager();
+      if (!missions.isInitialized) {
+        await missions.initialize();
+      }
+      await missions.updateMissionProgress(MissionType.enterTournament, 1);
+    } catch (e) {
+      safePrint('🏆 ⚠️ Failed to track tournament entry achievements: $e');
+    }
+
+    return entry;
   }
 
   /// Resume active entry (continue where left off)
-  TournamentEntry? resumeActiveEntry() {
-    if (!hasActiveEntry) {
+  TournamentEntry? resumeActiveEntry({String? tournamentId}) {
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) {
       safePrint('🏆 ⚠️ No active entry to resume');
       return null;
     }
     
-    safePrint('🏆 Resuming tournament: ${_activeEntry!.tournamentName}');
-    return _activeEntry;
+    safePrint('🏆 Resuming tournament: ${entry.tournamentName}');
+    return entry;
   }
 
   /// Complete a round successfully
@@ -301,13 +354,15 @@ class TournamentManager extends ChangeNotifier {
     required int heartsUsed,
     required int continuesUsed,
     required Duration duration,
+    String? tournamentId,
   }) async {
-    if (!hasActiveEntry) {
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) {
       safePrint('🏆 ⚠️ No active entry to update');
       return;
     }
 
-    _activeEntry!.completeRound(
+    entry.completeRound(
       roundNumber: roundNumber,
       coinsReward: coinsReward,
       gemsReward: gemsReward,
@@ -316,22 +371,34 @@ class TournamentManager extends ChangeNotifier {
       duration: duration,
     );
 
-    await _saveActiveEntry();
+    await _saveActiveEntries();
     notifyListeners();
 
     safePrint('🏆 ✅ Round $roundNumber completed');
 
     // Fire event
     _fireEvent('tournament_round_completed', {
-      'tournament_id': _activeEntry!.tournamentId,
+      'tournament_id': entry.tournamentId,
       'round_number': roundNumber,
-      'try_number': _activeEntry!.currentTry,
+      'try_number': entry.currentTry,
       'coins_earned': coinsReward,
       'gems_earned': gemsReward,
       'hearts_used': heartsUsed,
       'continues_used': continuesUsed,
       'duration_seconds': duration.inSeconds,
     });
+
+    // Track achievements and missions
+    try {
+      await AchievementsManager().checkTournamentAchievements(roundsWon: 1);
+      final missions = MissionsManager();
+      if (!missions.isInitialized) {
+        await missions.initialize();
+      }
+      await missions.updateMissionProgress(MissionType.winTournamentRound, 1);
+    } catch (e) {
+      safePrint('🏆 ⚠️ Failed to track tournament round achievements: $e');
+    }
   }
 
   /// Fail current round (ran out of hearts and continues)
@@ -340,26 +407,28 @@ class TournamentManager extends ChangeNotifier {
     required int heartsUsed,
     required int continuesUsed,
     required Duration duration,
+    String? tournamentId,
   }) async {
-    if (!hasActiveEntry) return;
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) return;
 
-    _activeEntry!.failRound(
+    entry.failRound(
       roundNumber: roundNumber,
       heartsUsed: heartsUsed,
       continuesUsed: continuesUsed,
       duration: duration,
     );
 
-    await _saveActiveEntry();
+    await _saveActiveEntries();
     notifyListeners();
 
     safePrint('🏆 ❌ Round $roundNumber failed');
 
     // Fire event
     _fireEvent('tournament_round_failed', {
-      'tournament_id': _activeEntry!.tournamentId,
+      'tournament_id': entry.tournamentId,
       'round_number': roundNumber,
-      'try_number': _activeEntry!.currentTry,
+      'try_number': entry.currentTry,
       'hearts_used': heartsUsed,
       'continues_used': continuesUsed,
       'duration_seconds': duration.inSeconds,
@@ -368,71 +437,74 @@ class TournamentManager extends ChangeNotifier {
 
   /// Advance the active entry to the next round (persists + notifies).
   /// Used by playoff flow to move from Quarter→Semi→Finals after a win.
-  Future<void> advanceToNextRound() async {
-    if (!hasActiveEntry) return;
+  Future<void> advanceToNextRound({String? tournamentId}) async {
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) return;
 
-    final nextRound = _activeEntry!.currentRound + 1;
-    _activeEntry!.startRound(nextRound);
+    final nextRound = entry.currentRound + 1;
+    entry.startRound(nextRound);
 
-    await _saveActiveEntry();
+    await _saveActiveEntries();
     notifyListeners();
 
     safePrint('🏆 ➡️ Advanced to round $nextRound');
 
     _fireEvent('tournament_round_advanced', {
-      'tournament_id': _activeEntry!.tournamentId,
+      'tournament_id': entry.tournamentId,
       'round_number': nextRound,
-      'try_number': _activeEntry!.currentTry,
+      'try_number': entry.currentTry,
     });
   }
 
   /// Use a continue (respawn with full hearts)
-  Future<void> useContinue() async {
-    if (!hasActiveEntry) return;
+  Future<void> useContinue({String? tournamentId}) async {
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) return;
 
-    _activeEntry!.useContinue();
-    await _saveActiveEntry();
+    entry.useContinue();
+    await _saveActiveEntries();
     notifyListeners();
 
-    safePrint('🏆 Continue used (${_activeEntry!.continuesUsedThisTry} this try)');
+    safePrint('🏆 Continue used (${entry.continuesUsedThisTry} this try)');
 
     // Fire event
     _fireEvent('tournament_continue_used', {
-      'tournament_id': _activeEntry!.tournamentId,
-      'round_number': _activeEntry!.currentRound,
-      'try_number': _activeEntry!.currentTry,
-      'continues_this_try': _activeEntry!.continuesUsedThisTry,
-      'total_continues': _activeEntry!.totalContinuesUsed,
+      'tournament_id': entry.tournamentId,
+      'round_number': entry.currentRound,
+      'try_number': entry.currentTry,
+      'continues_this_try': entry.continuesUsedThisTry,
+      'total_continues': entry.totalContinuesUsed,
     });
   }
 
   /// Fail current try (moves to next try or fails tournament)
-  Future<TournamentEntryStatus> failCurrentTry() async {
-    if (!hasActiveEntry) return TournamentEntryStatus.failed;
+  Future<TournamentEntryStatus> failCurrentTry({String? tournamentId}) async {
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) return TournamentEntryStatus.failed;
 
-    final previousStatus = _activeEntry!.status;
-    _activeEntry!.failCurrentTry();
+    final previousStatus = entry.status;
+    entry.failCurrentTry();
     
-    await _saveActiveEntry();
+    await _saveActiveEntries();
     notifyListeners();
 
-    final newStatus = _activeEntry!.status;
-    safePrint('🏆 Try failed. Status: ${newStatus.name}, Tries remaining: ${_activeEntry!.triesRemaining}');
+    final newStatus = entry.status;
+    safePrint('🏆 Try failed. Status: ${newStatus.name}, Tries remaining: ${entry.triesRemaining}');
 
     // Fire event
     _fireEvent('tournament_try_failed', {
-      'tournament_id': _activeEntry!.tournamentId,
-      'try_number': _activeEntry!.currentTry - 1, // Previous try
-      'tries_remaining': _activeEntry!.triesRemaining,
-      'highest_round': _activeEntry!.highestRoundReached,
-      'total_coins_earned': _activeEntry!.coinsEarned,
-      'total_gems_earned': _activeEntry!.gemsEarned,
+      'tournament_id': entry.tournamentId,
+      'try_number': entry.currentTry - 1, // Previous try
+      'tries_remaining': entry.triesRemaining,
+      'highest_round': entry.highestRoundReached,
+      'total_coins_earned': entry.coinsEarned,
+      'total_gems_earned': entry.gemsEarned,
       'tournament_failed': newStatus == TournamentEntryStatus.failed,
     });
 
     // If tournament failed, add to history
     if (newStatus == TournamentEntryStatus.failed && previousStatus != newStatus) {
-      await _addToHistory(_activeEntry!, false);
+      await _addToHistory(entry, false);
     }
 
     return newStatus;
@@ -444,20 +516,22 @@ class TournamentManager extends ChangeNotifier {
     required int bonusCoins,
     required int bonusGems,
     TournamentReward? completionReward,
+    String? tournamentId,
   }) async {
-    if (!hasActiveEntry) return null;
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) return null;
 
-    _activeEntry!.completeTournament(
+    entry.completeTournament(
       bonusCoins: bonusCoins,
       bonusGems: bonusGems,
     );
 
     // Mark as completed
-    _completedTournamentIds.add(_activeEntry!.tournamentId);
+    _completedTournamentIds.add(entry.tournamentId);
     
-    await _saveActiveEntry();
+    await _saveActiveEntries();
     await _saveCompletedTournaments();
-    await _addToHistory(_activeEntry!, true);
+    await _addToHistory(entry, true);
     
     // Award free ticket if part of reward
     if (completionReward?.freeTicketTier != null) {
@@ -467,18 +541,18 @@ class TournamentManager extends ChangeNotifier {
     
     notifyListeners();
 
-    safePrint('🏆 🎉 Tournament completed! Earned ${_activeEntry!.coinsEarned} coins, ${_activeEntry!.gemsEarned} gems');
+    safePrint('🏆 🎉 Tournament completed! Earned ${entry.coinsEarned} coins, ${entry.gemsEarned} gems');
 
     // Fire event with full reward details
     _fireEvent('tournament_completed', {
-      'tournament_id': _activeEntry!.tournamentId,
-      'tournament_name': _activeEntry!.tournamentName,
-      'tries_used': _activeEntry!.currentTry,
-      'total_continues': _activeEntry!.totalContinuesUsed,
-      'coins_earned': _activeEntry!.coinsEarned,
-      'gems_earned': _activeEntry!.gemsEarned,
-      'duration_seconds': _activeEntry!.duration.inSeconds,
-      'success_rate': _activeEntry!.successRate,
+      'tournament_id': entry.tournamentId,
+      'tournament_name': entry.tournamentName,
+      'tries_used': entry.currentTry,
+      'total_continues': entry.totalContinuesUsed,
+      'coins_earned': entry.coinsEarned,
+      'gems_earned': entry.gemsEarned,
+      'duration_seconds': entry.duration.inSeconds,
+      'success_rate': entry.successRate,
       'skin_reward': completionReward?.skinId,
       'free_ticket_tier': completionReward?.freeTicketTier?.name,
       'booster_type': completionReward?.booster?.type.name,
@@ -489,38 +563,43 @@ class TournamentManager extends ChangeNotifier {
   }
 
   /// Abandon the tournament (user quits)
-  Future<void> abandonTournament() async {
-    if (!hasActiveEntry) return;
+  Future<void> abandonTournament({String? tournamentId}) async {
+    final entry = _requireActiveEntry(tournamentId: tournamentId);
+    if (entry == null) return;
 
-    _activeEntry!.abandon();
+    entry.abandon();
     
-    await _saveActiveEntry();
-    await _addToHistory(_activeEntry!, false);
+    await _saveActiveEntries();
+    await _addToHistory(entry, false);
     
     notifyListeners();
 
-    safePrint('🏆 Tournament abandoned: ${_activeEntry!.tournamentName}');
+    safePrint('🏆 Tournament abandoned: ${entry.tournamentName}');
 
     // Fire event
     _fireEvent('tournament_abandoned', {
-      'tournament_id': _activeEntry!.tournamentId,
-      'tournament_name': _activeEntry!.tournamentName,
-      'current_try': _activeEntry!.currentTry,
-      'highest_round': _activeEntry!.highestRoundReached,
-      'coins_earned': _activeEntry!.coinsEarned,
-      'gems_earned': _activeEntry!.gemsEarned,
+      'tournament_id': entry.tournamentId,
+      'tournament_name': entry.tournamentName,
+      'current_try': entry.currentTry,
+      'highest_round': entry.highestRoundReached,
+      'coins_earned': entry.coinsEarned,
+      'gems_earned': entry.gemsEarned,
     });
   }
 
   /// Clear active entry (after claiming rewards or abandoning)
-  Future<void> clearActiveEntry() async {
-    _activeEntry = null;
+  Future<void> clearActiveEntry({String? tournamentId}) async {
+    final id = tournamentId ?? _currentTournamentId;
+    if (id == null) return;
+
+    _activeEntries.remove(id);
+    if (_currentTournamentId == id) {
+      _currentTournamentId = _selectDefaultCurrentTournamentId();
+    }
     
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyActiveEntry);
-    
+    await _saveActiveEntries();
     notifyListeners();
-    safePrint('🏆 Active entry cleared');
+    safePrint('🏆 Active entry cleared for tournament $id');
   }
 
   // ============================================================================
@@ -570,27 +649,29 @@ class TournamentManager extends ChangeNotifier {
     required int extraTries,
     required int cost,
     required EntryFeeType costType,
+    String? tournamentId,
   }) async {
     // Check for a failed entry (note: hasActiveEntry returns false for failed entries,
-    // so we check _activeEntry directly)
-    if (_activeEntry == null || _activeEntry!.status != TournamentEntryStatus.failed) {
+    // so we check the stored entry directly)
+    final entry = _requireActiveEntry(tournamentId: tournamentId, allowFinished: true);
+    if (entry == null || entry.status != TournamentEntryStatus.failed) {
       safePrint('🏆 ⚠️ Cannot purchase extra tries - no failed entry');
       return false;
     }
 
-    _activeEntry!.addExtraTries(extraTries);
-    await _saveActiveEntry();
+    entry.addExtraTries(extraTries);
+    await _saveActiveEntries();
     notifyListeners();
 
     safePrint('🏆 ✅ Purchased $extraTries extra tries');
 
     // Fire event
     _fireEvent('tournament_extra_tries_purchased', {
-      'tournament_id': _activeEntry!.tournamentId,
+      'tournament_id': entry.tournamentId,
       'extra_tries': extraTries,
       'cost': cost,
       'cost_type': costType.name,
-      'new_tries_remaining': _activeEntry!.triesRemaining,
+      'new_tries_remaining': entry.triesRemaining,
     });
 
     return true;
@@ -600,12 +681,15 @@ class TournamentManager extends ChangeNotifier {
   // 💾 PERSISTENCE
   // ============================================================================
 
-  Future<void> _saveActiveEntry() async {
+  Future<void> _saveActiveEntries() async {
     final prefs = await SharedPreferences.getInstance();
-    if (_activeEntry != null) {
-      await prefs.setString(_keyActiveEntry, _activeEntry!.toJsonString());
+    final encoded = _activeEntries.map((key, entry) => MapEntry(key, entry.toJson()));
+    await prefs.setString(_keyActiveEntries, jsonEncode(encoded));
+
+    if (_currentTournamentId != null) {
+      await prefs.setString(_keyCurrentTournament, _currentTournamentId!);
     } else {
-      await prefs.remove(_keyActiveEntry);
+      await prefs.remove(_keyCurrentTournament);
     }
   }
 
@@ -661,6 +745,36 @@ class TournamentManager extends ChangeNotifier {
   }
 
   // ============================================================================
+  // 🔧 INTERNAL HELPERS
+  // ============================================================================
+
+  void _setCurrentTournament(String tournamentId) {
+    _currentTournamentId = tournamentId;
+  }
+
+  TournamentEntry? _requireActiveEntry({String? tournamentId, bool allowFinished = false}) {
+    final id = tournamentId ?? _currentTournamentId;
+    if (id == null) {
+      safePrint('🏆 ⚠️ No current tournament context set');
+      return null;
+    }
+
+    final entry = _activeEntries[id];
+    if (entry == null) {
+      safePrint('🏆 ⚠️ No entry found for tournament $id');
+      return null;
+    }
+
+    if (!allowFinished && !entry.status.isActive) {
+      safePrint('🏆 ⚠️ Entry for $id is not active (${entry.status.name})');
+      return null;
+    }
+
+    _setCurrentTournament(id);
+    return entry;
+  }
+
+  // ============================================================================
   // 🔧 TESTING & DEBUG
   // ============================================================================
 
@@ -668,21 +782,23 @@ class TournamentManager extends ChangeNotifier {
   @visibleForTesting
   void resetForTesting() {
     _availableTournaments = [];
-    _activeEntry = null;
+    _activeEntries.clear();
+    _currentTournamentId = null;
     _completedTournamentIds = {};
     _freeTickets = {};
     _history = [];
     _isInitialized = false;
-    _lastRefresh = null;
   }
 
   /// Get debug state
   Map<String, dynamic> getDebugState() => {
     'is_initialized': _isInitialized,
     'available_tournaments': _availableTournaments.length,
-    'has_active_entry': hasActiveEntry,
-    'active_tournament': _activeEntry?.tournamentName,
-    'active_status': _activeEntry?.status.name,
+    'has_active_entry': hasAnyActiveEntry,
+    'active_tournament_id': _currentTournamentId,
+    'active_tournament': activeEntry?.tournamentName,
+    'active_status': activeEntry?.status.name,
+    'active_entry_count': _activeEntries.length,
     'completed_count': _completedTournamentIds.length,
     'free_tickets': _freeTickets,
     'history_count': _history.length,

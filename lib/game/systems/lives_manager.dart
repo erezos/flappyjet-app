@@ -188,6 +188,14 @@ class LivesManager extends ChangeNotifier {
     safePrint('🔄 LivesManager lives set to $clampedLives');
   }
 
+  /// Set lives in-memory without persisting or scheduling timers.
+  /// Useful for UI sync paths where disk I/O would cause jank.
+  void setLivesInMemory(int newLives) {
+    final currentMaxLives = maxLives;
+    _livesNotifier.value = newLives.clamp(0, currentMaxLives);
+    notifyListeners();
+  }
+
   /// Update best score and return true if it's a new record
   Future<bool> updateBestScore(int newScore) async {
     bool isNewRecord = false;

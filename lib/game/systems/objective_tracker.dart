@@ -63,9 +63,7 @@ class ObjectiveTracker extends ChangeNotifier {
     
     if (_objective!.type == ObjectiveType.passObstacles) {
       _currentProgress++;
-      
-      safePrint('🎯 Progress: $_currentProgress/${_objective!.target} obstacles');
-      
+      // Progress log removed - too verbose during gameplay
       _checkCompletion();
       notifyListeners();
     }

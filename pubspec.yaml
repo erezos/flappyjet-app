@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 2.3.0+85
+version: 2.3.1+86
 
 environment:
   sdk: '^3.8.0'
@@ -121,6 +121,8 @@ flutter:
     - assets/images/icons/         # Homepage button icons
     - assets/images/share_templates/  # Social sharing score card templates
     - assets/images/ui/               # Daily streak and UI assets (VS battle nodes)
+    - assets/images/UI/               # Capitalized UI assets (VS battle nodes legacy path)
+    - assets/images/ui/vs_battle_node_completed.png  # Explicit include for 1v1 badge
     - assets/images/ui/missions/      # Floating missions banner assets
     - assets/images/ui/store/         # Store banner assets
     - assets/images/icons/missions/   # Mission 3D icons

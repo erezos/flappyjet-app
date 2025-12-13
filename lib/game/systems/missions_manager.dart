@@ -22,6 +22,8 @@ enum MissionType {
   completeLevel,    // Complete story level X
   completeZone,     // Complete all levels in zone X
   collectBonuses,   // Collect X in-game bonuses (shields, magnets, etc.)
+  enterTournament,  // Enter tournaments
+  winTournamentRound, // Win tournament rounds
 }
 
 /// Mission difficulty levels that determine rewards
@@ -659,6 +661,30 @@ class MissionsManager extends ChangeNotifier {
       case MissionType.playGames:
       case MissionType.maintainStreak:
         return _generateSmartPlayGamesMission(stats, difficulty, createdAt);
+
+      case MissionType.enterTournament:
+        return Mission(
+          id: 'daily_tournament_entry_${createdAt.millisecondsSinceEpoch}',
+          type: MissionType.enterTournament,
+          difficulty: difficulty,
+          title: 'Join the Battle',
+          description: 'Enter ${difficulty == MissionDifficulty.hard ? 2 : 1} tournaments today',
+          target: difficulty == MissionDifficulty.hard ? 2 : 1,
+          reward: difficulty == MissionDifficulty.hard ? 300 : 150,
+          createdAt: createdAt,
+        );
+
+      case MissionType.winTournamentRound:
+        return Mission(
+          id: 'daily_tournament_round_${createdAt.millisecondsSinceEpoch}',
+          type: MissionType.winTournamentRound,
+          difficulty: difficulty,
+          title: 'Climb the Bracket',
+          description: 'Win ${difficulty == MissionDifficulty.hard ? 3 : 1} tournament rounds',
+          target: difficulty == MissionDifficulty.hard ? 3 : 1,
+          reward: difficulty == MissionDifficulty.hard ? 400 : 200,
+          createdAt: createdAt,
+        );
     }
   }
 

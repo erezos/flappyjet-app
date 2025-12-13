@@ -129,15 +129,24 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
 
     // Build or reuse stored jet order (player + 7 opponents)
     List<String> order;
-    if (widget.entry != null && widget.entry!.bracketJetOrder.isNotEmpty) {
-      order = List<String>.from(widget.entry!.bracketJetOrder);
+    final storedOrder = widget.entry?.bracketJetOrder ?? [];
+    final needsReseed = storedOrder.isEmpty ||
+        _shouldReseedBracket(storedOrder, opponentSkins, _playerJetSkin.id);
+
+    if (!needsReseed) {
+      order = List<String>.from(storedOrder);
     } else {
       opponentSkins.shuffle(random);
+      final selectedOpponents = opponentSkins.take(7).toList();
       order = [
         _playerJetSkin.id,
-        ...opponentSkins.take(7),
+        ...selectedOpponents,
       ];
-      widget.entry?.ensureBracketJetOrder(order);
+      if (widget.entry != null) {
+        widget.entry!.bracketJetOrder
+          ..clear()
+          ..addAll(order);
+      }
     }
 
     _allJets = order.map((skinId) {
@@ -155,6 +164,24 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
     
     safePrint('🏆 Bracket initialized with ${_allJets.length} jets');
     safePrint('🏆 Current round: ${widget.currentRound}');
+  }
+
+  bool _shouldReseedBracket(
+    List<String> storedOrder,
+    List<String> configOpponents,
+    String playerId,
+  ) {
+    if (storedOrder.length != 8) return true;
+    if (storedOrder.first != playerId) return true;
+
+    final storedOpponents = storedOrder.where((id) => id != playerId).toList();
+    if (storedOpponents.length != 7) return true;
+    if (storedOpponents.toSet().length != storedOpponents.length) return true;
+
+    final configSet = configOpponents.toSet();
+    if (!configSet.containsAll(storedOpponents)) return true;
+
+    return false;
   }
   
   void _resolveAIMatches() {
@@ -427,7 +454,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
           ),
           const SizedBox(width: 12),
           
-          // Tournament name
+          // Tournament name (centered)
           Expanded(
             child: ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(
@@ -435,6 +462,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
               ).createShader(bounds),
               child: Text(
                 tournamentName.toUpperCase(),
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -447,26 +475,8 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
             ),
           ),
           
-          // Tries counter
-          if (widget.entry != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.refresh, color: Colors.amber.shade300, size: 14),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${widget.entry!.currentTry}/${widget.entry!.totalTries}',
-                    style: TextStyle(color: Colors.amber.shade200, fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
+          // Spacer to balance the back button and keep the title visually centered
+          const SizedBox(width: 44),
         ],
       ),
     );
@@ -476,7 +486,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
     final trophyPath = 'assets/images/tournaments/trophy_${widget.tournament.id}.png';
     final grandPrize = widget.tournament.completionReward;
     final grandPrizeSkin = grandPrize.skinId != null ? JetSkinCatalog.getSkinById(grandPrize.skinId!) : null;
-    final trophySize = screenSize.width * 0.25;
+    final trophySize = (screenSize.width * 0.35).clamp(120.0, 220.0);
     
     return AnimatedBuilder(
       animation: _glowAnimation,
@@ -499,6 +509,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
               ),
               child: Image.asset(
                 trophyPath,
+                key: const ValueKey('playoff_trophy_image'),
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Text('🏆', style: TextStyle(fontSize: trophySize * 0.6)),
               ),

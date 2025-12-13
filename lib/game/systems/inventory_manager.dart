@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import '../../core/repositories/user_stats_repository.dart';
@@ -45,6 +46,8 @@ class InventoryManager extends ChangeNotifier {
   bool get isHeartBoosterActive =>
       _heartBoosterExpiry != null && DateTime.now().isBefore(_heartBoosterExpiry!);
   DateTime? get heartBoosterExpiry => _heartBoosterExpiry;
+  static const String _keyStarterHeartBoosterGranted =
+      'inv_starter_heart_booster_granted_v1';
   
   // Auto-refill booster properties
   bool get isAutoRefillActive => _autoRefillManager.isAutoRefillActive;
@@ -285,6 +288,21 @@ class InventoryManager extends ChangeNotifier {
     safePrint('💖 Heart Booster activated! Duration: ${duration.inHours}h');
   }
 
+  /// Starter booster: grant once for brand-new players (silent 24h, 6 hearts)
+  Future<bool> grantStarterHeartBoosterIfEligible({
+    required bool isFirstTimeUser,
+  }) async {
+    if (!isFirstTimeUser) return false;
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyGranted =
+        prefs.getBool(_keyStarterHeartBoosterGranted) ?? false;
+    if (alreadyGranted) return false;
+
+    await activateHeartBooster(const Duration(hours: 24));
+    await prefs.setBool(_keyStarterHeartBoosterGranted, true);
+    return true;
+  }
+
   /// Check and update Heart Booster status (call periodically)
   Future<void> updateHeartBoosterStatus() async {
     final wasActive = _heartBoosterActiveNotifier.value;
@@ -328,6 +346,22 @@ class InventoryManager extends ChangeNotifier {
 
   /// Get remaining time for Auto-Refill (null if not active)
   Duration? get autoRefillTimeRemaining => _autoRefillManager.autoRefillTimeRemaining;
+
+  @visibleForTesting
+  Future<void> resetForTesting() async {
+    _isInitialized = false;
+    _userStats = null;
+    _inventory = null;
+    _eventBus = null;
+    _ownedSkinIds = {JetSkinCatalog.starterJet.id};
+    _equippedSkinId = JetSkinCatalog.starterJet.id;
+    _softCurrency = 500;
+    _gems = 25;
+    _heartBoosterExpiry = null;
+    _softCurrencyNotifier.value = _softCurrency;
+    _gemsNotifier.value = _gems;
+    _heartBoosterActiveNotifier.value = false;
+  }
 
   /// Unlock a skin
   Future<void> unlockSkin(String skinId) async {

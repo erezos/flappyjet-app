@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 
 import '../systems/player_identity_manager.dart';
 import '../systems/audio_settings_manager.dart';
-import '../systems/inventory_manager.dart';
 import '../systems/lives_manager.dart';
 
 /// Performance-optimized initialization system

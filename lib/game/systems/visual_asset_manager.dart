@@ -43,8 +43,7 @@ class VisualAssetManager {
   static String getObstacleAsset(int score) {
     final phaseNumber = _getObstaclePhaseForScore(score);
     final assetPath = _obstacleAssets[phaseNumber] ?? _obstacleAssets[1]!;
-    
-    safePrint('🎨 OBSTACLE: Score $score → OBS Phase $phaseNumber → $assetPath');
+    // Obstacle asset log removed - too verbose during gameplay
     return assetPath;
   }
   

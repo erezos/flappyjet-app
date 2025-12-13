@@ -7,7 +7,6 @@ import 'gem_3d_icon.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import '../../game/systems/social_sharing_manager.dart';
-import '../../core/debug_logger.dart';
 
 class GameOverMenu extends StatefulWidget {
   final int score;

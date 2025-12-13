@@ -219,6 +219,8 @@ void main() {
       expect(MissionType.values, contains(MissionType.completeLevel));
       expect(MissionType.values, contains(MissionType.completeZone));
       expect(MissionType.values, contains(MissionType.collectBonuses));
+      expect(MissionType.values, contains(MissionType.enterTournament));
+      expect(MissionType.values, contains(MissionType.winTournamentRound));
     });
 
     test('does not contain removed reachScore type', () {

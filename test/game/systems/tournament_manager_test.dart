@@ -690,10 +690,91 @@ void main() {
       await manager.enterTournament(testTournament, useFreeTicket: false);
       expect(manager.hasActiveEntry, true);
       
-      await manager.clearActiveEntry();
+      await manager.clearActiveEntry(tournamentId: testTournament.id);
       
       expect(manager.hasActiveEntry, false);
       expect(manager.activeEntry, isNull);
+    });
+  });
+
+  group('TournamentManager - Multiple Active Entries', () {
+    test('supports parallel tournament entries without overwriting', () async {
+      final manager = TournamentManager();
+      final t1 = TournamentConfig.fromJson({
+        'id': 't1',
+        'name': 'Tournament One',
+        'description': 'Test',
+        'tier': 'bronze',
+        'status': 'active',
+        'entry': {'type': 'coins', 'amount': 0},
+        'tries': {'count': 3},
+        'continues': {'max_per_try': 5, 'gem_cost': 3, 'ad_available': true},
+        'levels': [],
+        'completion_reward': {'coins': 100, 'gems': 5},
+        'display': {'banner_image': 'test.png', 'background_color': '#FF0000'},
+      });
+      final t2 = TournamentConfig.fromJson({
+        'id': 't2',
+        'name': 'Tournament Two',
+        'description': 'Test',
+        'tier': 'silver',
+        'status': 'active',
+        'entry': {'type': 'coins', 'amount': 0},
+        'tries': {'count': 3},
+        'continues': {'max_per_try': 5, 'gem_cost': 3, 'ad_available': true},
+        'levels': [],
+        'completion_reward': {'coins': 200, 'gems': 10},
+        'display': {'banner_image': 'test.png', 'background_color': '#FF0000'},
+      });
+
+      final entry1 = await manager.enterTournament(t1, useFreeTicket: false);
+      final entry2 = await manager.enterTournament(t2, useFreeTicket: false);
+
+      expect(entry1, isNotNull);
+      expect(entry2, isNotNull);
+      expect(manager.hasActiveEntryFor(t1.id), true);
+      expect(manager.hasActiveEntryFor(t2.id), true);
+      expect(manager.activeEntries.length, 2);
+    });
+
+    test('clearing one entry does not remove others', () async {
+      final manager = TournamentManager();
+      final t1 = TournamentConfig.fromJson({
+        'id': 't1',
+        'name': 'Tournament One',
+        'description': 'Test',
+        'tier': 'bronze',
+        'status': 'active',
+        'entry': {'type': 'coins', 'amount': 0},
+        'tries': {'count': 3},
+        'continues': {'max_per_try': 5, 'gem_cost': 3, 'ad_available': true},
+        'levels': [],
+        'completion_reward': {'coins': 100, 'gems': 5},
+        'display': {'banner_image': 'test.png', 'background_color': '#FF0000'},
+      });
+      final t2 = TournamentConfig.fromJson({
+        'id': 't2',
+        'name': 'Tournament Two',
+        'description': 'Test',
+        'tier': 'silver',
+        'status': 'active',
+        'entry': {'type': 'coins', 'amount': 0},
+        'tries': {'count': 3},
+        'continues': {'max_per_try': 5, 'gem_cost': 3, 'ad_available': true},
+        'levels': [],
+        'completion_reward': {'coins': 200, 'gems': 10},
+        'display': {'banner_image': 'test.png', 'background_color': '#FF0000'},
+      });
+
+      await manager.enterTournament(t1, useFreeTicket: false);
+      await manager.enterTournament(t2, useFreeTicket: false);
+
+      await manager.clearActiveEntry(tournamentId: t1.id);
+
+      expect(manager.hasActiveEntryFor(t1.id), false);
+      expect(manager.hasActiveEntryFor(t2.id), true);
+      expect(manager.activeEntries.containsKey(t1.id), false);
+      expect(manager.activeEntries.containsKey(t2.id), true);
     });
   });
 

@@ -27,7 +27,6 @@ class FloatingMissionsBanner extends StatefulWidget {
 class _FloatingMissionsBannerState extends State<FloatingMissionsBanner>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
   
   final MissionsManager _missionsManager = MissionsManager();
   final AchievementsManager _achievementsManager = AchievementsManager();
@@ -39,10 +38,6 @@ class _FloatingMissionsBannerState extends State<FloatingMissionsBanner>
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
-    );
-    
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     
     _checkAndStartPulse();
@@ -106,6 +101,8 @@ class _FloatingMissionsBannerState extends State<FloatingMissionsBanner>
   /// 
   /// IMPORTANT: The banner image is 222x80 pixels (2.77:1 aspect ratio)
   /// We must use the correct aspect ratio, not a square!
+  /// 
+  /// 🎯 ENGAGEMENT: Banner image changes to "CLAIM" style when rewards available
   Widget _buildBannerWithBadge(double bannerSize, int claimableCount) {
     // Banner image is 222x80 = 2.775 aspect ratio (wide rectangle)
     const double imageAspectRatio = 222.0 / 80.0; // ≈ 2.775
@@ -121,15 +118,18 @@ class _FloatingMissionsBannerState extends State<FloatingMissionsBanner>
     // Negative top offset to position badge higher (overlapping top edge)
     final topOffset = -badgeSize * 0.3;
     
+    // 🎯 Check if there are claimable rewards
+    final hasClaimable = claimableCount > 0;
+    
     return SizedBox(
       width: bannerWidth,
       height: bannerHeight,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Banner fills the entire Stack (now correctly sized as rectangle)
+          // Banner fills the entire Stack - uses claim banner if rewards available
           Positioned.fill(
-            child: _buildBannerRectangle(bannerWidth, bannerHeight),
+            child: _buildBannerRectangle(bannerWidth, bannerHeight, hasClaimable: hasClaimable),
           ),
           
           // Badge at top-right corner - positioned higher with negative top
@@ -145,7 +145,13 @@ class _FloatingMissionsBannerState extends State<FloatingMissionsBanner>
   }
   
   /// Build banner with CORRECT rectangular aspect ratio (222x80)
-  Widget _buildBannerRectangle(double width, double height) {
+  /// 🎯 ENGAGEMENT BOOST: Shows claim banner when missions are claimable
+  Widget _buildBannerRectangle(double width, double height, {bool hasClaimable = false}) {
+    // 🎯 Swap banner image based on claimable status to drive engagement
+    final bannerAsset = hasClaimable 
+        ? 'assets/images/ui/missions/banner_claim_missions.png'
+        : 'assets/images/ui/missions/banner_missions.png';
+    
     return Container(
       width: width,
       height: height,
@@ -162,7 +168,7 @@ class _FloatingMissionsBannerState extends State<FloatingMissionsBanner>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.asset(
-          'assets/images/ui/missions/banner_missions.png',
+          bannerAsset,
           width: width,
           height: height,
           fit: BoxFit.fill, // Fill exactly - image matches container aspect ratio

@@ -23,6 +23,7 @@ import '../../../core/debug_logger.dart';
 import '../../../core/events/event_bus.dart';
 import '../../../integrations/interstitial_ad_manager.dart';
 import '../../screens/level_failed_screen.dart';
+import '../game/in_game_hearts_display.dart';
 import 'bracket_opponent_resolver.dart';
 
 /// Wrapper for 1v1 boss battles in playoff tournaments
@@ -121,6 +122,7 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
       monetization: MonetizationManager(),
       isStoryMode: true, // Use story mode for bot battles
       storyModeLevel: levelData,
+      hideLivesDisplay: true, // Hide internal HUD hearts; overlay provides hearts
       onObstaclePassed: _onObstaclePassed,
       onGameOver: _onBattleEnded,
       levelSystemManager: _levelSystemManager,
@@ -229,7 +231,7 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
 
   void _onObstaclePassed() {
     if (_battleEnded) return;
-    safePrint('🏆 Player passed obstacle: ${_game.currentScore}');
+    // Player passed obstacle log removed - too verbose during gameplay
     // Defer setState to avoid calling during build phase
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -530,6 +532,8 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -544,21 +548,11 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
           ),
           
           // HUD overlay - obstacle counter at top-left
-          if (_game.isLoaded)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 80,
-              left: 16,
-              child: IgnorePointer(
-                child: _buildObstacleCounter(),
-              ),
-            ),
-          
-          // VS indicator at top
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            left: 0,
-            right: 0,
-            child: _buildVSIndicator(),
+          PlayoffBattleHudOverlay(
+            topPadding: topPadding,
+            showObstacleCounter: _game.isLoaded,
+            obstacleCounter: _buildObstacleCounter(),
+            vsIndicator: _buildVSIndicator(),
           ),
         ],
       ),
@@ -715,6 +709,54 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+}
+
+/// HUD overlay for playoff battles.
+/// - Top-left: floating obstacle counter (when loaded)
+/// - Top-center: VS indicator
+/// - Top-right: hearts display (matches story mode style)
+class PlayoffBattleHudOverlay extends StatelessWidget {
+  final double topPadding;
+  final bool showObstacleCounter;
+  final Widget obstacleCounter;
+  final Widget vsIndicator;
+
+  const PlayoffBattleHudOverlay({
+    super.key,
+    required this.topPadding,
+    required this.showObstacleCounter,
+    required this.obstacleCounter,
+    required this.vsIndicator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          if (showObstacleCounter)
+            Positioned(
+              top: topPadding + 80,
+              left: 16,
+              child: obstacleCounter,
+            ),
+          Positioned(
+            top: topPadding + 16,
+            left: 0,
+            right: 0,
+            child: Center(child: vsIndicator),
+          ),
+          Positioned(
+            top: topPadding + 16,
+            right: 16,
+            child: InGameHeartsDisplay(
+              showBackground: false,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

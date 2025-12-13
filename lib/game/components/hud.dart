@@ -15,9 +15,13 @@ class HUD extends Component {
   late TextComponent _livesText;
   final double _screenWidth;
   final bool _hideScoreDisplay; // 🎯 Hide score in story mode
+  final bool _hideLivesDisplay; // 🎪 Hide lives in stunt mode (wrapper shows custom hearts)
 
-  HUD(this._currentLives, this._maxLives, this._screenWidth, double screenHeight, {bool hideScoreDisplay = false})
-      : _hideScoreDisplay = hideScoreDisplay;
+  HUD(this._currentLives, this._maxLives, this._screenWidth, double screenHeight, {
+    bool hideScoreDisplay = false,
+    bool hideLivesDisplay = false,
+  }) : _hideScoreDisplay = hideScoreDisplay,
+       _hideLivesDisplay = hideLivesDisplay;
 
   @override
   Future<void> onLoad() async {
@@ -59,23 +63,25 @@ class HUD extends Component {
       add(_bestScoreText);
     }
 
-    // Lives display (top right)
-    _livesText = TextComponent(
-      text: _formatLives(_currentLives),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.red,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(2, 2)),
-          ],
+    // Lives display (top right) - hidden in stunt mode where wrapper shows custom hearts
+    if (!_hideLivesDisplay) {
+      _livesText = TextComponent(
+        text: _formatLives(_currentLives),
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Colors.red,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(2, 2)),
+            ],
+          ),
         ),
-      ),
-      position: Vector2(_screenWidth - 20, 20),
-      anchor: Anchor.topRight,
-    );
-    add(_livesText);
+        position: Vector2(_screenWidth - 20, 20),
+        anchor: Anchor.topRight,
+      );
+      add(_livesText);
+    }
   }
 
   /// Update the score display
@@ -97,7 +103,7 @@ class HUD extends Component {
   /// Update the lives display
   void updateLives(int newLives) {
     _currentLives = newLives;
-    if (hasChildren) {
+    if (!_hideLivesDisplay && hasChildren) {
       _livesText.text = _formatLives(_currentLives);
     }
   }
@@ -105,7 +111,7 @@ class HUD extends Component {
   /// Update maximum lives (for Heart Booster)
   void updateMaxLives(int newMaxLives) {
     _maxLives = newMaxLives;
-    if (hasChildren) {
+    if (!_hideLivesDisplay && hasChildren) {
       _livesText.text = _formatLives(_currentLives);
     }
   }

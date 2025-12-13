@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 // ✅ REFACTOR v1.7.0: Collision detection now handled by HasCollisionDetection mixin (removed unused import)
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../core/debug_logger.dart';
@@ -35,6 +37,7 @@ import 'systems/firebase_analytics_manager.dart';
 import 'systems/game_state_manager.dart';
 // ✅ AUDIT FIX: collision_system.dart removed - fully replaced by Flame's native collision detection
 import 'systems/obstacle_manager.dart';
+import 'systems/stunt_obstacle_manager.dart'; // 🎪 Stunt tournament obstacles
 import 'systems/celebration_system.dart';
 import 'systems/theme_manager.dart';
 import 'systems/victory_controller.dart';
@@ -70,6 +73,12 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   final VoidCallback? onObstaclePassed;
   final VoidCallback? onGameOver;
   final LevelSystemManager levelSystemManager; // 🔥 Track first attempts
+  
+  // 🎪 STUNT MODE: Hide HUD lives (wrapper shows custom tournament hearts)
+  final bool hideLivesDisplay;
+  
+  // 🎪 STUNT MODE: Use single moving obstacles instead of pillar pairs
+  final StuntObstacleManagerConfig? stuntObstacleConfig;
 
   // REPOSITORY INTEGRATION (for persistence)
   final UserStatsRepository? userStatsRepository;
@@ -88,6 +97,8 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     LevelSystemManager? levelSystemManager,
     this.userStatsRepository,
     this.eventBus,
+    this.hideLivesDisplay = false, // 🎪 For stunt mode with wrapper-managed hearts
+    this.stuntObstacleConfig, // 🎪 For stunt tournament with single moving obstacles
   }) : levelSystemManager = levelSystemManager ?? LevelSystemManager();
   
   @override
@@ -116,6 +127,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   );
   // ✅ AUDIT FIX: CollisionSystem removed - using Flame's HasCollisionDetection mixin
   late ObstacleManager _obstacleManager;
+  
+  // 🎪 STUNT MODE: Single moving obstacles (replaces ObstacleManager when stuntObstacleConfig is set)
+  StuntObstacleManager? _stuntObstacleManager;
+  bool get isStuntMode => stuntObstacleConfig != null;
+  
   late CelebrationSystem _celebrationSystem;
   late ThemeManager _themeManager;
   
@@ -273,8 +289,13 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Initialize obstacle manager
     _obstacleManager = ObstacleManager();
     
+    // 🎪 STUNT MODE: Initialize stunt obstacle manager if config provided
+    if (stuntObstacleConfig != null) {
+      _stuntObstacleManager = StuntObstacleManager(config: stuntObstacleConfig!);
+      safePrint('🎪 STUNT MODE: Using StuntObstacleManager with config: ${stuntObstacleConfig!}');
+    }
     // 🎯 STORY MODE: Set story mode obstacle asset and difficulty settings if in story mode
-    if (isStoryMode && storyModeLevel != null) {
+    else if (isStoryMode && storyModeLevel != null) {
       _obstacleManager.storyModeObstacleAsset = 'obstacles/${storyModeLevel!.theme.obstacles}';
       _obstacleManager.storyModeObstacleFrequency = storyModeLevel!.difficulty.obstacleFrequency;
       _obstacleManager.storyModeObstacleGap = storyModeLevel!.difficulty.obstacleGap;
@@ -425,6 +446,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       width: gameWidth,
       height: gameHeight,
       hideScoreDisplay: isStoryMode, // 🎯 Hide score/best score in story mode
+      hideLivesDisplay: hideLivesDisplay, // 🎪 Hide lives in stunt mode
     );
     
     // ✅ Step 5: Add Camera to game
@@ -561,6 +583,15 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       'current_coins': InventoryManager().softCurrency,
     });
 
+    // 🎪 STUNT MODE: Add stunt obstacle manager to world and start spawning
+    if (isStuntMode && _stuntObstacleManager != null) {
+      if (!_world.children.contains(_stuntObstacleManager!)) {
+        _world.add(_stuntObstacleManager!);
+      }
+      _stuntObstacleManager!.startSpawning();
+      safePrint('🎪 STUNT MODE: Started stunt obstacle spawning');
+    }
+
     // 🎯 STORY MODE: Trigger initial jump immediately after start
     if (isStoryMode) {
       safePrint('🎯 Story mode: Triggering initial jump after game start');
@@ -601,11 +632,27 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // 🛡️ Update shield timer (handles stacked shield durations)
     _updateShieldTimer(dt);
 
-    // Update obstacle manager
-    _obstacleManager.update(dt, _gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
+    // 🎪 STUNT MODE: Update stunt obstacle manager instead of regular obstacle manager
+    if (isStuntMode && _stuntObstacleManager != null) {
+      // StuntObstacleManager is a Component, it updates via the component tree
+      // (added to world in startGame)
+    } else {
+      // Update regular obstacle manager
+      _obstacleManager.update(dt, _gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
+      
+      // Update obstacles in game
+      // ✅ FLAME NATIVE: Add obstacles to World (not Game) so camera can see them
+      for (final obstacle in _obstacleManager.obstacles) {
+        if (!_world.children.contains(obstacle)) {
+          _obstacleManager.addObstacleToGame(obstacle, _world);
+        }
+      }
+    }
     
-    // 🎁 Update bonus manager (clean up dead bonuses)
-    _bonusManager.update(dt);
+    // 🎁 Update bonus manager (clean up dead bonuses) - disabled for stunt mode
+    if (!isStuntMode) {
+      _bonusManager.update(dt);
+    }
 
     // ❌ DEPRECATED: Scoring now handled via Flame collision detection (ScoreZone)
     // Old manual scoring system commented out to prevent double-counting
@@ -616,14 +663,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Check collisions
     _checkCollisions();
-
-    // Update obstacles in game
-    // ✅ FLAME NATIVE: Add obstacles to World (not Game) so camera can see them
-    for (final obstacle in _obstacleManager.obstacles) {
-      if (!_world.children.contains(obstacle)) {
-        _obstacleManager.addObstacleToGame(obstacle, _world);
-      }
-    }
   }
 
   /// Check collisions between jet and obstacles
@@ -705,6 +744,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     final isGameOver = _gameStateManager.handleCollision();
     _hud.updateLives(_gameStateManager.lives);
 
+    // ❤️ STORY MODE: Keep the Flutter HUD (LivesManager-backed) in sync after each crash
+    if (isStoryMode) {
+      unawaited(syncStoryModeLivesWithManager());
+    }
+
     // Flame Audio: Play collision sound
     _audioManager.playCollision();
 
@@ -731,6 +775,14 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       // Game over
       _gameOver();
     }
+  }
+
+  /// ❤️ Keep LivesManager in sync with the current in-game lives (story mode only)
+  @visibleForTesting
+  Future<void> syncStoryModeLivesWithManager() async {
+    if (!isStoryMode) return;
+    final livesManager = LivesManager();
+    livesManager.setLivesInMemory(_gameStateManager.lives);
   }
 
   /// 💨 Create crash smoke effect on-demand (Flame + Mobile best practice)
@@ -1177,7 +1229,6 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     
     // 🎯 STORY MODE: Notify wrapper that obstacle was passed
     if (isStoryMode && onObstaclePassed != null) {
-      safePrint('🎯 STORY MODE: Calling onObstaclePassed callback (score: ${_gameStateManager.score})');
       onObstaclePassed!();
     }
     
@@ -1189,8 +1240,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _celebrationSystem.createCelebrationBurst(_jet.position, _gameStateManager.score);
     _checkThemeTransition();
     _checkAchievement(_gameStateManager.score);
-    
-    safePrint('🎯 Score incremented via Flame collision zone: ${_gameStateManager.score}');
+    // Score increment log removed - too verbose during gameplay
   }
 
   /// Reset game state
@@ -1231,7 +1281,11 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _hud.updateLives(_gameStateManager.lives);
 
     // Clear obstacles
-    _obstacleManager.clearObstacles();
+    if (isStuntMode && _stuntObstacleManager != null) {
+      _stuntObstacleManager!.reset();
+    } else {
+      _obstacleManager.clearObstacles();
+    }
 
     // Reset background (ground component removed - no longer needed)
 

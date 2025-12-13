@@ -4,12 +4,12 @@ import 'package:flappy_jet_pro/game/systems/achievements_manager.dart';
 
 /// 🏅 NEW ENGAGEMENT ACHIEVEMENTS TESTS
 /// 
-/// These tests verify the new engagement achievements:
+/// These tests verify the new engagement and tournament achievements:
 /// - daily_grinder: Play 10+ games in a single day
 /// - weekly_warrior: Complete all daily missions for 7 consecutive days
 /// - bonus_hunter: Collect 100 power-ups total
 /// - mission_master: Complete 100 daily missions total
-/// - level_champion: Complete all 30 story levels
+/// - tournament entry/win ladders (rookie → legend)
 /// 
 /// WHY: These achievements drive long-term engagement and reward
 /// consistent player behavior.
@@ -69,15 +69,26 @@ void main() {
       expect(achievement.rarity, equals(AchievementRarity.diamond));
     });
 
-    test('level_champion achievement is registered', () {
-      final achievement = manager.achievements['level_champion'];
+    test('tournament_rookie achievement is registered', () {
+      final achievement = manager.achievements['tournament_rookie'];
       
       expect(achievement, isNotNull);
-      expect(achievement!.id, equals('level_champion'));
-      expect(achievement.title, equals('Level Champion'));
-      expect(achievement.target, equals(30));
-      expect(achievement.category, equals(AchievementCategory.mastery));
-      expect(achievement.rarity, equals(AchievementRarity.diamond));
+      expect(achievement!.id, equals('tournament_rookie'));
+      expect(achievement.title, equals('Tournament Rookie'));
+      expect(achievement.target, equals(1));
+      expect(achievement.category, equals(AchievementCategory.special));
+      expect(achievement.rarity, equals(AchievementRarity.bronze));
+    });
+
+    test('round_winner achievement is registered', () {
+      final achievement = manager.achievements['round_winner'];
+      
+      expect(achievement, isNotNull);
+      expect(achievement!.id, equals('round_winner'));
+      expect(achievement.title, equals('Round Winner'));
+      expect(achievement.target, equals(1));
+      expect(achievement.category, equals(AchievementCategory.special));
+      expect(achievement.rarity, equals(AchievementRarity.bronze));
     });
   });
 
@@ -122,12 +133,18 @@ void main() {
       expect(achievement.gemReward, equals(50));
     });
 
-    test('level_champion has appropriate rewards', () {
-      final achievement = manager.achievements['level_champion']!;
+    test('tournament_veteran has appropriate rewards', () {
+      final achievement = manager.achievements['tournament_veteran']!;
       
-      // Diamond tier = 3000 coins, 100 gems
-      expect(achievement.coinReward, equals(3000));
-      expect(achievement.gemReward, equals(100));
+      expect(achievement.coinReward, greaterThan(0));
+      expect(achievement.gemReward, greaterThan(0));
+    });
+
+    test('round_veteran has appropriate rewards', () {
+      final achievement = manager.achievements['round_veteran']!;
+      
+      expect(achievement.coinReward, greaterThan(0));
+      expect(achievement.gemReward, greaterThan(0));
     });
   });
 
@@ -181,19 +198,15 @@ void main() {
       expect(achievement.unlocked, isTrue);
     });
 
-    test('level_champion tracks levels completed', () async {
-      // Complete 20 levels
-      await manager.setProgress('level_champion', 20);
-      
-      final achievement = manager.achievements['level_champion']!;
-      expect(achievement.progress, equals(20));
-      expect(achievement.unlocked, isFalse); // Need 30
+    test('tournament_rookie unlocks on first entry', () async {
+      await manager.checkTournamentAchievements(tournamentsEntered: 1);
+      final achievement = manager.achievements['tournament_rookie']!;
+      expect(achievement.unlocked, isTrue);
     });
 
-    test('level_champion unlocks at 30 levels', () async {
-      await manager.setProgress('level_champion', 30);
-      
-      final achievement = manager.achievements['level_champion']!;
+    test('round_winner unlocks on first win', () async {
+      await manager.checkTournamentAchievements(roundsWon: 1);
+      final achievement = manager.achievements['round_winner']!;
       expect(achievement.unlocked, isTrue);
     });
   });
@@ -215,7 +228,8 @@ void main() {
       expect(masteryIds, contains('daily_grinder'));
       expect(masteryIds, contains('weekly_warrior'));
       expect(masteryIds, contains('mission_master'));
-      expect(masteryIds, contains('level_champion'));
+      expect(masteryIds, contains('tournament_veteran'));
+      expect(masteryIds, contains('round_veteran'));
     });
 
     test('collection category contains bonus_hunter', () {

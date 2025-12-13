@@ -34,9 +34,9 @@ class HardwareParticleSystem extends Component {
       for (int size = 1; size <= 5; size++) {
         final sprite = await _renderParticleToSprite(type, size * 4.0);
         _particleSprites.add(sprite);
-        safePrint('🚀 HardwareParticleSystem: Created sprite for ${type.name} size ${size * 4.0}');
       }
     }
+    // Single summary log instead of per-sprite logs
     safePrint('🚀 HardwareParticleSystem: Pre-rendered ${_particleSprites.length} particle sprites');
   }
 
@@ -392,10 +392,7 @@ class HardwareParticleSystem extends Component {
       });
     }
     
-    // 🛑 PERFORMANCE FIX: Only log milestones to reduce log spam
-    if (isMilestone) {
-      safePrint('🚀 Celebration burst (milestone $score) - ${count + ringParticleCount} particles');
-    }
+    // Celebration burst log removed - too verbose during gameplay
   }
 
   @override

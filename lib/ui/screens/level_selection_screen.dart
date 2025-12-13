@@ -8,10 +8,8 @@ library;
 import 'package:flutter/material.dart';
 import '../../game/systems/level_system_manager.dart';
 import '../../game/systems/lives_manager.dart';
-import '../../game/systems/monetization_manager.dart';
 import '../../models/level_data_schema.dart';
 import 'level_objective_popup.dart';
-import '../widgets/no_hearts_dialog.dart';
 import '../widgets/coin_3d_icon.dart';
 
 class LevelSelectionScreen extends StatefulWidget {
@@ -269,10 +267,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   }
 
   void _onLevelTap(LevelData level) {
-    // Check if player has hearts
+    // Ensure hearts are available — auto-refill instead of blocking with popup
     if (_livesManager.currentLives <= 0) {
-      _showNoHeartsDialog();
-      return;
+      _livesManager.refillToMax();
     }
 
     // Show level objective popup
@@ -281,23 +278,5 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
       barrierDismissible: false,
       builder: (context) => LevelObjectivePopup(level: level),
     );
-  }
-
-  void _showNoHeartsDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => NoHeartsDialog(
-        onClose: () => Navigator.of(context).pop(false),
-        monetization: MonetizationManager(), // Pass singleton instance
-      ),
-    );
-
-    // ✅ If hearts were refilled, user can try again
-    if (result == true && mounted) {
-      setState(() {
-        // Rebuild to update button state
-      });
-    }
   }
 }

@@ -32,7 +32,7 @@ class TournamentFailedScreen extends StatelessWidget {
     if (onReturnToHub != null) {
       onReturnToHub!();
     } else {
-      TournamentManager().clearActiveEntry();
+      TournamentManager().clearActiveEntry(tournamentId: tournament.id);
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }

@@ -29,6 +29,10 @@ import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 import '../../core/repositories/user_stats_repository.dart';
 import '../../core/database/local_database_manager.dart';
+import 'game/in_game_hearts_display.dart';
+import 'game/vs_indicator.dart';
+import 'game/objective_indicator.dart';
+import 'game/unified_game_hud.dart';
 
 class StoryModeGameWrapper extends StatefulWidget {
   final LevelData level;
@@ -106,6 +110,7 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       levelSystemManager: LevelSystemManager(), // 🔥 Pass level system manager
       userStatsRepository: userStats,  // Phase 2: For persistence
       eventBus: eventBus,               // Phase 3: For game_ended events
+      hideLivesDisplay: true, // ❤️ Wrapper shows consistent Flutter hearts overlay
     );
 
     // Listen to game state changes (use game's GameStateManager, not our own)
@@ -761,11 +766,16 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
             child: GameWidget(game: _game),
           ),
 
-          // 🎯 Top-left objective indicator (only UI element for objectives)
-          Positioned(
-            top: 40,
-            left: 16,
-            child: _buildTopObjectiveIndicator(),
+          // 🆚 HUD: VS indicator for 1v1 story levels, otherwise objective indicator
+          StoryModeHudOverlay(
+            objectiveType: widget.level.objective.type,
+            currentProgress: _objectiveTracker.currentProgress,
+            targetProgress: widget.level.objective.target,
+            isCompleted: _objectiveTracker.isCompleted,
+            botScore: _objectiveTracker.botScore,
+            botIsActive: _objectiveTracker.botIsActive,
+            botName: widget.level.botBattle?.botName,
+            botSkinId: widget.level.botBattle?.botJetSkin,
           ),
 
           // ✅ FIX: Removed old GameOverMenu overlay that was causing race condition
@@ -777,172 +787,8 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     );
   }
   
-  /// 🎯 Beautiful top-left objective indicator (replaces score display in story mode)
-  Widget _buildTopObjectiveIndicator() {
-    final objective = widget.level.objective;
-    final isCompleted = _objectiveTracker.isCompleted;
-    
-    // Get color scheme based on objective type
-    final Color primaryColor;
-    final Color secondaryColor;
-    final IconData icon;
-    
-    switch (objective.type) {
-      case ObjectiveType.passObstacles:
-        primaryColor = Colors.amber;
-        secondaryColor = Colors.orange;
-        icon = Icons.flag_rounded;
-        break;
-      case ObjectiveType.surviveTime:
-        primaryColor = Colors.cyan;
-        secondaryColor = Colors.blue;
-        icon = Icons.timer_outlined;
-        break;
-      case ObjectiveType.beatBot:
-        primaryColor = Colors.red;
-        secondaryColor = Colors.deepOrange;
-        icon = Icons.emoji_events_rounded;
-        break;
-    }
-    
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 500),
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.7 + (value * 0.3), // Animate from 70% to 100%
-          child: Opacity(
-            opacity: value,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    primaryColor.withValues(alpha: 0.9),
-                    secondaryColor.withValues(alpha: 0.8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.5),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Animated icon
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 1200),
-                    tween: Tween<double>(begin: 0.0, end: 1.0),
-                    builder: (context, rotateValue, child) {
-                      return Transform.rotate(
-                        angle: isCompleted ? 0 : (rotateValue * 6.28), // Full rotation
-                        child: Icon(
-                          isCompleted ? Icons.check_circle_rounded : icon,
-                          color: Colors.white,
-                          size: 28,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 10),
-                  // Progress text
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _getObjectiveTypeLabel(),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              blurRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _getObjectiveProgress(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black54,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-  
-  String _getObjectiveTypeLabel() {
-    switch (widget.level.objective.type) {
-      case ObjectiveType.passObstacles:
-        return 'OBSTACLES';
-      case ObjectiveType.surviveTime:
-        return 'TIME';
-      case ObjectiveType.beatBot:
-        return 'VS BATTLE';
-    }
-  }
-  
-  String _getObjectiveProgress() {
-    final objective = widget.level.objective;
-    switch (objective.type) {
-      case ObjectiveType.passObstacles:
-        return '${_objectiveTracker.currentProgress}/${objective.target}';
-      case ObjectiveType.surviveTime:
-        final elapsed = _objectiveTracker.currentProgress;
-        final remaining = objective.target - elapsed;
-        return remaining > 0 ? '${remaining}s' : 'DONE!';
-      case ObjectiveType.beatBot:
-        final playerScore = _objectiveTracker.currentProgress;
-        // Bot score is tracked internally by the tracker
-        return 'You: $playerScore';
-    }
-  }
-
   // ✅ FIX: DELETED _buildStoryModeGameOverMenu() method (~110 lines of dead code)
+  // ✅ REFACTOR: Replaced _buildTopObjectiveIndicator() with reusable ObjectiveIndicator widget
   // This old method used the endless mode GameOverMenu widget.
   // Story mode now exclusively uses _showStoryModeGameOverPopup() which shows
   // the beautiful LevelFailedScreen for failures, and _onLevelCompleted() for victories.
@@ -958,4 +804,89 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
   
   // 🎯 Removed _buildObjectiveTracker and _getObjectiveIcon - no longer displayed
   // (story mode uses top indicator only)
+}
+
+/// HUD overlay for story mode.
+/// - For beatBot (1v1) levels: shows VSIndicator like playoff tournament
+/// - For other objectives: shows the existing ObjectiveIndicator
+class StoryModeHudOverlay extends StatelessWidget {
+  final ObjectiveType objectiveType;
+  final int currentProgress;
+  final int targetProgress;
+  final bool isCompleted;
+  final int? botScore;
+  final bool botIsActive;
+  final String? botName;
+  final String? botSkinId;
+
+  const StoryModeHudOverlay({
+    super.key,
+    required this.objectiveType,
+    required this.currentProgress,
+    required this.targetProgress,
+    required this.isCompleted,
+    this.botScore,
+    this.botIsActive = true,
+    this.botName,
+    this.botSkinId,
+  });
+
+  bool get _isBeatBot => objectiveType == ObjectiveType.beatBot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          children: [
+            if (_isBeatBot && botName != null && botSkinId != null)
+              ...[
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: VSIndicator(
+                      opponentSkinId: botSkinId!,
+                      opponentName: botName!,
+                      playerScore: currentProgress,
+                      opponentScore: botScore ?? 0,
+                      opponentIsActive: botIsActive,
+                      showScores: false, // Use floating counter instead of inline scores
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 72,
+                  left: 16,
+                  child: ScoreCounterHUD(score: currentProgress),
+                ),
+              ]
+            else
+              Positioned(
+                top: 40,
+                left: 16,
+                child: ObjectiveIndicator(
+                  objectiveType: objectiveType,
+                  currentProgress: currentProgress,
+                  targetProgress: targetProgress,
+                  isCompleted: isCompleted,
+                  botScore: _isBeatBot ? botScore : null,
+                  botIsActive: botIsActive,
+                ),
+              ),
+
+            // ❤️ Top-right hearts display (consistent InGameHeartsDisplay widget)
+            Positioned(
+              top: 40,
+              right: 16,
+              child: InGameHeartsDisplay(
+                showBackground: false,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

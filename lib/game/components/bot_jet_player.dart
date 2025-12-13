@@ -347,28 +347,16 @@ class BotJetPlayer extends SpriteComponent with HasGameReference {
       return;
     }
     
-    final oldScore = _score;
     _score++;
-    
-    // ✅ ENHANCED DEBUG: Always log phase transitions and key milestones
-    final phase = _getCurrentPhase();
-    final oldPhase = _getPhaseForScore(oldScore);
-    
-    // Log phase transitions (important - keep as safePrint)
-    if (oldPhase != phase) {
-      safePrint('🤖 🔄 PHASE TRANSITION: Score $_score → $phase (was: $oldPhase)');
-      safePrint('🤖 📊 Current values: Skill=${currentSkillLevel.toStringAsFixed(2)}, Mistakes=${(currentMistakeRate * 100).toStringAsFixed(1)}%');
-    }
-    
-    // 📊 Reduced logging - only log milestones to reduce spam
-    // During guarantee phase: log every 3rd score
-    // After guarantee: log every 5th score or first 3
-    if (minObstaclesToPass > 0 && _score <= minObstaclesToPass + 5) {
-      // Score logs removed - too verbose (only log at milestones via other systems)
-    }
+    // Bot score and phase transition logs removed - too verbose during gameplay
+    // Enable for debugging phase transitions:
+    // final phase = _getCurrentPhase();
+    // final oldPhase = _getPhaseForScore(oldScore);
+    // if (oldPhase != phase) { safePrint('🤖 PHASE: $phase'); }
   }
   
   /// Helper method to get current phase name for debugging
+  // ignore: unused_element
   String _getCurrentPhase() {
     return _getPhaseForScore(_score);
   }

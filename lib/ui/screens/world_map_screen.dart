@@ -17,7 +17,6 @@ import 'level_objective_popup.dart';
 import '../../core/debug_logger.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
-import '../widgets/no_hearts_dialog.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
@@ -458,6 +457,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     final minMapHeight = availableHeight;
     
     return Stack(
+      clipBehavior: Clip.none, // ✅ Allow badge overflow on tournament banner
       children: [
         // Background image with responsive scrolling
         SingleChildScrollView(
@@ -869,10 +869,10 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       return;
     }
     
-    // Check if player has hearts
+    // Always ensure hearts are available — no waiting popup, just refill
     if (_livesManager.currentLives <= 0) {
-      _showNoHeartsDialog();
-      return;
+      await _livesManager.refillToMax();
+      if (!mounted) return;
     }
 
     // 📺 Check for loss streak ad before starting game
@@ -911,24 +911,6 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       barrierDismissible: false,
       builder: (context) => LevelObjectivePopup(level: level),
     );
-  }
-
-  void _showNoHeartsDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => NoHeartsDialog(
-        onClose: () => Navigator.of(context).pop(false),
-        monetization: MonetizationManager(), // Pass singleton instance
-      ),
-    );
-
-    // ✅ If hearts were refilled, user can try again
-    if (result == true && mounted) {
-      setState(() {
-        // Rebuild to update button state
-      });
-    }
   }
 
 }

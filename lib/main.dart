@@ -328,6 +328,8 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
           inventory: inventoryManager,
           lives: LivesManager(),
         )),
+        // Starter heart booster for brand-new players (silent 24h, 6 hearts)
+        _initTask('Starter Heart Booster', () => _grantStarterHeartBoosterIfEligible(inventoryManager)),
         // ✅ Interstitial ads now initialize AFTER ATT (if iOS)
         _initTask('Interstitial Ads', () => InterstitialAdManager().initialize()),
         // OLD: Comprehensive Analytics removed - now using EventBus for all analytics
@@ -413,6 +415,32 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
         // Continue with other systems (production safety)
       }
     };
+  }
+
+  /// Grant silent 24h heart booster for brand-new players (first session only)
+  Future<void> _grantStarterHeartBoosterIfEligible(
+    InventoryManager inventoryManager,
+  ) async {
+    try {
+      // Ensure identity and lives are initialized (idempotent)
+      final identity = PlayerIdentityManager();
+      if (!identity.isInitialized) {
+        await identity.initialize();
+      }
+
+      final applied = await inventoryManager.grantStarterHeartBoosterIfEligible(
+        isFirstTimeUser: identity.isFirstTimeUser,
+      );
+
+      if (applied) {
+        // Make sure lives respect the boosted max and are full
+        await LivesManager().initialize();
+        await LivesManager().refillToMax();
+        safePrint('💖 Starter heart booster applied (first session)');
+      }
+    } catch (e) {
+      safePrint('⚠️ Starter heart booster grant failed: $e');
+    }
   }
 
   @override

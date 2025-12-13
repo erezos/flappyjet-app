@@ -158,7 +158,8 @@ class ObstacleManager {
       speed = speed.clamp(200.0, 400.0);
     }
     
-    final phase = DifficultySystem.getPhaseForScore(score);
+    // Phase used for debugging - keep commented for reference
+    // final phase = DifficultySystem.getPhaseForScore(score);
 
     // 🎯 STORY MODE: Constrained path generation with maxGapShift
     double gapY; // Gap center Y position
@@ -237,11 +238,8 @@ class ObstacleManager {
     
     _obstacles.add(obstacle);
 
-    // 🎯 DEBUG: Show difficulty progression (with movement info)
-    final movementStr = movementConfig.hasMovement ? ', ${movementConfig.type.name}' : '';
-    safePrint(
-      '🎯 OBSTACLE: Score $score → ${phase.name} (gap: ${gap.toStringAsFixed(1)}, speed: ${speed.toStringAsFixed(1)}$movementStr)',
-    );
+    // Obstacle spawn log removed - too verbose during gameplay
+    // Enable for debugging: safePrint('🎯 OBSTACLE: Score $score → ${phase.name}');
     
     // 🎁 BONUS SYSTEM: Notify callback for bonus spawning opportunity
     onObstacleSpawned?.call(gapY, spawnX, gap, speed);
@@ -265,10 +263,7 @@ class ObstacleManager {
         scoredObstacles.add(obstacle);
         
         // 🎯 SCORING DEBUG: Log exact positions when scoring happens
-        safePrint(
-          '🎯 SCORING DEBUG: Jet at X=${jetPosition.x.toStringAsFixed(2)}, Obstacle right edge at X=${scoringThreshold.toStringAsFixed(2)}',
-        );
-        safePrint('🎯 SCORING DEBUG: Score triggered! Jet passed obstacle safely');
+        // Scoring debug logs removed - too verbose during gameplay
       }
     }
     

@@ -115,13 +115,11 @@ class _FloatingTournamentsBannerState extends State<FloatingTournamentsBanner>
   }
   
   /// Classic mobile game notification badge pattern:
-  /// Badge sits at top-right corner OVERLAPPING the banner
+  /// Badge sits at top-right corner OVERLAPPING the banner edge
   /// Shows "FREE" text instead of a count
   /// 
   /// NOTE: Image is 220x147 pixels (1.497:1 aspect ratio)
-  /// To match Missions banner SIZE AND POSITION:
-  /// - Use same height calculation as Missions banner
-  /// - Use correct aspect ratio for width
+  /// MATCHED to Missions banner positioning pattern for consistent overlapping badges.
   Widget _buildBannerWithBadge(double bannerSize, bool showFreeBadge) {
     // Banner image is 220x147 = 1.497 aspect ratio (rectangle)
     const double imageAspectRatio = 220.0 / 147.0; // ≈ 1.497
@@ -131,24 +129,30 @@ class _FloatingTournamentsBannerState extends State<FloatingTournamentsBanner>
     // Width based on aspect ratio
     final bannerWidth = bannerHeight * imageAspectRatio;
     
-    // Badge sizing (same proportions as Missions banner)
-    final badgeHeight = (bannerHeight * 0.35).clamp(20.0, 28.0);
-    final badgeWidth = badgeHeight * 2.2; // Wider for "FREE" text
-    final rightOffset = badgeWidth * 0.2;
-    final topOffset = -badgeHeight * 0.3;
+    // Badge sizing - match Missions badge style EXACTLY
+    final badgeSize = (bannerHeight * 0.35).clamp(20.0, 28.0);
+    final badgeWidth = badgeSize * 1.6; // Pill shape for "FREE" text
+    final badgeHeight = badgeSize;
+    
+    // ✅ BADGE OVERLAP: Position badge so it SITS ON the corner
+    // - Small positive rightOffset = badge near right edge but inside
+    // - Very small negative topOffset = badge almost entirely ON banner
+    // Key: badge should be ~90% ON the banner, ~10% extending above
+    final rightOffset = badgeSize * 0.1;   // Near right edge  
+    final topOffset = -badgeHeight * 0.10; // ~10% above top edge = 90% ON the banner
     
     return SizedBox(
       width: bannerWidth,
       height: bannerHeight,
       child: Stack(
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.none, // Critical: allow badge to overflow
         children: [
-          // Banner fills the entire Stack (square)
+          // Banner fills the entire Stack
           Positioned.fill(
             child: _buildBannerImage(bannerWidth, bannerHeight),
           ),
           
-          // "FREE" Badge at top-right corner
+          // "FREE" Badge at top-right corner - OVERLAPPING the top edge
           if (showFreeBadge)
             Positioned(
               right: rightOffset,
@@ -160,32 +164,19 @@ class _FloatingTournamentsBannerState extends State<FloatingTournamentsBanner>
     );
   }
   
-  /// Build banner image - MINIMAL shadow to match Missions banner style
-  /// No extra glow or heavy shadows
+  /// Build banner image - NO shadow to ensure clean badge positioning
+  /// The banner image itself contains all styling (borders, glow, etc.)
   Widget _buildBannerImage(double width, double height) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        // Minimal shadow - matches Missions banner exactly
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(
-          'assets/images/ui/banner_tournaments.png',
-          width: width,
-          height: height,
-          fit: BoxFit.fill, // Fill exactly - image matches container aspect ratio
-          errorBuilder: (context, error, stackTrace) => _buildFallbackBanner(width, height),
-        ),
+    // No Container wrapper with shadow - just the image directly
+    // This ensures badge positioning is relative to the actual image bounds
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.asset(
+        'assets/images/ui/banner_tournaments.png',
+        width: width,
+        height: height,
+        fit: BoxFit.fill, // Fill exactly - image matches container aspect ratio
+        errorBuilder: (context, error, stackTrace) => _buildFallbackBanner(width, height),
       ),
     );
   }
@@ -224,6 +215,7 @@ class _FloatingTournamentsBannerState extends State<FloatingTournamentsBanner>
 }
 
 /// "FREE" badge widget - gaming industry standard notification style
+/// Compact pill shape to match Missions badge proportions
 class _FreeBadge extends StatelessWidget {
   final double width;
   final double height;
@@ -232,11 +224,11 @@ class _FreeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fontSize = (height * 0.55).clamp(9.0, 13.0);
+    final fontSize = (height * 0.50).clamp(8.0, 11.0);
     
     return Container(
       constraints: BoxConstraints(minWidth: width, minHeight: height),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
@@ -244,16 +236,16 @@ class _FreeBadge extends StatelessWidget {
           colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)], // Green gradient for "FREE"
         ),
         borderRadius: BorderRadius.circular(height / 2),
-        border: Border.all(color: Colors.white, width: 2.0),
+        border: Border.all(color: Colors.white, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.5),
-            blurRadius: 6,
-            spreadRadius: 1,
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+            blurRadius: 4,
+            spreadRadius: 0,
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 3,
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 2,
             offset: const Offset(0, 1),
           ),
         ],
@@ -265,7 +257,7 @@ class _FreeBadge extends StatelessWidget {
             color: Colors.white,
             fontSize: fontSize,
             fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
+            letterSpacing: 0.3,
             height: 1.0,
           ),
         ),

@@ -455,68 +455,98 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
     final screenSize = MediaQuery.of(context).size;
     final objectiveType = widget.level.objective.type;
     
+    final isVsBattle = objectiveType == ObjectiveType.beatBot && widget.level.botBattle != null;
+    
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 🎯 Use obstacle image for "pass obstacles" objective
-            if (objectiveType == ObjectiveType.passObstacles)
-              Builder(
-                builder: (context) {
-                  final iconSize = ResponsiveConfig.responsiveIconSize(44.0, screenSize);
-                  final padding = ResponsiveConfig.responsivePadding(4.0, screenSize);
-                  return Container(
-                    width: iconSize,
-                    height: iconSize,
-                    padding: EdgeInsets.all(padding),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
+        if (isVsBattle)
+          Builder(
+            builder: (context) {
+              final size = ResponsiveConfig.responsiveIconSize(92.0, screenSize);
+              return SizedBox(
+                width: size,
+                height: size,
                 child: Image.asset(
-                  'assets/images/obstacles/${widget.level.theme.obstacles}',
+                  'assets/images/ui/vs_battle_node_completed.png',
                   fit: BoxFit.contain,
-                  ),
-                  );
-                },
-              )
-            else
-              Builder(
-                builder: (context) {
-                  final padding = ResponsiveConfig.responsivePadding(6.0, screenSize);
-                  final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize);
-                  return Container(
-                    padding: EdgeInsets.all(padding),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _getObjectiveIcon(),
-                      color: Colors.amber.shade300,
-                      size: iconSize,
-                    ),
-                  );
-                },
-              ),
-            SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
-            Builder(
-              builder: (context) {
-                final fontSize = ResponsiveConfig.responsiveFontSize(13.0, screenSize, context);
-                return Text(
-                  'OBJECTIVE',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+                ),
+              );
+            },
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 🎯 Time objective: show dedicated gold timer badge instead of icon+label
+              if (objectiveType == ObjectiveType.surviveTime)
+                Builder(
+                  builder: (context) {
+                    final size = ResponsiveConfig.responsiveIconSize(64.0, screenSize);
+                    return SizedBox(
+                      width: size,
+                      height: size,
+                      child: Image.asset(
+                        'assets/images/icons/missions/gold_timer_icon.png',
+                        fit: BoxFit.contain,
+                      ),
+                    );
+                  },
+                )
+              // 🎯 Obstacle objective: dedicated badge
+              else if (objectiveType == ObjectiveType.passObstacles)
+                Builder(
+                  builder: (context) {
+                    final size = ResponsiveConfig.responsiveIconSize(64.0, screenSize);
+                    return SizedBox(
+                      width: size,
+                      height: size,
+                      child: Image.asset(
+                        'assets/images/ui/pass_obstacle_objective.png',
+                        fit: BoxFit.contain,
+                      ),
+                    );
+                  },
+                )
+              // 🎯 Default: small circular icon + label
+              else
+                Builder(
+                  builder: (context) {
+                    final padding = ResponsiveConfig.responsivePadding(6.0, screenSize);
+                    final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize);
+                    return Container(
+                      padding: EdgeInsets.all(padding),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getObjectiveIcon(),
+                        color: Colors.amber.shade300,
+                        size: iconSize,
+                      ),
+                    );
+                  },
+                ),
+              if (objectiveType != ObjectiveType.surviveTime &&
+                  objectiveType != ObjectiveType.passObstacles) ...[
+                SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+                Builder(
+                  builder: (context) {
+                    final fontSize = ResponsiveConfig.responsiveFontSize(13.0, screenSize, context);
+                    return Text(
+                      'OBJECTIVE',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: fontSize,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ],
+          ),
         SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
         Builder(
           builder: (context) {

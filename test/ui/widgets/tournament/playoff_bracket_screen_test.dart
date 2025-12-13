@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flappy_jet_pro/models/tournament_config.dart';
+import 'package:flappy_jet_pro/models/tournament_entry.dart';
 import 'package:flappy_jet_pro/ui/widgets/tournament/playoff_bracket_screen.dart';
 
 void main() {
@@ -166,10 +167,12 @@ void main() {
     int currentRound = 1,
     VoidCallback? onPlay,
     VoidCallback? onBack,
+    TournamentEntry? entry,
   }) {
     return MaterialApp(
       home: PlayoffBracketScreen(
         tournament: tournament,
+        entry: entry,
         currentRound: currentRound,
         onPlay: onPlay ?? () {},
         onBack: onBack ?? () {},
@@ -219,6 +222,82 @@ void main() {
       await tester.pump();
 
       expect(backCalled, isTrue);
+    });
+
+    testWidgets('trophy is prominently sized and responsive', (tester) async {
+      await tester.pumpWidget(buildTestWidget(tournament: playoffTournament3Rounds));
+      await tester.pump(const Duration(seconds: 1));
+
+      final trophyFinder = find.byKey(const Key('playoff_trophy_image'));
+      expect(trophyFinder, findsOneWidget);
+
+      final size = tester.getSize(trophyFinder);
+      expect(size.width, greaterThanOrEqualTo(200));
+      expect(size.height, greaterThanOrEqualTo(200));
+    });
+
+    testWidgets('re-seeds bracket order when stored opponents mismatch config', (tester) async {
+      final chopperOpponents = [
+        'doink_chopper',
+        'night_falcon',
+        'crimson_viper',
+        'iron_fang',
+        'commander_buzz',
+        'eagle_force_one',
+        'firehawk',
+        'starwhirl',
+      ];
+
+      final chopperTournament = TournamentConfig(
+        id: 'chopper_adventures',
+        name: 'Chopper Adventures',
+        description: 'Test chopper playoff',
+        tier: TournamentTier.gold,
+        status: TournamentStatus.active,
+        progressionType: TournamentProgressionType.playoff,
+        entry: const TournamentEntryConfig(type: EntryFeeType.freeTicket, amount: 0),
+        tries: const TournamentTriesConfig(count: 3),
+        continues: const TournamentContinuesConfig(maxPerTry: 5, gemCost: 3, adAvailable: true),
+        levels: playoffTournament3Rounds.levels,
+        completionReward: const TournamentReward(coins: 1000, gems: 50),
+        display: const TournamentDisplay(bannerImage: 'test_banner', icon: '🏆', colorPrimary: '#FFD700'),
+        playoffConfig: PlayoffBracketConfig(
+          totalOpponents: 8,
+          opponentJetSkins: chopperOpponents,
+          rounds: playoffTournament3Rounds.playoffConfig!.rounds,
+        ),
+      );
+
+      final entry = TournamentEntry(
+        id: 'entry_old',
+        tournamentId: 'chopper_adventures',
+        tournamentName: 'Chopper Adventures',
+        startedAt: DateTime.now(),
+        totalTries: 3,
+        currentTry: 1,
+        currentRound: 1,
+        triesRemaining: 3,
+        bracketJetOrder: const [
+          'sky_rookie',
+          'defender',
+          'red_alert',
+          'stealth_bomber',
+          'diamond_storm',
+          'space_destroyer',
+          'supreme_commander',
+          'lord_of_war',
+        ],
+        bracketWinners: const {},
+      );
+
+      await tester.pumpWidget(buildTestWidget(tournament: chopperTournament, entry: entry));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final newOrder = entry.bracketJetOrder;
+      expect(newOrder.length, 8);
+      expect(newOrder.first, 'sky_rookie');
+      expect(newOrder.sublist(1).any((id) => id == 'defender'), isFalse);
+      expect(newOrder.sublist(1).every((id) => chopperOpponents.contains(id)), isTrue);
     });
   });
 

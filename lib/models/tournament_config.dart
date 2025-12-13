@@ -348,6 +348,13 @@ class TournamentLevel {
   final TournamentDifficulty difficulty;
   final List<ObstaclePattern> obstaclePatterns;
   final TournamentReward reward;
+  
+  /// Stunt mode configuration (if present, level uses stunt obstacles)
+  /// Contains: mode, asset_path, obstacle_size_percent, spawn_interval, etc.
+  final Map<String, dynamic>? stuntConfig;
+  
+  /// Whether this level uses stunt mode (single moving obstacles)
+  bool get isStuntMode => stuntConfig != null;
 
   const TournamentLevel({
     required this.round,
@@ -357,6 +364,7 @@ class TournamentLevel {
     required this.difficulty,
     required this.obstaclePatterns,
     required this.reward,
+    this.stuntConfig,
   });
 
   factory TournamentLevel.fromJson(Map<String, dynamic> json) {
@@ -385,6 +393,7 @@ class TournamentLevel {
           .map((p) => ObstaclePattern.fromJson(p as Map<String, dynamic>))
           .toList(),
       reward: TournamentReward.fromJson(json['reward'] as Map<String, dynamic>),
+      stuntConfig: json['stunt_config'] as Map<String, dynamic>?,
     );
   }
 
@@ -398,6 +407,7 @@ class TournamentLevel {
       'pattern_mix': obstaclePatterns.map((p) => p.toJson()).toList(),
     },
     'reward': reward.toJson(),
+    if (stuntConfig != null) 'stunt_config': stuntConfig,
   };
 }
 

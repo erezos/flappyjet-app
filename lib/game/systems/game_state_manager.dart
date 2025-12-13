@@ -423,7 +423,7 @@ class GameStateManager extends ChangeNotifier {
     final newTheme = GameThemes.getThemeForScore(_score);
     if (newTheme != _currentTheme) {
       _currentTheme = newTheme;
-      safePrint('🎭 Theme transition: ${_currentTheme.displayName}');
+      // Theme transition log removed - too verbose during gameplay
     }
   }
 

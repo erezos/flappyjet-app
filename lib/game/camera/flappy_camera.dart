@@ -29,6 +29,7 @@ class FlappyCamera {
     required double width,
     required double height,
     bool hideScoreDisplay = false, // 🎯 Hide score in story mode
+    bool hideLivesDisplay = false, // 🎪 Hide lives in stunt mode (wrapper shows custom hearts)
   }) {
     // ✅ Standard CameraComponent with viewfinder positioned at world origin
     // The default viewfinder is centered at (0,0) with anchor.center
@@ -40,7 +41,10 @@ class FlappyCamera {
     camera.viewfinder.position = Vector2.zero();
     
     // Add HUD to viewport (renders in screen space, not world space)
-    final hud = HUD(currentLives, maxLives, width, height, hideScoreDisplay: hideScoreDisplay);
+    final hud = HUD(currentLives, maxLives, width, height, 
+      hideScoreDisplay: hideScoreDisplay,
+      hideLivesDisplay: hideLivesDisplay,
+    );
     hud.priority = 100; // Render above everything
     
     camera.viewport.add(hud);

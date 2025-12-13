@@ -13,7 +13,6 @@ import '../../game/systems/inventory_manager.dart';
 import '../../game/systems/social_sharing_manager.dart';
 import '../../game/core/economy_config.dart';
 import '../widgets/game_over_menu.dart';
-import '../widgets/no_hearts_dialog.dart';
 import 'store_screen.dart';
 import '../../core/events/event_bus.dart';
 import '../../core/repositories/user_stats_repository.dart';
@@ -178,33 +177,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   void _handleRestart() async {
-    // ✅ NEW: Refill hearts to max when restarting endless mode
+    // Always allow restart: refill hearts to max, then reset
     await LivesManager().refillToMax();
     safePrint('🔄 ENDLESS MODE: Restarting game - Hearts refilled to max');
-    
-    // Check if player has hearts available (should always have them after refill)
-    final livesManager = LivesManager();
-    if (livesManager.currentLives <= 0) {
-      // No hearts available - show options dialog
-      _showNoHeartsDialog();
-    } else {
-      // Has hearts - restart normally
-      game.resetGame();
-    }
-  }
-
-  void _showNoHeartsDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => NoHeartsDialog(
-        monetization: widget.monetization,
-        onClose: () {
-          Navigator.of(context).pop(); // Close dialog
-          Navigator.of(context).pop(); // Go back to main menu
-        },
-      ),
-    );
+    game.resetGame();
   }
 
   void _shareScore(String platform) {

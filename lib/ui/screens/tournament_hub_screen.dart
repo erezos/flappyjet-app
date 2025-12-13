@@ -21,7 +21,7 @@ import '../widgets/tournament/playoff_bracket_screen.dart';
 import '../widgets/tournament/playoff_battle_wrapper.dart';
 import '../widgets/tournament/bracket_opponent_resolver.dart';
 import '../screens/tournament_world_map_screen.dart';
-import '../widgets/tournament/tournament_linear_game_wrapper.dart';
+import '../widgets/tournament/linear_tournament_game_wrapper.dart';
 import '../widgets/tournament/tournament_victory_screen.dart';
 import '../widgets/tournament/tournament_round_win_screen.dart';
 import '../widgets/status_bar/coins_gems_display.dart'; // ✅ Consistent balance display
@@ -264,8 +264,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
           }
 
           final tournament = tournaments[index - 1];
-          final hasActiveEntry = _tournamentManager.hasActiveEntry &&
-              _tournamentManager.activeEntry!.tournamentId == tournament.id;
+          final hasActiveEntry = _tournamentManager.hasActiveEntryFor(tournament.id);
           final hasFreeTicket = _tournamentManager.hasFreeTicketFor(tournament);
 
           return TournamentCard(
@@ -331,15 +330,15 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
   // === ACTION HANDLERS ===
 
   Future<void> _onTournamentTap(TournamentConfig tournament) async {
-    final hasActiveEntry = _tournamentManager.hasActiveEntry &&
-        _tournamentManager.activeEntry!.tournamentId == tournament.id;
+    final hasActiveEntry = _tournamentManager.hasActiveEntryFor(tournament.id);
     final hasFreeTicket = _tournamentManager.hasFreeTicketFor(tournament);
 
     // PLAYOFFS: remove friction. Auto-enter (respecting cost/free ticket). Fallback to popup if cannot pay.
     if (tournament.isPlayoff) {
       // If already have an entry for this playoff, jump in.
       if (hasActiveEntry) {
-        final entry = _tournamentManager.activeEntry!;
+        final entry = _tournamentManager.activeEntryFor(tournament.id)!;
+        _tournamentManager.selectTournamentContext(tournament.id);
         _startTournamentGameplay(entry, tournament);
         return;
       }
@@ -418,22 +417,104 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
         useFreeTicket: useFreeTicketFlag,
       );
       if (entry != null && mounted) {
+        _tournamentManager.selectTournamentContext(tournament.id);
         _startTournamentGameplay(entry, tournament);
       }
       return;
     }
 
-    // LINEAR tournaments keep the existing popup flow
-    final entry = await showTournamentInfoPopup(
-      context: context,
-      tournament: tournament,
-      playerCoins: _inventoryManager.softCurrency,
-      playerGems: _inventoryManager.gems,
-      hasFreeTicket: hasFreeTicket,
-      hasActiveEntry: hasActiveEntry,
-    );
+    // LINEAR tournaments: Same frictionless flow as playoffs
+    // Auto-enter and go directly to world map
+    if (hasActiveEntry) {
+      final entry = _tournamentManager.activeEntryFor(tournament.id)!;
+      _tournamentManager.selectTournamentContext(tournament.id);
+      _startTournamentGameplay(entry, tournament);
+      return;
+    }
 
+    // Check affordability inline (coins/gems/free ticket)
+    final feeType = tournament.entry.type;
+    final feeAmount = tournament.entry.amount;
+    bool canEnter = true;
+    bool useFreeTicketFlag = false;
+
+    switch (feeType) {
+      case EntryFeeType.freeTicket:
+        canEnter = hasFreeTicket;
+        useFreeTicketFlag = hasFreeTicket;
+        break;
+      case EntryFeeType.coins:
+        canEnter = _inventoryManager.softCurrency >= feeAmount;
+        if (hasFreeTicket) {
+          useFreeTicketFlag = true;
+          canEnter = true;
+        }
+        break;
+      case EntryFeeType.gems:
+        canEnter = _inventoryManager.gems >= feeAmount;
+        if (hasFreeTicket) {
+          useFreeTicketFlag = true;
+          canEnter = true;
+        }
+        break;
+    }
+
+    if (!canEnter) {
+      // Show popup to explain why (insufficient funds / no ticket)
+      final entry = await showTournamentInfoPopup(
+        context: context,
+        tournament: tournament,
+        playerCoins: _inventoryManager.softCurrency,
+        playerGems: _inventoryManager.gems,
+        hasFreeTicket: hasFreeTicket,
+        hasActiveEntry: hasActiveEntry,
+      );
+      if (entry != null && mounted) {
+        _startTournamentGameplay(entry, tournament);
+      }
+      return;
+    }
+
+    // Deduct cost if needed, then enter
+    bool paid = true;
+    if (!useFreeTicketFlag) {
+      if (feeType == EntryFeeType.coins && feeAmount > 0) {
+        paid = await _inventoryManager.spendSoftCurrency(
+          feeAmount,
+          spentOn: 'tournament_entry',
+          itemId: tournament.id,
+        );
+      } else if (feeType == EntryFeeType.gems && feeAmount > 0) {
+        paid = await _inventoryManager.spendGems(
+          feeAmount,
+          spentOn: 'tournament_entry',
+          itemId: tournament.id,
+        );
+      }
+    }
+
+    if (!paid) {
+      // Could not deduct — show popup as fallback
+      final entry = await showTournamentInfoPopup(
+        context: context,
+        tournament: tournament,
+        playerCoins: _inventoryManager.softCurrency,
+        playerGems: _inventoryManager.gems,
+        hasFreeTicket: hasFreeTicket,
+        hasActiveEntry: hasActiveEntry,
+      );
+      if (entry != null && mounted) {
+        _startTournamentGameplay(entry, tournament);
+      }
+      return;
+    }
+
+    final entry = await _tournamentManager.enterTournament(
+      tournament,
+      useFreeTicket: useFreeTicketFlag,
+    );
     if (entry != null && mounted) {
+      _tournamentManager.selectTournamentContext(tournament.id);
       _startTournamentGameplay(entry, tournament);
     }
   }
@@ -460,8 +541,11 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
             totalRounds: tournament.levels.length,
             triesRemaining: entry.triesRemaining,
           ),
-          onPlayLevel: () {
+          onPlayLevel: (int levelIndex) {
             Navigator.of(context).pop();
+            // Only allow playing the current level or replaying completed levels
+            // For simplicity, always navigate to the current round's level
+            // (Replay functionality would need more complex state management)
             _navigateToLinearLevel(entry, tournament);
           },
           onBack: () => Navigator.of(context).pop(),
@@ -475,72 +559,23 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
       safePrint('🏆 ⚠️ Invalid round for linear tournament');
       return;
     }
-    final level = tournament.levels[entry.currentRound - 1];
+    
+    // ✅ UNIFIED: All linear tournaments use LinearTournamentGameWrapper
+    // It handles all objective types: surviveTime, passObstacles, beatBot
+    safePrint('🏆 Navigating to linear tournament level ${entry.currentRound}');
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TournamentLinearGameWrapper(
+        builder: (_) => LinearTournamentGameWrapper(
           tournament: tournament,
           entry: entry,
-          levelConfig: level,
-          onWin: () => _handleLinearWin(entry, tournament),
-          onLose: () => _handleLinearLose(entry, tournament),
         ),
       ),
     );
   }
 
-  Future<void> _handleLinearWin(TournamentEntry entry, TournamentConfig tournament) async {
-    safePrint('🏆 ✅ Linear round won!');
-    final roundIndex = entry.currentRound - 1;
-    final currentLevel = roundIndex < tournament.levels.length ? tournament.levels[roundIndex] : null;
-
-    await _tournamentManager.completeRound(
-      roundNumber: entry.currentRound,
-      coinsReward: currentLevel?.reward.coins ?? 100,
-      gemsReward: currentLevel?.reward.gems ?? 5,
-      heartsUsed: 0,
-      continuesUsed: 0,
-      duration: const Duration(seconds: 60),
-    );
-
-    final isFinalRound = entry.currentRound >= tournament.levels.length;
-    if (isFinalRound) {
-      await _tournamentManager.completeTournament(
-        bonusCoins: tournament.completionReward.coins,
-        bonusGems: tournament.completionReward.gems,
-        completionReward: tournament.completionReward,
-      );
-      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
-    } else {
-      await _tournamentManager.advanceToNextRound();
-      final updatedEntry = _tournamentManager.activeEntry ?? entry;
-      if (mounted) {
-        Navigator.of(context).pop();
-        _showTournamentMap(updatedEntry, tournament);
-      }
-    }
-  }
-
-  Future<void> _handleLinearLose(TournamentEntry entry, TournamentConfig tournament) async {
-    safePrint('🏆 ❌ Linear round lost');
-    await _tournamentManager.failRound(
-      roundNumber: entry.currentRound,
-      heartsUsed: 0,
-      continuesUsed: 0,
-      duration: const Duration(seconds: 30),
-    );
-    await _tournamentManager.failCurrentTry();
-
-    final updatedEntry = _tournamentManager.activeEntry;
-    if (updatedEntry == null || updatedEntry.status == TournamentEntryStatus.failed) {
-      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
-    } else {
-      if (mounted) {
-        Navigator.of(context).pop();
-        _showTournamentMap(updatedEntry, tournament);
-      }
-    }
-  }
+  // ✅ REMOVED: _handleLinearWin and _handleLinearLose
+  // These callbacks were used by the old TournamentLinearGameWrapper.
+  // The new LinearTournamentGameWrapper handles all logic internally.
 
   void _showPlayoffBracket(TournamentEntry entry, TournamentConfig tournament) {
     safePrint('🏆 Showing playoff bracket for: ${tournament.name}');
@@ -599,6 +634,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
   
   void _handlePlayoffWin(TournamentEntry entry, TournamentConfig tournament) async {
     safePrint('🏆 ✅ Playoff round won!');
+    _tournamentManager.selectTournamentContext(tournament.id);
     
     // Record win in bracket
     final playerSkin = InventoryManager().equippedSkinId;
@@ -636,6 +672,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
       heartsUsed: 0,
       continuesUsed: 0,
       duration: const Duration(seconds: 60),
+      tournamentId: tournament.id,
     );
     
     // Determine if this was the final round
@@ -648,6 +685,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
         bonusCoins: tournament.completionReward.coins,
         bonusGems: tournament.completionReward.gems,
         completionReward: tournament.completionReward,
+        tournamentId: tournament.id,
       );
       
       // Grant completion rewards to inventory
@@ -672,7 +710,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
           MaterialPageRoute(
             builder: (_) => TournamentVictoryScreen(
               tournament: tournament,
-              entry: _tournamentManager.activeEntry ?? entry,
+              entry: _tournamentManager.activeEntryFor(tournament.id) ?? entry,
             ),
           ),
           (route) => route.isFirst,
@@ -686,8 +724,8 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
           : 'Round ${entry.currentRound}';
       
       // Persist and move to the next round
-      await _tournamentManager.advanceToNextRound();
-      final updatedEntry = _tournamentManager.activeEntry ?? entry;
+      await _tournamentManager.advanceToNextRound(tournamentId: tournament.id);
+      final updatedEntry = _tournamentManager.activeEntryFor(tournament.id) ?? entry;
       
       // Show round win celebration before returning to bracket
       if (mounted) {
@@ -721,6 +759,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
   
   void _handlePlayoffLose(TournamentEntry entry, TournamentConfig tournament) async {
     safePrint('🏆 ❌ Playoff round lost');
+    _tournamentManager.selectTournamentContext(tournament.id);
     
     // Record loss - use the opponent's jet as winner
     final playoffConfig = tournament.playoffConfig;
@@ -739,12 +778,13 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
       heartsUsed: 0,
       continuesUsed: 0,
       duration: const Duration(seconds: 30),
+      tournamentId: tournament.id,
     );
     
     // Fail the try
-    await _tournamentManager.failCurrentTry();
+    await _tournamentManager.failCurrentTry(tournamentId: tournament.id);
     
-    final updatedEntry = _tournamentManager.activeEntry;
+    final updatedEntry = _tournamentManager.activeEntryFor(tournament.id);
     
     if (updatedEntry == null || updatedEntry.status == TournamentEntryStatus.failed) {
       // No more tries - tournament over

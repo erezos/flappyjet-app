@@ -685,19 +685,8 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
       return;
     }
     
-    // 🔍 COLLISION DEBUG: Log detailed collision information
-    safePrint('💥 Flame collision detected: Jet collided with ${other.runtimeType}');
-    final jetSize = size.x / 2;  // Half size for bounds calculation
-    safePrint('🔍 JET COLLISION: Jet position=(${position.x}, ${position.y}), halfSize=$jetSize');
-    safePrint('🔍 JET COLLISION: Jet bounds: left=${position.x - jetSize}, right=${position.x + jetSize}, top=${position.y - jetSize}, bottom=${position.y + jetSize}');
-    if (other.runtimeType.toString() == 'DynamicObstacle') {
-      safePrint('🔍 OBSTACLE COLLISION: Obstacle position=(${other.position.x}, ${other.position.y})');
-      safePrint('🔍 OBSTACLE COLLISION: Obstacle anchor=${other.anchor}');
-    }
-    safePrint('🔍 COLLISION POINTS: ${intersectionPoints.length} intersection points:');
-    for (final point in intersectionPoints) {
-      safePrint('  - Intersection at world coords: (${point.x}, ${point.y})');
-    }
+    // Collision debug logs removed - too verbose during gameplay
+    // Enable for debugging: safePrint('💥 Collision: Jet hit ${other.runtimeType}');
     
     // Handle collision through game (maintains existing game over logic)
     if (game is FlappyGame) {

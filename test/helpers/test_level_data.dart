@@ -3,7 +3,7 @@
 /// Provides common level configurations used across multiple tests
 library;
 
-import '../../lib/models/level_data_schema.dart';
+import 'package:flappy_jet_pro/models/level_data_schema.dart';
 
 /// Common test level configurations
 class TestLevelData {
@@ -17,7 +17,7 @@ class TestLevelData {
       target: 10,
       description: 'Pass 10 obstacles',
     ),
-    difficulty: LevelDifficulty(
+    difficulty: DifficultyConfig(
       speedMultiplier: 1.0,
       obstacleGap: 200,
       obstacleFrequency: 2.0,
@@ -43,7 +43,7 @@ class TestLevelData {
       target: 30,
       description: 'Survive for 30 seconds',
     ),
-    difficulty: LevelDifficulty(
+    difficulty: DifficultyConfig(
       speedMultiplier: 1.2,
       obstacleGap: 180,
       obstacleFrequency: 2.2,
@@ -69,7 +69,7 @@ class TestLevelData {
       target: 12,
       description: 'Beat the bot opponent',
     ),
-    difficulty: LevelDifficulty(
+    difficulty: DifficultyConfig(
       speedMultiplier: 1.0,
       obstacleGap: 200,
       obstacleFrequency: 2.0,
@@ -102,7 +102,7 @@ class TestLevelData {
       target: 30,
       description: 'Pass 30 obstacles with extreme difficulty',
     ),
-    difficulty: LevelDifficulty(
+    difficulty: DifficultyConfig(
       speedMultiplier: 1.8,
       obstacleGap: 140,
       obstacleFrequency: 2.8,

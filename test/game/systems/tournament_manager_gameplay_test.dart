@@ -346,7 +346,7 @@ void main() {
       expect(entry, isNotNull);
       expect(tournamentManager.hasActiveEntry, true);
 
-      tournamentManager.clearActiveEntry();
+      tournamentManager.clearActiveEntry(tournamentId: testTournament.id);
 
       expect(tournamentManager.hasActiveEntry, false);
       expect(tournamentManager.activeEntry, isNull);

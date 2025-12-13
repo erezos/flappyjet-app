@@ -142,6 +142,56 @@ void main() {
     });
   });
 
+  group('TournamentCard - Prizes Row', () {
+    testWidgets('shows summed coins and gems rewards', (tester) async {
+      // total coins = (50 + 100) + 500 = 650, gems = (0 + 5) + 20 = 25
+      await tester.pumpWidget(buildTestWidget(tournament: linearTournament));
+
+      expect(find.text('650'), findsOneWidget);
+      expect(find.text('25'), findsOneWidget);
+      expect(find.byType(Coin3DIcon), findsWidgets);
+      expect(find.byType(Gem3DIcon), findsWidgets);
+    });
+  });
+
+  group('TournamentCard - Layout resilience', () {
+    testWidgets('no overflow on narrow phone widths (linear)', (tester) async {
+      final binding = tester.binding;
+      final originalSize = binding.window.physicalSize;
+      final originalPixelRatio = binding.window.devicePixelRatio;
+
+      binding.window.physicalSizeTestValue = const Size(320, 640);
+      binding.window.devicePixelRatioTestValue = 2.0;
+      addTearDown(() {
+        binding.window.physicalSizeTestValue = originalSize;
+        binding.window.devicePixelRatioTestValue = originalPixelRatio;
+      });
+
+      await tester.pumpWidget(buildTestWidget(tournament: linearTournament));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('no overflow on narrow phone widths (playoff)', (tester) async {
+      final binding = tester.binding;
+      final originalSize = binding.window.physicalSize;
+      final originalPixelRatio = binding.window.devicePixelRatio;
+
+      binding.window.physicalSizeTestValue = const Size(320, 640);
+      binding.window.devicePixelRatioTestValue = 2.0;
+      addTearDown(() {
+        binding.window.physicalSizeTestValue = originalSize;
+        binding.window.devicePixelRatioTestValue = originalPixelRatio;
+      });
+
+      await tester.pumpWidget(buildTestWidget(tournament: playoffTournament));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('TournamentCard - Entry Button States', () {
     testWidgets('should show coins cost when can afford', (tester) async {
       await tester.pumpWidget(buildTestWidget(

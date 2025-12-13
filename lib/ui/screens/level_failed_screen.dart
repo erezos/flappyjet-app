@@ -739,6 +739,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
   /// 📊 MAIN CONTENT: Progress, message, continue options, action buttons
   Widget _buildMainContent(Size screenSize) {
     final progress = widget.objectiveAchieved / widget.objectiveTarget;
+    final isVsMode = widget.level.objective.type == ObjectiveType.beatBot;
     final canContinue = widget.continuesRemaining > 0;
 
     final horizontalPadding = ResponsiveConfig.responsivePadding(20.0, screenSize);
@@ -751,9 +752,11 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Progress section - compact circular progress
-          _buildCompactProgressSection(progress, screenSize),
-          SizedBox(height: spacingSmall),
+          // Progress section - hidden for VS mode (1v1) to avoid revealing bot crash timing
+          if (!_shouldHideProgress(isVsMode)) ...[
+            _buildCompactProgressSection(progress, screenSize),
+            SizedBox(height: spacingSmall),
+          ],
 
           // Encouragement message - motivating
           Builder(
@@ -839,8 +842,8 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
 
   /// 📊 COMPACT PROGRESS SECTION: Smaller circular progress (responsive size)
   Widget _buildCompactProgressSection(double progress, Size screenSize) {
-    if (widget.isTournamentMode) {
-      // In tournament mode we hide progress rings and focus on stage + actions.
+    if (_shouldHideProgress(widget.level.objective.type == ObjectiveType.beatBot)) {
+      // In tournament mode and VS (1v1) mode we hide progress rings.
       return const SizedBox.shrink();
     }
     final isVsMode = widget.level.objective.type == ObjectiveType.beatBot;
@@ -960,6 +963,10 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
         ],
       ],
     );
+  }
+
+  bool _shouldHideProgress(bool isVsMode) {
+    return widget.isTournamentMode || isVsMode;
   }
 
   /// 🎬 COMPACT CONTINUE OPTIONS: Smaller, more engaging buttons

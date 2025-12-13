@@ -5,6 +5,7 @@
 library;
 
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import '../../../models/tournament_config.dart';
@@ -12,18 +13,23 @@ import '../../../models/tournament_entry.dart';
 import '../../../game/systems/tournament_manager.dart';
 import '../coin_3d_icon.dart';
 import '../gem_3d_icon.dart';
+import '../tournament_ticket_icon.dart';
+import '../../../game/core/jet_skins.dart';
 
 class TournamentVictoryScreen extends StatefulWidget {
   final TournamentConfig tournament;
   final TournamentEntry entry;
   /// Optional callback for testing - if not provided, screen handles navigation itself
   final VoidCallback? onContinue;
+  /// Testing flag to skip long delays/animations to make widget tests stable.
+  final bool testingFastMode;
 
   const TournamentVictoryScreen({
     super.key,
     required this.tournament,
     required this.entry,
     this.onContinue,
+    this.testingFastMode = false,
   });
 
   @override
@@ -60,7 +66,11 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
   void initState() {
     super.initState();
     _initializeAnimations();
-    _startCelebrationSequence();
+    if (widget.testingFastMode) {
+      _startCelebrationSequenceFast();
+    } else {
+      _startCelebrationSequence();
+    }
   }
 
   void _initializeAnimations() {
@@ -143,6 +153,18 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
     _confettiRight = ConfettiController(duration: const Duration(seconds: 10));
   }
 
+  void _startCelebrationSequenceFast() {
+    // Jump animations to end states for tests to avoid pending timers.
+    _mainController.value = 1.0;
+    _rewardsController.value = 1.0;
+    _coinShowerController.value = 1.0;
+    _confettiCenter.stop();
+    _confettiLeft.stop();
+    _confettiRight.stop();
+    _showRewards = true;
+    _showButton = true;
+  }
+
   void _startCelebrationSequence() async {
     // Start main animation
     _mainController.forward();
@@ -188,7 +210,7 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
     if (widget.onContinue != null) {
       widget.onContinue!();
     } else {
-      TournamentManager().clearActiveEntry();
+      TournamentManager().clearActiveEntry(tournamentId: widget.tournament.id);
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
@@ -209,7 +231,7 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnimation,
-              child: LayoutBuilder(
+      child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isSmallScreen = constraints.maxHeight < 500;
                   
@@ -368,30 +390,60 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
   }
 
   Widget _buildAnimatedBackground() {
+    final bannerImage = widget.tournament.display.bannerImage;
+    final bannerPath = bannerImage.endsWith('.png')
+        ? 'assets/images/$bannerImage'
+        : 'assets/images/$bannerImage.png';
+
     return AnimatedBuilder(
       animation: _shimmerController,
       builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF1A1A2E),
-                _getTierColor().withOpacity(0.3),
-                const Color(0xFF0F0F1A),
-                _getTierColor().withOpacity(0.2),
-                const Color(0xFF1A1A2E),
-              ],
-              stops: [
-                0.0,
-                (_shimmerAnimation.value * 0.5).clamp(0.0, 1.0),
-                0.5,
-                (_shimmerAnimation.value * 0.5 + 0.3).clamp(0.0, 1.0),
-                1.0,
-              ],
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Blurred tournament banner for thematic backdrop
+            Positioned.fill(
+              child: ClipRect(
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.25),
+                      BlendMode.darken,
+                    ),
+                    child: Image.asset(
+                      bannerPath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
+            // Gradient overlay shimmer for depth
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF1A1A2E),
+                    _getTierColor().withOpacity(0.25),
+                    const Color(0xFF0F0F1A),
+                    _getTierColor().withOpacity(0.18),
+                    const Color(0xFF1A1A2E),
+                  ],
+                  stops: [
+                    0.0,
+                    (_shimmerAnimation.value * 0.45).clamp(0.0, 1.0),
+                    0.5,
+                    (_shimmerAnimation.value * 0.45 + 0.28).clamp(0.0, 1.0),
+                    1.0,
+                  ],
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -495,17 +547,6 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
                 letterSpacing: 3,
-                shadows: [
-                  Shadow(
-                    color: Colors.amber.withOpacity(0.8),
-                    blurRadius: 20,
-                  ),
-                  const Shadow(
-                    color: Colors.black,
-                    blurRadius: 10,
-                    offset: Offset(2, 2),
-                  ),
-                ],
               ),
             ),
           ),
@@ -518,48 +559,26 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
     // Scale font based on screen width
     final fontSize = screenSize.width * 0.05; // 5% of screen width
     
-    return Column(
-      mainAxisSize: MainAxisSize.min, // Only take needed space
-      children: [
-        Text(
-          widget.tournament.name,
-          style: TextStyle(
-            fontSize: fontSize,
-            color: _getTierColor(),
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: _getTierColor().withOpacity(0.5),
-            ),
-          ),
-          child: Text(
-            'TOURNAMENT CHAMPION',
-            style: TextStyle(
-              fontSize: fontSize - 6,
-              color: Colors.white.withOpacity(0.8),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 2,
-            ),
-          ),
-        ),
-      ],
+    return Text(
+      widget.tournament.name,
+      style: TextStyle(
+        fontSize: fontSize,
+        color: _getTierColor(),
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1,
+      ),
+      textAlign: TextAlign.center,
     );
   }
 
   Widget _buildRewardsSection(Size screenSize) {
     // Use proportional sizes for rewards section
-    final padding = screenSize.width * 0.04; // 4% of screen width
+    final padding = screenSize.width * 0.045; // 4.5% of screen width
     final titleSize = screenSize.width * 0.035; // 3.5% of screen width
     final valueSize = screenSize.width * 0.06; // 6% of screen width
+    final totalCoins = widget.entry.coinsEarned + widget.tournament.completionReward.coins;
+    final totalGems = widget.entry.gemsEarned + widget.tournament.completionReward.gems;
+    final completionReward = widget.tournament.completionReward;
     
     return AnimatedBuilder(
       animation: Listenable.merge([_rewardsSlideAnimation, _rewardsFadeAnimation]),
@@ -597,12 +616,14 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min, // Only take needed space
                 children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  // Header (wrap to avoid overflow on narrow screens)
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Icon(Icons.auto_awesome, color: Colors.amber, size: titleSize + 4),
-                      const SizedBox(width: 8),
                       Text(
                         'TOTAL REWARDS',
                         style: TextStyle(
@@ -612,50 +633,39 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                           letterSpacing: 2,
                         ),
                       ),
-                      const SizedBox(width: 8),
                       Icon(Icons.auto_awesome, color: Colors.amber, size: titleSize + 4),
                     ],
                   ),
                   SizedBox(height: padding),
                   
-                  // Rewards row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  // Rewards row (wrap to avoid clipping on narrow screens)
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: padding,
+                    runSpacing: padding * 0.5,
                     children: [
-                      // Coins
                       _buildAnimatedReward(
                         icon: Coin3DIcon(size: valueSize * 1.5),
-                        value: widget.entry.coinsEarned,
+                        value: totalCoins,
                         label: 'COINS',
                         valueSize: valueSize,
                         delay: 0,
                       ),
-                      
-                      // Divider
-                      Container(
-                        width: 2,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.amber.withOpacity(0.5),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      // Gems
                       _buildAnimatedReward(
                         icon: Gem3DIcon(size: valueSize * 1.5),
-                        value: widget.entry.gemsEarned,
+                        value: totalGems,
                         label: 'GEMS',
                         valueSize: valueSize,
                         delay: 1,
                       ),
+                      if (completionReward.skinId != null)
+                    _buildSkinRewardIcon(completionReward.skinId!, valueSize * 1.8),
+                      if (completionReward.freeTicketTier != null)
+                        TournamentTicketIcon(
+                          tier: completionReward.freeTicketTier!,
+                      size: valueSize * 1.8,
+                        ),
                     ],
                   ),
                 ],
@@ -708,6 +718,21 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
           ],
         );
       },
+    );
+  }
+
+  Widget _buildSkinRewardIcon(String skinId, double size) {
+    final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
+      (skin) => skin.id == skinId,
+      orElse: () => JetSkinCatalog.starterJet,
+    );
+
+    return Image.asset(
+      'assets/images/${jetSkin.assetPath}',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => Text('✨', style: TextStyle(fontSize: size * 0.6)),
     );
   }
 
