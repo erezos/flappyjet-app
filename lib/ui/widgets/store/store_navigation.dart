@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../utils/responsive_config.dart';
 import '../gem_3d_icon.dart';
 import '../coin_3d_icon.dart';
 
@@ -19,27 +20,36 @@ class StoreNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
-    final isLargeTablet = screenWidth > 900;
+    final screenSize = MediaQuery.sizeOf(context);
     
-    // Responsive sizing
-    final containerMargin = isLargeTablet ? 24.0 : isTablet ? 18.0 : 12.0;
-    final containerPadding = isLargeTablet ? 6.0 : isTablet ? 5.0 : 4.0;
-    final borderRadius = isLargeTablet ? 42.0 : isTablet ? 38.0 : 35.0;
-    final verticalPadding = isLargeTablet ? 16.0 : isTablet ? 14.0 : 12.0;
-    final horizontalPadding = isLargeTablet ? 12.0 : isTablet ? 10.0 : 8.0;
-    final iconSpacing = isLargeTablet ? 4.0 : isTablet ? 3.0 : 2.0;
+    // Responsive sizing using ResponsiveConfig
+    final containerMargin = ResponsiveConfig.responsivePadding(12.0, screenSize);
+    final containerPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
+    final borderRadius = ResponsiveConfig.responsiveSize(35.0, screenSize);
+    final verticalPadding = ResponsiveConfig.responsivePadding(12.0, screenSize);
+    final horizontalPadding = ResponsiveConfig.responsivePadding(8.0, screenSize);
+    final iconSpacing = ResponsiveConfig.responsivePadding(2.0, screenSize);
     
     // Calculate available width per tab to prevent text wrapping
-    final availableWidth = screenWidth - (containerMargin * 2) - (containerPadding * 2);
+    final availableWidth = screenSize.width - (containerMargin * 2) - (containerPadding * 2);
     final tabWidth = availableWidth / categories.length;
-    final textSize = tabWidth > 80 ? (isLargeTablet ? 14.0 : isTablet ? 13.0 : 11.0) : 
-                     tabWidth > 60 ? (isLargeTablet ? 12.0 : isTablet ? 11.0 : 10.0) : 
-                     (isLargeTablet ? 10.0 : isTablet ? 9.0 : 8.0);
+    // Use responsive font size with min/max constraints
+    final baseTextSize = tabWidth > 80 ? 11.0 : tabWidth > 60 ? 10.0 : 8.0;
+    final textSize = ResponsiveConfig.responsiveFontSize(
+      baseTextSize,
+      screenSize,
+      context,
+      minScale: 0.8,
+      maxScale: 1.3,
+    );
     
     return Container(
-      margin: EdgeInsets.fromLTRB(containerMargin, 8, containerMargin, 0),
+      margin: EdgeInsets.fromLTRB(
+        containerMargin,
+        ResponsiveConfig.responsivePadding(8.0, screenSize),
+        containerMargin,
+        0,
+      ),
       padding: EdgeInsets.all(containerPadding),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -51,12 +61,12 @@ class StoreNavigation extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: isTablet ? 18 : 15,
+            blurRadius: 15,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
             color: const Color(0xFF3949AB).withValues(alpha: 0.3),
-            blurRadius: isTablet ? 24 : 20,
+            blurRadius: 20,
             offset: const Offset(0, -2),
           ),
         ],
@@ -67,9 +77,8 @@ class StoreNavigation extends StatelessWidget {
           final categoryIcon = _getCategoryIcon(category);
           
           // Responsive icon sizing
-          final iconSize = isSelected 
-              ? (isLargeTablet ? 28.0 : isTablet ? 24.0 : 20.0)
-              : (isLargeTablet ? 22.0 : isTablet ? 20.0 : 16.0);
+          final baseIconSize = isSelected ? 20.0 : 16.0;
+          final iconSize = ResponsiveConfig.responsiveIconSize(baseIconSize, screenSize);
           
           return Expanded(
             child: AnimatedContainer(
@@ -90,12 +99,12 @@ class StoreNavigation extends StatelessWidget {
                             end: Alignment.bottomCenter,
                           )
                         : null,
-                    borderRadius: BorderRadius.circular(isTablet ? 34 : 30),
+                    borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(30.0, screenSize)),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
                               color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-                              blurRadius: isTablet ? 15 : 12,
+                              blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
                           ]
@@ -133,7 +142,7 @@ class StoreNavigation extends StatelessWidget {
                           color: isSelected ? Colors.white : Colors.white70,
                           fontWeight: FontWeight.bold,
                           fontSize: textSize,
-                          letterSpacing: isTablet ? 0.8 : 0.5,
+                          letterSpacing: 0.5,
                           height: 1.2, // Ensure consistent line height
                         ),
                       ),

@@ -137,5 +137,98 @@ void main() {
       expect(find.text('OBJECTIVE'), findsNothing);
     });
   });
+
+  group('LevelObjectivePopup - START button', () {
+    testWidgets('START button uses image asset and has button gestures', (tester) async {
+      final level = TestLevelData.simpleObstacleLevel;
+      bool buttonPressed = false;
+
+      await tester.pumpWidget(
+        DefaultAssetBundle(
+          bundle: _FakeAssetBundle(),
+          child: MaterialApp(
+            home: Scaffold(
+              body: LevelObjectivePopup(
+                level: level,
+                key: const ValueKey('test_popup'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      // Verify START button image is present
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Image &&
+              widget.image is AssetImage &&
+              (widget.image as AssetImage).assetName ==
+                  'assets/images/ui/start_button.png',
+        ),
+        findsOneWidget,
+      );
+
+      // Verify button has GestureDetector (for button gestures)
+      expect(find.byType(GestureDetector), findsWidgets);
+      
+      // Verify AnimatedScale is present (for press feedback)
+      expect(find.byType(AnimatedScale), findsOneWidget);
+    });
+
+    testWidgets('START button scales down when pressed', (tester) async {
+      final level = TestLevelData.simpleObstacleLevel;
+
+      await tester.pumpWidget(
+        DefaultAssetBundle(
+          bundle: _FakeAssetBundle(),
+          child: MaterialApp(
+            home: Scaffold(
+              body: LevelObjectivePopup(level: level),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      // Find the START button image
+      final buttonFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                'assets/images/ui/start_button.png',
+      );
+
+      expect(buttonFinder, findsOneWidget);
+
+      // Get initial scale
+      final animatedScale = tester.widget<AnimatedScale>(find.byType(AnimatedScale));
+      expect(animatedScale.scale, 1.0);
+
+      // Simulate button press (tap down)
+      final gesture = await tester.startGesture(
+        tester.getCenter(buttonFinder),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Verify scale changed (button pressed state)
+      final pressedScale = tester.widget<AnimatedScale>(find.byType(AnimatedScale));
+      expect(pressedScale.scale, lessThan(1.0));
+
+      // Release tap
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      // Verify scale returned to normal
+      final releasedScale = tester.widget<AnimatedScale>(find.byType(AnimatedScale));
+      expect(releasedScale.scale, 1.0);
+    });
+  });
 }
 

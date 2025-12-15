@@ -11,6 +11,7 @@ import '../../game/systems/inventory_manager.dart';
 import '../../game/systems/game_events_tracker.dart';
 import '../../game/core/jet_skins.dart';
 import '../../game/core/economy_config.dart';
+import '../utils/responsive_config.dart';
 import '../widgets/profile/profile_component_system.dart';
 import '../../game/systems/audio_settings_manager.dart';
 import '../widgets/gem_3d_icon.dart';
@@ -138,88 +139,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const ProfileBackgroundComponent(),
 
           // 2. ✅ REDESIGNED: Nickname Banner - Full width at top (RED SQUARE AREA)
-          Positioned(
-            top: 50, // Top position
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: ProfileNicknameBannerComponent(
-                controller: _nameCtrl,
-                onSave: _handleNicknameSave,
-                alignment: Alignment.center,
-                width: null, // Full width
-                height: 200, // Compact height for banner
-              ),
-            ),
+          Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return Positioned(
+                top: ResponsiveConfig.responsiveSize(50.0, screenSize),
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveConfig.responsivePadding(16.0, screenSize),
+                  ),
+                  child: ProfileNicknameBannerComponent(
+                    controller: _nameCtrl,
+                    onSave: _handleNicknameSave,
+                    alignment: Alignment.center,
+                    width: null, // Full width
+                    height: ResponsiveConfig.responsiveSize(200.0, screenSize),
+                  ),
+                ),
+              );
+            },
           ),
 
           // 3. ✅ REDESIGNED: High Score & Hottest Streak - Side by side (BLUE SQUARE AREA)
-          Positioned(
-            top: 280, // Below nickname banner
-            left: 16,
-            right: 16,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // High Score (Left)
-                Expanded(
-                  child: ProfileHighScoreComponent(
-                    alignment: Alignment.center,
-                  ),
+          Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return Positioned(
+                top: ResponsiveConfig.responsiveSize(280.0, screenSize),
+                left: ResponsiveConfig.responsivePadding(16.0, screenSize),
+                right: ResponsiveConfig.responsivePadding(16.0, screenSize),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // High Score (Left)
+                    Expanded(
+                      child: ProfileHighScoreComponent(
+                        alignment: Alignment.center,
+                      ),
+                    ),
+                    
+                    SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)),
+                    
+                    // Hottest Streak (Right)
+                    Expanded(
+                      child: ProfileHottestStreakComponent(
+                        alignment: Alignment.center,
+                      ),
+                    ),
+                  ],
                 ),
-                
-                const SizedBox(width: 16),
-                
-                // Hottest Streak (Right)
-                Expanded(
-                  child: ProfileHottestStreakComponent(
-                    alignment: Alignment.center,
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
 
           // 4. ✅ REDESIGNED: Jet Section - Centered below stats (GREEN SQUARE AREA)
           LayoutBuilder(
             builder: (context, constraints) {
-              final screenHeight = MediaQuery.of(context).size.height;
-              final screenWidth = MediaQuery.of(context).size.width;
-              final isSmallScreen = screenHeight < 700;
-              final isVerySmallScreen = screenHeight < 600;
+              final screenSize = MediaQuery.sizeOf(context);
               
               return Align(
-                alignment: Alignment(
-                  0,
-                  isVerySmallScreen ? 0.4 : isSmallScreen ? 0.45 : 0.5,
-                ),
+                alignment: const Alignment(0, 0.5),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Jet Image
                     SizedBox(
-                      height: isVerySmallScreen ? 100 : isSmallScreen ? 120 : 140,
+                      height: ResponsiveConfig.responsiveSize(140.0, screenSize),
                       child: Image.asset(
                         'assets/images/${equippedSkin.assetPath}',
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
                           return Icon(
                             Icons.flight,
-                            size: isVerySmallScreen ? 90 : isSmallScreen ? 110 : 130,
+                            size: ResponsiveConfig.responsiveIconSize(130.0, screenSize),
                             color: Colors.white,
                           );
                         },
                       ),
                     ),
                     
-                    SizedBox(height: isVerySmallScreen ? 8 : 10),
+                    SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
                     
                     // Jet Name
                     Text(
                       equippedSkin.displayName,
                       style: TextStyle(
-                        fontSize: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 22,
+                        fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
                         fontWeight: FontWeight.bold,
                         color: Colors.orange.shade300,
                         shadows: const [
@@ -232,14 +239,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     
-                    SizedBox(height: isVerySmallScreen ? 12 : isSmallScreen ? 14 : 16),
+                    SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
                     
                     // Choose Jet Button
                     ProfileActionButtonComponent(
                       onPressed: _openOwnedJetsSheet,
                       alignment: Alignment.center,
-                      width: isSmallScreen ? screenWidth * 0.75 : screenWidth * 0.8,
-                      height: isVerySmallScreen ? 70 : isSmallScreen ? 80 : 90,
+                      width: ResponsiveConfig.responsiveSize(screenSize.width * 0.8, screenSize),
+                      height: ResponsiveConfig.responsiveButtonHeight(90.0, screenSize),
                       text: '',
                     ),
                   ],
@@ -251,22 +258,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           // 7. Settings Toggle Buttons - Footer position with safe spacing
           Positioned(
-            bottom: 20, // Fixed bottom position as footer
+            bottom: ResponsiveConfig.responsiveSize(20.0, MediaQuery.sizeOf(context)),
             left: 0,
             right: 0,
             child: SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final screenHeight = MediaQuery.of(context).size.height;
-                  final isSmallScreen = screenHeight < 700;
-                  final isVerySmallScreen = screenHeight < 600;
-                  
+              child: Builder(
+                builder: (context) {
+                  final screenSize = MediaQuery.sizeOf(context);
                   return Center(
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      margin: EdgeInsets.symmetric(
+                        horizontal: ResponsiveConfig.responsivePadding(20.0, screenSize),
+                      ),
                       padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 12 : 16, 
-                        vertical: isSmallScreen ? 8 : 12,
+                        horizontal: ResponsiveConfig.responsivePadding(16.0, screenSize),
+                        vertical: ResponsiveConfig.responsivePadding(12.0, screenSize),
                       ),
                       decoration: BoxDecoration(
                         // Premium footer design
@@ -276,10 +282,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Colors.black.withValues(alpha: 0.4),
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(30.0, screenSize)),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.3),
-                          width: 2,
+                          width: ResponsiveConfig.responsiveSize(2.0, screenSize),
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -294,13 +300,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           // Main settings toggles
                           SettingsToggleButtonsRow(
-                            buttonSize: isVerySmallScreen ? 16.0 : isSmallScreen ? 18.0 : 20.0,
-                            spacing: isVerySmallScreen ? 12.0 : isSmallScreen ? 14.0 : 16.0,
+                            buttonSize: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
+                            spacing: ResponsiveConfig.responsivePadding(16.0, screenSize),
                           ),
                           
                           // Debug notification analytics (only in debug mode)
                           if (kDebugMode) ...[
-                            SizedBox(height: isVerySmallScreen ? 8 : 12),
+                            SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
@@ -312,48 +318,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                   );
                                 },
-                                icon: const Icon(Icons.analytics, size: 16),
-                                label: const Text(
+                                icon: Icon(
+                                  Icons.analytics,
+                                  size: ResponsiveConfig.responsiveIconSize(16.0, screenSize),
+                                ),
+                                label: Text(
                                   'Notification Analytics (DEBUG)',
-                                  style: TextStyle(fontSize: 12),
+                                  style: TextStyle(
+                                    fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
+                                  ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue.withValues(alpha: 0.2),
                                   foregroundColor: Colors.blue,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  minimumSize: const Size(0, 32),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: ResponsiveConfig.responsivePadding(12.0, screenSize),
+                                    vertical: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                                  ),
+                                  minimumSize: Size(
+                                    0,
+                                    ResponsiveConfig.responsiveSize(32.0, screenSize),
+                                  ),
                                 ),
                               ),
                             ),
                             
                             // 🎁 Daily Streak Debug Popups
-                            SizedBox(height: isVerySmallScreen ? 6 : 8),
+                            SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 onPressed: () => _showDailyStreakDebugMenu(context),
-                                icon: const Icon(Icons.card_giftcard, size: 16),
-                                label: const Text(
+                                icon: Icon(
+                                  Icons.card_giftcard,
+                                  size: ResponsiveConfig.responsiveIconSize(16.0, screenSize),
+                                ),
+                                label: Text(
                                   'Daily Streak Popups (DEBUG)',
-                                  style: TextStyle(fontSize: 12),
+                                  style: TextStyle(
+                                    fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
+                                  ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.purple.withValues(alpha: 0.2),
                                   foregroundColor: Colors.purple,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  minimumSize: const Size(0, 32),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: ResponsiveConfig.responsivePadding(12.0, screenSize),
+                                    vertical: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                                  ),
+                                  minimumSize: Size(
+                                    0,
+                                    ResponsiveConfig.responsiveSize(32.0, screenSize),
+                                  ),
                                 ),
                               ),
                             ),
                             
                             // Push Notification User ID for testing
-                            SizedBox(height: isVerySmallScreen ? 6 : 8),
+                            SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
                             Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(8.0, screenSize)),
                               decoration: BoxDecoration(
                                 color: Colors.grey.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                                borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(8.0, screenSize)),
+                                border: Border.all(
+                                  color: Colors.grey.withValues(alpha: 0.3),
+                                  width: ResponsiveConfig.responsiveSize(1.0, screenSize),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,16 +392,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Text(
                                     '🔥 Push User ID:',
                                     style: TextStyle(
-                                      fontSize: isVerySmallScreen ? 10 : 11,
+                                      fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
                                       fontWeight: FontWeight.bold,
                                       color: Colors.orange,
                                     ),
                                   ),
-                                  SizedBox(height: 2),
+                                  SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
                                   Text(
                                     DeviceIdentityManager().userId,
                                     style: TextStyle(
-                                      fontSize: isVerySmallScreen ? 9 : 10,
+                                      fontSize: ResponsiveConfig.responsiveFontSize(10.0, screenSize, context),
                                       fontFamily: 'monospace',
                                       color: Colors.white,
                                     ),
@@ -403,20 +434,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       // Show loading indicator
       if (mounted) {
+        final screenSize = MediaQuery.sizeOf(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
                 SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  width: ResponsiveConfig.responsiveSize(16.0, screenSize),
+                  height: ResponsiveConfig.responsiveSize(16.0, screenSize),
+                  child: CircularProgressIndicator(
+                    strokeWidth: ResponsiveConfig.responsiveSize(2.0, screenSize),
+                    color: Colors.white,
+                  ),
                 ),
-                SizedBox(width: 12),
-                Text('Saving nickname...'),
+                SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+                const Text('Saving nickname...'),
               ],
             ),
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -432,45 +467,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).clearSnackBars();
       
       if (syncSuccess) {
+        final screenSize = MediaQuery.sizeOf(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 20),
-                SizedBox(width: 8),
-                Expanded(child: Text('Nickname saved and synced! ✅')),
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
+                ),
+                SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                const Expanded(child: Text('Nickname saved and synced! ✅')),
               ],
             ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       } else {
+        final screenSize = MediaQuery.sizeOf(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.warning, color: Colors.orange, size: 20),
-                SizedBox(width: 8),
-                Expanded(
+                Icon(
+                  Icons.warning,
+                  color: Colors.orange,
+                  size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
+                ),
+                SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                const Expanded(
                   child: Text('Nickname saved locally. Tournament sync pending...'),
                 ),
               ],
             ),
             backgroundColor: Colors.orange,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
+      final screenSize = MediaQuery.sizeOf(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error, color: Colors.red, size: 20),
-              const SizedBox(width: 8),
+              Icon(
+                Icons.error,
+                color: Colors.red,
+                size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
+              ),
+              SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
               Expanded(child: Text('Failed to save nickname: $e')),
             ],
           ),
@@ -499,33 +549,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 4,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'YOUR JETS',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              Flexible(
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
+          padding: EdgeInsets.fromLTRB(
+            ResponsiveConfig.responsivePadding(16.0, MediaQuery.sizeOf(context)),
+            ResponsiveConfig.responsivePadding(16.0, MediaQuery.sizeOf(context)),
+            ResponsiveConfig.responsivePadding(16.0, MediaQuery.sizeOf(context)),
+            ResponsiveConfig.responsivePadding(32.0, MediaQuery.sizeOf(context)),
+          ),
+          child: Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: ResponsiveConfig.responsiveSize(4.0, screenSize),
+                    width: ResponsiveConfig.responsiveSize(40.0, screenSize),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(4.0, screenSize)),
+                    ),
                   ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+                  Text(
+                    'YOUR JETS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+                  Flexible(
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 0.75,
+                        crossAxisSpacing: ResponsiveConfig.responsivePadding(12.0, screenSize),
+                        mainAxisSpacing: ResponsiveConfig.responsivePadding(12.0, screenSize),
+                      ),
                   itemCount: all.length,
                   itemBuilder: (_, i) {
                     final skin = all[i];
@@ -547,9 +608,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     );
                   },
-                ),
-              ),
-            ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         );
       },
@@ -576,12 +639,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text('Purchase ${skin.displayName}?'),
-          content: Row(
-            children: [
-              const Coin3DIcon(size: 24), // ✅ Using consistent coin asset
-              const SizedBox(width: 8),
-              Text('$price coins'),
-            ],
+          content: Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return Row(
+                children: [
+                  Coin3DIcon(size: ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
+                  SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                  Text('$price coins'),
+                ],
+              );
+            },
           ),
           actions: [
             TextButton(
@@ -637,25 +705,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text('Purchase ${skin.displayName}?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+          content: Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Gem3DIcon(size: 20),
-                  const SizedBox(width: 8),
-                  Text('$gemPrice gems'),
+                  Row(
+                    children: [
+                      Gem3DIcon(size: ResponsiveConfig.responsiveIconSize(20.0, screenSize)),
+                      SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                      Text('$gemPrice gems'),
+                    ],
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                  Text(
+                    '✨ ${skin.description}',
+                    style: TextStyle(
+                      fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '✨ ${skin.description}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
+              );
+            },
           ),
           actions: [
             TextButton(
@@ -714,23 +787,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text('Not Enough Gems'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+          content: Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Gem3DIcon(size: 20),
-                  const SizedBox(width: 8),
-                  Text('Need $gemPrice gems'),
+                  Row(
+                    children: [
+                      Gem3DIcon(size: ResponsiveConfig.responsiveIconSize(20.0, screenSize)),
+                      SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                      Text('Need $gemPrice gems'),
+                    ],
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                  Text(
+                    'You have $currentGems gems.\nYou need $neededGems more gems to purchase ${skin.displayName}.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
+                    ),
+                  ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'You have $currentGems gems.\nYou need $neededGems more gems to purchase ${skin.displayName}.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14),
-              ),
-            ],
+              );
+            },
           ),
           actions: [
             TextButton(

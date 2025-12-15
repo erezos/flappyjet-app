@@ -749,6 +749,12 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
       unawaited(syncStoryModeLivesWithManager());
     }
 
+    // 🎯 ZONE 1: Check for positional passing on crash (before game over check)
+    // This awards points for obstacles that were positionally passed but not scored
+    if (isStoryMode && storyModeLevel != null && storyModeLevel!.zone == 1) {
+      _checkZone1PositionalPassing();
+    }
+
     // Flame Audio: Play collision sound
     _audioManager.playCollision();
 
@@ -774,6 +780,45 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     } else {
       // Game over
       _gameOver();
+    }
+  }
+
+  /// 🎯 ZONE 1: Check and award points for positionally passed obstacles
+  /// Called when player crashes in Zone 1 - awards points for obstacles that were
+  /// positionally passed (jet X > obstacle right edge) but not scored via gap
+  /// 
+  /// ✅ PERFORMANCE: Event-driven approach - only checks on crash, not every frame
+  /// 
+  /// Can be called from JetPlayer when invulnerable collisions are ignored
+  void checkZone1PositionalPassingOnCollision() {
+    // Only check if in Zone 1 with appropriate objective
+    if (!isStoryMode || storyModeLevel == null || storyModeLevel!.zone != 1) {
+      return;
+    }
+    
+    // Check for positional passing (even if collision is ignored due to invulnerability)
+    _checkZone1PositionalPassing();
+  }
+  
+  /// 🎯 ZONE 1: Internal method to check and award points for positionally passed obstacles
+  void _checkZone1PositionalPassing() {
+    // Check all current obstacles to see which ones were positionally passed
+    // This is O(n) only on crash (rare event), not every frame
+    final unscoredObstacles = _obstacleManager.getPositionallyPassedButUnscored(_jet.position);
+    
+    if (unscoredObstacles.isEmpty) return;
+    
+    safePrint('🎯 ZONE 1: Found ${unscoredObstacles.length} unscored positionally passed obstacles');
+    
+    // Award points for each unscored obstacle
+    for (final obstacle in unscoredObstacles) {
+      // Mark as scored to prevent double scoring
+      obstacle.scored = true;
+      
+      // Award point (increment score and trigger objective progress via callback)
+      incrementScoreFromZone();
+      
+      safePrint('🎯 ZONE 1: Awarded point for positionally passed obstacle');
     }
   }
 

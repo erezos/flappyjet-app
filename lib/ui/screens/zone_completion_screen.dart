@@ -4,6 +4,7 @@ import '../../core/debug_logger.dart';
 import '../../game/systems/level_system_manager.dart';
 import '../../game/systems/inventory_manager.dart';
 import '../../game/core/jet_skins.dart'; // ✅ FIXED: Correct import path for JetSkinCatalog
+import '../utils/responsive_config.dart';
 import '../screens/world_map_screen.dart';
 import '../widgets/coin_3d_icon.dart';
 import '../widgets/gem_3d_icon.dart';
@@ -209,20 +210,21 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
                         child: Center(
                           child: Image.asset(
                             jetAssetPath,
-                            width: 120,
-                            height: 120,
+                            width: ResponsiveConfig.responsiveSize(120.0, screenSize),
+                            height: ResponsiveConfig.responsiveSize(120.0, screenSize),
                             errorBuilder: (context, error, stackTrace) {
                               // If specific jet fails, show a placeholder
+                              final placeholderSize = ResponsiveConfig.responsiveSize(120.0, screenSize);
                               return Container(
-                                width: 120,
-                                height: 120,
+                                width: placeholderSize,
+                                height: placeholderSize,
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(60),
+                                  borderRadius: BorderRadius.circular(placeholderSize / 2),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.flight,
-                                  size: 60,
+                                  size: ResponsiveConfig.responsiveIconSize(60.0, screenSize),
                                   color: Colors.white,
                                 ),
                               );
@@ -239,20 +241,20 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
             // ✅ FIX: Positioned widgets as direct children of Stack
             // Placeholder for banner (Phase 2)
             Positioned(
-              top: 80,
+              top: ResponsiveConfig.responsiveSize(80.0, screenSize),
               left: 0,
               right: 0,
               child: SafeArea(
                 child: Center(
                   child: Text(
                     '🏆 ZONE ${widget.completedZone} COMPLETE!',
-                    style: const TextStyle(
-                      fontSize: 28,
+                    style: TextStyle(
+                      fontSize: ResponsiveConfig.responsiveFontSize(28.0, screenSize, context),
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       shadows: [
                         Shadow(
-                          offset: Offset(0, 2),
+                          offset: const Offset(0, 2),
                           blurRadius: 8,
                           color: Colors.black87,
                         ),
@@ -266,14 +268,22 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
             // Placeholder for stats (Phase 3)
             Positioned(
               top: screenSize.height * 0.55,
-              left: 24,
-              right: 24,
+              left: ResponsiveConfig.responsivePadding(24.0, screenSize),
+              right: ResponsiveConfig.responsivePadding(24.0, screenSize),
               child: Column(
                 children: [
-                  _buildStatRow(icon: const Coin3DIcon(size: 24), label: 'Coins', value: widget.coinsEarned),
-                  const SizedBox(height: 12),
-                  _buildStatRow(icon: const Gem3DIcon(size: 24), label: 'Gems', value: widget.gemsEarned),
-                  const SizedBox(height: 12),
+                  _buildStatRow(
+                    icon: Coin3DIcon(size: ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
+                    label: 'Coins',
+                    value: widget.coinsEarned,
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+                  _buildStatRow(
+                    icon: Gem3DIcon(size: ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
+                    label: 'Gems',
+                    value: widget.gemsEarned,
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
                   _buildStatRow(emoji: '🏆', label: 'Levels', value: widget.levelsCompleted),
                 ],
               ),
@@ -281,21 +291,21 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
             
             // Placeholder for unlock text (Phase 5)
             Positioned(
-              bottom: 100,
+              bottom: ResponsiveConfig.responsiveSize(100.0, screenSize),
               left: 0,
               right: 0,
               child: Center(
                 child: Text(
                   '✨ ZONE ${widget.nextZone} UNLOCKED! ✨',
-                  style: const TextStyle(
-                    fontSize: 24,
+                  style: TextStyle(
+                    fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFFFD700), // Gold
+                    color: const Color(0xFFFFD700), // Gold
                     shadows: [
                       Shadow(
-                        offset: Offset(0, 0),
+                        offset: const Offset(0, 0),
                         blurRadius: 20,
-                        color: Color(0xFFFFD700),
+                        color: const Color(0xFFFFD700),
                       ),
                     ],
                   ),
@@ -306,14 +316,14 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
             // Skip hint (bottom)
             if (_canSkip)
               Positioned(
-                bottom: 40,
+                bottom: ResponsiveConfig.responsiveSize(40.0, screenSize),
                 left: 0,
                 right: 0,
                 child: Center(
                   child: Text(
                     'Tap anywhere to continue',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
                       color: Colors.white.withOpacity(0.6),
                     ),
                   ),
@@ -327,14 +337,18 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
 
   /// Build a stat row (icon/emoji + label + value)
   Widget _buildStatRow({String? emoji, Widget? icon, required String label, required int value}) {
+    final screenSize = MediaQuery.sizeOf(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveConfig.responsivePadding(24.0, screenSize),
+        vertical: ResponsiveConfig.responsivePadding(12.0, screenSize),
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
         border: Border.all(
           color: Colors.white.withOpacity(0.2),
-          width: 1,
+          width: ResponsiveConfig.responsiveSize(1.0, screenSize),
         ),
       ),
       child: Row(
@@ -347,13 +361,15 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
               else if (emoji != null)
                 Text(
                   emoji,
-                  style: const TextStyle(fontSize: 24),
+                  style: TextStyle(
+                    fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
+                  ),
                 ),
-              const SizedBox(width: 12),
+              SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 18,
+                style: TextStyle(
+                  fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
                 ),
@@ -362,9 +378,9 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
           ),
           Text(
             value.toString(),
-            style: const TextStyle(
-              fontSize: 22,
-              color: Color(0xFFFFD700), // Gold
+            style: TextStyle(
+              fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
+              color: const Color(0xFFFFD700), // Gold
               fontWeight: FontWeight.bold,
             ),
           ),

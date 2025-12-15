@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../utils/responsive_config.dart';
 import 'button_styles.dart';
 
 /// Modern game button with gradient, animations, and haptic feedback
@@ -58,6 +59,7 @@ class _ModernGameButtonState extends State<ModernGameButton> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
     final height = widget.height;
     final radius = BorderRadius.circular(height * 0.48);
     
@@ -102,7 +104,7 @@ class _ModernGameButtonState extends State<ModernGameButton> {
           curve: Curves.easeOut,
           scale: _pressed ? 0.98 : 1.0,
           child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.76,
+            width: ResponsiveConfig.responsiveSize(screenSize.width * 0.76, screenSize),
             height: height,
             child: Stack(
               fit: StackFit.expand,
@@ -112,12 +114,18 @@ class _ModernGameButtonState extends State<ModernGameButton> {
                   decoration: BoxDecoration(
                     gradient: gradient,
                     borderRadius: radius,
-                    border: Border.all(color: borderColor, width: 2),
+                    border: Border.all(
+                      color: borderColor,
+                      width: ResponsiveConfig.responsiveSize(2.0, screenSize),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: shadowColor,
-                        blurRadius: 14,
-                        offset: const Offset(0, 7),
+                        blurRadius: ResponsiveConfig.responsiveSize(14.0, screenSize),
+                        offset: Offset(
+                          0,
+                          ResponsiveConfig.responsiveSize(7.0, screenSize),
+                        ),
                       ),
                     ],
                   ),
@@ -155,21 +163,34 @@ class _ModernGameButtonState extends State<ModernGameButton> {
                                 color: Colors.white,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.2,
-                                fontSize: (height * 0.34).clamp(14.0, 20.0),
+                                fontSize: ResponsiveConfig.responsiveFontSize(
+                                  (height * 0.34).clamp(14.0, 20.0),
+                                  screenSize,
+                                  context,
+                                ),
                                 shadows: [
                                   Shadow(
-                                    offset: const Offset(0, 2),
-                                    blurRadius: 4,
+                                    offset: Offset(
+                                      0,
+                                      ResponsiveConfig.responsiveSize(2.0, screenSize),
+                                    ),
+                                    blurRadius: ResponsiveConfig.responsiveSize(4.0, screenSize),
                                     color: Colors.black.withValues(alpha: 0.35),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
                             Image.asset(
                               widget.iconAsset!,
-                              width: (height * 0.58).clamp(22.0, 32.0),
-                              height: (height * 0.58).clamp(22.0, 32.0),
+                              width: ResponsiveConfig.responsiveSize(
+                                (height * 0.58).clamp(22.0, 32.0),
+                                screenSize,
+                              ),
+                              height: ResponsiveConfig.responsiveSize(
+                                (height * 0.58).clamp(22.0, 32.0),
+                                screenSize,
+                              ),
                             ),
                           ],
                         )
@@ -182,11 +203,18 @@ class _ModernGameButtonState extends State<ModernGameButton> {
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.2,
-                            fontSize: (height * 0.34).clamp(14.0, 20.0),
+                            fontSize: ResponsiveConfig.responsiveFontSize(
+                              (height * 0.34).clamp(14.0, 20.0),
+                              screenSize,
+                              context,
+                            ),
                             shadows: [
                               Shadow(
-                                offset: const Offset(0, 2),
-                                blurRadius: 4,
+                                offset: Offset(
+                                  0,
+                                  ResponsiveConfig.responsiveSize(2.0, screenSize),
+                                ),
+                                blurRadius: ResponsiveConfig.responsiveSize(4.0, screenSize),
                                 color: Colors.black.withValues(alpha: 0.35),
                               ),
                             ],

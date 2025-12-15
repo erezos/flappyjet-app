@@ -27,15 +27,15 @@ class BracketOpponentResolver {
   
   /// Get the player's opponent for the given round
   /// 
-  /// Bracket structure (8 jets):
+  /// Bracket structure (dynamic):
   /// - Position 0: Player
-  /// - Position 1: Player's Quarter Final opponent
-  /// - Positions 2-7: Other opponents
+  /// - Position 1: Player's Round 1 opponent
+  /// - Positions 2+: Other opponents
   /// 
-  /// Matches:
-  /// - Round 1: Match 0 (player vs pos1), Match 1 (pos2 vs pos3), Match 2 (pos4 vs pos5), Match 3 (pos6 vs pos7)
-  /// - Round 2: Match 0 (winner0 vs winner1), Match 1 (winner2 vs winner3)
-  /// - Round 3: Match 0 (semi0 winner vs semi1 winner)
+  /// Match resolution:
+  /// - Round 1: Player (match 0) vs opponent at bracketOrder[1]
+  /// - Round N (N>1): Player (match 0) vs winner of match 1 from round N-1
+  ///   (The player's bracket path always faces the other half of the bracket)
   static ResolvedOpponent? resolveOpponent({
     required int currentRound,
     required TournamentEntry entry,
@@ -52,38 +52,37 @@ class BracketOpponentResolver {
     
     String? opponentSkinId;
     
-    switch (currentRound) {
-      case 1:
-        // Quarter Finals: Player (pos 0) vs opponent at pos 1
-        if (bracketOrder.length > 1) {
-          opponentSkinId = bracketOrder[1];
-        }
-        break;
+    if (currentRound == 1) {
+      // Round 1: Player (pos 0) vs direct opponent at pos 1
+      if (bracketOrder.length > 1) {
+        opponentSkinId = bracketOrder[1];
+      }
+    } else {
+      // Round N (N>1): Player vs winner of match 1 from previous round
+      // The player is always in match 0, and their opponent comes from match 1
+      // of the previous round (the other half of the bracket)
+      final prevRound = currentRound - 1;
+      final opponentMatchKey = 'round_${prevRound}_match_1';
+      opponentSkinId = bracketWinners[opponentMatchKey];
+      
+      if (opponentSkinId == null) {
+        // If opponent not yet resolved, try to find a fallback
+        // This can happen if AI matches haven't been resolved yet
+        safePrint('⚠️ BracketOpponentResolver: Round $currentRound opponent not resolved from $opponentMatchKey');
         
-      case 2:
-        // Semi Finals: Player vs winner of Match 1 (pos 2 vs pos 3)
-        opponentSkinId = bracketWinners['round_1_match_1'];
-        if (opponentSkinId == null && bracketOrder.length > 3) {
-          // If not resolved yet, pick randomly (this shouldn't happen in normal flow)
-          safePrint('⚠️ BracketOpponentResolver: Semi Finals opponent not resolved, using pos 2');
-          opponentSkinId = bracketOrder[2];
-        }
-        break;
-        
-      case 3:
-        // Finals: Player vs winner of Semi Match 1 (winner of Match 2 vs winner of Match 3)
-        opponentSkinId = bracketWinners['round_2_match_1'];
-        if (opponentSkinId == null) {
-          // Try to resolve from round 1 winners
-          final winner2 = bracketWinners['round_1_match_2'];
-          final winner3 = bracketWinners['round_1_match_3'];
-          opponentSkinId = winner2 ?? winner3;
-          if (opponentSkinId == null && bracketOrder.length > 5) {
-            safePrint('⚠️ BracketOpponentResolver: Finals opponent not resolved, using pos 4');
-            opponentSkinId = bracketOrder[4];
+        // For debugging: try to get from bracket order as fallback
+        // This is a temporary measure and shouldn't happen in normal flow
+        final totalParticipants = playoffConfig.totalOpponents;
+        final matchesInPrevRound = totalParticipants ~/ (1 << prevRound);
+        if (matchesInPrevRound > 1 && bracketOrder.length > 2) {
+          // Use a position from the other half of the bracket as fallback
+          final fallbackIndex = (totalParticipants ~/ 2) + 1;
+          if (fallbackIndex < bracketOrder.length) {
+            opponentSkinId = bracketOrder[fallbackIndex];
+            safePrint('⚠️ BracketOpponentResolver: Using fallback opponent at index $fallbackIndex');
           }
         }
-        break;
+      }
     }
     
     if (opponentSkinId == null) {

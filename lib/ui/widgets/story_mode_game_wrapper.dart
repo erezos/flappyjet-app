@@ -239,6 +239,58 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     }
   }
 
+  /// 🎯 ZONE 1: Award points for positionally passed obstacles
+  /// Called when player crashes in Zone 1 - awards objective progress for obstacles
+  /// that were positionally passed (jet X > obstacle right edge) but not scored via gap
+  /// 
+  /// ✅ PERFORMANCE: Event-driven approach - only checks on crash, not every frame
+  void _awardZone1PositionalPassingPoints() {
+    // Get unscored obstacles that were positionally passed
+    // This checks all obstacles once on crash (O(n) on rare event)
+    final unscoredObstacles = _game.obstacleManager.getPositionallyPassedButUnscored(
+      _game.jet.position,
+    );
+    
+    if (unscoredObstacles.isEmpty) {
+      safePrint('🎯 ZONE 1: No unscored positionally passed obstacles found');
+      return;
+    }
+    
+    safePrint('🎯 ZONE 1: Awarding ${unscoredObstacles.length} positional passing points');
+    
+    // Award objective progress for each unscored obstacle
+    for (final obstacle in unscoredObstacles) {
+      // Mark as scored to prevent double scoring
+      obstacle.scored = true;
+      
+      // Increment objective progress
+      if (widget.level.objective.type == ObjectiveType.passObstacles) {
+        _objectiveTracker.incrementProgress();
+        safePrint('🎯 ZONE 1: Progress incremented via positional passing: ${_objectiveTracker.currentProgress}/${widget.level.objective.target}');
+      }
+      
+      // For bot battles (1v1), also increment game score
+      if (widget.level.objective.type == ObjectiveType.beatBot) {
+        _game.gameStateManager.updateScore(_game.gameStateManager.score + 1);
+        _objectiveTracker.updateBotBattleScore(
+          playerScore: _game.gameStateManager.score,
+        );
+        safePrint('🎯 ZONE 1: Bot battle score incremented via positional passing: ${_game.gameStateManager.score}');
+      }
+    }
+    
+    // Update UI
+    if (mounted) {
+      setState(() {});
+    }
+    
+    // Check if objective is now completed
+    if (_objectiveTracker.isCompleted && !_levelEnded) {
+      safePrint('🎯 ZONE 1: ✅ Objective completed via positional passing!');
+      // Note: _onLevelCompleted() will be called by the completion check in _onGameOver()
+    }
+  }
+
   void _onGameOver() {
     if (_levelEnded) return;
     
@@ -261,6 +313,14 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
     // This prevents the timer from running while the player views the game over menu
     _game.gameStateManager.pauseGameTime();
     safePrint('⏸️ STORY MODE: Game time paused on game over (before ad)');
+
+    // 🎯 ZONE 1: Check for positional passing before checking objective completion
+    // Award points for obstacles that were positionally passed but not scored via gap
+    if (widget.level.zone == 1 && 
+        (widget.level.objective.type == ObjectiveType.passObstacles ||
+         widget.level.objective.type == ObjectiveType.beatBot)) {
+      _awardZone1PositionalPassingPoints();
+    }
 
     // Check if objective was completed before game over
     final objectiveCompleted = _objectiveTracker.checkFinalCompletion();

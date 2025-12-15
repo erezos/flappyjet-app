@@ -172,5 +172,174 @@ void main() {
       expect(opponent!.displayName, equals('Defender'));
     });
   });
+
+  group('BracketOpponentResolver - Dynamic 32 Participants', () {
+    late PlayoffBracketConfig playoffConfig32;
+    late TournamentEntry entry32;
+
+    setUp(() {
+      // Create a test playoff config for 32 participants (5 rounds)
+      final opponentSkins = List.generate(32, (i) => 'chopper_${i % 8}');
+      playoffConfig32 = PlayoffBracketConfig(
+        totalOpponents: 32,
+        opponentJetSkins: opponentSkins,
+        rounds: [
+          PlayoffRound(
+            roundNumber: 1,
+            stageName: 'Round of 32',
+            opponentJet: 'chopper_0',
+            displayName: 'Chopper 0',
+            opponentNickname: 'Round 1 Opponent',
+          ),
+          PlayoffRound(
+            roundNumber: 2,
+            stageName: 'Round of 16',
+            opponentJet: 'chopper_1',
+            displayName: 'Chopper 1',
+            opponentNickname: 'Round 2 Opponent',
+          ),
+          PlayoffRound(
+            roundNumber: 3,
+            stageName: 'Quarter Finals',
+            opponentJet: 'chopper_2',
+            displayName: 'Chopper 2',
+            opponentNickname: 'Round 3 Opponent',
+          ),
+          PlayoffRound(
+            roundNumber: 4,
+            stageName: 'Semi Finals',
+            opponentJet: 'chopper_3',
+            displayName: 'Chopper 3',
+            opponentNickname: 'Round 4 Opponent',
+          ),
+          PlayoffRound(
+            roundNumber: 5,
+            stageName: 'Finals',
+            opponentJet: 'chopper_4',
+            displayName: 'Chopper 4',
+            opponentNickname: 'Round 5 Opponent',
+          ),
+        ],
+      );
+
+      // Create bracket order for 32 participants
+      final bracketOrder = ['sky_rookie', ...opponentSkins];
+      entry32 = TournamentEntry(
+        id: 'test_entry_32',
+        tournamentId: 'chopper_adventures',
+        tournamentName: 'Chopper Adventures',
+        startedAt: DateTime.now(),
+        totalTries: 3,
+        currentTry: 1,
+        currentRound: 1,
+        triesRemaining: 3,
+        bracketJetOrder: bracketOrder,
+        bracketWinners: {},
+      );
+    });
+
+    test('Round 1 - should return position 1 opponent for 32 participants', () {
+      final opponent = BracketOpponentResolver.resolveOpponent(
+        currentRound: 1,
+        entry: entry32,
+        playoffConfig: playoffConfig32,
+        playerSkinId: 'sky_rookie',
+      );
+
+      expect(opponent, isNotNull);
+      expect(opponent!.skinId, equals('chopper_0'));
+    });
+
+    test('Round 2 - should return winner of match 1 from round 1', () {
+      entry32.bracketWinners['round_1_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_1_match_1'] = 'chopper_8'; // Winner of match 1
+      
+      final opponent = BracketOpponentResolver.resolveOpponent(
+        currentRound: 2,
+        entry: entry32,
+        playoffConfig: playoffConfig32,
+        playerSkinId: 'sky_rookie',
+      );
+
+      expect(opponent, isNotNull);
+      expect(opponent!.skinId, equals('chopper_8'));
+    });
+
+    test('Round 3 - should return winner of match 1 from round 2', () {
+      entry32.bracketWinners['round_1_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_2_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_2_match_1'] = 'chopper_12'; // Winner of match 1 in round 2
+      
+      final opponent = BracketOpponentResolver.resolveOpponent(
+        currentRound: 3,
+        entry: entry32,
+        playoffConfig: playoffConfig32,
+        playerSkinId: 'sky_rookie',
+      );
+
+      expect(opponent, isNotNull);
+      expect(opponent!.skinId, equals('chopper_12'));
+    });
+
+    test('Round 4 - should return winner of match 1 from round 3', () {
+      entry32.bracketWinners['round_1_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_2_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_3_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_3_match_1'] = 'chopper_20'; // Winner of match 1 in round 3
+      
+      final opponent = BracketOpponentResolver.resolveOpponent(
+        currentRound: 4,
+        entry: entry32,
+        playoffConfig: playoffConfig32,
+        playerSkinId: 'sky_rookie',
+      );
+
+      expect(opponent, isNotNull);
+      expect(opponent!.skinId, equals('chopper_20'));
+    });
+
+    test('Round 5 - should return winner of match 1 from round 4', () {
+      entry32.bracketWinners['round_1_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_2_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_3_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_4_match_0'] = 'sky_rookie';
+      entry32.bracketWinners['round_4_match_1'] = 'chopper_28'; // Winner of match 1 in round 4
+      
+      final opponent = BracketOpponentResolver.resolveOpponent(
+        currentRound: 5,
+        entry: entry32,
+        playoffConfig: playoffConfig32,
+        playerSkinId: 'sky_rookie',
+      );
+
+      expect(opponent, isNotNull);
+      expect(opponent!.skinId, equals('chopper_28'));
+    });
+
+    test('should fall back to config when bracket state is empty for 32 participants', () {
+      final emptyEntry = TournamentEntry(
+        id: 'test_empty_32',
+        tournamentId: 'chopper_adventures',
+        tournamentName: 'Chopper Adventures',
+        startedAt: DateTime.now(),
+        totalTries: 3,
+        currentTry: 1,
+        currentRound: 2,
+        triesRemaining: 3,
+        bracketJetOrder: [],
+        bracketWinners: {},
+      );
+
+      final opponent = BracketOpponentResolver.resolveOpponent(
+        currentRound: 2,
+        entry: emptyEntry,
+        playoffConfig: playoffConfig32,
+        playerSkinId: 'sky_rookie',
+      );
+
+      expect(opponent, isNotNull);
+      expect(opponent!.skinId, equals('chopper_1'));
+    });
+  });
 }
 

@@ -388,8 +388,8 @@
       },
       
       "playoff_config": {
-        "_note": "opponent_jet/display_name in rounds are FALLBACKS ONLY. Actual opponent is resolved dynamically from bracket state (bracketWinners + bracketJetOrder). The opponent_jet_skins array defines which jets participate.",
-        "total_opponents": 8,
+        "_note": "opponent_jet/display_name in rounds are FALLBACKS ONLY. Actual opponent is resolved dynamically from bracket state (bracketWinners + bracketJetOrder). The opponent_jet_skins array defines which jets participate. For 32 participants, we use all 11 unique chopper skins, and the system automatically reuses them to fill the remaining slots.",
+        "total_opponents": 32,
         "opponent_jet_skins": [
           "doink_chopper",
           "night_falcon",
@@ -398,12 +398,15 @@
           "commander_buzz",
           "eagle_force_one",
           "firehawk",
-          "starwhirl"
+          "starwhirl",
+          "storm_chaser",
+          "cobra_strike",
+          "lord_of_war"
         ],
         "rounds": [
           {
             "round_number": 1,
-            "stage_name": "Round of 8",
+            "stage_name": "Round of 32",
             "opponent_jet": "doink_chopper",
             "display_name": "Doink Chopper",
             "opponent_nickname": "Harbor Phantom",
@@ -423,7 +426,7 @@
           },
           {
             "round_number": 2,
-            "stage_name": "Quarter Finals",
+            "stage_name": "Round of 16",
             "opponent_jet": "night_falcon",
             "display_name": "Night Falcon",
             "opponent_nickname": "Crimson Ace",
@@ -443,7 +446,7 @@
           },
           {
             "round_number": 3,
-            "stage_name": "Semi Finals",
+            "stage_name": "Quarter Finals",
             "opponent_jet": "crimson_viper",
             "display_name": "Crimson Viper",
             "opponent_nickname": "Jungle Warden",
@@ -505,10 +508,10 @@
       },
       
       "levels": [
-        { "round": 1, "name": "Round of 8", "reward": { "coins": 100, "gems": 3 } },
-        { "round": 2, "name": "Quarter Finals", "reward": { "coins": 150, "gems": 6 } },
-        { "round": 3, "name": "Semi Finals", "reward": { "coins": 200, "gems": 7 } },
-        { "round": 4, "name": "Finals", "reward": { "coins": 300, "gems": 10 } },
+        { "round": 1, "name": "Round of 32", "reward": { "coins": 100, "gems": 3 } },
+        { "round": 2, "name": "Round of 16", "reward": { "coins": 150, "gems": 6 } },
+        { "round": 3, "name": "Quarter Finals", "reward": { "coins": 200, "gems": 7 } },
+        { "round": 4, "name": "Semi Finals", "reward": { "coins": 300, "gems": 10 } },
         { "round": 5, "name": "Champion of Champions", "reward": { "coins": 450, "gems": 14 } }
       ],
       

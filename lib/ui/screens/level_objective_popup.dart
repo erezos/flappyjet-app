@@ -4,12 +4,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // For HapticFeedback
 import '../../models/level_data_schema.dart';
 import '../../core/debug_logger.dart';
 import '../widgets/story_mode_game_wrapper.dart';
-import '../widgets/buttons/modern_game_button.dart';
-import '../widgets/buttons/button_styles.dart';
 import '../widgets/coin_3d_icon.dart';
+import '../widgets/gem_3d_icon.dart';
 import '../../game/core/jet_skins.dart';
 import 'world_map_screen.dart';
 import '../utils/responsive_config.dart';
@@ -29,10 +29,12 @@ String _getBotJetSpritePath(String botJetSkinId) {
 
 class LevelObjectivePopup extends StatefulWidget {
   final LevelData level;
+  final VoidCallback? onStart; // Optional callback for custom navigation (e.g., tournaments)
 
   const LevelObjectivePopup({
     super.key,
     required this.level,
+    this.onStart,
   });
 
   @override
@@ -47,6 +49,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
   late Animation<double> _scaleAnimation;
   late Animation<double> _jetBounceAnimation;
   bool _isStarting = false;
+  bool _buttonPressed = false; // Track button press state for gestures
 
   @override
   void initState() {
@@ -109,8 +112,11 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
     // Hearts are only consumed on crashes during gameplay
     safePrint('🎯 Starting level ${widget.level.id}: ${widget.level.name} (no heart consumed)');
 
-    // Navigate to game
-    if (mounted) {
+    // Use custom callback if provided (for tournaments), otherwise use default story mode navigation
+    if (widget.onStart != null) {
+      safePrint('🎯 Using custom onStart callback');
+      widget.onStart!();
+    } else if (mounted) {
       safePrint('🎯 Navigating to StoryModeGameWrapper...');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -180,7 +186,12 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                     maxHeight: 700.0,
                   ),
                 ),
-                padding: ResponsiveConfig.responsiveEdgeInsets(20.0, screenSize),
+                padding: EdgeInsets.only(
+                  top: ResponsiveConfig.responsivePadding(20.0, screenSize),
+                  left: ResponsiveConfig.responsivePadding(20.0, screenSize),
+                  right: ResponsiveConfig.responsivePadding(20.0, screenSize),
+                  bottom: ResponsiveConfig.responsivePadding(20.0, screenSize), // Increased bottom padding for START button
+                ),
                 decoration: BoxDecoration(
                   // Deep blue gradient background
                   gradient: const LinearGradient(
@@ -255,7 +266,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                       // Reward card
                       _buildRewardCard(screenSize),
                       
-                      SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+                      SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)), // Increased spacing above button
 
                       // Start Button
                       _buildStartButton(),
@@ -272,14 +283,20 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
               child: GestureDetector(
                 onTap: () {
                   if (!_isStarting) {
-                    // ✅ FIX: Navigate to world map instead of just popping
-                    // This prevents showing the old game over screen when coming from "Start Over"
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const WorldMapScreen(),
-                      ),
-                      (route) => route.isFirst, // Keep tab navigation in stack
-                    );
+                    // If onStart callback is provided (tournament mode), just close the dialog
+                    // Otherwise (story mode), navigate back to world map
+                    if (widget.onStart != null) {
+                      Navigator.of(context).pop();
+                    } else {
+                      // ✅ FIX: Navigate to world map instead of just popping
+                      // This prevents showing the old game over screen when coming from "Start Over"
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const WorldMapScreen(),
+                        ),
+                        (route) => route.isFirst, // Keep tab navigation in stack
+                      );
+                    }
                   }
                 },
                 child: Container(
@@ -314,7 +331,7 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
     );
   }
 
-  /// 🆚 VS Battle Section with animated enemy jet - COMPACT VERSION
+  /// 🆚 VS Battle Section with animated enemy jet - VS image as frame
   Widget _buildVsBattleSection(Size screenSize) {
     final bot = widget.level.botBattle!;
     
@@ -327,59 +344,62 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
             offset: Offset(0, _jetBounceAnimation.value * 0.5), // Reduced bounce
             child: Column(
               children: [
-                // Compact jet display with glow (responsive size)
+                // VS image as frame with bot jet centered inside
                 Builder(
                   builder: (context) {
-                    final jetSize = ResponsiveConfig.responsiveSize(100.0, screenSize, minScale: 0.9, maxScale: 1.2);
-                    return Container(
-                      width: jetSize,
-                      height: jetSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.red.withValues(alpha: 0.4),
-                        Colors.orange.withValues(alpha: 0.2),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.3, 0.6, 1.0],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withValues(alpha: 0.5),
-                        blurRadius: 30,
-                        spreadRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.all(12),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.black.withValues(alpha: 0.6),
-                          Colors.black.withValues(alpha: 0.4),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: Colors.red.shade400,
-                        width: 2.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                    final vsFrameSize = ResponsiveConfig.responsiveSize(100.0, screenSize, minScale: 0.9, maxScale: 1.2);
+                    final jetSize = vsFrameSize * 0.55; // Jet is 55% of frame size
+                    
+                    return Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // VS image as decorative frame/border (background layer)
+                        SizedBox(
+                          width: vsFrameSize,
+                          height: vsFrameSize,
+                          child: Image.asset(
+                            'assets/images/ui/vs_battle_node_completed.png',
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                          ),
+                        ),
+                        // Bot jet positioned lower inside VS frame (foreground layer)
+                        Positioned(
+                          bottom: vsFrameSize * 0.15, // Position jet lower (15% from bottom)
+                          child: Container(
+                            width: jetSize,
+                            height: jetSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: Image.asset(
+                                _getBotJetSpritePath(bot.botJetSkin),
+                                fit: BoxFit.cover,
+                                filterQuality: FilterQuality.high,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade800,
+                                    child: const Icon(
+                                      Icons.airplanemode_active,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                    child: Image.asset(
-                      _getBotJetSpritePath(bot.botJetSkin),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
                     );
                   },
                 ),
@@ -459,21 +479,8 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
     
     return Column(
       children: [
-        if (isVsBattle)
-          Builder(
-            builder: (context) {
-              final size = ResponsiveConfig.responsiveIconSize(92.0, screenSize);
-              return SizedBox(
-                width: size,
-                height: size,
-                child: Image.asset(
-                  'assets/images/ui/vs_battle_node_completed.png',
-                  fit: BoxFit.contain,
-                ),
-              );
-            },
-          )
-        else
+        // VS image removed from top - now used as frame around bot jet
+        if (!isVsBattle)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -492,17 +499,22 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                     );
                   },
                 )
-              // 🎯 Obstacle objective: dedicated badge
+              // 🎯 Obstacle objective: dedicated badge (107x134 pixels = 0.8:1 aspect ratio)
               else if (objectiveType == ObjectiveType.passObstacles)
                 Builder(
                   builder: (context) {
-                    final size = ResponsiveConfig.responsiveIconSize(64.0, screenSize);
+                    // Calculate responsive width (base size similar to other icons)
+                    final baseWidth = ResponsiveConfig.responsiveIconSize(64.0, screenSize);
+                    // Calculate height based on aspect ratio (134/107 ≈ 1.252)
+                    final aspectRatio = 134.0 / 107.0; // ≈ 1.252
+                    final height = baseWidth * aspectRatio;
                     return SizedBox(
-                      width: size,
-                      height: size,
+                      width: baseWidth,
+                      height: height,
                       child: Image.asset(
                         'assets/images/ui/pass_obstacle_objective.png',
                         fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
                       ),
                     );
                   },
@@ -569,8 +581,16 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
     );
   }
 
-  /// 💰 Modern reward card
+  /// 💰 Modern unified reward card (coins and gems in one area)
   Widget _buildRewardCard(Size screenSize) {
+    final hasCoins = widget.level.reward.coins > 0;
+    final hasGems = widget.level.reward.gems > 0;
+    
+    // If no rewards, return empty
+    if (!hasCoins && !hasGems) {
+      return const SizedBox.shrink();
+    }
+    
     return Column(
       children: [
         Builder(
@@ -588,71 +608,79 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
           },
         ),
         SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Coins
-            Builder(
-              builder: (context) {
-                final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
-                final verticalPadding = ResponsiveConfig.responsivePadding(5.0, screenSize);
-                final fontSize = ResponsiveConfig.responsiveFontSize(18.0, screenSize, context);
-                final iconSize = ResponsiveConfig.responsiveIconSize(20.0, screenSize);
-                
-                return Container(
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.amber.shade300,
-                  width: 2,
-                ),
+        // Unified rewards container
+        Builder(
+          builder: (context) {
+            final horizontalPadding = ResponsiveConfig.responsivePadding(16.0, screenSize);
+            final verticalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
+            final fontSize = ResponsiveConfig.responsiveFontSize(18.0, screenSize, context);
+            final iconSize = ResponsiveConfig.responsiveIconSize(22.0, screenSize);
+            final spacing = ResponsiveConfig.responsivePadding(16.0, screenSize);
+            
+            return Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
               ),
-                  child: Row(
-                    children: [
-                      Coin3DIcon(size: iconSize), // ✅ Using consistent coin asset
-                      SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
-                      Text(
-                        '${widget.level.reward.coins}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            // Gems (if any)
-            if (widget.level.reward.gems > 0) ...[
-              SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)),
-              Builder(
-                builder: (context) {
-                  final horizontalPadding = ResponsiveConfig.responsivePadding(12.0, screenSize);
-                  final verticalPadding = ResponsiveConfig.responsivePadding(6.0, screenSize);
-                  final fontSize = ResponsiveConfig.responsiveFontSize(22.0, screenSize, context);
-                  final iconSize = ResponsiveConfig.responsiveIconSize(24.0, screenSize);
-                  
-                  return Container(
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-                decoration: BoxDecoration(
-                  color: Colors.cyan.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.cyan,
-                    width: 2,
-                  ),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.amber.withValues(alpha: 0.15),
+                    Colors.cyan.withValues(alpha: 0.15),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                    child: Row(
+                borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(16.0, screenSize)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: ResponsiveConfig.responsiveSize(2.0, screenSize),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: ResponsiveConfig.responsiveSize(8.0, screenSize),
+                    offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Coins
+                  if (hasCoins) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          'assets/images/icons/gem_icon.png',
-                          width: iconSize,
-                          height: iconSize,
+                        Coin3DIcon(size: iconSize),
+                        SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+                        Text(
+                          '${widget.level.reward.coins}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                      ],
+                    ),
+                  ],
+                  // Separator if both coins and gems exist
+                  if (hasCoins && hasGems) ...[
+                    Container(
+                      width: ResponsiveConfig.responsiveSize(1.0, screenSize),
+                      height: ResponsiveConfig.responsiveSize(24.0, screenSize),
+                      margin: EdgeInsets.symmetric(horizontal: spacing),
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ],
+                  // Gems
+                  if (hasGems) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Gem3DIcon(size: iconSize),
                         SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
                         Text(
                           '${widget.level.reward.gems}',
@@ -664,60 +692,99 @@ class _LevelObjectivePopupState extends State<LevelObjectivePopup>
                         ),
                       ],
                     ),
-                  );
-                },
+                  ],
+                ],
               ),
-            ],
-          ],
+            );
+          },
         ),
       ],
     );
   }
 
-  /// ▶️ Modern start button
+  /// ▶️ Modern start button with image asset and button gestures
   Widget _buildStartButton() {
     final screenSize = MediaQuery.of(context).size;
-    final buttonHeight = ResponsiveConfig.responsiveButtonHeight(60.0, screenSize);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.amber.shade400,
-            Colors.orange.shade600,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.amber.withValues(alpha: 0.5),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: _isStarting
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
-              child: const SizedBox(
-                width: 24,
-                height: 24,
+    
+    // Calculate responsive button size (460x210 pixels = 2.19:1 aspect ratio)
+    // Use responsive width that works well in popup context (smaller for better layout)
+    final buttonWidth = ResponsiveConfig.responsiveSize(
+      145.0, // Base width for 460px image scaled down proportionally (slightly reduced from 160.0)
+      screenSize,
+      minScale: 0.7,
+      maxScale: 1.1,
+    );
+    
+    // Calculate height based on aspect ratio (460/210 ≈ 2.19)
+    final aspectRatio = 460.0 / 210.0; // ≈ 2.19
+    final buttonHeight = buttonWidth / aspectRatio;
+    
+    return _isStarting
+        ? SizedBox(
+            width: buttonWidth,
+            height: buttonHeight,
+            child: const Center(
+              child: SizedBox(
+                width: 32,
+                height: 32,
                 child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 3,
                 ),
               ),
-            )
-          : ModernGameButton(
-              label: 'START ▶',
-              onPressed: _startLevel,
-              height: buttonHeight,
-              style: ModernButtonStyle.gold, // Gold for level start
-              customGradient: const [
-                Colors.transparent, // Transparent to show gradient container behind
-                Colors.transparent,
-              ],
             ),
-    );
+          )
+        : GestureDetector(
+            onTapDown: _isStarting ? null : (_) {
+              setState(() => _buttonPressed = true);
+            },
+            onTapCancel: _isStarting ? null : () {
+              setState(() => _buttonPressed = false);
+            },
+            onTapUp: _isStarting ? null : (_) {
+              setState(() => _buttonPressed = false);
+              HapticFeedback.lightImpact();
+              _startLevel();
+            },
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeOut,
+              scale: _buttonPressed ? 0.95 : 1.0,
+              child: Image.asset(
+                'assets/images/ui/start_button.png',
+                width: buttonWidth,
+                height: buttonHeight,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to original button if image fails to load
+                  safePrint('⚠️ Failed to load start_button.png, using fallback');
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.amber.shade400,
+                          Colors.orange.shade600,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'START ▶',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
   }
 
   IconData _getObjectiveIcon() {

@@ -57,3 +57,7 @@ flame_mcp_server/
 railway-backend/
 ios/Runner.xcarchive/
 ios/ExportOptions.plist
+
+# Firebase Test Lab
+.firebase_test_lab.env
+firebase-test-results/

@@ -26,6 +26,7 @@ import '../widgets/floating_missions_banner.dart';
 import '../widgets/floating_store_banner.dart';
 import '../widgets/floating_tournaments_banner.dart';
 import '../widgets/store_bottom_sheet.dart';
+import '../utils/responsive_config.dart';
 import 'daily_missions_screen.dart';
 import 'home_navigator_screen.dart';
 
@@ -326,8 +327,12 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   }
 
   Widget _buildHeader(ZoneData? currentZone) {
+    final screenSize = MediaQuery.sizeOf(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveConfig.responsivePadding(12.0, screenSize),
+        vertical: ResponsiveConfig.responsivePadding(12.0, screenSize),
+      ),
       decoration: BoxDecoration(
         // Modern deep gradient
         gradient: const LinearGradient(
@@ -346,91 +351,102 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Back button with modern styling
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withValues(alpha: 0.2),
-                  Colors.white.withValues(alpha: 0.1),
-                ],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+        child: Row(
+          children: [
+            // Back button with modern styling
+            Container(
+              width: ResponsiveConfig.responsiveSize(42.0, screenSize),
+              height: ResponsiveConfig.responsiveSize(42.0, screenSize),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.2),
+                    Colors.white.withValues(alpha: 0.1),
+                  ],
                 ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
-              padding: EdgeInsets.zero,
-              onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ),
-          ),
-          
-          const SizedBox(width: 10),
-          
-          // Zone selector dropdown
-          Expanded(
-            child: ZoneSelectorDropdown(
-              allZones: _levelSystemManager.allZones,
-              currentZone: _levelSystemManager.currentZone,
-              unlockedZones: _levelSystemManager.getUnlockedZones(),
-              onZoneSelected: (zoneId) async {
-                await _levelSystemManager.setCurrentZone(zoneId);
-                _calculateNodePositions();
-              },
-            ),
-          ),
-          
-          const SizedBox(width: 10),
-          
-          // Hearts display with modern badge styling
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.red.shade600,
-                  Colors.pink.shade700,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.favorite, color: Colors.white, size: 18),
-                const SizedBox(width: 4),
-                Text(
-                  '${_livesManager.currentLives}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: ResponsiveConfig.responsiveIconSize(22.0, screenSize),
                 ),
-              ],
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+              ),
             ),
-          ),
-        ],
-      ),
+            
+            SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+            
+            // Zone selector dropdown
+            Expanded(
+              child: ZoneSelectorDropdown(
+                allZones: _levelSystemManager.allZones,
+                currentZone: _levelSystemManager.currentZone,
+                unlockedZones: _levelSystemManager.getUnlockedZones(),
+                onZoneSelected: (zoneId) async {
+                  await _levelSystemManager.setCurrentZone(zoneId);
+                  _calculateNodePositions();
+                },
+              ),
+            ),
+            
+            SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+            
+            // Hearts display with modern badge styling
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: ResponsiveConfig.responsivePadding(12.0, screenSize),
+                vertical: ResponsiveConfig.responsivePadding(8.0, screenSize),
+              ),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.red.shade600,
+                    Colors.pink.shade700,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.favorite,
+                    color: Colors.white,
+                    size: ResponsiveConfig.responsiveIconSize(18.0, screenSize),
+                  ),
+                  SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                  Text(
+                    '${_livesManager.currentLives}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
     );
   }
 
@@ -480,10 +496,10 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       color: const Color(0xFF1A237E),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.map,
-                          size: 100,
+                          size: ResponsiveConfig.responsiveIconSize(100.0, screenSize),
                           color: Colors.white24,
                         ),
                       ),
@@ -551,8 +567,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
         ? 4.0 
         : (screenHeight > 800 ? 10.0 : 6.0);
     
-    // Banner size (same for both for visual consistency)
-    const double bannerSize = 55;
+    // Banner size (same for both for visual consistency) - now responsive
+    final double bannerSize = ResponsiveConfig.responsiveSize(55.0, Size(screenWidth, screenHeight));
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,22 +650,27 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
                 top: 12,
                 child: GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                  child: Builder(
+                    builder: (context) {
+                      final screenSize = MediaQuery.sizeOf(context);
+                      return Container(
+                        width: ResponsiveConfig.responsiveSize(36.0, screenSize),
+                        height: ResponsiveConfig.responsiveSize(36.0, screenSize),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: ResponsiveConfig.responsiveSize(1.0, screenSize),
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -697,12 +718,14 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           final currentPos = _jetPositionAnimation!.value;
           final scale = _jetScaleAnimation?.value ?? 1.0;
           
+          final screenSize = MediaQuery.sizeOf(context);
+          final jetSize = ResponsiveConfig.responsiveSize(70.0, screenSize);
           return Positioned(
-            left: currentPos.dx - 35, // Center the 70px jet
-            top: currentPos.dy - 75,  // Position jet ABOVE the node (40px higher + half jet size)
+            left: currentPos.dx - (jetSize / 2), // Center the jet
+            top: currentPos.dy - (jetSize + 40),  // Position jet ABOVE the node
             child: SizedBox(
-              width: 70,
-              height: 70,
+              width: jetSize,
+              height: jetSize,
               child: Transform.scale(
                 scale: scale,
                 child: Transform(
@@ -714,7 +737,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
                     targetPosition: null, // No additional animation
                     animationDuration: Duration.zero,
                     onAnimationComplete: () {},
-                    jetSize: 70.0,
+                    jetSize: jetSize,
                   ),
                 ),
               ),
@@ -741,12 +764,14 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     }
     
     // Otherwise, use static position (no animation)
+    final screenSize = MediaQuery.sizeOf(context);
+    final jetSize = ResponsiveConfig.responsiveSize(70.0, screenSize);
     return Positioned(
-      left: staticPosition.dx - 35, // Center the 70px jet
-      top: staticPosition.dy - 75,  // Position jet ABOVE the node (40px higher + half jet size)
+      left: staticPosition.dx - (jetSize / 2), // Center the jet
+      top: staticPosition.dy - (jetSize + 40),  // Position jet ABOVE the node
       child: SizedBox(
-        width: 70,
-        height: 70,
+        width: jetSize,
+        height: jetSize,
         child: WorldMapJetWidget(
           jetSkinId: _inventoryManager.equippedSkinId,
           currentPosition: staticPosition,
@@ -760,7 +785,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
               });
             }
           },
-          jetSize: 70.0,
+          jetSize: jetSize,
         ),
       ),
     );
@@ -795,16 +820,17 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   
   Widget _buildLevelNumber(LevelData level) {
     // For all nodes, just show the level number centered
+    final screenSize = MediaQuery.sizeOf(context);
     return Text(
       '${level.id}',
-      style: const TextStyle(
+      style: TextStyle(
         color: Colors.white,
-        fontSize: 32,
+        fontSize: ResponsiveConfig.responsiveFontSize(32.0, screenSize, context),
         fontWeight: FontWeight.bold,
         shadows: [
           Shadow(
             color: Colors.black54,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
             blurRadius: 6,
           ),
         ],
@@ -813,6 +839,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   }
 
   Widget _buildEmptyZoneMessage() {
+    final screenSize = MediaQuery.sizeOf(context);
     final isZone1Completed = _levelSystemManager.isZoneCompleted(1);
     
     return Center(
@@ -821,39 +848,39 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
         children: [
           Icon(
             isZone1Completed ? Icons.emoji_events : Icons.lock,
-            size: 100,
+            size: ResponsiveConfig.responsiveIconSize(100.0, screenSize),
             color: isZone1Completed ? Colors.amber : Colors.white54,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: ResponsiveConfig.responsivePadding(20.0, screenSize)),
           Text(
             isZone1Completed ? '🎉 Zone 1 Completed! 🎉' : 'Zone ${_levelSystemManager.currentZone}',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 32,
+              fontSize: ResponsiveConfig.responsiveFontSize(32.0, screenSize, context),
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
           Text(
             isZone1Completed 
                 ? 'New zones coming soon!\nStay tuned for more adventures!'
                 : 'Coming Soon',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white70,
-              fontSize: 20,
+              fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
             ),
             textAlign: TextAlign.center,
           ),
           if (isZone1Completed) ...[
-            const SizedBox(height: 40),
+            SizedBox(height: ResponsiveConfig.responsivePadding(40.0, screenSize)),
             ModernGameButton(
               label: 'BACK TO HOME',
               onPressed: () {
                 // ✅ Navigate back to tab navigation (story tab)
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
-              height: 56,
+              height: ResponsiveConfig.responsiveButtonHeight(56.0, screenSize),
               style: ModernButtonStyle.secondary, // Secondary blue
             ),
           ],

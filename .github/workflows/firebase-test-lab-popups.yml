@@ -1,0 +1,67 @@
+name: Firebase Test Lab - Popup Screenshots
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test-popups:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build app APK
+        run: flutter build apk --release
+
+      - name: Build test APK
+        run: flutter build apk --debug --target=integration_test/all_popups_test.dart
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run Firebase Test Lab
+        uses: wzieba/Firebase-TestLab-Action@v1
+        with:
+          serviceAccountEmail: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          serviceAccountKey: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          appFile: build/app/outputs/flutter-apk/app-release.apk
+          testFile: build/app/outputs/flutter-apk/app-debug-androidTest.apk
+          devices: |
+            model=Pixel5,version=31,locale=en,orientation=portrait
+            model=Pixel6,version=32,locale=en,orientation=portrait
+            model=GalaxyS21,version=31,locale=en,orientation=portrait
+            model=Pixel4,version=30,locale=en,orientation=portrait
+            model=NexusLowRes,version=28,locale=en,orientation=portrait
+          resultsBucket: ${{ secrets.FIREBASE_PROJECT_ID }}.appspot.com
+          resultsDir: popup-tests/$(date +%Y%m%d-%H%M%S)
+          timeout: 30m
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-test-results
+          path: |
+            build/app/outputs/
+          retention-days: 30
+

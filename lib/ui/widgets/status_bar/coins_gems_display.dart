@@ -25,12 +25,18 @@ import '../coin_3d_icon.dart';
 /// ```
 class CoinsGemsDisplay extends StatelessWidget {
   final VoidCallback? onTap;
+  /// Optional GlobalKey for coin icon (for animation position tracking)
+  final GlobalKey? coinIconKey;
+  /// Optional GlobalKey for gem icon (for animation position tracking)
+  final GlobalKey? gemIconKey;
   final NumberFormat _numFmt = NumberFormat.decimalPattern();
   final InventoryManager _inventory = InventoryManager();
 
   CoinsGemsDisplay({
     super.key,
     this.onTap,
+    this.coinIconKey,
+    this.gemIconKey,
   });
 
   @override
@@ -60,8 +66,13 @@ class CoinsGemsDisplay extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Coins - using consistent coin asset
-            Coin3DIcon(size: iconSize),
+            // Coins - using consistent coin asset with optional key
+            coinIconKey != null
+                ? Container(
+                    key: coinIconKey,
+                    child: Coin3DIcon(size: iconSize),
+                  )
+                : Coin3DIcon(size: iconSize),
             SizedBox(width: spacing),
             Flexible(
               child: ValueListenableBuilder<int>(
@@ -93,8 +104,13 @@ class CoinsGemsDisplay extends StatelessWidget {
             ),
             SizedBox(width: dividerSpacing),
 
-            // Gems
-            Gem3DIcon(size: iconSize),
+            // Gems with optional key
+            gemIconKey != null
+                ? Container(
+                    key: gemIconKey,
+                    child: Gem3DIcon(size: iconSize),
+                  )
+                : Gem3DIcon(size: iconSize),
             SizedBox(width: spacing),
             Flexible(
               child: ValueListenableBuilder<int>(

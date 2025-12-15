@@ -9,6 +9,7 @@ import '../../../models/tournament_config.dart';
 import '../../../models/tournament_entry.dart';
 import '../../../game/systems/tournament_manager.dart';
 import '../../../core/debug_logger.dart';
+import '../../utils/responsive_config.dart';
 import '../coin_3d_icon.dart';
 import '../gem_3d_icon.dart';
 import '../tournament_ticket_icon.dart';
@@ -62,6 +63,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
       minChildSize: 0.5,
@@ -144,10 +146,10 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                       width: 1,
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.close,
                     color: Colors.white,
-                    size: 20,
+                    size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
                   ),
                 ),
               ),
@@ -172,6 +174,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
   }
 
   Widget _buildHeader() {
+    final screenSize = MediaQuery.sizeOf(context);
     return Row(
       children: [
         // Trophy icon
@@ -196,7 +199,9 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
           child: Center(
             child: Text(
               widget.tournament.tier.emoji,
-              style: const TextStyle(fontSize: 36),
+              style: TextStyle(
+                fontSize: ResponsiveConfig.responsiveFontSize(36.0, screenSize, context),
+              ),
             ),
           ),
         ),
@@ -218,7 +223,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                   widget.tournament.tier.displayName.toUpperCase(),
                   style: TextStyle(
                     color: _getTierColor(),
-                    fontSize: 10,
+                    fontSize: ResponsiveConfig.responsiveFontSize(10.0, screenSize, context),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1,
                   ),
@@ -227,8 +232,8 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
               const SizedBox(height: 6),
               Text(
                 widget.tournament.name,
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -237,7 +242,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
               Text(
                 widget.tournament.description,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
                   color: Colors.white.withOpacity(0.7),
                 ),
               ),
@@ -249,11 +254,12 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
   }
 
   Widget _buildStatsSection() {
+    final screenSize = MediaQuery.sizeOf(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(16.0, screenSize)),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
         border: Border.all(
           color: Colors.white.withOpacity(0.1),
         ),
@@ -261,22 +267,28 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatColumn(
-            icon: Icons.flag,
-            value: '${widget.tournament.totalRounds}',
-            label: 'Rounds',
+          Flexible(
+            child: _buildStatColumn(
+              icon: Icons.flag,
+              value: '${widget.tournament.totalRounds}',
+              label: 'Rounds',
+            ),
           ),
           _buildStatDivider(),
-          _buildStatColumn(
-            icon: Icons.favorite,
-            value: '${widget.tournament.tries.count}',
-            label: 'Tries',
+          Flexible(
+            child: _buildStatColumn(
+              icon: Icons.favorite,
+              value: '${widget.tournament.tries.count}',
+              label: 'Tries',
+            ),
           ),
           _buildStatDivider(),
-          _buildStatColumn(
-            icon: Icons.replay,
-            value: '${widget.tournament.continues.maxPerTry}',
-            label: 'Continues/Try',
+          Flexible(
+            child: _buildStatColumn(
+              icon: Icons.replay,
+              value: '${widget.tournament.continues.maxPerTry}',
+              label: 'Continues/Try',
+            ),
           ),
         ],
       ),
@@ -288,23 +300,28 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     required String value,
     required String label,
   }) {
+    final screenSize = MediaQuery.sizeOf(context);
     return Column(
       children: [
-        Icon(icon, color: Colors.amber, size: 24),
-        const SizedBox(height: 8),
+        Icon(
+          icon,
+          color: Colors.amber,
+          size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
+        ),
+        SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 20,
+          style: TextStyle(
+            fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
             color: Colors.white.withOpacity(0.6),
           ),
         ),
@@ -321,13 +338,14 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
   }
 
   Widget _buildRoundsSection() {
+    final screenSize = MediaQuery.sizeOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'ROUNDS',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
             fontWeight: FontWeight.bold,
             color: Colors.white70,
             letterSpacing: 1,
@@ -366,9 +384,9 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                 Expanded(
                   child: Text(
                     level.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
                     ),
                   ),
                 ),
@@ -380,7 +398,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                         '+${level.reward.coins}',
                         style: TextStyle(
                           color: Colors.amber.shade300,
-                          fontSize: 13,
+                          fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -397,7 +415,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                         '+${level.reward.gems}',
                         style: TextStyle(
                           color: Colors.cyan.shade300,
-                          fontSize: 13,
+                          fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -418,7 +436,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
               '+ ${widget.tournament.levels.length - 5} more rounds',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.5),
-                fontSize: 12,
+                fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
               ),
             ),
           ),
@@ -427,6 +445,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
   }
 
   Widget _buildPrizesSection() {
+    final screenSize = MediaQuery.sizeOf(context);
     final totalCoins = widget.tournament.completionReward.coins + 
                        widget.tournament.totalCoinsFromRounds;
     final totalGems = widget.tournament.completionReward.gems + 
@@ -451,12 +470,16 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
         children: [
           Row(
             children: [
-              const Icon(Icons.emoji_events, color: Colors.amber, size: 24),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(
+                Icons.emoji_events,
+                color: Colors.amber,
+                size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
+              ),
+              SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+              Text(
                 'TOTAL PRIZES',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
                   fontWeight: FontWeight.bold,
                   color: Colors.amber,
                   letterSpacing: 1,
@@ -469,14 +492,14 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             children: [
               Expanded(
                 child: _buildPrizeItem(
-                  icon: const Coin3DIcon(size: 24),
+                  icon: Coin3DIcon(size: ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
                   value: totalCoins,
                   label: 'Coins',
                 ),
               ),
               Expanded(
                 child: _buildPrizeItem(
-                  icon: const Gem3DIcon(size: 24),
+                  icon: Gem3DIcon(size: ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
                   value: totalGems,
                   label: 'Gems',
                 ),
@@ -501,7 +524,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             _buildBonusRewardItem(
               icon: TournamentTicketIcon(
                 tier: widget.tournament.completionReward.freeTicketTier!,
-                size: 24,
+                size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
               ),
               label: 'Free Tournament Ticket',
               value: widget.tournament.completionReward.freeTicketTier!.displayName,
@@ -532,21 +555,27 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     required int value,
     required String label,
   }) {
+    final screenSize = MediaQuery.sizeOf(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (icon != null)
           icon
         else if (emoji != null)
-          Text(emoji, style: const TextStyle(fontSize: 24)),
-        const SizedBox(width: 8),
+          Text(
+            emoji,
+            style: TextStyle(
+              fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
+            ),
+          ),
+        SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '$value',
-              style: const TextStyle(
-                fontSize: 22,
+              style: TextStyle(
+                fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -554,7 +583,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
                 color: Colors.white.withOpacity(0.6),
               ),
             ),
@@ -571,6 +600,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     required String value,
     required Color color,
   }) {
+    final screenSize = MediaQuery.sizeOf(context);
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -581,8 +611,14 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
       child: Row(
         children: [
           if (icon != null) icon
-          else if (emoji != null) Text(emoji, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 8),
+          else if (emoji != null)
+            Text(
+              emoji,
+              style: TextStyle(
+                fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
+              ),
+            ),
+          SizedBox(width: ResponsiveConfig.responsivePadding(8.0, screenSize)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,16 +626,16 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
                     color: Colors.white.withOpacity(0.7),
                   ),
                 ),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
                   ),
                 ),
               ],
@@ -611,13 +647,14 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
   }
 
   Widget _buildRulesSection() {
+    final screenSize = MediaQuery.sizeOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'RULES',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
             fontWeight: FontWeight.bold,
             color: Colors.white70,
             letterSpacing: 1,
@@ -645,19 +682,24 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
   }
 
   Widget _buildRuleItem({required IconData icon, required String text}) {
+    final screenSize = MediaQuery.sizeOf(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: ResponsiveConfig.responsivePadding(8.0, screenSize)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white54, size: 18),
-          const SizedBox(width: 10),
+          Icon(
+            icon,
+            color: Colors.white54,
+            size: ResponsiveConfig.responsiveIconSize(18.0, screenSize),
+          ),
+          SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.7),
-                fontSize: 13,
+                fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
                 height: 1.4,
               ),
             ),
@@ -711,7 +753,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             canEnterResult.reason,
             style: TextStyle(
               color: Colors.red.shade300,
-              fontSize: 12,
+              fontSize: ResponsiveConfig.responsiveFontSize(12.0, MediaQuery.sizeOf(context), context),
             ),
           ),
         ],
@@ -727,6 +769,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     Color textColor = Colors.white,
     VoidCallback? onTap,
   }) {
+    final screenSize = MediaQuery.sizeOf(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -752,14 +795,19 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (iconWidget != null) iconWidget
-            else if (icon != null) Icon(icon, color: textColor, size: 24),
-            const SizedBox(width: 12),
+            else if (icon != null)
+              Icon(
+                icon,
+                color: textColor,
+                size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
+              ),
+            SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
             Text(
               text,
               style: TextStyle(
                 color: textColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
                 letterSpacing: 1,
               ),
             ),
@@ -793,7 +841,11 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
   
   Widget? _getEntryIconWidget() {
     if (widget.tournament.entry.type == EntryFeeType.freeTicket) {
-      return TournamentTicketIcon(tier: widget.tournament.tier, size: 24);
+      final screenSize = MediaQuery.sizeOf(context);
+      return TournamentTicketIcon(
+        tier: widget.tournament.tier,
+        size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
+      );
     }
     return null;
   }

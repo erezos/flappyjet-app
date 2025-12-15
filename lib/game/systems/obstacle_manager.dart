@@ -38,6 +38,9 @@ class ObstacleManager {
   // 🛑 PERFORMANCE FIX: Pause flag to stop spawning during victory animation
   bool _isPaused = false;
   
+  // 🎯 ZONE 1: Positional passing tracking removed - using event-driven approach instead
+  // We check obstacles on crash only, not every frame (better performance)
+  
   /// Pause obstacle spawning (e.g., during victory animation)
   void pause() {
     _isPaused = true;
@@ -270,6 +273,56 @@ class ObstacleManager {
     return scoredObstacles;
   }
 
+  /// 🎯 ZONE 1: Get obstacles that were positionally passed but not scored
+  /// 
+  /// ✅ PERFORMANCE: Event-driven approach - only called on crash, not every frame
+  /// Checks all current obstacles to see which ones were positionally passed
+  /// (jet X >= obstacle center) but not scored via gap
+  /// 
+  /// This is O(n) only on crash (rare event), making it much more efficient
+  /// than checking every frame (which would be O(n) * 60fps = 60n per second)
+  /// 
+  /// 🎯 FIX: Changed from "jet X > obstacle right edge" to "jet X >= obstacle left edge"
+  /// This ensures that if the player crashes into an obstacle, they still get credit
+  /// for positionally passing it (as long as they've reached the obstacle's position)
+  List<DynamicObstacle> getPositionallyPassedButUnscored(Vector2 jetPosition) {
+    final unscoredObstacles = <DynamicObstacle>[];
+    
+    for (final obstacle in _obstacles) {
+      // Skip if already scored (via gap or previous positional passing)
+      if (obstacle.scored) {
+        safePrint('🎯 ZONE 1: Skipping obstacle at x=${obstacle.position.x} - already marked as scored');
+        continue;
+      }
+      if (obstacle.scoreZone?.hasScored == true) {
+        safePrint('🎯 ZONE 1: Skipping obstacle at x=${obstacle.position.x} - already scored via ScoreZone');
+        continue;
+      }
+      
+      // 🎯 FIX: Check if obstacle was positionally passed (jet X >= obstacle center)
+      // This is more lenient than requiring right edge - if the jet has reached the obstacle's center,
+      // it counts even if the player crashes into it before fully passing the right edge
+      final obstacleLeftEdge = obstacle.position.x;
+      final obstacleCenter = obstacle.position.x + (GameConfig.obstacleWidth / 2);
+      final obstacleRightEdge = obstacle.position.x + GameConfig.obstacleWidth;
+      
+      safePrint('🎯 ZONE 1: Checking obstacle at x=${obstacle.position.x} (left=${obstacleLeftEdge.toStringAsFixed(1)}, center=${obstacleCenter.toStringAsFixed(1)}, right=${obstacleRightEdge.toStringAsFixed(1)}), jet at x=${jetPosition.x.toStringAsFixed(1)}');
+      
+      // Count as passed if jet has reached or passed the obstacle's center
+      // This ensures credit even if player crashes into the obstacle
+      // Using center instead of left edge prevents counting obstacles that haven't been reached yet
+      if (jetPosition.x >= obstacleCenter) {
+        safePrint('🎯 ZONE 1: ✅ Obstacle at x=${obstacle.position.x} was positionally passed! (jet ${jetPosition.x.toStringAsFixed(1)} >= center ${obstacleCenter.toStringAsFixed(1)})');
+        unscoredObstacles.add(obstacle);
+      } else {
+        safePrint('🎯 ZONE 1: ❌ Obstacle at x=${obstacle.position.x} not yet passed (jet x=${jetPosition.x.toStringAsFixed(1)} < center=${obstacleCenter.toStringAsFixed(1)})');
+      }
+    }
+    
+    safePrint('🎯 ZONE 1: Found ${unscoredObstacles.length} unscored positionally passed obstacles');
+    return unscoredObstacles;
+  }
+  
   /// Clear all obstacles
   void clearObstacles() {
     for (final obstacle in _obstacles) {

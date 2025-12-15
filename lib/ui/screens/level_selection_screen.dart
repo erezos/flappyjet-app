@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../game/systems/level_system_manager.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../models/level_data_schema.dart';
+import '../utils/responsive_config.dart';
 import 'level_objective_popup.dart';
 import '../widgets/coin_3d_icon.dart';
 
@@ -50,21 +51,32 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
         elevation: 0,
         actions: [
           // Hearts display
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                const Icon(Icons.favorite, color: Colors.red, size: 24),
-                const SizedBox(width: 4),
-                Text(
-                  '${_livesManager.currentLives}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+          Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveConfig.responsivePadding(16.0, screenSize),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.favorite,
+                      color: Colors.red,
+                      size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
+                    ),
+                    SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                    Text(
+                      '${_livesManager.currentLives}',
+                      style: TextStyle(
+                        fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -80,45 +92,55 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
     return Column(
       children: [
         // Progress header
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: const Color(0xFF283593),
-          child: Column(
-            children: [
-              Text(
-                'Level ${_levelSystemManager.currentLevel}/${levels.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+        Builder(
+          builder: (context) {
+            final screenSize = MediaQuery.sizeOf(context);
+            return Container(
+              padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(16.0, screenSize)),
+              color: const Color(0xFF283593),
+              child: Column(
+                children: [
+                  Text(
+                    'Level ${_levelSystemManager.currentLevel}/${levels.length}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                  LinearProgressIndicator(
+                    value: _levelSystemManager.overallProgress / 100,
+                    backgroundColor: Colors.white24,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+                  ),
+                  SizedBox(height: ResponsiveConfig.responsivePadding(4.0, screenSize)),
+                  Text(
+                    '${_levelSystemManager.totalLevelsCompleted} levels completed',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: _levelSystemManager.overallProgress / 100,
-                backgroundColor: Colors.white24,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${_levelSystemManager.totalLevelsCompleted} levels completed',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
 
         // Level list
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: levels.length,
-            itemBuilder: (context, index) {
-              final level = levels[index];
-              return _buildLevelCard(level);
+          child: Builder(
+            builder: (context) {
+              final screenSize = MediaQuery.sizeOf(context);
+              return ListView.builder(
+                padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(16.0, screenSize)),
+                itemCount: levels.length,
+                itemBuilder: (context, index) {
+                  final level = levels[index];
+                  return _buildLevelCard(level);
+                },
+              );
             },
           ),
         ),
@@ -127,31 +149,35 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   }
 
   Widget _buildLevelCard(LevelData level) {
+    final screenSize = MediaQuery.sizeOf(context);
     final isUnlocked = _levelSystemManager.isLevelUnlocked(level.id);
     final isCompleted = _levelSystemManager.isLevelCompleted(level.id);
     final isCurrent = level.id == _levelSystemManager.currentLevel;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: ResponsiveConfig.responsivePadding(12.0, screenSize)),
       color: isUnlocked ? Colors.white : Colors.grey[800],
       elevation: isCurrent ? 8 : 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
         side: isCurrent
-            ? const BorderSide(color: Colors.amber, width: 3)
+            ? BorderSide(
+                color: Colors.amber,
+                width: ResponsiveConfig.responsiveSize(3.0, screenSize),
+              )
             : BorderSide.none,
       ),
       child: InkWell(
         onTap: isUnlocked ? () => _onLevelTap(level) : null,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(16.0, screenSize)),
           child: Row(
             children: [
               // Level icon
               Container(
-                width: 60,
-                height: 60,
+                width: ResponsiveConfig.responsiveSize(60.0, screenSize),
+                height: ResponsiveConfig.responsiveSize(60.0, screenSize),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isCompleted
@@ -162,20 +188,28 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                 ),
                 child: Center(
                   child: isCompleted
-                      ? const Icon(Icons.check, color: Colors.white, size: 32)
+                      ? Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: ResponsiveConfig.responsiveIconSize(32.0, screenSize),
+                        )
                       : !isUnlocked
-                          ? const Icon(Icons.lock, color: Colors.white, size: 32)
+                          ? Icon(
+                              Icons.lock,
+                              color: Colors.white,
+                              size: ResponsiveConfig.responsiveIconSize(32.0, screenSize),
+                            )
                           : Text(
                               '${level.id}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 24,
+                                fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)),
 
               // Level info
               Expanded(
@@ -186,65 +220,67 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                       level.name,
                       style: TextStyle(
                         color: isUnlocked ? Colors.black : Colors.white54,
-                        fontSize: 18,
+                        fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: ResponsiveConfig.responsivePadding(4.0, screenSize)),
                     Text(
                       level.objective.description,
                       style: TextStyle(
                         color: isUnlocked ? Colors.black54 : Colors.white38,
-                        fontSize: 14,
+                        fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
                     Row(
                       children: [
                         // Coin reward
-                        const Coin3DIcon(size: 16), // ✅ Using consistent coin asset
-                        const SizedBox(width: 4),
+                        Coin3DIcon(size: ResponsiveConfig.responsiveIconSize(16.0, screenSize)),
+                        SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
                         Text(
                           '${level.reward.coins}',
                           style: TextStyle(
                             color: isUnlocked ? Colors.black : Colors.white54,
-                            fontSize: 14,
+                            fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)),
                         // Gem reward (if any)
                         if (level.reward.gems > 0) ...[
                           Image.asset(
                             'assets/images/icons/gem_icon.png',
-                            width: 16,
-                            height: 16,
+                            width: ResponsiveConfig.responsiveSize(16.0, screenSize),
+                            height: ResponsiveConfig.responsiveSize(16.0, screenSize),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
                           Text(
                             '${level.reward.gems}',
                             style: TextStyle(
                               color: isUnlocked ? Colors.black : Colors.white54,
-                              fontSize: 14,
+                              fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                         // Bot battle indicator
                         if (level.botBattle != null) ...[
-                          const SizedBox(width: 16),
+                          SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                              vertical: ResponsiveConfig.responsivePadding(4.0, screenSize),
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.red,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
                             ),
-                            child: const Text(
+                            child: Text(
                               'VS BOT',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 12,
+                                fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

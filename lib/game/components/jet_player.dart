@@ -682,6 +682,13 @@ class JetPlayer extends SpriteComponent with HasGameReference, CollisionCallback
     // Ignore collision if invulnerable
     if (_invulnerabilityBehavior.isInvulnerable) {
       safePrint('🛡️ Jet is invulnerable - ignoring collision with ${other.runtimeType}');
+      
+      // 🎯 ZONE 1 POSITIONAL PASSING: Check positional passing even when invulnerable
+      // This ensures we award points for obstacles passed positionally, even if collision is ignored
+      if (game is FlappyGame) {
+        (game as FlappyGame).checkZone1PositionalPassingOnCollision();
+      }
+      
       return;
     }
     

@@ -200,15 +200,18 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
 
   Widget _buildContent(Size screenSize) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Colors.amber),
-            SizedBox(height: 12),
+            const CircularProgressIndicator(color: Colors.amber),
+            SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
             Text(
               'Loading tournaments...',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
+              ),
             ),
           ],
         ),
@@ -220,13 +223,20 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 40),
-            const SizedBox(height: 12),
+            Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: ResponsiveConfig.responsiveIconSize(40.0, screenSize),
+            ),
+            SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
             Text(
               _error!,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
+              ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -303,7 +313,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
                 color: Colors.amber,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
             Text(
               'No Tournaments Available',
               style: TextStyle(
@@ -312,7 +322,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
             Text(
               'Check back soon for exciting\nnew tournaments!',
               textAlign: TextAlign.center,
@@ -698,10 +708,11 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
         safePrint('🏆 💎 Granted ${tournament.completionReward.gems} bonus gems for tournament completion');
       }
       
-      // Grant skin reward if available
+      // Grant skin reward if available (unlock and auto-equip)
       if (tournament.completionReward.skinId != null) {
         await _inventoryManager.unlockSkin(tournament.completionReward.skinId!);
-        safePrint('🏆 🎨 Unlocked skin: ${tournament.completionReward.skinId}');
+        await _inventoryManager.equipSkin(tournament.completionReward.skinId!);
+        safePrint('🏆 🎨 Unlocked and auto-equipped skin: ${tournament.completionReward.skinId}');
       }
       
       // Show tournament victory screen with celebration!

@@ -5,8 +5,11 @@ import '../../game/systems/achievements_manager.dart';
 import '../widgets/gem_3d_icon.dart';
 import '../widgets/coin_3d_icon.dart';
 import '../widgets/mission_achievement_icons.dart';
-import '../widgets/rewards/reward_claim_popup.dart';
+import '../widgets/rewards/unified_reward_card.dart';
 import '../widgets/rate_us_integration.dart';
+import '../widgets/badge_notification.dart';
+import '../widgets/status_bar/coins_gems_display.dart';
+import '../widgets/animations/reward_flying_animation.dart';
 import '../utils/responsive_config.dart';
 
 class DailyMissionsScreen extends StatefulWidget {
@@ -29,6 +32,18 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   late AnimationController _animationController;
   bool _isRefreshing = false;
   final Set<String> _claimingMissions = {}; // Track missions being claimed
+  
+  // GlobalKeys for position tracking
+  final GlobalKey _coinBalanceKey = GlobalKey();
+  final GlobalKey _gemBalanceKey = GlobalKey();
+  
+  // Track reward icon keys per mission/achievement
+  final Map<String, GlobalKey> _missionCoinKeys = {};
+  final Map<String, GlobalKey> _achievementCoinKeys = {};
+  final Map<String, GlobalKey> _achievementGemKeys = {};
+  
+  // Track active animations
+  final List<Widget> _activeAnimations = [];
 
   @override
   void initState() {
@@ -96,12 +111,58 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     }
   }
 
-  /// Claim mission reward with fade-out animation
+  /// Get widget position from GlobalKey
+  Offset? _getWidgetPosition(GlobalKey? key) {
+    if (key?.currentContext == null) return null;
+    final RenderBox? renderBox = key!.currentContext!.findRenderObject() as RenderBox?;
+    if (renderBox == null) return null;
+    final position = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+    // Return center of widget
+    return Offset(position.dx + size.width / 2, position.dy + size.height / 2);
+  }
+
+  /// Trigger reward flying animation
+  void _triggerRewardAnimation({
+    required Offset? startPosition,
+    required Offset? endPosition,
+    required RewardType type,
+    required int amount,
+  }) {
+    if (startPosition == null || endPosition == null) {
+      // Fallback: if positions not available, skip animation
+      return;
+    }
+
+    final animationKey = GlobalKey();
+    final animation = RewardFlyingAnimation(
+      key: animationKey,
+      startPosition: startPosition,
+      endPosition: endPosition,
+      type: type,
+      amount: amount,
+      onComplete: () {
+        if (mounted) {
+          setState(() {
+            _activeAnimations.removeWhere((anim) => anim.key == animationKey);
+          });
+        }
+      },
+    );
+
+    setState(() {
+      _activeAnimations.add(animation);
+    });
+  }
+
+  /// Claim mission reward with flying animation
   /// 
   /// ✅ CRITICAL FIX: Uses proper BuildContext lifecycle management to prevent
   /// "This BuildContext is no longer valid" errors. The context can become
   /// invalid during async operations (like claiming rewards), so we must
   /// check `mounted` immediately before using the context for UI operations.
+  /// 
+  /// ✅ NEW: Uses flying animation instead of popup dialog
   Future<void> _claimReward(BuildContext context, String missionId) async {
     // Prevent double-clicking
     if (_claimingMissions.contains(missionId)) {
@@ -143,6 +204,23 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
       orElse: () => throw Exception('Mission not found'),
     );
     
+    // Get positions before claiming (widgets might be removed after claim)
+    final coinKey = _missionCoinKeys[missionId];
+    final startPosition = coinKey != null
+        ? _getWidgetPosition(coinKey)
+        : null;
+    final endPosition = _getWidgetPosition(_coinBalanceKey);
+    
+    // Wait for layout if positions not ready
+    if (startPosition == null || endPosition == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _claimReward(context, missionId); // Retry after layout
+        }
+      });
+      return;
+    }
+    
     final success = await missionsManager.claimMissionReward(missionId);
     
     // ✅ CRITICAL FIX: Check mounted AGAIN after the async operation
@@ -154,33 +232,17 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
         _claimingMissions.remove(missionId);
       });
       
-      // ✅ CRITICAL FIX: Check mounted before showDialog
-      if (!mounted) return;
+      // ✅ NEW: Trigger flying animation instead of popup
+      // Events are already fired by MissionsManager.claimMissionReward() ✅
+      _triggerRewardAnimation(
+        startPosition: startPosition,
+        endPosition: endPosition,
+        type: RewardType.coin,
+        amount: mission.reward,
+      );
       
-      // Show beautiful reward claim popup
-      // Wrapped in try-catch to handle race condition where user navigates away
-      // between the mounted check and the actual dialog display
-      try {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) => RewardClaimPopup(
-            title: 'Mission Complete!',
-            rewardName: mission.title,
-            description: mission.description,
-            coinReward: mission.reward,
-            gemReward: 0, // Missions don't give gems currently
-            themeColor: const Color(0xFF4caf50), // Green for missions
-            onClose: () {
-              // Nothing special to do on close
-            },
-          ),
-        );
-      } catch (e) {
-        // Context became invalid during navigation - silently ignore
-        // The reward was already claimed successfully, just the popup couldn't show
-        debugPrint('⚠️ Reward popup dismissed due to navigation: $e');
-      }
+      // Clean up keys after animation starts
+      _missionCoinKeys.remove(missionId);
     } else {
       setState(() {
         _claimingMissions.remove(missionId);
@@ -196,10 +258,12 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     }
   }
 
-  /// Claim achievement reward with animation
+  /// Claim achievement reward with flying animation
   /// 
   /// ✅ CRITICAL FIX: Uses proper BuildContext lifecycle management to prevent
   /// "This BuildContext is no longer valid" errors. Same fix as _claimReward.
+  /// 
+  /// ✅ NEW: Uses flying animation instead of popup dialog
   Future<void> _claimAchievementReward(
     BuildContext context,
     String achievementId,
@@ -228,6 +292,36 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
 
     // Get achievement details before claiming for reward display
     final achievement = achievementsManager.achievements[achievementId];
+    
+    if (achievement == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Achievement not found')),
+      );
+      return;
+    }
+
+    // Get positions before claiming (widgets might be removed after claim)
+    final coinKey = _achievementCoinKeys[achievementId];
+    final gemKey = achievement.gemReward > 0 ? _achievementGemKeys[achievementId] : null;
+    
+    final coinStartPosition = coinKey != null ? _getWidgetPosition(coinKey) : null;
+    final gemStartPosition = gemKey != null ? _getWidgetPosition(gemKey) : null;
+    final coinEndPosition = _getWidgetPosition(_coinBalanceKey);
+    final gemEndPosition = _getWidgetPosition(_gemBalanceKey);
+    
+    // Wait for layout if positions not ready
+    if ((coinStartPosition == null && achievement.coinReward > 0) ||
+        (gemStartPosition == null && achievement.gemReward > 0) ||
+        (coinEndPosition == null && achievement.coinReward > 0) ||
+        (gemEndPosition == null && achievement.gemReward > 0)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _claimAchievementReward(context, achievementId); // Retry after layout
+        }
+      });
+      return;
+    }
 
     final success = await achievementsManager.claimAchievementReward(
       achievementId,
@@ -237,37 +331,45 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     // The widget could have been disposed during the await
     if (!mounted) return;
     
-    if (success && achievement != null) {
-      // ✅ CRITICAL FIX: Double-check mounted right before showDialog
-      if (!mounted) return;
+    if (success) {
+      // ✅ NEW: Trigger flying animations instead of popup
+      // Events are already fired by AchievementsManager.claimAchievementReward() ✅
       
-      // Show beautiful reward claim popup
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => RewardClaimPopup(
-          title: 'Achievement Unlocked!',
-          rewardName: achievement.title,
-          description: achievement.description,
-          coinReward: achievement.coinReward,
-          gemReward: achievement.gemReward,
-          themeColor: const Color(0xFFFFB74D), // Orange/gold for achievements
-          onClose: () {
-            // Force a complete UI refresh to ensure the claim button disappears
-            if (mounted) {
-              setState(() {});
-              // Trigger a rebuild animation to show the achievement moving to the bottom
-              _animationController.reset();
-              _animationController.forward();
-            }
-          },
-        ),
-      );
+      // Animate coin if present
+      if (achievement.coinReward > 0 && coinStartPosition != null && coinEndPosition != null) {
+        _triggerRewardAnimation(
+          startPosition: coinStartPosition,
+          endPosition: coinEndPosition,
+          type: RewardType.coin,
+          amount: achievement.coinReward,
+        );
+      }
+      
+      // Animate gem if present (with slight delay for visual effect)
+      if (achievement.gemReward > 0 && gemStartPosition != null && gemEndPosition != null) {
+        Future.delayed(const Duration(milliseconds: 150), () {
+          if (mounted) {
+            _triggerRewardAnimation(
+              startPosition: gemStartPosition,
+              endPosition: gemEndPosition,
+              type: RewardType.gem,
+              amount: achievement.gemReward,
+            );
+          }
+        });
+      }
+      
+      // Clean up keys after animations start
+      _achievementCoinKeys.remove(achievementId);
+      _achievementGemKeys.remove(achievementId);
       
       // ⭐ Show Rate Us popup after achievement claim (positive experience)
-      if (mounted) {
-        await RateUsIntegration.showAfterPositiveExperience(context);
-      }
+      // Delay to let animation complete
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          RateUsIntegration.showAfterPositiveExperience(context);
+        }
+      });
     } else {
       // ✅ FIX: Check mounted before showing snackbar
       if (!mounted) return;
@@ -306,26 +408,32 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
             ),
           ),
 
-          // Main content
+          // Main content with animation overlay
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                // Header with back button, title, and refresh
-                _buildHeader(context, screenSize),
+                Column(
+                  children: [
+                    // Header with back button, title, and refresh
+                    _buildHeader(context, screenSize),
 
-                // Tab selector (Daily Missions / Achievements)
-                _buildTabSelector(context, screenSize),
+                    // Tab selector (Daily Missions / Achievements)
+                    _buildTabSelector(context, screenSize),
 
-                // Mission cards content
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildDailyMissions(context, screenSize),
-                      _buildAchievements(context, screenSize),
-                    ],
-                  ),
+                    // Mission cards content
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildDailyMissions(context, screenSize),
+                          _buildAchievements(context, screenSize),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+                // Animation overlay - shows flying coins/gems
+                ..._activeAnimations,
               ],
             ),
           ),
@@ -341,7 +449,11 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
       padding: EdgeInsets.all(isTablet ? 24.0 : 16.0),
       child: Row(
         children: [
-          // Removed back button - this is a bottom nav screen
+          // Balance component (coins and gems) on top left
+          CoinsGemsDisplay(
+            coinIconKey: _coinBalanceKey,
+            gemIconKey: _gemBalanceKey,
+          ),
 
           const Spacer(),
 
@@ -381,15 +493,22 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     final isTablet = ResponsiveConfig.isTablet(screenSize);
     final isLargeTablet = ResponsiveConfig.isLargeTablet(screenSize);
     
-    // Calculate responsive font size based on screen size
-    final baseFontSize = isLargeTablet ? 18.0 : isTablet ? 16.0 : 14.0;
-    final responsiveFontSize = ResponsiveConfig.responsiveFontSize(
-      baseFontSize,
+    // Calculate tab height - modern and compact
+    final tabHeight = ResponsiveConfig.responsiveSize(
+      isTablet ? 56.0 : 48.0,
       screenSize,
-      context,
-      minScale: 0.7, // Allow scaling down to 70% for small screens
-      maxScale: 1.2,
-    ).clamp(11.0, 18.0); // Clamp between 11-18px
+      minScale: 0.85,
+      maxScale: 1.15,
+    );
+
+    // Get managers for badge counts
+    final missionsManager = widget.missionsManager;
+    final achievementsManager = widget.achievementsManager;
+
+    // Create listenable list for real-time updates
+    final listenables = <Listenable>[];
+    if (missionsManager != null) listenables.add(missionsManager);
+    if (achievementsManager != null) listenables.add(achievementsManager);
 
     return Container(
       margin: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
@@ -398,93 +517,182 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
         screenSize: screenSize,
       ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: ResponsiveConfig.responsiveSize(12.0, screenSize),
+            offset: Offset(0, ResponsiveConfig.responsiveSize(4.0, screenSize)),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
-        child: Container(
-          height: ResponsiveConfig.responsiveSize(
-            isTablet ? 60.0 : 50.0,
-            screenSize,
-            minScale: 0.9,
-            maxScale: 1.2,
+      // ✅ FIX: Remove ClipRRect to allow badges to overflow, apply borderRadius to inner container
+      child: Container(
+        height: tabHeight,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1e3c72), Color(0xFF2a5298)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1e3c72), Color(0xFF2a5298)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
-          child: TabBar(
-            controller: _tabController,
-            indicator: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFffc107), Color(0xFFff8f00)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
+        ),
+        // ✅ BADGE: Use ListenableBuilder for real-time badge updates
+        child: listenables.isEmpty
+            ? _buildTabBar(context, screenSize, tabHeight, null, null)
+            : ListenableBuilder(
+                listenable: Listenable.merge(listenables),
+                builder: (context, _) {
+                  final missionsCount = missionsManager?.claimableMissionsCount ?? 0;
+                  final achievementsCount = achievementsManager?.claimableAchievementsCount ?? 0;
+                  return _buildTabBar(
+                    context,
+                    screenSize,
+                    tabHeight,
+                    missionsCount,
+                    achievementsCount,
+                  );
+                },
               ),
-              borderRadius: BorderRadius.circular(25),
-            ),
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: Colors.transparent,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            // ✅ FIX: Use custom tabs with FittedBox to prevent text overflow
-            tabs: [
-              Tab(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.center,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: ResponsiveConfig.responsivePadding(4.0, screenSize),
-                    ),
+      ),
+    );
+  }
+
+  /// Build TabBar with badges - Modern design with text taking 80-90% of tab space
+  /// ✅ MOBILE GAME BEST PRACTICES: Uses FittedBox to ensure text always fits without truncation
+  Widget _buildTabBar(
+    BuildContext context,
+    Size screenSize,
+    double tabHeight,
+    int? missionsCount,
+    int? achievementsCount,
+  ) {
+    // Calculate font size - more conservative to ensure text fits
+    // Use tab height as base, with responsive scaling
+    final isTablet = ResponsiveConfig.isTablet(screenSize);
+    
+    // Font size should be ~50-55% of tab height for optimal fit
+    // This ensures text is large enough but will scale down if needed
+    final baseFontSize = tabHeight * 0.55; // 55% of tab height (more conservative)
+    final responsiveFontSize = ResponsiveConfig.responsiveFontSize(
+      baseFontSize,
+      screenSize,
+      context,
+      minScale: 0.75,
+      maxScale: 1.1,
+    ).clamp(12.0, 22.0); // Clamp for readability (lowered max from 24 to 22)
+
+    // Minimal padding (5-10% on each side) to maximize text space
+    final horizontalPadding = ResponsiveConfig.responsivePadding(
+      isTablet ? 8.0 : 6.0,
+      screenSize,
+    );
+
+    return TabBar(
+      controller: _tabController,
+      indicator: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFffc107), Color(0xFFff8f00)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFff8f00).withValues(alpha: 0.4),
+            blurRadius: ResponsiveConfig.responsiveSize(8.0, screenSize),
+            offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
+          ),
+        ],
+      ),
+      indicatorSize: TabBarIndicatorSize.tab,
+      dividerColor: Colors.transparent,
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.white70,
+      // ✅ MOBILE GAME BEST PRACTICES: Use FittedBox to auto-scale text to fit
+      // This ensures text is always fully visible without truncation
+      tabs: [
+        Tab(
+          child: Stack(
+            clipBehavior: Clip.none, // Allow badge to overflow slightly
+            children: [
+              // ✅ FITTEDBOX: Auto-scales text to fit available space
+              // This is the mobile game best practice - text scales down if needed but never truncates
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown, // Scale down to fit, never scale up
+                    alignment: Alignment.center,
                     child: Text(
                       'DAILY MISSIONS',
                       textAlign: TextAlign.center,
                       maxLines: 1,
+                      // ✅ NO ELLIPSIS: Text will scale down to fit instead of truncating
                       style: TextStyle(
                         fontSize: responsiveFontSize,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2, // Consistent line height
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: ResponsiveConfig.responsiveSize(0.5, screenSize),
+                        height: 1.0,
                       ),
                     ),
                   ),
                 ),
               ),
-              Tab(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.center,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: ResponsiveConfig.responsivePadding(4.0, screenSize),
-                    ),
+              // ✅ BADGE: Position badge at top-right of tab component
+              if (missionsCount != null && missionsCount > 0)
+                Positioned(
+                  top: ResponsiveConfig.responsiveSize(-6.0, screenSize),
+                  right: ResponsiveConfig.responsiveSize(-6.0, screenSize),
+                  child: BadgeNotification(
+                    count: missionsCount,
+                    screenSize: screenSize,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Tab(
+          child: Stack(
+            clipBehavior: Clip.none, // Allow badge to overflow slightly
+            children: [
+              // ✅ FITTEDBOX: Auto-scales text to fit available space
+              // This is the mobile game best practice - text scales down if needed but never truncates
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown, // Scale down to fit, never scale up
+                    alignment: Alignment.center,
                     child: Text(
                       'ACHIEVEMENTS',
                       textAlign: TextAlign.center,
                       maxLines: 1,
+                      // ✅ NO ELLIPSIS: Text will scale down to fit instead of truncating
                       style: TextStyle(
                         fontSize: responsiveFontSize,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2, // Consistent line height
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: ResponsiveConfig.responsiveSize(0.5, screenSize),
+                        height: 1.0,
                       ),
                     ),
                   ),
                 ),
               ),
+              // ✅ BADGE: Position badge at top-right of tab component
+              if (achievementsCount != null && achievementsCount > 0)
+                Positioned(
+                  top: ResponsiveConfig.responsiveSize(-6.0, screenSize),
+                  right: ResponsiveConfig.responsiveSize(-6.0, screenSize),
+                  child: BadgeNotification(
+                    count: achievementsCount,
+                    screenSize: screenSize,
+                  ),
+                ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -631,12 +839,7 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
                         ),
                       ),
                     ),
-                child: PremiumMissionCard(
-                  mission: mission,
-                  onClaimReward: () => _claimReward(context, mission.id),
-                  screenSize: screenSize,
-                  isClaiming: _claimingMissions.contains(mission.id),
-                ),
+                child: _buildMissionCard(context, mission, screenSize),
               );
             },
           ),
@@ -805,22 +1008,19 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
 
             // Achievement cards for this category
             ...categoryAchievements.map(
-              (achievement) => SlideTransition(
-                position:
-                    Tween<Offset>(
-                      begin: const Offset(0, 0.3),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: _animationController,
-                        curve: Curves.easeOutBack,
+              (achievement) => Builder(
+                builder: (context) => SlideTransition(
+                  position:
+                      Tween<Offset>(
+                        begin: const Offset(0, 0.3),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: _animationController,
+                          curve: Curves.easeOutBack,
+                        ),
                       ),
-                    ),
-                child: PremiumAchievementCard(
-                  achievement: achievement,
-                  onClaimReward: () =>
-                      _claimAchievementReward(context, achievement.id),
-                  screenSize: screenSize,
+                  child: _buildAchievementCard(context, achievement, screenSize),
                 ),
               ),
             ),
@@ -846,6 +1046,246 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
         return '⭐ Special Achievements';
       case AchievementCategory.mastery:
         return '👑 Mastery Achievements';
+    }
+  }
+
+  /// Build mission card using unified reward card
+  Widget _buildMissionCard(BuildContext context, Mission mission, Size screenSize) {
+    final missionStyle = _getMissionStyle(mission.type);
+    final status = mission.claimed
+        ? RewardCardStatus.claimed
+        : (mission.completed
+            ? RewardCardStatus.completed
+            : RewardCardStatus.locked);
+
+    // Get or create GlobalKey for coin reward icon
+    if (!_missionCoinKeys.containsKey(mission.id)) {
+      _missionCoinKeys[mission.id] = GlobalKey();
+    }
+
+    return UnifiedRewardCard(
+      title: mission.title,
+      description: mission.description,
+      coinReward: mission.reward,
+      gemReward: null, // Missions don't have gem rewards
+      progress: mission.progress,
+      target: mission.target,
+      status: status,
+      icon: Mission3DIcon(
+        iconType: MissionIconMapper.getIconForMissionType(
+          mission.type.toString().split('.').last,
+        ),
+        size: 50, // Size will be adjusted by card
+      ),
+      iconStyle: RewardCardIconStyle.floating,
+      cardGradient: missionStyle.gradient,
+      shadowColor: missionStyle.shadowColor,
+      onClaimReward: () => _claimReward(context, mission.id),
+      isClaiming: _claimingMissions.contains(mission.id),
+      screenSize: screenSize,
+      coinRewardIconKey: _missionCoinKeys[mission.id],
+    );
+  }
+
+  /// Build achievement card using unified reward card
+  Widget _buildAchievementCard(BuildContext context, Achievement achievement, Size screenSize) {
+    final achievementStyle = _getAchievementStyle(achievement.rarity);
+    final status = achievement.claimed
+        ? RewardCardStatus.claimed
+        : (achievement.unlocked
+            ? RewardCardStatus.completed
+            : RewardCardStatus.locked);
+
+    // Get or create GlobalKeys for reward icons
+    if (!_achievementCoinKeys.containsKey(achievement.id)) {
+      _achievementCoinKeys[achievement.id] = GlobalKey();
+    }
+    if (achievement.gemReward > 0 && !_achievementGemKeys.containsKey(achievement.id)) {
+      _achievementGemKeys[achievement.id] = GlobalKey();
+    }
+
+    return UnifiedRewardCard(
+      title: achievement.title,
+      description: achievement.description,
+      coinReward: achievement.coinReward,
+      gemReward: achievement.gemReward > 0 ? achievement.gemReward : null,
+      progress: achievement.progress,
+      target: achievement.target,
+      status: status,
+      icon: Achievement3DIcon(
+        iconType: AchievementIconMapper.getIconForAchievement(
+          achievement.category.toString().split('.').last,
+          achievement.rarity.toString().split('.').last,
+        ),
+        size: 30, // Size will be adjusted by card
+      ),
+      iconStyle: RewardCardIconStyle.floating,
+      cardGradient: achievementStyle.gradient,
+      shadowColor: achievementStyle.shadowColor,
+      onClaimReward: () => _claimAchievementReward(context, achievement.id),
+      isClaiming: false, // Achievements don't have loading state yet
+      coinRewardIconKey: _achievementCoinKeys[achievement.id],
+      gemRewardIconKey: achievement.gemReward > 0 ? _achievementGemKeys[achievement.id] : null,
+      screenSize: screenSize,
+    );
+  }
+
+  /// Get mission style based on mission type
+  MissionStyle _getMissionStyle(dynamic missionType) {
+    // Handle both MissionType enum and String
+    String typeString;
+    if (missionType is String) {
+      typeString = missionType.toLowerCase();
+    } else {
+      // It's a MissionType enum, extract name from toString()
+      typeString = missionType.toString().split('.').last.toLowerCase();
+    }
+
+    switch (typeString) {
+      case 'playgames':
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF00bcd4), Color(0xFF0097a7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF00bcd4).withValues(alpha: 0.3),
+          icon: Icons.play_arrow,
+          iconBackgroundColor: const Color(0xFF4caf50),
+        );
+      case 'reachscore':
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1976d2), Color(0xFF1565c0)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF1976d2).withValues(alpha: 0.3),
+          icon: Icons.trending_up,
+          iconBackgroundColor: const Color(0xFF2196f3),
+        );
+      case 'maintainstreak':
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFff5722), Color(0xFFe64a19)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFFff5722).withValues(alpha: 0.3),
+          icon: Icons.local_fire_department,
+          iconBackgroundColor: const Color(0xFFff5722),
+        );
+      case 'usecontinue':
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF9c27b0), Color(0xFF7b1fa2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF9c27b0).withValues(alpha: 0.3),
+          icon: Icons.refresh,
+          iconBackgroundColor: const Color(0xFF9c27b0),
+        );
+      case 'collectcoins':
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFffc107), Color(0xFFff8f00)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFFffc107).withValues(alpha: 0.3),
+          icon: Icons.paid,
+          iconBackgroundColor: const Color(0xFFffc107),
+        );
+      case 'survivetime':
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4caf50), Color(0xFF388e3c)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF4caf50).withValues(alpha: 0.3),
+          icon: Icons.timer,
+          iconBackgroundColor: const Color(0xFF4caf50),
+        );
+      case 'changenickname':
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF673ab7), Color(0xFF512da8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF673ab7).withValues(alpha: 0.3),
+          icon: Icons.edit,
+          iconBackgroundColor: const Color(0xFF673ab7),
+        );
+      default:
+        return MissionStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF607d8b), Color(0xFF455a64)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF607d8b).withValues(alpha: 0.3),
+          icon: Icons.assignment,
+          iconBackgroundColor: const Color(0xFF607d8b),
+        );
+    }
+  }
+
+  /// Get achievement style based on rarity
+  AchievementStyle _getAchievementStyle(AchievementRarity rarity) {
+    switch (rarity) {
+      case AchievementRarity.bronze:
+        return AchievementStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8d6e63), Color(0xFF5d4037)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF8d6e63).withValues(alpha: 0.3),
+          rarityColor: const Color(0xFFcd7f32),
+        );
+      case AchievementRarity.silver:
+        return AchievementStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF90a4ae), Color(0xFF607d8b)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF90a4ae).withValues(alpha: 0.3),
+          rarityColor: const Color(0xFFc0c0c0),
+        );
+      case AchievementRarity.gold:
+        return AchievementStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFffc107), Color(0xFFff8f00)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFFffc107).withValues(alpha: 0.3),
+          rarityColor: const Color(0xFFffd700),
+        );
+      case AchievementRarity.platinum:
+        return AchievementStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF9c27b0), Color(0xFF673ab7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF9c27b0).withValues(alpha: 0.3),
+          rarityColor: const Color(0xFFe1bee7),
+        );
+      case AchievementRarity.diamond:
+        return AchievementStyle(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF00bcd4), Color(0xFF0097a7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shadowColor: const Color(0xFF00bcd4).withValues(alpha: 0.3),
+          rarityColor: const Color(0xFF80deea),
+        );
     }
   }
 
@@ -934,7 +1374,7 @@ class PremiumMissionCard extends StatelessWidget {
                     flex: 3,
                     child: Row(
                       children: [
-                        // Mission icon - Responsive size (35-40% of card height)
+                        // Mission icon - Responsive size (35-40% of card height) - Floating without square background
                         Builder(
                           builder: (context) {
                             final iconSize = ResponsiveConfig.responsiveSize(
@@ -947,23 +1387,15 @@ class PremiumMissionCard extends StatelessWidget {
                             return Container(
                               width: iconSize,
                               height: iconSize,
-                          decoration: BoxDecoration(
-                            color: missionStyle.iconBackgroundColor,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                              child: Mission3DIcon(
-                                iconType: MissionIconMapper.getIconForMissionType(
-                                  mission.type.toString().split('.').last,
+                              // ✅ FIX: Removed square background decoration - icon now floats on card
+                              child: Center(
+                                child: Mission3DIcon(
+                                  iconType: MissionIconMapper.getIconForMissionType(
+                                    mission.type.toString().split('.').last,
+                                  ),
+                                  size: iconSize * 0.85, // Increased size since no background container
+                                  // Remove tintColor to show original icon colors
                                 ),
-                                size: iconSize * 0.55, // Icon size relative to container
-                                // Remove tintColor to show original icon colors
                               ),
                             );
                           },

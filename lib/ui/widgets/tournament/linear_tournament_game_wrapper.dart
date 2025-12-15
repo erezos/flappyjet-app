@@ -38,6 +38,7 @@ import '../../../models/level_data_schema.dart';
 import '../../../core/debug_logger.dart';
 import '../../../core/events/event_bus.dart';
 import '../../../integrations/interstitial_ad_manager.dart';
+import '../../utils/responsive_config.dart';
 import 'tournament_victory_screen.dart';
 import '../game/in_game_hearts_display.dart';
 import '../game/objective_indicator.dart';
@@ -91,11 +92,14 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
     final hasTriesRemaining = entry.triesRemaining > 0;
     final discountedFee = _getDiscountedFee();
 
+    final screenSize = MediaQuery.sizeOf(context);
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: ResponsiveConfig.responsivePadding(20.0, screenSize),
+      ),
       child: Container(
-        width: 340,
+        width: ResponsiveConfig.responsiveSize(340.0, screenSize),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
@@ -105,10 +109,10 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
               Color(0xFF1A1A2E),
             ],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
           border: Border.all(
             color: Colors.red.withValues(alpha: 0.5),
-            width: 2,
+            width: ResponsiveConfig.responsiveSize(2.0, screenSize),
           ),
           boxShadow: [
             BoxShadow(
@@ -119,77 +123,77 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(16.0, screenSize)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Header icon
               Container(
-                width: 50,
-                height: 50,
+                width: ResponsiveConfig.responsiveSize(50.0, screenSize),
+                height: ResponsiveConfig.responsiveSize(50.0, screenSize),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.red.withValues(alpha: 0.2),
                   border: Border.all(
                     color: Colors.red.withValues(alpha: 0.5),
-                    width: 2,
+                    width: ResponsiveConfig.responsiveSize(2.0, screenSize),
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.close,
                   color: Colors.red,
-                  size: 28,
+                  size: ResponsiveConfig.responsiveIconSize(28.0, screenSize),
                 ),
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
 
               // Title
-              const Text(
+              Text(
                 'CRASHED!',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                   letterSpacing: 1.5,
                 ),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
 
               // Level info
               Text(
                 '${tournament.name} - Level ${entry.currentRound}',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
                   color: Colors.white.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
 
               // Progress bar
               if (showProgressSection) ...[
                 _buildProgressSection(progress),
-                const SizedBox(height: 16),
+                SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
               ],
 
               // Hearts status
               _buildHeartsStatus(),
 
-              const SizedBox(height: 16),
+              SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
 
               // Continue options (if available)
               if (canContinue) ...[
                 _buildContinueOptions(hasEnoughGems),
-                const SizedBox(height: 12),
+                SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
               ],
 
               // Start Over button
               _buildStartOverButton(hasTriesRemaining, discountedFee),
 
-              const SizedBox(height: 12),
+              SizedBox(height: ResponsiveConfig.responsivePadding(12.0, screenSize)),
 
               // Quit button
               _buildQuitButton(),
@@ -201,6 +205,9 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
   }
 
   Widget _buildProgressSection(double progress) {
+    return Builder(
+      builder: (context) {
+        final screenSize = MediaQuery.sizeOf(context);
     final timeSurvived = totalTime - timeRemaining;
     
     return Column(
@@ -212,41 +219,49 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
               'Time Survived',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 12,
+                fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
               ),
             ),
             Text(
               '${timeSurvived}s / ${totalTime}s',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.amber,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: ResponsiveConfig.responsivePadding(6.0, screenSize)),
         ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(6.0, screenSize)),
           child: LinearProgressIndicator(
             value: progress,
             backgroundColor: Colors.white.withValues(alpha: 0.1),
             valueColor: AlwaysStoppedAnimation<Color>(
               progress > 0.7 ? Colors.green : Colors.amber,
             ),
-            minHeight: 8,
+            minHeight: ResponsiveConfig.responsiveSize(8.0, screenSize),
           ),
         ),
       ],
     );
+      },
+    );
   }
 
   Widget _buildHeartsStatus() {
+    return Builder(
+      builder: (context) {
+        final screenSize = MediaQuery.sizeOf(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveConfig.responsivePadding(16.0, screenSize),
+        vertical: ResponsiveConfig.responsivePadding(8.0, screenSize),
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(10.0, screenSize)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -254,33 +269,40 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
           // Show 3 hearts (filled/empty based on remaining)
           for (int i = 0; i < 3; i++)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: EdgeInsets.symmetric(
+                horizontal: ResponsiveConfig.responsivePadding(4.0, screenSize),
+              ),
               child: Icon(
                 i < heartsRemaining ? Icons.favorite : Icons.favorite_border,
                 color: i < heartsRemaining ? Colors.red : Colors.grey,
-                size: 24,
+                size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
               ),
             ),
-          const SizedBox(width: 12),
+          SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
           Text(
             heartsRemaining > 0 ? '$heartsRemaining hearts left' : 'No hearts!',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.8),
               fontWeight: FontWeight.w500,
-              fontSize: 13,
+              fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
             ),
           ),
         ],
       ),
     );
+      },
+    );
   }
 
   Widget _buildContinueOptions(bool hasEnoughGems) {
+    return Builder(
+      builder: (context) {
+        final screenSize = MediaQuery.sizeOf(context);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(12.0, screenSize)),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
         border: Border.all(
           color: Colors.amber.withValues(alpha: 0.3),
         ),
@@ -289,13 +311,13 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
         children: [
           Text(
             'Continue? ($continuesRemaining left)',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.amber,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: ResponsiveConfig.responsivePadding(10.0, screenSize)),
           Row(
             children: [
               // Watch Ad button
@@ -307,7 +329,7 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
                   onTap: onContinueWithAd,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
               // Gems button
               Expanded(
                 child: _buildContinueButton(
@@ -322,6 +344,8 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
         ],
       ),
     );
+      },
+    );
   }
 
   Widget _buildContinueButton({
@@ -330,37 +354,49 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
     required Color color,
     VoidCallback? onTap,
   }) {
+    return Builder(
+      builder: (context) {
+        final screenSize = MediaQuery.sizeOf(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 40,
+        height: ResponsiveConfig.responsiveButtonHeight(40.0, screenSize),
         decoration: BoxDecoration(
           gradient: onTap != null
               ? LinearGradient(colors: [color, color.withValues(alpha: 0.7)])
               : null,
           color: onTap == null ? color.withValues(alpha: 0.3) : null,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(10.0, screenSize)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 5),
+            Icon(
+              icon,
+              color: Colors.white,
+              size: ResponsiveConfig.responsiveIconSize(18.0, screenSize),
+            ),
+            SizedBox(width: ResponsiveConfig.responsivePadding(5.0, screenSize)),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
               ),
             ),
           ],
         ),
       ),
     );
+      },
+    );
   }
 
   Widget _buildStartOverButton(bool hasTriesRemaining, int discountedFee) {
+    return Builder(
+      builder: (context) {
+        final screenSize = MediaQuery.sizeOf(context);
     final buttonLabel = hasTriesRemaining
         ? 'START OVER (${entry.triesRemaining} tries left)'
         : 'START OVER ($discountedFee 💎)';
@@ -369,12 +405,12 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
       onTap: onStartOver,
       child: Container(
         width: double.infinity,
-        height: 48,
+        height: ResponsiveConfig.responsiveButtonHeight(48.0, screenSize),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.orange, Colors.orange.withValues(alpha: 0.7)],
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
           boxShadow: [
             BoxShadow(
               color: Colors.orange.withValues(alpha: 0.4),
@@ -386,39 +422,46 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
         child: Center(
           child: Text(
             buttonLabel,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
               letterSpacing: 0.5,
             ),
           ),
         ),
       ),
     );
+      },
+    );
   }
 
   Widget _buildQuitButton() {
+    return Builder(
+      builder: (context) {
+        final screenSize = MediaQuery.sizeOf(context);
     return GestureDetector(
       onTap: onQuit,
       child: Container(
         width: double.infinity,
-        height: 44,
+        height: ResponsiveConfig.responsiveButtonHeight(44.0, screenSize),
         decoration: BoxDecoration(
           color: Colors.grey.shade700,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(10.0, screenSize)),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'QUIT',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 13,
+              fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
             ),
           ),
         ),
       ),
+    );
+      },
     );
   }
 

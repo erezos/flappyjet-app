@@ -7,6 +7,7 @@ import '../../game/core/economy_config.dart';
 import '../../game/systems/inventory_manager.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/lives_manager.dart';
+import '../utils/responsive_config.dart';
 import '../widgets/store/store_header.dart';
 import '../widgets/store/store_navigation.dart';
 import '../widgets/store/jets_store.dart';
@@ -103,7 +104,7 @@ class _StoreScreenState extends State<StoreScreen> {
                 },
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(height: ResponsiveConfig.responsivePadding(12.0, MediaQuery.sizeOf(context))),
 
               // Store Content - Dynamic scrolling without IntrinsicHeight
               Expanded(

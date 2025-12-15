@@ -6,13 +6,17 @@ library;
 
 import 'package:flutter/material.dart';
 import '../../models/tournament_config.dart';
+import '../../models/level_data_schema.dart'; // For LevelData conversion
+import '../../models/bonus_config.dart'; // For BonusConfig
 import '../../game/core/jet_skins.dart';
 import '../../game/systems/inventory_manager.dart';
+import '../utils/responsive_config.dart';
 import '../widgets/coin_3d_icon.dart';
 import '../widgets/gem_3d_icon.dart';
 import '../widgets/hexagonal_level_node.dart';
 import '../widgets/tournament_ticket_icon.dart';
 import '../widgets/world_map_jet_widget.dart';
+import 'level_objective_popup.dart'; // Reuse story mode popup
 
 /// Lightweight world-map style screen for linear tournaments (e.g., stunt).
 /// Uses tournament-specific world map background with nodes positioned along the path.
@@ -193,103 +197,312 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
           ],
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Top row: Back button (stage indicator removed)
-          Row(
+      child: Builder(
+        builder: (context) {
+          final screenSize = MediaQuery.sizeOf(context);
+          return Stack(
+            clipBehavior: Clip.none,
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: widget.onBack,
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // CENTERED: Tournament title with doubled trophy icon, responsive wrap
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 10,
-            runSpacing: 8,
-            children: [
-              // Tournament trophy image (not emoji)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.asset(
-                  _getTournamentTrophyPath(),
-                  width: 96,
-                  height: 96,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.emoji_events, color: Colors.amber, size: 96);
-                  },
-                ),
-              ),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 260),
-                child: Text(
-                  // Remove emoji from name if present
-                  widget.tournament.name.replaceAll(RegExp(r'^[\p{Emoji}]+\s*', unicode: true), ''),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    shadows: [
-                      Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(1, 2)),
+              // Main content column
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Tournament title with trophy icon at the top
+                  Padding(
+                    padding: EdgeInsets.only(top: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: ResponsiveConfig.responsivePadding(10.0, screenSize),
+                      runSpacing: ResponsiveConfig.responsivePadding(8.0, screenSize),
+                      children: [
+                        // Tournament trophy image (not emoji)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(6.0, screenSize)),
+                          child: Image.asset(
+                            _getTournamentTrophyPath(),
+                            width: ResponsiveConfig.responsiveSize(96.0, screenSize),
+                            height: ResponsiveConfig.responsiveSize(96.0, screenSize),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.emoji_events,
+                                color: Colors.amber,
+                                size: ResponsiveConfig.responsiveIconSize(96.0, screenSize),
+                              );
+                            },
+                          ),
+                        ),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: ResponsiveConfig.responsiveSize(260.0, screenSize),
+                          ),
+                          child: Text(
+                            // Remove emoji from name if present
+                            widget.tournament.name.replaceAll(RegExp(r'^[\p{Emoji}]+\s*', unicode: true), ''),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: ResponsiveConfig.responsiveFontSize(22.0, screenSize, context),
+                              fontWeight: FontWeight.w900,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black87,
+                                  blurRadius: 6,
+                                  offset: const Offset(1, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                  
+                  // CENTERED: Tries remaining with ticket icon
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TournamentTicketIcon(
+                        tier: widget.tournament.tier,
+                        size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
+                      ),
+                      SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+                      Text(
+                        '${widget.entrySummary.triesRemaining} ${widget.entrySummary.triesRemaining == 1 ? 'try' : 'tries'} left',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
+                          fontWeight: FontWeight.w600,
+                          shadows: const [
+                            Shadow(color: Colors.black54, blurRadius: 3),
+                          ],
+                        ),
+                      ),
                     ],
+                  ),
+                  
+                  SizedBox(height: ResponsiveConfig.responsivePadding(8.0, screenSize)),
+                  
+                  // CENTERED: All tournament rewards (coins, gems, skins, tickets, boosters)
+                  if (reward.hasReward)
+                    _buildAllRewards(reward, screenSize, context),
+                ],
+              ),
+              
+              // Back button in top left (smaller, overlaying)
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  width: ResponsiveConfig.responsiveSize(36.0, screenSize),
+                  height: ResponsiveConfig.responsiveSize(36.0, screenSize),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
+                    ),
+                    padding: EdgeInsets.zero,
+                    onPressed: widget.onBack,
                   ),
                 ),
               ),
             ],
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // CENTERED: Tries remaining with ticket icon
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TournamentTicketIcon(
-                tier: widget.tournament.tier,
-                size: 20,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '${widget.entrySummary.triesRemaining} ${widget.entrySummary.triesRemaining == 1 ? 'try' : 'tries'} left',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  shadows: const [
-                    Shadow(color: Colors.black54, blurRadius: 3),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 14),
-          
-          // BIGGER Grand Prize section
-          _buildGrandPrizeSection(reward),
-        ],
+          );
+        },
       ),
     );
   }
 
-  /// Build the grand prize section - COMPACT with tournament trophy
+  /// Build all tournament rewards display - shows coins, gems, skins, tickets, boosters, trophies
+  Widget _buildAllRewards(TournamentReward reward, Size screenSize, BuildContext context) {
+    final rewardItems = <Widget>[];
+    
+    // Coins
+    if (reward.coins > 0) {
+      rewardItems.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Coin3DIcon(size: ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
+            SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+            Text(
+              reward.coins.toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
+                fontWeight: FontWeight.w700,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    offset: const Offset(0, 1),
+                    blurRadius: 3,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Gems
+    if (reward.gems > 0) {
+      if (rewardItems.isNotEmpty) {
+        rewardItems.add(SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)));
+      }
+      rewardItems.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Gem3DIcon(size: ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
+            SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+            Text(
+              reward.gems.toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
+                fontWeight: FontWeight.w700,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    offset: const Offset(0, 1),
+                    blurRadius: 3,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Jet Skin (icon only, no text)
+    if (reward.skinId != null) {
+      if (rewardItems.isNotEmpty) {
+        rewardItems.add(SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)));
+      }
+      rewardItems.add(
+        _buildSkinRewardIcon(reward.skinId!, ResponsiveConfig.responsiveIconSize(24.0, screenSize)),
+      );
+    }
+    
+    // Free Ticket (icon only, no text)
+    if (reward.freeTicketTier != null) {
+      if (rewardItems.isNotEmpty) {
+        rewardItems.add(SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)));
+      }
+      rewardItems.add(
+        TournamentTicketIcon(
+          tier: reward.freeTicketTier!,
+          size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
+        ),
+      );
+    }
+    
+    // Booster
+    if (reward.booster != null) {
+      if (rewardItems.isNotEmpty) {
+        rewardItems.add(SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)));
+      }
+      rewardItems.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.bolt,
+              color: Colors.amber,
+              size: ResponsiveConfig.responsiveIconSize(24.0, screenSize),
+            ),
+            SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+            Flexible(
+              child: Text(
+                reward.booster!.displayName,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
+                  fontWeight: FontWeight.w700,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      offset: const Offset(0, 1),
+                      blurRadius: 3,
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (rewardItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveConfig.responsivePadding(12.0, screenSize),
+        vertical: ResponsiveConfig.responsivePadding(6.0, screenSize),
+      ),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(16.0, screenSize)),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.5),
+          width: ResponsiveConfig.responsiveSize(1.5, screenSize),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: ResponsiveConfig.responsivePadding(8.0, screenSize),
+        runSpacing: ResponsiveConfig.responsivePadding(4.0, screenSize),
+        children: rewardItems,
+      ),
+    );
+  }
+
+  /// Build jet skin reward icon
+  Widget _buildSkinRewardIcon(String skinId, double size) {
+    final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
+      (skin) => skin.id == skinId,
+      orElse: () => JetSkinCatalog.starterJet,
+    );
+
+    return Image.asset(
+      'assets/images/${jetSkin.assetPath}',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => Icon(
+        Icons.flight,
+        size: size,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  /// Build the grand prize section - COMPACT with tournament trophy (DEPRECATED - kept for reference)
   Widget _buildGrandPrizeSection(TournamentReward reward) {
     // Get actual jet skin for display
     JetSkin? rewardSkin;
@@ -321,22 +534,31 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
                   ),
                 ),
               ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withOpacity(0.06),
-                      Colors.amber.withOpacity(0.08),
-                      Colors.black.withOpacity(0.10),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 1.5),
+              Builder(
+                builder: (context) {
+                  final screenSize = MediaQuery.sizeOf(context);
+                  return Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveConfig.responsivePadding(18.0, screenSize),
+                      vertical: ResponsiveConfig.responsivePadding(16.0, screenSize),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.06),
+                          Colors.amber.withOpacity(0.08),
+                          Colors.black.withOpacity(0.10),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(14.0, screenSize)),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.6),
+                        width: ResponsiveConfig.responsiveSize(1.5, screenSize),
+                      ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.amber.withOpacity(0.25),
@@ -354,43 +576,47 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
                   children: [
                     _buildExclusiveBadge(),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(10.0, screenSize)),
                       child: Image.asset(
                         _getTournamentTrophyPath(),
-                        width: 76,
-                        height: 76,
+                        width: ResponsiveConfig.responsiveSize(76.0, screenSize),
+                        height: ResponsiveConfig.responsiveSize(76.0, screenSize),
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.emoji_events, color: Colors.amber, size: 76);
+                          return Icon(
+                            Icons.emoji_events,
+                            color: Colors.amber,
+                            size: ResponsiveConfig.responsiveIconSize(76.0, screenSize),
+                          );
                         },
                       ),
                     ),
-                    const Text(
+                    Text(
                       'GRAND PRIZE',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.2,
                       ),
                     ),
                     if (reward.coins > 0)
                       _buildPrizeChip(
-                        icon: const Coin3DIcon(size: 38),
+                        icon: Coin3DIcon(size: ResponsiveConfig.responsiveIconSize(38.0, screenSize)),
                         label: '${reward.coins}',
-                        labelStyle: const TextStyle(
+                        labelStyle: TextStyle(
                           color: Colors.amber,
-                          fontSize: 24,
+                          fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     if (reward.gems > 0)
                       _buildPrizeChip(
-                        icon: const Gem3DIcon(size: 38),
+                        icon: Gem3DIcon(size: ResponsiveConfig.responsiveIconSize(38.0, screenSize)),
                         label: '${reward.gems}',
-                        labelStyle: const TextStyle(
+                        labelStyle: TextStyle(
                           color: Colors.cyanAccent,
-                          fontSize: 24,
+                          fontSize: ResponsiveConfig.responsiveFontSize(24.0, screenSize, context),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -399,31 +625,33 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
                         icon: _buildGlowingIcon(
                           Image.asset(
                             'assets/images/${rewardSkin.assetPath}',
-                            width: 74,
-                            height: 74,
+                            width: ResponsiveConfig.responsiveSize(74.0, screenSize),
+                            height: ResponsiveConfig.responsiveSize(74.0, screenSize),
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
+                              return Icon(
                                 Icons.airplanemode_active,
                                 color: Colors.purple,
-                                size: 44,
+                                size: ResponsiveConfig.responsiveIconSize(44.0, screenSize),
                               );
                             },
                           ),
                           glowColor: Colors.purpleAccent.withOpacity(0.35),
-                          glowSize: 110,
+                          glowSize: ResponsiveConfig.responsiveSize(110.0, screenSize),
                         ),
                         label: rewardSkin.displayName,
                         maxLabelWidth: chipMaxWidth,
-                        labelStyle: const TextStyle(
+                        labelStyle: TextStyle(
                           color: Colors.purpleAccent,
-                          fontSize: 18,
+                          fontSize: ResponsiveConfig.responsiveFontSize(18.0, screenSize, context),
                           fontWeight: FontWeight.w700,
                         ),
                         showLabel: false,
                       ),
                   ],
                 ),
+                  );
+                },
               ),
             ],
           ),
@@ -439,32 +667,41 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
     double? maxLabelWidth,
   bool showLabel = true,
   }) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 40),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon,
-        if (showLabel) ...[
-          const SizedBox(width: 6),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxLabelWidth ?? 120),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: labelStyle ??
-                  const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
+    return Builder(
+      builder: (context) {
+        final screenSize = MediaQuery.sizeOf(context);
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: ResponsiveConfig.responsiveSize(40.0, screenSize),
           ),
-        ],
-        ],
-      ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              icon,
+            if (showLabel) ...[
+              SizedBox(width: ResponsiveConfig.responsivePadding(6.0, screenSize)),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: maxLabelWidth ?? ResponsiveConfig.responsiveSize(120.0, screenSize),
+                ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle ??
+                      TextStyle(
+                        color: Colors.white,
+                        fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+      },
     );
   }
 
@@ -740,344 +977,98 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
   }
 
   /// Show level preview popup before starting the level
+  /// Reuses the story mode LevelObjectivePopup for consistency
   void _showLevelPreviewPopup(int index, TournamentLevel level, NodeState state) {
+    // Convert TournamentLevel to LevelData for popup compatibility
+    final levelData = _convertTournamentLevelToLevelData(level, index);
+    
     showDialog(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.7),
-      builder: (context) => _TournamentLevelPreviewPopup(
-        level: level,
-        levelIndex: index,
-        isCurrentLevel: state == NodeState.active,
-        tournament: widget.tournament,
-        onPlay: () {
+      builder: (context) => LevelObjectivePopup(
+        level: levelData,
+        onStart: () {
           Navigator.of(context).pop();
           widget.onPlayLevel(index);
         },
       ),
     );
   }
+
+  /// Convert TournamentLevel to LevelData for popup compatibility
+  /// This allows us to reuse the story mode LevelObjectivePopup
+  LevelData _convertTournamentLevelToLevelData(TournamentLevel tournamentLevel, int levelIndex) {
+    // Determine objective type and description from tournament level
+    final mode = tournamentLevel.stuntConfig?['mode'] as String?;
+    final requiredValue = tournamentLevel.difficulty.requiredDistance;
+    
+    ObjectiveType objectiveType;
+    String objectiveDescription;
+    
+    if (mode == 'time_survival') {
+      objectiveType = ObjectiveType.surviveTime;
+      objectiveDescription = 'Survive $requiredValue seconds';
+    } else {
+      objectiveType = ObjectiveType.passObstacles;
+      objectiveDescription = 'Pass $requiredValue obstacles';
+    }
+    
+    // Convert TournamentReward to LevelReward
+    final levelReward = LevelReward(
+      coins: tournamentLevel.reward.coins,
+      gems: tournamentLevel.reward.gems,
+      specialReward: tournamentLevel.reward.skinId, // Map skinId to specialReward
+    );
+    
+    // Convert opponentJet to BotBattle if present
+    BotBattle? botBattle;
+    if (tournamentLevel.opponentJet != null) {
+      // Create a default bot battle configuration for tournament opponents
+      botBattle = BotBattle(
+        botName: 'Opponent', // Default name, could be enhanced later
+        botJetSkin: tournamentLevel.opponentJet!,
+        skillLevel: 1.0,
+        reactionTime: 0.2,
+        mistakeRate: 0.1,
+      );
+    }
+    
+    // Create LevelTheme from tournament level background
+    final levelTheme = LevelTheme(
+      background: tournamentLevel.background,
+      obstacles: 'wooden_pipes.png', // Default obstacles for tournament
+      music: 'sky_rookie.mp3', // Default music for tournament
+    );
+    
+    // Create DifficultyConfig from TournamentDifficulty
+    final difficultyConfig = DifficultyConfig(
+      speedMultiplier: tournamentLevel.difficulty.speedMultiplier,
+      obstacleGap: tournamentLevel.difficulty.obstacleGap.toDouble(),
+      obstacleFrequency: tournamentLevel.difficulty.obstacleFrequency,
+      maxGapShift: tournamentLevel.difficulty.maxGapShift.toDouble(),
+    );
+    
+    // Create LevelObjective
+    final levelObjective = LevelObjective(
+      type: objectiveType,
+      target: requiredValue,
+      description: objectiveDescription,
+    );
+    
+    // Create LevelData
+    return LevelData(
+      id: levelIndex + 1, // Use levelIndex + 1 as ID (stages are 1-indexed)
+      zone: widget.tournament.tier.index + 1, // Use tournament tier as zone
+      name: tournamentLevel.name,
+      objective: levelObjective,
+      difficulty: difficultyConfig,
+      reward: levelReward,
+      theme: levelTheme,
+      botBattle: botBattle,
+      bonuses: BonusConfig.disabled, // Tournaments don't use in-game bonuses
+    );
+  }
 }
 
 enum NodeState { active, completed, locked }
-
-/// Level preview popup for tournament levels - MATCHES STORY MODE STYLE
-class _TournamentLevelPreviewPopup extends StatefulWidget {
-  final TournamentLevel level;
-  final int levelIndex;
-  final bool isCurrentLevel;
-  final TournamentConfig tournament;
-  final VoidCallback onPlay;
-
-  const _TournamentLevelPreviewPopup({
-    required this.level,
-    required this.levelIndex,
-    required this.isCurrentLevel,
-    required this.tournament,
-    required this.onPlay,
-  });
-
-  @override
-  State<_TournamentLevelPreviewPopup> createState() => _TournamentLevelPreviewPopupState();
-}
-
-class _TournamentLevelPreviewPopupState extends State<_TournamentLevelPreviewPopup>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _popupController;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _popupController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _popupController, curve: Curves.easeOutBack),
-    );
-    _popupController.forward();
-  }
-
-  @override
-  void dispose() {
-    _popupController.dispose();
-    super.dispose();
-  }
-
-  /// Get objective description based on level difficulty
-  String _getObjectiveDescription() {
-    final mode = widget.level.stuntConfig?['mode'] as String?;
-    final requiredValue = widget.level.difficulty.requiredDistance;
-
-    if (mode == 'time_survival') {
-      return 'Survive $requiredValue seconds';
-    }
-
-    return 'Pass $requiredValue obstacles';
-  }
-  
-  /// Get the objective icon based on tournament type
-  IconData _getObjectiveIcon() {
-    final mode = widget.level.stuntConfig?['mode'] as String?;
-    if (mode == 'time_survival') {
-      return Icons.timer_outlined;
-    }
-    return Icons.flag_rounded;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final popupWidth = (screenWidth * 0.85).clamp(300.0, 400.0);
-    
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Popup container with gradient border (like story mode)
-            Container(
-              constraints: BoxConstraints(maxWidth: popupWidth),
-              margin: const EdgeInsets.all(4),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    blurRadius: 30,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF1E3A8A), Color(0xFF312E81)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Stage title (like story mode "LEVEL X")
-                    Text(
-                      'STAGE ${widget.levelIndex + 1}',
-                      style: TextStyle(
-                        color: Colors.orange.shade300,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            offset: const Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 4),
-                    
-                    // Level name
-                    Text(
-                      widget.level.name,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // OBJECTIVE section (like story mode)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            _getObjectiveIcon(),
-                            color: Colors.amber.shade300,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'OBJECTIVE',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _getObjectiveDescription(),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // REWARD section (like story mode)
-                    const Text(
-                      'REWARD',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Coins
-                        if (widget.level.reward.coins > 0) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.amber.shade300, width: 2),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Coin3DIcon(size: 20),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${widget.level.reward.coins}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        // Gems
-                        if (widget.level.reward.gems > 0) ...[
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.cyan.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.cyan, width: 2),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Gem3DIcon(size: 20),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${widget.level.reward.gems}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // START button with gradient (like story mode)
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.amber.shade400, Colors.orange.shade600],
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.amber.withValues(alpha: 0.5),
-                            blurRadius: 15,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: widget.onPlay,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: const Text(
-                          'START ▶',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            // Close button at top-right (like story mode)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 2),
-                  ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 20),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

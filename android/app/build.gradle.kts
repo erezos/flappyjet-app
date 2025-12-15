@@ -45,6 +45,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true  // Required for Unity Ads + multiple ad SDKs
+        
+        // Required for Flutter integration tests with Firebase Test Lab
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -73,6 +76,12 @@ dependencies {
     // The adapter requires the actual Unity Ads SDK to be present
     implementation("com.unity3d.ads:unity-ads:4.12.5")  // Unity Ads SDK
     implementation("com.google.ads.mediation:unity:4.12.5.0")  // Google's mediation adapter
+    
+    // Required for Flutter integration tests with Firebase Test Lab
+    // These are only used in androidTest builds, not in the main app
+    // Using version 1.2.0 to match integration_test package constraints
+    androidTestImplementation("androidx.test:runner:1.2.0")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 }
 
 flutter {

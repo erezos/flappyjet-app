@@ -4,4 +4,11 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    
+    <!-- Declare the test runner for Flutter integration tests when built with -Ptarget -->
+    <!-- This allows the debug APK to be used as an instrumentation test APK for Firebase Test Lab -->
+    <instrumentation
+        android:name="androidx.test.runner.AndroidJUnitRunner"
+        android:targetPackage="com.flappyjet.pro.flappy_jet_pro"
+        android:label="Flutter integration tests" />
 </manifest>

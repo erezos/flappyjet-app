@@ -24,14 +24,14 @@ enum BonusSpawnLocation {
 
 /// Shield tier configuration (different durations/colors)
 enum ShieldTier {
-  /// Blue shield - 3 seconds duration (most common)
-  blue(3.0, 'shield_bonus_blue.png'),
+  /// Blue shield - 4 seconds duration (most common)
+  blue(4.0, 'shield_bonus_blue.png'),
   
-  /// Red shield - 4 seconds duration (medium rarity)
-  red(4.0, 'shield_bonus_red.png'),
+  /// Red shield - 5 seconds duration (medium rarity)
+  red(5.0, 'shield_bonus_red.png'),
   
-  /// Green shield - 5 seconds duration (rare)
-  green(5.0, 'shield_bonus_green.png');
+  /// Green shield - 6 seconds duration (rare)
+  green(6.0, 'shield_bonus_green.png');
   
   final double duration;
   final String assetName;

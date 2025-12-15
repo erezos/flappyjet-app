@@ -576,8 +576,10 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
     final padding = screenSize.width * 0.045; // 4.5% of screen width
     final titleSize = screenSize.width * 0.035; // 3.5% of screen width
     final valueSize = screenSize.width * 0.06; // 6% of screen width
-    final totalCoins = widget.entry.coinsEarned + widget.tournament.completionReward.coins;
-    final totalGems = widget.entry.gemsEarned + widget.tournament.completionReward.gems;
+    // Note: entry.coinsEarned and entry.gemsEarned already include the completion reward
+    // (added in TournamentEntry.completeTournament), so we don't need to add it again
+    final totalCoins = widget.entry.coinsEarned;
+    final totalGems = widget.entry.gemsEarned;
     final completionReward = widget.tournament.completionReward;
     
     return AnimatedBuilder(
