@@ -61,3 +61,6 @@ ios/ExportOptions.plist
 # Firebase Test Lab
 .firebase_test_lab.env
 firebase-test-results/
+
+# Google Cloud SDK (accidentally included)
+y/
