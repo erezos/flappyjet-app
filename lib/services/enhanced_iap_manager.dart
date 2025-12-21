@@ -20,6 +20,23 @@ import '../game/systems/purchase_history_manager.dart';
 import '../config/iap_config.dart';
 import 'iap_receipt_validator.dart';
 
+/// Purchase completion event data
+class PurchaseCompletionEvent {
+  final String productId;
+  final IAPProduct product;
+  final bool success;
+  final String? error;
+  final PurchaseDetails? purchaseDetails;
+
+  PurchaseCompletionEvent({
+    required this.productId,
+    required this.product,
+    required this.success,
+    this.error,
+    this.purchaseDetails,
+  });
+}
+
 /// Purchase result enumeration
 enum PurchaseResultStatus {
   success,
@@ -114,6 +131,15 @@ class EnhancedIAPManager extends ChangeNotifier {
   // 🔥 CRITICAL: Purchase state management to prevent backend overwrite
   bool _isProcessingPurchase = false;
   DateTime? _lastPurchaseTime;
+  
+  // 🎯 Purchase completion stream for popups to listen to
+  final StreamController<PurchaseCompletionEvent> _purchaseCompletionController =
+      StreamController<PurchaseCompletionEvent>.broadcast();
+  
+  /// Stream of purchase completion events
+  /// Listen to this stream to be notified when purchases complete
+  Stream<PurchaseCompletionEvent> get purchaseCompletionStream =>
+      _purchaseCompletionController.stream;
 
   // Purchase tracking
   final Map<String, DateTime> _purchaseAttempts = {};
@@ -471,6 +497,14 @@ class EnhancedIAPManager extends ChangeNotifier {
 
       safePrint('💳 ✅ Purchase completed: ${iapProduct.displayName}');
       
+      // 🎯 Emit purchase completion event for popups to listen to
+      _purchaseCompletionController.add(PurchaseCompletionEvent(
+        productId: iapProduct.id,
+        product: iapProduct,
+        success: true,
+        purchaseDetails: purchaseDetails,
+      ));
+      
       // 🔥 CRITICAL: Set completion flags to prevent backend overwrite
       _isProcessingPurchase = false;
       _lastPurchaseTime = DateTime.now();
@@ -482,6 +516,18 @@ class EnhancedIAPManager extends ChangeNotifier {
         'product_id': purchaseDetails.productID,
         'error': e.toString(),
       });
+      
+      // 🎯 Emit purchase failure event
+      final iapProduct = IAPProductCatalog.getProductByStoreId(purchaseDetails.productID);
+      if (iapProduct != null) {
+        _purchaseCompletionController.add(PurchaseCompletionEvent(
+          productId: iapProduct.id,
+          product: iapProduct,
+          success: false,
+          error: e.toString(),
+          purchaseDetails: purchaseDetails,
+        ));
+      }
       
       // 🔥 CRITICAL: Reset processing flag on error
       _isProcessingPurchase = false;
@@ -697,16 +743,8 @@ class EnhancedIAPManager extends ChangeNotifier {
         return _availabilityCache!;
       }
       
-      // First check the basic IAP availability
-      final basicAvailability = await _iap.isAvailable();
-      
-      if (basicAvailability) {
-        _availabilityCache = true;
-        _lastAvailabilityCheck = DateTime.now();
-        return true; // Real device with IAP support
-      }
-      
-      // Check if we're on an emulator
+      // Check if we're on an emulator FIRST (before checking IAP availability)
+      // This allows emulator simulation to work even if IAP reports unavailable
       final isEmulator = await _isRunningOnEmulator();
       
       if (isEmulator) {
@@ -724,6 +762,15 @@ class EnhancedIAPManager extends ChangeNotifier {
         }
       }
       
+      // For real devices, check the basic IAP availability
+      final basicAvailability = await _iap.isAvailable();
+      
+      if (basicAvailability) {
+        _availabilityCache = true;
+        _lastAvailabilityCheck = DateTime.now();
+        return true; // Real device with IAP support
+      }
+      
       // Real device without IAP support
       _availabilityCache = false;
       _lastAvailabilityCheck = DateTime.now();
@@ -731,6 +778,16 @@ class EnhancedIAPManager extends ChangeNotifier {
       
     } catch (e) {
       safePrint('💳 ❌ Error checking IAP availability: $e');
+      // In debug mode, allow emulator simulation even if check fails
+      if (kDebugMode) {
+        final isEmulator = await _isRunningOnEmulator();
+        if (isEmulator) {
+          _availabilityCache = true;
+          _lastAvailabilityCheck = DateTime.now();
+          safePrint('💳 🧪 IAP simulation enabled for emulator (fallback)');
+          return true;
+        }
+      }
       _availabilityCache = false;
       _lastAvailabilityCheck = DateTime.now();
       return false;
@@ -812,6 +869,14 @@ class EnhancedIAPManager extends ChangeNotifier {
       // Grant rewards directly (skip server validation on emulator)
       await _grantPurchaseRewards(iapProduct, null);
       
+      // 🎯 Emit purchase completion event for popups to listen to
+      _purchaseCompletionController.add(PurchaseCompletionEvent(
+        productId: iapProduct.id,
+        product: iapProduct,
+        success: true,
+        purchaseDetails: null,
+      ));
+      
       // Track simulated purchase
       await _trackPurchaseEvent('purchase_simulated', {
         'product_id': iapProduct.id,
@@ -820,6 +885,10 @@ class EnhancedIAPManager extends ChangeNotifier {
         'platform': 'emulator',
       });
       
+      // 🔥 CRITICAL: Set completion flags to prevent backend overwrite
+      _isProcessingPurchase = false;
+      _lastPurchaseTime = DateTime.now();
+      
       _isPurchasing = false;
       notifyListeners();
       
@@ -827,6 +896,15 @@ class EnhancedIAPManager extends ChangeNotifier {
       return PurchaseResult.success(iapProduct, null);
       
     } catch (e) {
+      // 🎯 Emit purchase failure event
+      _purchaseCompletionController.add(PurchaseCompletionEvent(
+        productId: iapProduct.id,
+        product: iapProduct,
+        success: false,
+        error: e.toString(),
+        purchaseDetails: null,
+      ));
+      
       _isPurchasing = false;
       notifyListeners();
       
@@ -875,6 +953,7 @@ class EnhancedIAPManager extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    _purchaseCompletionController.close();
     super.dispose();
   }
 }

@@ -103,22 +103,24 @@ class TournamentCard extends StatelessWidget {
                     padding: EdgeInsets.all(padding),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.max, // ✅ FIXED: Use max to fill available space
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween, // ✅ FIXED: Push button to bottom
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Top section: Title and Prizes
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Full Name & Type (kept compact)
-                            _buildTitleSection(screenSize),
+                        // Top section: Title and Prizes - Flexible to prevent overflow
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Full Name & Type (kept compact)
+                              _buildTitleSection(screenSize),
 
-                            SizedBox(height: ResponsiveConfig.responsiveSize(8, screenSize, minScale: 0.6, maxScale: 1.0)),
+                              SizedBox(height: ResponsiveConfig.responsiveSize(6, screenSize, minScale: 0.5, maxScale: 0.9)),
 
-                            // Prizes Preview - BIGGER with more space
-                            _buildPrizesRow(screenSize),
-                          ],
+                              // Prizes Preview - BIGGER with more space
+                              _buildPrizesRow(screenSize),
+                            ],
+                          ),
                         ),
 
                         // Bottom: Entry Button - Always at bottom of card

@@ -18,6 +18,7 @@ import '../buttons/modern_game_button.dart';
 import '../buttons/button_styles.dart';
 import '../../../core/debug_logger.dart';
 import '../../../core/events/event_bus.dart';
+import '../../../services/enhanced_iap_manager.dart';
 import 'dart:async';
 import 'insufficient_currency_popup.dart'; // For SpecialPopupFrameSafeArea
 
@@ -80,6 +81,10 @@ class _ChristmasJetBundlePopupWidgetState extends State<ChristmasJetBundlePopupW
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   bool _isPurchasing = false;
+  
+  // 🎯 Purchase completion listener
+  StreamSubscription<PurchaseCompletionEvent>? _purchaseCompletionSubscription;
+  final String _productId = 'christmas_jet_bundle';
 
   // Jet skins in the bundle
   static const List<String> _jetSkinIds = ['blitzen', 'comet', 'rudolph'];
@@ -103,10 +108,37 @@ class _ChristmasJetBundlePopupWidgetState extends State<ChristmasJetBundlePopupW
 
     _animationController.forward();
     HapticFeedback.mediumImpact();
+    
+    // 🎯 Listen to purchase completion events
+    _setupPurchaseCompletionListener();
+  }
+
+  /// Setup listener for purchase completion events
+  void _setupPurchaseCompletionListener() {
+    final iapManager = EnhancedIAPManager();
+    _purchaseCompletionSubscription = iapManager.purchaseCompletionStream.listen(
+      (event) {
+        // Only handle events for this product
+        if (event.productId == _productId) {
+          if (event.success) {
+            _handlePurchaseSuccess();
+          } else {
+            _handlePurchaseFailure(event.error ?? 'Unknown error');
+          }
+        }
+      },
+      onError: (error) {
+        safePrint('⚠️ Purchase completion stream error: $error');
+        if (mounted) {
+          setState(() => _isPurchasing = false);
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
+    _purchaseCompletionSubscription?.cancel();
     _animationController.dispose();
     super.dispose();
   }
@@ -531,7 +563,7 @@ class _ChristmasJetBundlePopupWidgetState extends State<ChristmasJetBundlePopupW
     HapticFeedback.mediumImpact();
 
     try {
-      final iapProduct = IAPProductCatalog.getProductById('christmas_jet_bundle');
+      final iapProduct = IAPProductCatalog.getProductById(_productId);
       if (iapProduct == null) {
         safePrint('⚠️ Christmas jet bundle product not found');
         if (mounted) {
@@ -543,120 +575,45 @@ class _ChristmasJetBundlePopupWidgetState extends State<ChristmasJetBundlePopupW
         return;
       }
 
-      // Purchase via IAP (use product ID, not store ID)
+      // 🎯 Purchase via IAP - returns pending, actual completion comes through stream
       final monetization = MonetizationManager();
       final purchaseResult = await monetization.purchaseIAPProduct(iapProduct.id);
 
       if (purchaseResult.isSuccess) {
-        // ✅ FIX: Unlock all 3 jet skins - ensure all are unlocked before proceeding
-        final inventory = InventoryManager();
-        
-        // Unlock all skins sequentially and verify each one
-        for (final skinId in _jetSkinIds) {
-          try {
-            await inventory.unlockSkin(skinId);
-            safePrint('✅ Unlocked jet skin: $skinId');
-          } catch (e) {
-            safePrint('❌ Error unlocking skin $skinId: $e');
-            // Continue with other skins even if one fails
-          }
-        }
-        
-        // Refresh inventory to ensure all changes are persisted
-        await inventory.refresh();
-        
-        // Verify all skins were unlocked
-        final allUnlocked = _jetSkinIds.every((skinId) => inventory.isOwned(skinId));
-        if (!allUnlocked) {
-          safePrint('⚠️ Warning: Not all skins were unlocked. Retrying...');
-          // Retry unlocking any missing skins
-          for (final skinId in _jetSkinIds) {
-            if (!inventory.isOwned(skinId)) {
-              try {
-                await inventory.unlockSkin(skinId);
-                safePrint('✅ Retry unlocked jet skin: $skinId');
-              } catch (e) {
-                safePrint('❌ Retry failed for skin $skinId: $e');
-              }
-            }
-          }
-          // Refresh again after retry
-          await inventory.refresh();
-        }
-
-        // Equip blitzen
-        await inventory.equipSkin(_equipSkinId);
-
-        // Track purchase
-        final gameEvents = GameEventsTracker();
-        for (final skinId in _jetSkinIds) {
-          final skin = JetSkinCatalog.getAllSkins().firstWhere(
-            (s) => s.id == skinId,
-            orElse: () => JetSkinCatalog.starterJet,
-          );
-          await gameEvents.onSkinPurchased(
-            skinId: skinId,
-            coinCost: 0,
-            rarity: skin.rarity.name,
-          );
-        }
-
-        // Fire EventBus event
-        EventBus().fire('special_offer_purchased', {
-          'offer_id': 'christmas_jet_bundle',
-          'product_id': 'christmas_jet_bundle',
-          'price_usd': 1.99,
-          'skins_unlocked': _jetSkinIds,
-          'skin_equipped': _equipSkinId,
-        });
-
-        HapticFeedback.heavyImpact();
-        
-        // ✅ FIX: Auto-close popup immediately after successful purchase
-        // Close the dialog first, then show success message
-        if (mounted) {
-          // Close the dialog immediately
-          Navigator.of(context).pop(true);
-          
-          // Show success message after dialog closes
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('🎉 Christmas bundle purchased! All 3 jets unlocked! Blitzen equipped!'),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
-          });
-          
-          // Call purchase complete callback
-          widget.onPurchaseComplete();
-        } else {
-          widget.onPurchaseComplete();
-        }
+        // This should rarely happen (only in emulator simulation)
+        // But handle it just in case
+        await _handlePurchaseSuccess();
       } else if (purchaseResult.isCancelled) {
         // User cancelled - no error message needed
         setState(() => _isPurchasing = false);
       } else if (purchaseResult.isPending) {
+        // ✅ FIX: Purchase is pending - wait for completion event from stream
+        // The stream listener will call _handlePurchaseSuccess() when complete
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Purchase is being processed...'),
               backgroundColor: Colors.blue,
+              duration: Duration(seconds: 2),
             ),
           );
         }
-        // Keep purchasing state - will be updated when purchase completes
-        // Note: In a real implementation, you'd listen to the purchase stream
-        // For now, we'll reset after a delay
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
+        // Keep purchasing state - will be updated by stream listener
+        // Set a timeout to prevent infinite waiting
+        Future.delayed(const Duration(seconds: 30), () {
+          if (mounted && _isPurchasing) {
+            safePrint('⚠️ Purchase timeout - resetting state');
             setState(() => _isPurchasing = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Purchase is taking longer than expected. Please check your purchase status.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
           }
         });
       } else {
+        // Purchase failed immediately
         safePrint('⚠️ Purchase failed: ${purchaseResult.message}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -680,6 +637,130 @@ class _ChristmasJetBundlePopupWidgetState extends State<ChristmasJetBundlePopupW
       }
       setState(() => _isPurchasing = false);
     }
+  }
+
+  /// 🎯 Handle successful purchase completion (called from stream listener)
+  Future<void> _handlePurchaseSuccess() async {
+    if (!mounted) return;
+    
+    try {
+      safePrint('🎉 Christmas Bundle purchase completed - unlocking skins...');
+      
+      // ✅ Unlock all 3 jet skins - ensure all are unlocked before proceeding
+      final inventory = InventoryManager();
+      
+      // Unlock all skins sequentially and verify each one
+      for (final skinId in _jetSkinIds) {
+        try {
+          await inventory.unlockSkin(skinId);
+          safePrint('✅ Unlocked jet skin: $skinId');
+        } catch (e) {
+          safePrint('❌ Error unlocking skin $skinId: $e');
+          // Continue with other skins even if one fails
+        }
+      }
+      
+      // Refresh inventory to ensure all changes are persisted
+      await inventory.refresh();
+      
+      // Verify all skins were unlocked
+      final allUnlocked = _jetSkinIds.every((skinId) => inventory.isOwned(skinId));
+      if (!allUnlocked) {
+        safePrint('⚠️ Warning: Not all skins were unlocked. Retrying...');
+        // Retry unlocking any missing skins
+        for (final skinId in _jetSkinIds) {
+          if (!inventory.isOwned(skinId)) {
+            try {
+              await inventory.unlockSkin(skinId);
+              safePrint('✅ Retry unlocked jet skin: $skinId');
+            } catch (e) {
+              safePrint('❌ Retry failed for skin $skinId: $e');
+            }
+          }
+        }
+        // Refresh again after retry
+        await inventory.refresh();
+      }
+
+      // Equip blitzen
+      await inventory.equipSkin(_equipSkinId);
+      safePrint('✅ Equipped skin: $_equipSkinId');
+
+      // Track purchase events
+      final gameEvents = GameEventsTracker();
+      for (final skinId in _jetSkinIds) {
+        final skin = JetSkinCatalog.getAllSkins().firstWhere(
+          (s) => s.id == skinId,
+          orElse: () => JetSkinCatalog.starterJet,
+        );
+        await gameEvents.onSkinPurchased(
+          skinId: skinId,
+          coinCost: 0,
+          rarity: skin.rarity.name,
+        );
+      }
+
+      // Fire EventBus event
+      EventBus().fire('special_offer_purchased', {
+        'offer_id': 'christmas_jet_bundle',
+        'product_id': 'christmas_jet_bundle',
+        'price_usd': 1.99,
+        'skins_unlocked': _jetSkinIds,
+        'skin_equipped': _equipSkinId,
+      });
+
+      HapticFeedback.heavyImpact();
+      
+      // ✅ Auto-close popup immediately after successful purchase
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+        
+        // Close the dialog
+        Navigator.of(context).pop(true);
+        
+        // Show success message after dialog closes
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('🎉 Christmas bundle purchased! All 3 jets unlocked! Blitzen equipped!'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        });
+        
+        // Call purchase complete callback
+        widget.onPurchaseComplete();
+      }
+    } catch (e) {
+      safePrint('⚠️ Error handling purchase success: $e');
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error completing purchase: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Handle purchase failure (called from stream listener)
+  void _handlePurchaseFailure(String error) {
+    if (!mounted) return;
+    
+    safePrint('⚠️ Purchase failed: $error');
+    setState(() => _isPurchasing = false);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Purchase failed: $error'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 }
 
