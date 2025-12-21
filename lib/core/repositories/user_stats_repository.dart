@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database/local_database_manager.dart';
 import '../debug_logger.dart';
 
@@ -202,6 +203,14 @@ class UserStatsRepository extends ChangeNotifier {
       },
       where: 'id = 1',
     );
+
+    // Also save to SharedPreferences as a fallback
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('stats_high_score', newScore);
+    } catch (e) {
+      safePrint('⚠️ Failed to save high score to SharedPreferences: $e');
+    }
 
     _cachedStats = null;
     await getUserStats();

@@ -2,21 +2,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'package:flappy_jet_pro/integrations/push_notification_manager.dart';
 
-// Generate mocks
-@GenerateMocks([
-  FirebaseMessaging,
-  FlutterLocalNotificationsPlugin,
-  SharedPreferences,
-  http.Client,
-])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -51,7 +38,7 @@ void main() {
       // This is a general validation rule for FCM tokens
       // The actual validation happens in the backend
       const shortToken = 'abc123';
-      const longToken = 'a' * 150;
+      final longToken = 'a' * 150;
       
       // Validate token length
       expect(shortToken.length < 140, true);
@@ -115,5 +102,4 @@ void main() {
       }
     });
   });
-});
-
+}

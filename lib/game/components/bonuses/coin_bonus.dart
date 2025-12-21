@@ -88,7 +88,7 @@ class CoinBonus extends CollectibleBonus with RewardTrailAnimation {
     final center = size / 2;
     final centerOffset = Offset(center.x, center.y);
     final glowPaint = Paint()
-      ..color = glowColor.withOpacity(0.4)
+      ..color = glowColor.withValues(alpha: 102 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, bonusSize * 0.25);
     canvas.drawCircle(centerOffset, bonusSize * 0.4, glowPaint);
   }
@@ -107,7 +107,7 @@ class CoinBonus extends CollectibleBonus with RewardTrailAnimation {
     
     // Outer glow
     final glowPaint = Paint()
-      ..color = glowColor.withOpacity(0.4)
+      ..color = glowColor.withValues(alpha: 102 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.4);
     canvas.drawCircle(Offset.zero, radius * 1.2, glowPaint);
     
@@ -125,14 +125,14 @@ class CoinBonus extends CollectibleBonus with RewardTrailAnimation {
     
     // Edge highlight
     final edgePaint = Paint()
-      ..color = const Color(0xFFFFE566).withOpacity(0.8)
+      ..color = const Color(0xFFFFE566).withValues(alpha: 204 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
     canvas.drawCircle(Offset.zero, radius * 0.85, edgePaint);
     
     // Inner detail ($ symbol or simple design)
     final detailPaint = Paint()
-      ..color = const Color(0xFFB8860B).withOpacity(0.6)
+      ..color = const Color(0xFFB8860B).withValues(alpha: 153 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset.zero, radius * 0.3, detailPaint);
     

@@ -248,7 +248,7 @@ class _DebugPopupMenu extends StatelessWidget {
       ),
       subtitle: Text(
         'Type: ${reward.type.name}',
-        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+        style: TextStyle(color: Colors.white.withValues(alpha: 153), fontSize: 12),
       ),
       trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
       onTap: () {
@@ -262,7 +262,7 @@ class _DebugPopupMenu extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.7),
+      barrierColor: Colors.black.withValues(alpha: 179),
       builder: (dialogContext) => DailyStreakRewardClaimPopup(
         reward: reward,
         onClose: () {

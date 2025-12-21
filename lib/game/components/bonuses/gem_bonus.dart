@@ -76,12 +76,12 @@ class GemBonus extends CollectibleBonus with RewardTrailAnimation {
     
     // Double glow for premium feel
     final outerGlow = Paint()
-      ..color = glowColor.withOpacity(0.2)
+      ..color = glowColor.withValues(alpha: 51 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, bonusSize * 0.4);
     canvas.drawCircle(centerOffset, bonusSize * 0.5, outerGlow);
     
     final innerGlow = Paint()
-      ..color = const Color(0xFFE040FB).withOpacity(0.3)
+      ..color = const Color(0xFFE040FB).withValues(alpha: 77 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, bonusSize * 0.2);
     canvas.drawCircle(centerOffset, bonusSize * 0.35, innerGlow);
   }
@@ -102,7 +102,7 @@ class GemBonus extends CollectibleBonus with RewardTrailAnimation {
       final x = center.x + math.cos(angle) * distance;
       final y = center.y + math.sin(angle) * distance;
       
-      sparklePaint.color = Colors.white.withOpacity(opacity);
+      sparklePaint.color = Colors.white.withValues(alpha: opacity); // Fixed: removed *255, withValues expects 0.0-1.0
       
       // Draw cross-shaped sparkle
       canvas.drawLine(
@@ -163,7 +163,7 @@ class GemBonus extends CollectibleBonus with RewardTrailAnimation {
     
     // Facet highlights
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
+      ..color = Colors.white.withValues(alpha: 102 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     
@@ -174,7 +174,7 @@ class GemBonus extends CollectibleBonus with RewardTrailAnimation {
     
     // Top highlight
     final topHighlight = Paint()
-      ..color = Colors.white.withOpacity(0.5);
+      ..color = Colors.white.withValues(alpha: 128 / 255.0); // Fixed: convert 0-255 to 0.0-1.0
     final topPath = Path()
       ..moveTo(center.x, center.y - gemSize * 0.3)
       ..lineTo(center.x - gemSize * 0.3, center.y)

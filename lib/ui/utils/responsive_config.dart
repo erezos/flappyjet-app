@@ -233,5 +233,75 @@ class ResponsiveConfig {
       return 1.0;
     }
   }
+  
+  // ========================================
+  // SYSTEM UI INSETS (Navigation Bar Handling)
+  // ========================================
+  
+  /// Get the active screen size excluding system UI overlays
+  /// 
+  /// This is the Flame game engine best practice: use actual viewport size
+  /// excluding system navigation bars and status bars.
+  /// 
+  /// Mobile Gaming Standard: Treat system UI as NOT part of active screen area
+  /// 
+  /// [context] - BuildContext for MediaQuery
+  /// Returns: Size representing the active screen area (excluding system UI)
+  static Size getActiveScreenSize(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    final padding = mediaQuery.padding;
+    
+    // Active screen = full screen minus system UI insets
+    return Size(
+      screenSize.width - padding.left - padding.right,
+      screenSize.height - padding.top - padding.bottom,
+    );
+  }
+  
+  /// Get system navigation bar height (bottom inset)
+  /// 
+  /// This detects system navigation bars on Android devices (Xiaomi, Samsung, etc.)
+  /// and gesture navigation bars that overlay the bottom of the screen.
+  /// 
+  /// [context] - BuildContext for MediaQuery
+  /// Returns: Height of system navigation bar in pixels
+  static double getSystemNavigationBarHeight(BuildContext context) {
+    return MediaQuery.of(context).padding.bottom;
+  }
+  
+  /// Check if device has a system navigation bar
+  /// 
+  /// [context] - BuildContext for MediaQuery
+  /// Returns: true if system navigation bar is present
+  static bool hasSystemNavigationBar(BuildContext context) {
+    return getSystemNavigationBarHeight(context) > 0;
+  }
+  
+  /// Get safe bottom position for footer navigator
+  /// 
+  /// Positions footer above system navigation bar to prevent overlap.
+  /// This is the recommended approach for mobile games.
+  /// 
+  /// [context] - BuildContext for MediaQuery
+  /// [footerHeight] - Height of the footer navigator
+  /// Returns: Bottom position that accounts for system navigation bar
+  static double getSafeFooterBottomPosition(BuildContext context, double footerHeight) {
+    final systemNavBarHeight = getSystemNavigationBarHeight(context);
+    // Position footer above system navigation bar
+    return systemNavBarHeight;
+  }
+  
+  /// Get total bottom padding needed (footer + system navigation bar)
+  /// 
+  /// Use this for content padding to ensure content doesn't overlap footer or system UI
+  /// 
+  /// [context] - BuildContext for MediaQuery
+  /// [footerHeight] - Height of the footer navigator
+  /// Returns: Total bottom padding (footer height + system navigation bar height)
+  static double getTotalBottomPadding(BuildContext context, double footerHeight) {
+    final systemNavBarHeight = getSystemNavigationBarHeight(context);
+    return footerHeight + systemNavBarHeight;
+  }
 }
 

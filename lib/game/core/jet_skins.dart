@@ -630,6 +630,49 @@ class JetSkinCatalog {
       tags: ['wasp', 'bio', 'venom', 'mythic', 'exclusive'],
       thrustTint: Color(0xFF32CD32),
     ),
+
+    JetSkin(
+      id: 'rudolph',
+      displayName: 'Rudolph',
+      description: 'The legendary reindeer with a glowing red nose. Guide Santa through the night sky!',
+      assetPath: 'jets/rudolph.png',
+      price: 16.99, // USD price for gem-exclusive content (1699 gems)
+      rarity: JetRarity.mythic,
+      isPurchased: false,
+      isEquipped: false,
+      category: JetSkinCategory.seasonal,
+      tags: ['rudolph', 'christmas', 'reindeer', 'mythic', 'exclusive', 'seasonal'],
+      thrustTint: Color(0xFFFF0000), // Red for Rudolph's nose
+    ),
+
+    // 🎄 CHRISTMAS JET SKINS
+    JetSkin(
+      id: 'blitzen',
+      displayName: 'Blitzen',
+      description: 'Lightning-fast reindeer jet. Speed through the winter skies!',
+      assetPath: 'jets/blitzen.png',
+      price: 16.99, // USD price for gem-exclusive content (1699 gems)
+      rarity: JetRarity.mythic,
+      isPurchased: false,
+      isEquipped: false,
+      category: JetSkinCategory.seasonal,
+      tags: ['blitzen', 'christmas', 'reindeer', 'mythic', 'exclusive', 'seasonal'],
+      thrustTint: Color(0xFF00FFFF), // Cyan for lightning
+    ),
+
+    JetSkin(
+      id: 'comet',
+      displayName: 'Comet',
+      description: 'Streak across the sky like a comet. Leave a trail of stardust!',
+      assetPath: 'jets/comet.png',
+      price: 16.99, // USD price for gem-exclusive content (1699 gems)
+      rarity: JetRarity.mythic,
+      isPurchased: false,
+      isEquipped: false,
+      category: JetSkinCategory.seasonal,
+      tags: ['comet', 'christmas', 'reindeer', 'mythic', 'exclusive', 'seasonal'],
+      thrustTint: Color(0xFFFFD700), // Gold for comet trail
+    ),
   ];
 
   /// Get all premium skins (excludes starter)

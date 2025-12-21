@@ -12,8 +12,11 @@ import '../core/debug_logger.dart';
 import '../game/core/iap_products.dart';
 import '../game/systems/inventory_manager.dart';
 import '../game/systems/lives_manager.dart';
+import '../game/systems/no_ads_manager.dart';
+import '../game/core/economy_config.dart';
 import '../game/systems/firebase_analytics_manager.dart';
 import '../game/systems/player_identity_manager.dart';
+import '../game/systems/purchase_history_manager.dart';
 import '../config/iap_config.dart';
 import 'iap_receipt_validator.dart';
 
@@ -296,8 +299,9 @@ class EnhancedIAPManager extends ChangeNotifier {
       final purchaseParam = PurchaseParam(productDetails: storeProduct);
       
       // Use appropriate purchase method based on product type
-      if (iapProduct.type == IAPProductType.jetSkin) {
-        // Non-consumable for permanent items
+      if (iapProduct.type == IAPProductType.jetSkin || 
+          iapProduct.type == IAPProductType.noAds) {
+        // Non-consumable for permanent items (skins, No Ads)
         await _iap.buyNonConsumable(purchaseParam: purchaseParam);
       } else {
         // Consumable for gems, boosters, etc.
@@ -496,6 +500,17 @@ class EnhancedIAPManager extends ChangeNotifier {
         await _inventory!.grantGems(product.totalGems);
         safePrint('💳 💎 Granted ${product.totalGems} gems');
         
+        // 📦 Track gem pack purchase for smart recommendations
+        if (product.type == IAPProductType.gemPack) {
+          try {
+            final purchaseHistory = PurchaseHistoryManager();
+            await purchaseHistory.recordGemPackPurchase(product.id);
+            safePrint('📦 PurchaseHistory: Recorded gem pack purchase: ${product.id}');
+          } catch (e) {
+            safePrint('📦 ⚠️ Failed to record gem pack purchase: $e');
+          }
+        }
+        
         // 🔥 CRITICAL: Sync gems to backend after IAP purchase
         try {
           await _syncGemsToBackend();
@@ -531,12 +546,57 @@ class EnhancedIAPManager extends ChangeNotifier {
       }
 
       // Unlock jet skin
-      if (product.jetSkinId != null && _inventory != null) {
+      // ✅ FIX: Skip automatic skin unlock for multi-skin bundle products
+      // These bundles (christmas_jet_bundle, starter_boss_pack) unlock multiple skins
+      // via their dedicated popup handlers, not through the automatic IAP unlock flow
+      final multiSkinBundleIds = {'christmas_jet_bundle', 'starter_boss_pack'};
+      final isMultiSkinBundle = multiSkinBundleIds.contains(product.id);
+      
+      if (product.jetSkinId != null && _inventory != null && !isMultiSkinBundle) {
         await _inventory!.unlockSkin(product.jetSkinId!);
         safePrint('💳 🚁 Unlocked jet skin: ${product.jetSkinId}');
         
         // Skin sync is now handled automatically by InventoryManager via EventBus
         // No need for manual backend sync
+      } else if (isMultiSkinBundle) {
+        safePrint('💳 ⚠️ Skipping automatic skin unlock for multi-skin bundle: ${product.id}');
+        safePrint('💳 ℹ️ Skins will be unlocked by the dedicated popup handler');
+      }
+
+      // Activate No Ads
+      if (product.type == IAPProductType.noAds) {
+        final noAdsManager = NoAdsManager();
+        if (product.id == 'no_ads_lifetime') {
+          await noAdsManager.activateLifetime();
+          safePrint('💳 🚫 Activated lifetime No Ads');
+        } else if (product.id == 'no_ads_monthly') {
+          await noAdsManager.activateMonthly();
+          safePrint('💳 🚫 Activated monthly No Ads');
+        } else if (product.id == 'no_ads_24h') {
+          await noAdsManager.activate24Hours();
+          safePrint('💳 🚫 Activated 24 Hours No Ads');
+        } else if (product.id == 'no_ads_week') {
+          await noAdsManager.activate1Week();
+          safePrint('💳 🚫 Activated 1 Week No Ads');
+        }
+      }
+
+      // Handle bundle products (Heart Booster + No Ads)
+      if (product.type == IAPProductType.bundle) {
+        final noAdsManager = NoAdsManager();
+        final inventory = InventoryManager();
+        
+        // Activate Heart Booster
+        final heartBoosterPack = EconomyConfig.heartBoosterPacks.values.firstWhere(
+          (pack) => pack.durationHours == product.heartBoosterHours,
+          orElse: () => EconomyConfig.heartBoosterPacks['heart_booster_24h']!,
+        );
+        await inventory.activateHeartBooster(heartBoosterPack.duration);
+        
+        // Activate No Ads for bundle duration (24h, 48h, or 72h)
+        final bundleHours = product.heartBoosterHours; // Bundle duration matches heart booster duration
+        await noAdsManager.extendNoAds(Duration(hours: bundleHours));
+        safePrint('💳 🎁 Activated Bundle: ${product.heartBoosterHours}h Heart Booster + No Ads');
       }
 
     } catch (e) {

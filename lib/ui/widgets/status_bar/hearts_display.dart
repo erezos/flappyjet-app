@@ -35,7 +35,6 @@ class HeartsDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     // 🎮 FLAME ENGINE BEST PRACTICE: Proportional scaling based on screen dimensions
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     
     // Calculate base scale factor from screen width (reference: 375px = 1x scale)
     final scaleFactor = (screenWidth / 375.0).clamp(0.8, 1.5);
@@ -44,10 +43,6 @@ class HeartsDisplay extends StatelessWidget {
       valueListenable: _livesManager.livesListenable,
       builder: (context, count, _) {
         final maxLives = _livesManager.maxLives;
-
-        // 🎯 DYNAMIC SIZING: Scale based on heart count AND screen size
-        // Calculate total available width for hearts (proportional to screen)
-        final availableWidth = screenWidth * 0.3; // Hearts take ~30% of screen width max
         
         // Calculate optimal heart size to fit all hearts in available space
         // Formula: (availableWidth - (spacing * (hearts - 1))) / hearts

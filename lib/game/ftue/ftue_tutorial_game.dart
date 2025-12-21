@@ -464,13 +464,13 @@ class SkipButtonOverlay extends PositionComponent with HasGameRef<FTUETutorialGa
     
     canvas.drawRRect(
       rrect,
-      Paint()..color = Colors.black.withOpacity(0.6 * _fadeProgress),
+      Paint()..color = Colors.black.withValues(alpha: ((0.6 * _fadeProgress) * 255).round().toDouble()),
     );
 
     canvas.drawRRect(
       rrect,
       Paint()
-        ..color = Colors.white.withOpacity(0.3 * _fadeProgress)
+        ..color = Colors.white.withValues(alpha: ((0.3 * _fadeProgress) * 255).round().toDouble())
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );

@@ -81,7 +81,7 @@ class ShieldBonus extends CollectibleBonus {
     final radius = bonusSize * 0.4;
     
     final glowPaint = Paint()
-      ..color = glowColor.withOpacity(0.3)
+      ..color = glowColor.withValues(alpha: 77 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.4);
     canvas.drawCircle(centerOffset, radius * 1.3, glowPaint);
   }
@@ -94,7 +94,7 @@ class ShieldBonus extends CollectibleBonus {
     
     // Outer glow
     final glowPaint = Paint()
-      ..color = glowColor.withOpacity(0.3)
+      ..color = glowColor.withValues(alpha: 77 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.4);
     canvas.drawCircle(centerOffset, radius * 1.3, glowPaint);
     
@@ -102,9 +102,9 @@ class ShieldBonus extends CollectibleBonus {
     final bodyPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          glowColor.withOpacity(0.9),
-          glowColor.withOpacity(0.6),
-          glowColor.withOpacity(0.3),
+          glowColor.withValues(alpha: 230 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
+          glowColor.withValues(alpha: 153 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
+          glowColor.withValues(alpha: 77 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
         ],
         stops: const [0.0, 0.6, 1.0],
       ).createShader(Rect.fromCircle(center: centerOffset, radius: radius));
@@ -112,14 +112,14 @@ class ShieldBonus extends CollectibleBonus {
     
     // Inner highlight
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
+      ..color = Colors.white.withValues(alpha: 153 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
     canvas.drawCircle(centerOffset, radius * 0.7, highlightPaint);
     
     // Shield icon (simple energy waves)
     final wavePaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
+      ..color = Colors.white.withValues(alpha: 102 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     

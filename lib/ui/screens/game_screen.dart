@@ -10,9 +10,9 @@ import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
-import '../../game/systems/social_sharing_manager.dart';
 import '../../game/core/economy_config.dart';
 import '../widgets/game_over_menu.dart';
+import '../widgets/continue_with_insufficient_currency.dart';
 import 'store_screen.dart';
 import '../../core/events/event_bus.dart';
 import '../../core/repositories/user_stats_repository.dart';
@@ -161,7 +161,6 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     },
                   );
                 },
-                onShare: _shareScore,
                 canContinue: game.gameStateManager.canContinueWithAd,
                 continuesRemaining: game.gameStateManager.continuesRemaining,
                 playerGems: InventoryManager().gems,
@@ -183,82 +182,47 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     game.resetGame();
   }
 
-  void _shareScore(String platform) {
-    // Convert string platform to SocialPlatform enum
-    SocialPlatform? socialPlatform;
-    switch (platform.toLowerCase()) {
-      case 'whatsapp':
-        socialPlatform = SocialPlatform.whatsapp;
-        break;
-      case 'instagram':
-        socialPlatform = SocialPlatform.instagram;
-        break;
-      case 'facebook':
-        socialPlatform = SocialPlatform.facebook;
-        break;
-      case 'tiktok':
-        socialPlatform = SocialPlatform.tiktok;
-        break;
-    }
-    
-    if (socialPlatform != null) {
-      // Get current score from game
-      final currentScore = game.currentScore;
-      
-      // Use the new template-based sharing system
-      final sharingManager = SocialSharingManager();
-      sharingManager.shareScore(
-        score: currentScore,
-        platform: socialPlatform,
-      );
-    }
-  }
-
   void _handleBuySingleHeart() async {
-    final inventory = InventoryManager();
-    final price = _getSingleHeartPrice();
+    final price = _getSingleHeartPrice(); // 3 gems
 
-    if (inventory.gems >= price) {
-      // Spend gems
-      final success = await inventory.spendGems(
-        price,
-        spentOn: 'continue_purchase',
-        itemId: 'continue_gems',
-      );
-      if (success) {
-        // Add 1 heart
-        final livesManager = LivesManager();
-        await livesManager.addLife(1);
-
-        // Continue the game
-        game.continueGame(
-          continueType: 'gem_purchase',
-          costGems: price,
+    // Use smart insufficient currency handler
+    await handleContinueWithInsufficientCurrency(
+      context: context,
+      gemCost: price,
+      continueContext: 'endless_mode',
+      onContinueAction: () async {
+        final inventory = InventoryManager();
+        
+        // Spend gems
+        final success = await inventory.spendGems(
+          price,
+          spentOn: 'continue_purchase',
+          itemId: 'continue_gems',
         );
+        if (success) {
+          // Add 1 heart
+          final livesManager = LivesManager();
+          await livesManager.addLife(1);
 
-        // Show success feedback
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('💎 Heart purchased! Game continues!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
+          // Continue the game
+          game.continueGame(
+            continueType: 'gem_purchase',
+            costGems: price,
           );
+
+          // Show success feedback
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('💎 Heart purchased! Game continues!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         }
-      }
-    } else {
-      // Not enough gems
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('💎 Need $price gems to buy a heart'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
+      },
+    );
   }
 
   int _getSingleHeartPrice() {

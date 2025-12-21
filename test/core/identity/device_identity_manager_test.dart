@@ -155,20 +155,17 @@ void main() {
         final metadata = identityManager.getDeviceMetadata();
 
         // Country is optional - may or may not be present depending on device locale
-        // If countryCode is not null, it should be in metadata
-        if (identityManager.countryCode != null) {
-          expect(metadata, containsPair('country', identityManager.countryCode));
+        // Check if country is in metadata (if present, it should be valid)
+        if (metadata.containsKey('country')) {
           expect(metadata['country'], isA<String>());
           expect((metadata['country'] as String).length, equals(2));
-        } else {
-          // If country is not detected, it should not be in metadata
-          expect(metadata, isNot(containsPair('country', anything)));
         }
       });
 
       test('should have valid country code format if present', () async {
         await identityManager.initialize();
-        final countryCode = identityManager.countryCode;
+        final metadata = identityManager.getDeviceMetadata();
+        final countryCode = metadata['country'] as String?;
 
         if (countryCode != null) {
           // Should be 2-letter uppercase country code (ISO 3166-1 alpha-2)

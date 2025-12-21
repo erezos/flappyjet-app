@@ -13,7 +13,7 @@
       },
       "difficulty": {
         "speedMultiplier": 0.95,
-        "obstacleGap": 460,
+        "obstacleGap": 506.0,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -29,7 +29,7 @@
         "enabled": true,
         "minPerLevel": 1,
         "maxPerLevel": 4,
-        "spawnChance": 0.90,
+        "spawnChance": 0.9,
         "minObstaclesBeforeFirstBonus": 0,
         "minObstaclesBetweenBonuses": 2,
         "spawnLocations": {
@@ -41,7 +41,7 @@
         "shield": {
           "chance": 1.0,
           "shieldTierWeights": {
-            "blue": 0.10,
+            "blue": 0.1,
             "red": 0.45,
             "green": 0.45
           }
@@ -60,7 +60,7 @@
       },
       "difficulty": {
         "speedMultiplier": 0.85,
-        "obstacleGap": 460,
+        "obstacleGap": 506.0,
         "obstacleFrequency": 0.65,
         "maxGapShift": 50
       },
@@ -77,7 +77,7 @@
         "enabled": true,
         "minPerLevel": 1,
         "maxPerLevel": 4,
-        "spawnChance": 0.90,
+        "spawnChance": 0.9,
         "minObstaclesBeforeFirstBonus": 2,
         "minObstaclesBetweenBonuses": 6,
         "spawnLocations": {
@@ -89,7 +89,7 @@
         "shield": {
           "chance": 1.0,
           "shieldTierWeights": {
-            "blue": 0.10,
+            "blue": 0.1,
             "red": 0.45,
             "green": 0.45
           }
@@ -108,7 +108,7 @@
       },
       "difficulty": {
         "speedMultiplier": 0.95,
-        "obstacleGap": 450,
+        "obstacleGap": 495.0,
         "obstacleFrequency": 2.6
       },
       "reward": {
@@ -134,15 +134,15 @@
           "lowerZoneWeight": 0.025
         },
         "shield": {
-          "chance": 0.90,
+          "chance": 0.9,
           "shieldTierWeights": {
-            "blue": 0.50,
+            "blue": 0.5,
             "red": 0.35,
             "green": 0.15
           }
         },
         "coins": {
-          "chance": 0.10,
+          "chance": 0.1,
           "minAmount": 3,
           "maxAmount": 6
         }
@@ -159,8 +159,8 @@
         "description": "Survive for 15 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 0.90,
-        "obstacleGap": 450,
+        "speedMultiplier": 0.9,
+        "obstacleGap": 643.5,
         "obstacleFrequency": 0.65,
         "maxGapShift": 50
       },
@@ -176,33 +176,33 @@
       "bonuses": {
         "enabled": true,
         "minPerLevel": 1,
-        "maxPerLevel": 4,
-        "spawnChance": 0.60,
-        "minObstaclesBeforeFirstBonus": 2,
-        "minObstaclesBetweenBonuses": 6,
+        "maxPerLevel": 20,
+        "spawnChance": 0.95,
+        "minObstaclesBeforeFirstBonus": 0,
+        "minObstaclesBetweenBonuses": 1,
         "spawnLocations": {
-          "insideGapWeight": 0.7,
-          "betweenObstaclesWeight": 0.2,
-          "upperZoneWeight": 0.05,
-          "lowerZoneWeight": 0.05
+          "insideGapWeight": 0.85,
+          "betweenObstaclesWeight": 0.12,
+          "upperZoneWeight": 0.015,
+          "lowerZoneWeight": 0.015
         },
         "shield": {
-          "chance": 0.49,
+          "chance": 0.4,
           "shieldTierWeights": {
-            "blue": 0.40,
-            "red": 0.30,
-            "green": 0.30
+            "blue": 0.5,
+            "red": 0.3,
+            "green": 0.2
           }
         },
         "coins": {
-          "chance": 0.49,
-          "minAmount": 4,
-          "maxAmount": 7
+          "chance": 0.55,
+          "minAmount": 5,
+          "maxAmount": 10
         },
         "gems": {
-          "chance": 0.02,
+          "chance": 0.05,
           "minAmount": 1,
-          "maxAmount": 1
+          "maxAmount": 2
         }
       },
       "botBattle": null
@@ -218,7 +218,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 315,
+        "obstacleGap": 346.5,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -246,7 +246,7 @@
         "shield": {
           "chance": 0.75,
           "shieldTierWeights": {
-            "blue": 0.50,
+            "blue": 0.5,
             "red": 0.35,
             "green": 0.15
           }
@@ -283,7 +283,7 @@
       },
       "difficulty": {
         "speedMultiplier": 0.95,
-        "obstacleGap": 399,
+        "obstacleGap": 438.9,
         "obstacleFrequency": 2.6
       },
       "reward": {
@@ -309,10 +309,10 @@
           "lowerZoneWeight": 0.05
         },
         "shield": {
-          "chance": 0.70,
+          "chance": 0.7,
           "shieldTierWeights": {
             "blue": 0.55,
-            "red": 0.30,
+            "red": 0.3,
             "green": 0.15
           }
         },
@@ -340,7 +340,7 @@
       },
       "difficulty": {
         "speedMultiplier": 0.95,
-        "obstacleGap": 378,
+        "obstacleGap": 415.8,
         "obstacleFrequency": 0.65,
         "maxGapShift": 50
       },
@@ -367,20 +367,20 @@
           "lowerZoneWeight": 0.05
         },
         "shield": {
-          "chance": 0.10,
+          "chance": 0.1,
           "shieldTierWeights": {
             "blue": 0.55,
-            "red": 0.30,
+            "red": 0.3,
             "green": 0.15
           }
         },
         "coins": {
-          "chance": 0.90,
+          "chance": 0.9,
           "minAmount": 1,
           "maxAmount": 5
         },
         "gems": {
-          "chance": 0.00,
+          "chance": 0.0,
           "minAmount": 1,
           "maxAmount": 1
         }
@@ -398,7 +398,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.0,
-        "obstacleGap": 378,
+        "obstacleGap": 415.8,
         "obstacleFrequency": 2.5
       },
       "reward": {
@@ -424,10 +424,10 @@
           "lowerZoneWeight": 0.05
         },
         "shield": {
-          "chance": 0.70,
+          "chance": 0.7,
           "shieldTierWeights": {
             "blue": 0.55,
-            "red": 0.30,
+            "red": 0.3,
             "green": 0.15
           }
         },
@@ -455,7 +455,7 @@
       },
       "difficulty": {
         "speedMultiplier": 0.95,
-        "obstacleGap": 389,
+        "obstacleGap": 427.9,
         "obstacleFrequency": 0.65,
         "maxGapShift": 50
       },
@@ -482,10 +482,10 @@
           "lowerZoneWeight": 0.05
         },
         "shield": {
-          "chance": 0.70,
+          "chance": 0.7,
           "shieldTierWeights": {
             "blue": 0.55,
-            "red": 0.30,
+            "red": 0.3,
             "green": 0.15
           }
         },
@@ -513,7 +513,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.05,
-        "obstacleGap": 294,
+        "obstacleGap": 323.4,
         "obstacleFrequency": 2.4
       },
       "reward": {
@@ -543,7 +543,7 @@
           "shieldTierWeights": {
             "blue": 0.45,
             "red": 0.35,
-            "green": 0.20
+            "green": 0.2
           }
         },
         "coins": {
@@ -566,7 +566,7 @@
         "minObstaclePass": 6,
         "firstAttemptOverride": {
           "skillLevel": 0.85,
-          "reactionTime": 0.10,
+          "reactionTime": 0.1,
           "mistakeRate": 0.05,
           "minObstaclePass": 8
         }

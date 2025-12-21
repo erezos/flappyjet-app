@@ -53,11 +53,12 @@ class TournamentManager extends ChangeNotifier {
   Set<String> get completedTournamentIds => _completedTournamentIds;
   List<TournamentHistoryEntry> get history => _history;
 
-  /// Get available tournaments for display (active status only)
+  /// Get available tournaments for display (active status only, not expired)
   List<TournamentConfig> get displayableTournaments =>
       _availableTournaments.where((t) => 
-        t.status == TournamentStatus.active || 
-        t.status == TournamentStatus.upcoming
+        (t.status == TournamentStatus.active || 
+         t.status == TournamentStatus.upcoming) &&
+        t.isAvailable
       ).toList();
 
   /// Get count of free tickets for a specific tier
@@ -680,6 +681,12 @@ class TournamentManager extends ChangeNotifier {
   // ============================================================================
   // 💾 PERSISTENCE
   // ============================================================================
+
+  /// Update an active entry (for game count tracking, etc.)
+  Future<void> updateActiveEntry(String tournamentId, TournamentEntry entry) async {
+    _activeEntries[tournamentId] = entry;
+    await _saveActiveEntries();
+  }
 
   Future<void> _saveActiveEntries() async {
     final prefs = await SharedPreferences.getInstance();

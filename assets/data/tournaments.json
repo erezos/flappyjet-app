@@ -368,7 +368,7 @@
       "name": "🚁 Chopper Adventures",
       "description": "The ultimate helicopter showdown! Face elite chopper pilots in a 5-round playoff!",
       "tier": "gold",
-      "status": "active",
+      "status": "hidden",
       "progression_type": "playoff",
       
       "entry": {
@@ -540,6 +540,263 @@
         "type": "level",
         "value": 15
       }
+    },
+    
+    {
+      "id": "christmas_tournament",
+      "name": "🎄 Christmas Tournament",
+      "description": "Celebrate the holidays with festive challenges! Navigate through 6 magical Christmas levels!",
+      "tier": "gold",
+      "status": "active",
+      "progression_type": "linear",
+      "start_date": "2025-12-01T00:00:00Z",
+      "end_date": "2026-01-20T23:59:59Z",
+      
+      "entry": {
+        "type": "gems",
+        "amount": 50,
+        "free_ticket_tier": "gold"
+      },
+      
+      "tries": {
+        "count": 5
+      },
+      
+      "continues": {
+        "max_per_try": 5,
+        "gem_cost": 3,
+        "ad_available": true
+      },
+      
+      "levels": [
+        {
+          "round": 1,
+          "name": "Snowy Start",
+          "background": "tournaments/Christmas/christmas_background.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.0,
+            "obstacleGap": 350,
+            "obstacleFrequency": 3.5,
+            "maxGapShift": 50,
+            "requiredDistance": 20,
+            "_comment": "EASY: 20 sec survival, slow obstacles, small size"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 60, "frequency": 0.3 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "tournaments/Christmas/christmas_obstacle1.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 3.0,
+            "spawn_variance": 0.1,
+            "scroll_speed": 160,
+            "vertical_amplitude_percent": 0.12,
+            "vertical_frequency": 0.30,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 100,
+            "gems": 3
+          }
+        },
+        {
+          "round": 2,
+          "name": "Frosty Peaks",
+          "background": "tournaments/Christmas/christmas_background.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.0,
+            "obstacleGap": 350,
+            "obstacleFrequency": 3.0,
+            "maxGapShift": 50,
+            "requiredDistance": 25,
+            "_comment": "EASY-MEDIUM: 25 sec survival"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 70, "frequency": 0.35 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "tournaments/Christmas/christmas_obstacle2.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 2.6,
+            "spawn_variance": 0.1,
+            "scroll_speed": 175,
+            "vertical_amplitude_percent": 0.14,
+            "vertical_frequency": 0.38,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 150,
+            "gems": 6
+          }
+        },
+        {
+          "round": 3,
+          "name": "Gift Wrapped",
+          "background": "tournaments/Christmas/christmas_background.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.0,
+            "obstacleGap": 350,
+            "obstacleFrequency": 2.5,
+            "maxGapShift": 50,
+            "requiredDistance": 30,
+            "_comment": "MEDIUM: 30 sec survival, moderate difficulty"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 80, "frequency": 0.4 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "tournaments/Christmas/christmas_obstacle3.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 2.2,
+            "spawn_variance": 0.1,
+            "scroll_speed": 200,
+            "vertical_amplitude_percent": 0.20,
+            "vertical_frequency": 0.50,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 200,
+            "gems": 7
+          }
+        },
+        {
+          "round": 4,
+          "name": "Santa's Workshop",
+          "background": "tournaments/Christmas/christmas_background.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.05,
+            "obstacleGap": 350,
+            "obstacleFrequency": 2.2,
+            "maxGapShift": 55,
+            "requiredDistance": 35,
+            "_comment": "MEDIUM-HARD: 35 sec survival, faster obstacles (stunt level 4 params)"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 90, "frequency": 0.5 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "tournaments/Christmas/christmas_obstacle1.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 2.0,
+            "spawn_variance": 0.1,
+            "scroll_speed": 190,
+            "vertical_amplitude_percent": 0.24,
+            "vertical_frequency": 0.52,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 300,
+            "gems": 10
+          }
+        },
+        {
+          "round": 5,
+          "name": "Reindeer Run",
+          "background": "tournaments/Christmas/christmas_background.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.05,
+            "obstacleGap": 350,
+            "obstacleFrequency": 2.2,
+            "maxGapShift": 55,
+            "requiredDistance": 35,
+            "_comment": "MEDIUM-HARD: 35 sec survival, faster obstacles (stunt level 4 params)"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 90, "frequency": 0.5 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "tournaments/Christmas/christmas_obstacle2.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 2.0,
+            "spawn_variance": 0.1,
+            "scroll_speed": 190,
+            "vertical_amplitude_percent": 0.24,
+            "vertical_frequency": 0.52,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 450,
+            "gems": 14
+          }
+        },
+        {
+          "round": 6,
+          "name": "Christmas Champion",
+          "background": "tournaments/Christmas/christmas_background.png",
+          "opponent_jet": null,
+          "difficulty": {
+            "speedMultiplier": 1.1,
+            "obstacleGap": 340,
+            "obstacleFrequency": 1.8,
+            "maxGapShift": 60,
+            "requiredDistance": 45,
+            "_comment": "HARD: 45 sec survival, fast large obstacles (stunt level 5 params)"
+          },
+          "obstacles": {
+            "pattern_mix": [
+              { "type": "verticalOscillate", "weight": 100, "params": { "amplitude": 100, "frequency": 0.6 } }
+            ]
+          },
+          "stunt_config": {
+            "mode": "time_survival",
+            "asset_path": "tournaments/Christmas/christmas_obstacle3.png",
+            "obstacle_size_percent": 0.5,
+            "spawn_interval": 1.8,
+            "spawn_variance": 0.1,
+            "scroll_speed": 205,
+            "vertical_amplitude_percent": 0.27,
+            "vertical_frequency": 0.58,
+            "one_at_a_time": true
+          },
+          "reward": {
+            "coins": 500,
+            "gems": 10
+          }
+        }
+      ],
+      
+      "completion_reward": {
+        "coins": 1800,
+        "gems": 950,
+        "skin_id": "rudolph",
+        "trophy_id": "christmas_champion_trophy"
+      },
+      
+      "lose_all_tries_offer": {
+        "enabled": false,
+        "discount_percent": 60,
+        "extra_tries": 3,
+        "base_gem_cost": 400
+      },
+      
+      "display": {
+        "banner_image": "christmas_tournament_image.png",
+        "icon": "trophy_gold",
+        "color_primary": "#FFD700",
+        "color_secondary": "#FFA000"
+      },
+      
+      "unlock_requirement": null
     }
   ]
 }

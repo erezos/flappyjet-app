@@ -25,6 +25,7 @@ import '../screens/world_map_screen.dart';
 import '../screens/zone_completion_screen.dart'; // 🏆 Zone celebration
 // ✅ FIX: Removed unused import - Story mode no longer uses GameOverMenu
 // import '../widgets/game_over_menu.dart';
+import '../widgets/continue_with_insufficient_currency.dart';
 import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 import '../../core/repositories/user_stats_repository.dart';
@@ -201,16 +202,9 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
   }
 
   void _onObstaclePassed() {
-    safePrint('🎯 STORY MODE: _onObstaclePassed called!');
-    safePrint('🎯 STORY MODE: Objective type = ${widget.level.objective.type}');
-    
     // Update objective progress for "pass obstacles" type
     if (widget.level.objective.type == ObjectiveType.passObstacles) {
       _objectiveTracker.incrementProgress();
-      
-      safePrint('🎯 STORY MODE: Progress incremented! Current: ${_objectiveTracker.currentProgress}/${widget.level.objective.target}');
-      safePrint('🎯 STORY MODE: Is completed? ${_objectiveTracker.isCompleted}');
-      safePrint('🎯 STORY MODE: Level ended? $_levelEnded');
 
       // 🎯 UPDATE UI: Defer setState to avoid calling during build phase
       if (mounted) {
@@ -223,7 +217,6 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
 
       // Check if objective is completed
       if (_objectiveTracker.isCompleted && !_levelEnded) {
-        safePrint('🎯 STORY MODE: ✅ OBJECTIVE COMPLETED! Calling _onLevelCompleted()');
         _onLevelCompleted();
       }
     } else {
@@ -462,56 +455,61 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
             ? () async {
                 safePrint('🎯 STORY MODE: Continue with gems requested');
                 
-                final inventory = InventoryManager();
                 const gemCost = 3;
                 
-                if (inventory.gems >= gemCost) {
-                  // Deduct gems
-                  final success = await inventory.spendGems(gemCost);
-                  if (!success) {
-                    safePrint('⚠️ Failed to spend gems for continue');
-                    return;
-                  }
-                  safePrint('💎 Deducted $gemCost gems for continue');
-                  
-                  // Restore 1 heart
-                  final livesManager = LivesManager();
-                  await livesManager.addLife(1);
-                  safePrint('💖 Story Mode: Restored 1 heart after gem continue (now: ${livesManager.currentLives})');
-                  
-                  // ✅ FIX: Track continue usage for missions
-                  final gameEventsTracker = GameEventsTracker();
-                  await gameEventsTracker.onContinueUsed(gemsCost: gemCost);
-                  safePrint('🎯 MISSIONS: Continue with gems tracked');
-                  
-                  // ✅ FIX: Defer popup closing until after current frame completes
-                  // This prevents "Navigator is locked" errors when called during animations
-                  if (mounted) {
-                    SchedulerBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        Navigator.of(context).pop();
-                      }
-                    });
-                  }
-                  
-                  // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
-                  // This was causing the timer to immediately cancel after continue
-                  _levelEnded = false;
-                  safePrint('🔄 STORY MODE: _levelEnded reset to false for gem continue');
-                  
-                  // Continue game (this also resets end state now)
-                  _game.continueGame();
-                  
-                  // Restart timer for time-based levels
-                  if (widget.level.objective.type == ObjectiveType.surviveTime || 
-                      widget.level.objective.type == ObjectiveType.beatBot) {
-                    _updateTimer?.cancel();
-                    _startUpdateTimer();
-                    safePrint('🎯 TIMER: Restarted after gem continue');
-                  }
-                } else {
-                  safePrint('⚠️ Not enough gems for continue');
-                }
+                // Use smart insufficient currency handler
+                await handleContinueWithInsufficientCurrency(
+                  context: context,
+                  gemCost: gemCost,
+                  continueContext: 'story_mode',
+                  onContinueAction: () async {
+                    final inventory = InventoryManager();
+                    
+                    // Deduct gems
+                    final spendSuccess = await inventory.spendGems(gemCost);
+                    if (!spendSuccess) {
+                      safePrint('⚠️ Failed to spend gems for continue');
+                      return;
+                    }
+                    safePrint('💎 Deducted $gemCost gems for continue');
+                    
+                    // Restore 1 heart
+                    final livesManager = LivesManager();
+                    await livesManager.addLife(1);
+                    safePrint('💖 Story Mode: Restored 1 heart after gem continue (now: ${livesManager.currentLives})');
+                    
+                    // ✅ FIX: Track continue usage for missions
+                    final gameEventsTracker = GameEventsTracker();
+                    await gameEventsTracker.onContinueUsed(gemsCost: gemCost);
+                    safePrint('🎯 MISSIONS: Continue with gems tracked');
+                    
+                    // ✅ FIX: Defer popup closing until after current frame completes
+                    // This prevents "Navigator is locked" errors when called during animations
+                    if (mounted) {
+                      SchedulerBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      });
+                    }
+                    
+                    // ✅ CRITICAL FIX: Reset _levelEnded so timer can run!
+                    // This was causing the timer to immediately cancel after continue
+                    _levelEnded = false;
+                    safePrint('🔄 STORY MODE: _levelEnded reset to false for gem continue');
+                    
+                    // Continue game (this also resets end state now)
+                    _game.continueGame();
+                    
+                    // Restart timer for time-based levels
+                    if (widget.level.objective.type == ObjectiveType.surviveTime || 
+                        widget.level.objective.type == ObjectiveType.beatBot) {
+                      _updateTimer?.cancel();
+                      _startUpdateTimer();
+                      safePrint('🎯 TIMER: Restarted after gem continue');
+                    }
+                  },
+                );
               }
             : null,
         ),
@@ -679,6 +677,22 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       );
       safePrint('🏅 [BG] Achievements checked');
       
+      // 🏆 Update high score if this is a new record
+      try {
+        final database = LocalDatabaseManager();
+        if (database.isInitialized) {
+          final userStats = UserStatsRepository(database);
+          final isNewRecord = await userStats.updateHighScore(finalScore);
+          if (isNewRecord) {
+            safePrint('🏆 ✅ New high score saved: $finalScore');
+          } else {
+            safePrint('🏆 Score $finalScore (current high score is higher)');
+          }
+        }
+      } catch (e) {
+        safePrint('⚠️ Failed to update high score: $e');
+      }
+      
     } catch (e) {
       // Background errors shouldn't crash the game
       safePrint('⚠️ [BG] Background operation error (non-fatal): $e');
@@ -820,7 +834,6 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
           // Game with tap detection
           GestureDetector(
             onTap: () {
-              safePrint('🎯 STORY MODE: UI TAP DETECTED - calling game.handleTap()');
               _game.handleTap();
             },
             child: GameWidget(game: _game),

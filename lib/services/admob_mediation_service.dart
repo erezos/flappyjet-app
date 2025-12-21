@@ -114,6 +114,9 @@ class AdMobMediationService {
   /// Returns a Future<bool> that completes when the ad is closed:
   /// - true: User earned reward
   /// - false: User did not earn reward (early exit or failure)
+  /// 
+  /// NOTE: Rewarded ads are NOT affected by No Ads purchase.
+  /// Users can still watch rewarded ads to continue games, get extra lives, etc.
   Future<bool> showRewardedAd() async {
     if (_rewardedAd == null) {
       safePrint('📱 ❌ No ad available to show');

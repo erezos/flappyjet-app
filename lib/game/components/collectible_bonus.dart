@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/effects.dart';
-import 'package:flame/sprite.dart';
 import 'package:flutter/material.dart';
 import '../../core/debug_logger.dart';
 import '../../models/bonus_config.dart';
@@ -193,7 +192,7 @@ abstract class CollectibleBonus extends PositionComponent with HasGameReference 
     final glowOpacity = _minGlowOpacity + (glowPhase + 1) / 2 * (_maxGlowOpacity - _minGlowOpacity);
     
     final glowPaint = Paint()
-      ..color = glowColor.withOpacity(glowOpacity * 0.5)
+      ..color = glowColor.withValues(alpha: glowOpacity * 0.5) // Fixed: removed *255, withValues expects 0.0-1.0
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, bonusSize * 0.3);
     
     final center = size / 2;

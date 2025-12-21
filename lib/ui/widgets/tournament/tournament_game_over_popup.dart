@@ -50,10 +50,10 @@ class TournamentGameOverPopup extends StatelessWidget {
             colors: [Color(0xFF1B1B2F), Color(0xFF0F1326)],
           ),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.red.withOpacity(0.4), width: 2),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.4), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.red.withOpacity(0.35),
+              color: Colors.red.withValues(alpha: 0.35),
               blurRadius: 24,
               spreadRadius: 2,
             ),
@@ -74,8 +74,8 @@ class TournamentGameOverPopup extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.08),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                      color: Colors.white.withValues(alpha: 0.08),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     child: const Icon(Icons.close, color: Colors.white, size: 18),
                   ),
@@ -97,7 +97,7 @@ class TournamentGameOverPopup extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
+                      color: Colors.black.withValues(alpha: 0.4),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -129,7 +129,7 @@ class TournamentGameOverPopup extends StatelessWidget {
                 levelLabel,
                 style: TextStyle(
                   fontSize: bodySize,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -138,7 +138,7 @@ class TournamentGameOverPopup extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   fontSize: bodySize * 0.95,
-                  color: Colors.white.withOpacity(0.65),
+                  color: Colors.white.withValues(alpha: 0.65),
                 ),
               ),
 
@@ -164,7 +164,7 @@ class TournamentGameOverPopup extends StatelessWidget {
               Text(
                 'Continue? $continuesRemaining left',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: bodySize * 0.95,
                   fontWeight: FontWeight.w600,
                 ),
@@ -182,7 +182,7 @@ class TournamentGameOverPopup extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                     ),
                     backgroundColor: const Color(0xFFFFC107),
-                    shadowColor: Colors.amber.withOpacity(0.5),
+                    shadowColor: Colors.amber.withValues(alpha: 0.5),
                     foregroundColor: Colors.black87,
                   ),
                   onPressed: onStartOver,
@@ -251,12 +251,12 @@ class TournamentGameOverPopup extends StatelessWidget {
         child: Container(
           height: height,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.6), width: 2),
+            border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.25),
+                color: color.withValues(alpha: 0.25),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -277,7 +277,7 @@ class TournamentGameOverPopup extends StatelessWidget {
               Text(
                 labelBottom,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: fontSize * 0.85,
                   fontWeight: FontWeight.w600,
                 ),

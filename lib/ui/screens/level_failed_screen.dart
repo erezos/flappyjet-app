@@ -11,13 +11,14 @@ import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
-import '../../game/systems/achievements_manager.dart';
 import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 import 'world_map_screen.dart';
-import 'home_navigator_screen.dart';
+import '../layouts/homepage_layout.dart';
+import '../widgets/homepage_footer_navigator.dart';
+import 'tournament_hub_screen.dart';
 import 'level_objective_popup.dart';
 import '../widgets/buttons/modern_game_button.dart';
 import '../widgets/buttons/button_styles.dart';
@@ -1004,12 +1005,11 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             ),
             SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
             // Use Gems button - compact
+            // Always enable button - insufficient currency flow will handle it
             _buildCompactGemButton(
               gemCost: continuePrice,
               canAfford: canAffordGems,
-              onPressed: canAffordGems && widget.onContinueWithGems != null
-                ? widget.onContinueWithGems
-                : null,
+              onPressed: widget.onContinueWithGems,
               screenSize: screenSize,
             ),
           ],
@@ -1118,19 +1118,21 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     VoidCallback? onPressed,
     required Size screenSize,
   }) {
-    final isEnabled = onPressed != null && canAfford;
+    // Always enable button if callback exists - insufficient currency flow will handle it
+    // Use canAfford for visual styling (gray when can't afford, purple when can afford)
+    final visualStyle = canAfford;
     
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isEnabled ? onPressed : null,
+        onTap: onPressed,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: 110,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: isEnabled 
+              colors: visualStyle 
                 ? [
                     Colors.purple.withValues(alpha: 0.35),
                     Colors.purple.withValues(alpha: 0.2),
@@ -1144,12 +1146,12 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
             ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isEnabled 
+              color: visualStyle 
                 ? Colors.purple.withValues(alpha: 0.6) 
                 : Colors.grey.withValues(alpha: 0.3),
               width: 2,
             ),
-            boxShadow: isEnabled ? [
+            boxShadow: visualStyle ? [
               BoxShadow(
                 color: Colors.purple.withValues(alpha: 0.3),
                 blurRadius: 10,
@@ -1176,11 +1178,11 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                       Text(
                         '$gemCost',
                         style: TextStyle(
-                          color: isEnabled ? Colors.white : Colors.grey,
+                          color: visualStyle ? Colors.white : Colors.grey,
                           fontSize: gemCostFontSize,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
-                          shadows: isEnabled ? [
+                          shadows: visualStyle ? [
                             Shadow(
                               color: Colors.purple.withValues(alpha: 0.5),
                               blurRadius: 6,
@@ -1192,7 +1194,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                       Text(
                         'GEMS',
                         style: TextStyle(
-                          color: isEnabled ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
+                          color: visualStyle ? Colors.white.withValues(alpha: 0.9) : Colors.grey,
                           fontSize: gemsLabelFontSize,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1205,8 +1207,8 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                     'assets/images/icons/gem_icon.png',
                     width: iconSize,
                     height: iconSize,
-                    color: isEnabled ? null : Colors.grey,
-                    opacity: isEnabled ? const AlwaysStoppedAnimation(1.0) : const AlwaysStoppedAnimation(0.5),
+                    color: visualStyle ? null : Colors.grey,
+                    opacity: visualStyle ? const AlwaysStoppedAnimation(1.0) : const AlwaysStoppedAnimation(0.5),
                   ),
                   SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
                   // "continue" text at bottom
@@ -1214,7 +1216,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                     'continue',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: isEnabled ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
+                      color: visualStyle ? Colors.white.withValues(alpha: 0.8) : Colors.grey,
                       fontSize: continueFontSize,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1294,7 +1296,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.4),
+                  color: Colors.orange.withValues(alpha: 102),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -1317,7 +1319,7 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
                   Text(
                     '$originalFee $currencyIcon',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 153),
                       fontWeight: FontWeight.w500,
                       fontSize: 12,
                       decoration: TextDecoration.lineThrough,
@@ -1455,23 +1457,23 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
     );
   }
 
-  /// Navigate to tournaments tab (after interstitial ad)
+  /// Navigate to tournaments (after interstitial ad)
   void _navigateToTournamentsTab() {
     if (!mounted) return;
     
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (context) => HomeNavigatorScreen(
-          firebaseEnabled: true,
-          monetization: MonetizationManager(),
-          missions: MissionsManager(),
-          achievements: AchievementsManager(),
-          initialTabIndex: 1, // 🏆 Tournaments tab
+        builder: (context) => HomepageLayout(
+          activeSection: FooterNavigatorSection.tournaments,
+          child: TournamentHubScreen(
+            monetization: MonetizationManager(),
+            missions: MissionsManager(),
+          ),
         ),
       ),
       (route) => false, // Remove all previous routes
     );
-    safePrint('🏆 TOURNAMENT: Navigated to tournaments tab');
+    safePrint('🏆 TOURNAMENT: Navigated to tournaments');
   }
 
 }

@@ -10,18 +10,48 @@ import 'package:flappy_jet_pro/game/systems/objective_tracker.dart';
 import 'package:flappy_jet_pro/game/systems/level_reward_manager.dart';
 import 'package:flappy_jet_pro/game/systems/inventory_manager.dart';
 import 'package:flappy_jet_pro/models/level_data_schema.dart';
+import 'package:flappy_jet_pro/core/database/local_database_manager.dart';
+import 'package:flappy_jet_pro/core/repositories/inventory_repository.dart';
+import 'package:flappy_jet_pro/core/repositories/user_stats_repository.dart';
+import 'package:flappy_jet_pro/core/events/event_bus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   // Initialize Flutter binding for tests
   TestWidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize FFI for SQLite testing
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
 
   group('Story Mode Integration Tests - Phase 1', () {
     late LevelSystemManager levelSystemManager;
     late ObjectiveTracker objectiveTracker;
     late LevelRewardManager rewardManager;
     late InventoryManager inventoryManager;
+    late LocalDatabaseManager dbManager;
+    late UserStatsRepository userStats;
+    late InventoryRepository inventoryRepo;
+    late EventBus eventBus;
 
     setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      await InventoryManager().resetForTesting();
+      
+      // Initialize database
+      dbManager = LocalDatabaseManager();
+      await dbManager.initialize();
+      await dbManager.clearAllData();
+      
+      // Initialize repositories
+      userStats = UserStatsRepository(dbManager);
+      inventoryRepo = InventoryRepository(dbManager);
+      await userStats.setUserId('test_user');
+      
+      // Initialize event bus
+      eventBus = EventBus();
+      
       // Initialize managers
       levelSystemManager = LevelSystemManager();
       objectiveTracker = ObjectiveTracker();
@@ -30,7 +60,16 @@ void main() {
 
       // Initialize systems
       await levelSystemManager.initialize();
-      await inventoryManager.initialize();
+      await inventoryManager.initialize(
+        userStats: userStats,
+        inventory: inventoryRepo,
+        eventBus: eventBus,
+      );
+    });
+    
+    tearDown(() async {
+      await dbManager.clearAllData();
+      await dbManager.close();
     });
 
     tearDown(() {

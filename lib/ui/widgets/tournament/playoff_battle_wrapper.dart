@@ -601,11 +601,11 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
                 ),
                 // Glow effect
                 Shadow(
-                  color: Colors.amber.withOpacity(0.8),
+                  color: Colors.amber.withValues(alpha: 0.8),
                   blurRadius: 20,
                 ),
                 Shadow(
-                  color: Colors.orange.withOpacity(0.6),
+                  color: Colors.orange.withValues(alpha: 0.6),
                   blurRadius: 30,
                 ),
               ],
@@ -641,7 +641,7 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.5),
+                  color: Colors.orange.withValues(alpha: 0.5),
                   blurRadius: 10,
                 ),
               ],
@@ -674,7 +674,7 @@ class _PlayoffBattleWrapperState extends State<PlayoffBattleWrapper> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.5),
+                color: color.withValues(alpha: 0.5),
                 blurRadius: 8,
               ),
             ],

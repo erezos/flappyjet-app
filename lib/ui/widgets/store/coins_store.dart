@@ -90,29 +90,23 @@ class ModernCoinPackCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _getCoinPackColors();
-    final canAfford = inventory.gems >= pack.gemPrice;
-    final screenSize = this.screenSize;
 
     return GestureDetector(
-      onTap: canAfford ? onTap : null,
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: canAfford
-                ? colors
-                : [Colors.grey.shade400, Colors.grey.shade600],
+            colors: colors,
           ),
           borderRadius: BorderRadius.circular(20),
-          border: isPopular && canAfford
+          border: isPopular
               ? Border.all(color: const Color(0xFFFFD700), width: 2)
               : null,
           boxShadow: [
             BoxShadow(
-              color: (canAfford ? colors[0] : Colors.grey).withValues(
-                alpha: 0.3,
-              ),
+              color: colors[0].withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -120,194 +114,266 @@ class ModernCoinPackCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Main content
+            // Main content - Truly responsive design (unified with gems)
             Padding(
-              padding: ResponsiveConfig.responsiveEdgeInsets(6.0, screenSize),
+              padding: ResponsiveConfig.responsiveEdgeInsets(8.0, MediaQuery.of(context).size),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final cardHeight = constraints.maxHeight;
-                  final iconSize = ResponsiveConfig.responsiveSize(
-                    cardHeight * 0.2,
-                    screenSize,
-                    minScale: 0.9,
-                    maxScale: 1.2,
-                  ).clamp(20.0, 35.0);
+                  final cardWidth = constraints.maxWidth;
+                  final layoutScreenSize = MediaQuery.of(context).size;
+                  
+                  // Unified responsive sizing - matching gems cards exactly
                   final titleSize = ResponsiveConfig.responsiveFontSize(
-                    cardHeight * 0.08,
-                    screenSize,
+                    cardWidth * 0.06, // Same as gems - smaller name text
+                    layoutScreenSize,
                     context,
                   ).clamp(12.0, 16.0);
+                          
+                  // Based on mobile gaming best practices: Amount should be prominent but balanced
+                  // Reduced size as per user feedback - still visible but not overwhelming
                   final coinSize = ResponsiveConfig.responsiveFontSize(
-                    cardHeight * 0.07,
-                    screenSize,
+                    cardWidth * 0.28, // Reduced from 0.36 - smaller but still prominent
+                    layoutScreenSize,
                     context,
-                  ).clamp(11.0, 14.0);
+                  ).clamp(28.0, 48.0); // Reduced range from 38-64px to 28-48px
+                          
+                  // Bonus text should be 20-30px for clear readability - well-balanced with amount
+                  final bonusSize = ResponsiveConfig.responsiveFontSize(
+                    cardWidth * 0.16, // Well-proportioned bonus text
+                    layoutScreenSize,
+                    context,
+                  ).clamp(20.0, 30.0); // Balanced range for bonus visibility
+                  
                   final priceSize = ResponsiveConfig.responsiveFontSize(
-                    cardHeight * 0.09,
-                    screenSize,
+                    cardWidth * 0.07, // Same as gems - smaller price text
+                    layoutScreenSize,
                     context,
-                  ).clamp(14.0, 18.0);
+                  ).clamp(14.0, 22.0);
 
-                  return Column(
-                    children: [
-                      // Top section - Badge (responsive height)
-                      SizedBox(
-                        height: ResponsiveConfig.responsiveSize(
-                          cardHeight * 0.15,
-                          screenSize,
-                          minScale: 0.9,
-                          maxScale: 1.2,
-                        ).clamp(20.0, 30.0),
-                        child: Center(
-                          child: isPopular && canAfford
-                              ? _buildPopularBadge(screenSize)
-                              : isBestValue && canAfford
-                              ? _buildBestValueBadge(screenSize)
-                              : const SizedBox.shrink(),
-                        ),
+                  return FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: constraints.maxHeight,
+                        maxWidth: constraints.maxWidth,
                       ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Top section - Badge (responsive height) - Properly centered and scaled
+                          SizedBox(
+                            height: ResponsiveConfig.responsiveSize(24.0, layoutScreenSize, minScale: 0.8, maxScale: 1.2).clamp(22.0, 32.0),
+                            child: Center(
+                              child: isPopular
+                                  ? _buildPopularBadge(layoutScreenSize, context)
+                                  : isBestValue
+                                  ? _buildBestValueBadge(layoutScreenSize, context)
+                                  : const SizedBox.shrink(),
+                            ),
+                          ),
 
-                      // Icon section (responsive height)
-                      SizedBox(
-                        height: ResponsiveConfig.responsiveSize(
-                          cardHeight * 0.25,
-                          screenSize,
-                          minScale: 0.9,
-                          maxScale: 1.2,
-                        ).clamp(35.0, 50.0),
-                        child: Center(
-                          child: canAfford
-                              ? Coin3DIcon(size: iconSize)
-                              : ColorFiltered(
-                                  colorFilter: const ColorFilter.mode(
-                                    Colors.grey,
-                                    BlendMode.saturation,
-                                  ),
-                                  child: Coin3DIcon(size: iconSize),
-                                ),
-                        ),
-                      ),
+                          SizedBox(height: ResponsiveConfig.responsivePadding(4.0, layoutScreenSize)),
 
-                      // Title section (responsive height)
-                      SizedBox(
-                        height: ResponsiveConfig.responsiveSize(
-                          cardHeight * 0.15,
-                          screenSize,
-                          minScale: 0.9,
-                          maxScale: 1.2,
-                        ).clamp(20.0, 30.0),
-                        child: Center(
-                          child: Text(
+                          // Title section (responsive) - No icon, just title
+                          Text(
                             pack.displayName,
                             style: TextStyle(
-                              color: canAfford
-                                  ? Colors.white
-                                  : Colors.grey.shade300,
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: titleSize,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ),
 
-                      // Coins info section (responsive height)
-                      SizedBox(
-                        height: ResponsiveConfig.responsiveSize(
-                          cardHeight * 0.2,
-                          screenSize,
-                          minScale: 0.9,
-                          maxScale: 1.2,
-                        ).clamp(30.0, 40.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '${pack.coins} Coins',
-                              style: TextStyle(
-                                color: canAfford
-                                    ? Colors.white.withValues(alpha: 0.9)
-                                    : Colors.grey.shade300,
-                                fontSize: coinSize,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          SizedBox(height: ResponsiveConfig.responsivePadding(4.0, layoutScreenSize)),
+
+                          // Coins info section - DOMINANT - Takes most of the card space for maximum visibility
+                          Expanded(
+                            flex: 4, // Increased from 2 to 4 to give MUCH more space to amount
+                            child: LayoutBuilder(
+                              builder: (context, innerConstraints) {
+                                return FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Amount with icon - DOMINANT - Takes center stage
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          // Amount text - Prominent and balanced
+                                          Text(
+                                            '${pack.coins}',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: coinSize,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 1.2, // Slightly reduced for better readability
+                                              height: 1.0,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.black.withValues(alpha: 0.6),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                                Shadow(
+                                                  color: Colors.black.withValues(alpha: 0.3),
+                                                  blurRadius: 12,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          SizedBox(width: ResponsiveConfig.responsivePadding(8.0, layoutScreenSize)),
+                                          // Icon next to amount - properly sized for visual balance
+                                          Image.asset(
+                                            'assets/images/bonuses/coin_bonus.png',
+                                            width: coinSize * 0.55, // Slightly larger for better visual balance
+                                            height: coinSize * 0.55,
+                                            errorBuilder: (_, __, ___) => Coin3DIcon(size: coinSize * 0.55),
+                                          ),
+                                        ],
+                                      ),
+                                      if (pack.hasBonus) ...[
+                                        SizedBox(height: ResponsiveConfig.responsivePadding(6.0, layoutScreenSize)), // More space before bonus
+                                        // Bonus - Integrated with amount, very prominent
+                                        Container(
+                                          padding: ResponsiveConfig.responsiveEdgeInsetsSymmetric(
+                                            horizontal: 12.0, // Increased padding
+                                            vertical: 8.0, // Increased vertical padding
+                                            screenSize: layoutScreenSize,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                const Color(0xFFFFD700).withValues(alpha: 0.5), // More visible
+                                                const Color(0xFFFFA000).withValues(alpha: 0.4),
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(ResponsiveConfig.responsivePadding(10.0, layoutScreenSize)),
+                                            border: Border.all(
+                                              color: const Color(0xFFFFD700),
+                                              width: 2.5, // Thicker border
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFFFFD700).withValues(alpha: 0.6),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                '+${pack.bonusCoins}',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: bonusSize,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 1.0, // Balanced letter spacing
+                                                  shadows: [
+                                                    Shadow(
+                                                      color: Colors.black.withValues(alpha: 0.8),
+                                                      blurRadius: 4,
+                                                      offset: const Offset(0, 2),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(width: ResponsiveConfig.responsivePadding(4.0, layoutScreenSize)),
+                                              Text(
+                                                'BONUS',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: bonusSize * 0.75, // Slightly smaller than bonus amount
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 1.0, // Balanced letter spacing
+                                                  shadows: [
+                                                    Shadow(
+                                                      color: Colors.black.withValues(alpha: 0.8),
+                                                      blurRadius: 4,
+                                                      offset: const Offset(0, 2),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
-                            if (pack.hasBonus) ...[
-                              SizedBox(height: ResponsiveConfig.responsivePadding(2.0, screenSize)),
-                              Text(
-                                '+${pack.bonusCoins} BONUS',
-                                style: TextStyle(
-                                  color: canAfford
-                                      ? const Color(0xFFFFD700)
-                                      : Colors.grey.shade400,
-                                  fontSize: ResponsiveConfig.responsiveFontSize(
-                                    coinSize * 0.85,
-                                    screenSize,
-                                    context,
-                                  ).clamp(9.0, 11.0),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-
-                      // Spacer to push price to bottom
-                      const Spacer(),
-
-                      // Price button section (responsive height at bottom)
-                      Container(
-                        width: double.infinity,
-                        height: ResponsiveConfig.responsiveSize(
-                          cardHeight * 0.18,
-                          screenSize,
-                          minScale: 0.9,
-                          maxScale: 1.2,
-                        ).clamp(30.0, 40.0),
-                        decoration: BoxDecoration(
-                          color: canAfford
-                              ? Colors.white.withValues(alpha: 0.2)
-                              : Colors.grey.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: canAfford
-                                ? Colors.white.withValues(alpha: 0.3)
-                                : Colors.grey.withValues(alpha: 0.4),
-                            width: 1,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Gem3DIcon(size: priceSize * 0.8),
-                            SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
-                            Text(
-                              '${pack.gemPrice}',
-                              style: TextStyle(
-                                color: canAfford
-                                    ? Colors.white
-                                    : Colors.grey.shade300,
-                                fontSize: priceSize,
-                                fontWeight: FontWeight.bold,
+
+                          // Spacer to push price to bottom - Same as gems
+                          const Spacer(flex: 1),
+
+                          // Price button section (responsive height and styling) - Same as gems
+                          Container(
+                            width: double.infinity,
+                            height: ResponsiveConfig.responsiveButtonHeight(32.0, layoutScreenSize).clamp(32.0, 42.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(ResponsiveConfig.responsivePadding(10.0, layoutScreenSize)),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.4),
+                                width: ResponsiveConfig.responsivePadding(1.0, layoutScreenSize).clamp(1.0, 1.5),
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  'assets/images/bonuses/gem_bonus.png',
+                                  width: priceSize * 0.9,
+                                  height: priceSize * 0.9,
+                                  errorBuilder: (_, __, ___) => Gem3DIcon(size: priceSize * 0.8),
+                                ),
+                                SizedBox(width: ResponsiveConfig.responsivePadding(6.0, layoutScreenSize)),
+                                Text(
+                                  '${pack.gemPrice}',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: priceSize,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   );
                 },
               ),
             ),
 
             // Shimmer effect for popular items
-            if (isPopular && canAfford) _buildShimmerEffect(),
-
-            // "Not enough gems" overlay
-            if (!canAfford) _buildNotEnoughGemsOverlay(),
+            if (isPopular) _buildShimmerEffect(),
           ],
         ),
       ),
@@ -315,88 +381,100 @@ class ModernCoinPackCard extends StatelessWidget {
   }
 
   List<Color> _getCoinPackColors() {
-    // Use pack ID to determine colors consistently
+    // High-contrast color scheme: Dark, rich colors that pop against light blue background
+    // Mobile gaming best practice: Cards must stand out clearly from background
     if (pack.id.contains('small')) {
-      return [const Color(0xFFFF9800), const Color(0xFFE65100)];
+      // Small: Rich purple-pink (vibrant, engaging)
+      return [const Color(0xFF8E24AA), const Color(0xFFE91E63)];
     } else if (pack.id.contains('medium')) {
-      return [const Color(0xFF4CAF50), const Color(0xFF2E7D32)];
+      // Medium: Deep purple-blue (balanced, premium)
+      return [const Color(0xFF6A1B9A), const Color(0xFF3F51B5)];
     } else if (pack.id.contains('large')) {
-      return [const Color(0xFF9C27B0), const Color(0xFF6A1B9A)];
+      // Large: Dark purple-indigo (premium feel, high contrast)
+      return [const Color(0xFF4A148C), const Color(0xFF1A237E)];
     } else if (pack.id.contains('mega')) {
-      return [const Color(0xFFE91E63), const Color(0xFFC2185B)];
+      // Mega: Deep indigo-navy (most premium, maximum contrast)
+      return [const Color(0xFF1A237E), const Color(0xFF0D47A1)];
     }
-    return [const Color(0xFFFF9800), const Color(0xFFE65100)];
+    // Default: Deep purple-blue
+    return [const Color(0xFF6A1B9A), const Color(0xFF3F51B5)];
   }
 
-  Widget _buildPopularBadge(Size screenSize) {
-    return Builder(
-      builder: (context) {
-        final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
-        final verticalPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
-        final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
-        final borderRadius = ResponsiveConfig.responsivePadding(12.0, screenSize);
-        
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
-            ),
-            borderRadius: BorderRadius.circular(borderRadius),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-                blurRadius: ResponsiveConfig.responsivePadding(8.0, screenSize),
-                offset: const Offset(0, 2),
-              ),
-            ],
+  Widget _buildPopularBadge(Size screenSize, BuildContext context) {
+    final horizontalPadding = ResponsiveConfig.responsivePadding(8.0, screenSize).clamp(6.0, 12.0);
+    final verticalPadding = ResponsiveConfig.responsivePadding(3.0, screenSize).clamp(2.0, 5.0);
+    final fontSize = ResponsiveConfig.responsiveFontSize(10.0, screenSize, context).clamp(9.0, 14.0);
+    final borderRadius = ResponsiveConfig.responsivePadding(10.0, screenSize).clamp(8.0, 14.0);
+    
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
+        ),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
           ),
-          child: Text(
-            '🔥 POPULAR',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+              blurRadius: ResponsiveConfig.responsivePadding(6.0, screenSize).clamp(4.0, 10.0),
+              offset: const Offset(0, 2),
             ),
+          ],
+        ),
+        child: Text(
+          '🔥 POPULAR',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildBestValueBadge(Size screenSize) {
-    return Builder(
-      builder: (context) {
-        final horizontalPadding = ResponsiveConfig.responsivePadding(10.0, screenSize);
-        final verticalPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
-        final fontSize = ResponsiveConfig.responsiveFontSize(12.0, screenSize, context);
-        final borderRadius = ResponsiveConfig.responsivePadding(12.0, screenSize);
-        
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-            ),
-            borderRadius: BorderRadius.circular(borderRadius),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
-                blurRadius: ResponsiveConfig.responsivePadding(8.0, screenSize),
-                offset: const Offset(0, 2),
-              ),
-            ],
+  Widget _buildBestValueBadge(Size screenSize, BuildContext context) {
+    final horizontalPadding = ResponsiveConfig.responsivePadding(8.0, screenSize).clamp(6.0, 12.0);
+    final verticalPadding = ResponsiveConfig.responsivePadding(3.0, screenSize).clamp(2.0, 5.0);
+    final fontSize = ResponsiveConfig.responsiveFontSize(10.0, screenSize, context).clamp(9.0, 14.0);
+    final borderRadius = ResponsiveConfig.responsivePadding(10.0, screenSize).clamp(8.0, 14.0);
+    
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
+        ),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
           ),
-          child: Text(
-            '💎 BEST VALUE',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+              blurRadius: ResponsiveConfig.responsivePadding(6.0, screenSize).clamp(4.0, 10.0),
+              offset: const Offset(0, 2),
             ),
+          ],
+        ),
+        child: Text(
+          '💎 BEST VALUE',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -420,32 +498,4 @@ class ModernCoinPackCard extends StatelessWidget {
     );
   }
 
-  Widget _buildNotEnoughGemsOverlay() {
-    return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.black.withValues(alpha: 0.3),
-        ),
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.lock, color: Colors.white70, size: 24),
-              SizedBox(height: 4),
-              Text(
-                'Need More\nGems',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

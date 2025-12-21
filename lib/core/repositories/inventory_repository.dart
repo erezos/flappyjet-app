@@ -76,7 +76,6 @@ class InventoryItem {
 /// Repository for inventory management
 class InventoryRepository extends ChangeNotifier {
   final LocalDatabaseManager _db;
-  Map<String, List<InventoryItem>>? _cachedInventory;
 
   InventoryRepository(this._db);
 
@@ -170,7 +169,6 @@ class InventoryRepository extends ChangeNotifier {
       safePrint('🎒 ✨ New item unlocked: $itemType/$itemId (qty: $quantity)');
     }
 
-    _cachedInventory = null;
     notifyListeners();
   }
 
@@ -208,7 +206,6 @@ class InventoryRepository extends ChangeNotifier {
       safePrint('🎒 Decreased item quantity: $itemType/$itemId (-$quantity)');
     }
 
-    _cachedInventory = null;
     notifyListeners();
     return true;
   }
@@ -241,7 +238,6 @@ class InventoryRepository extends ChangeNotifier {
     });
 
     safePrint('🎒 ⚡ Equipped: $itemType/$itemId');
-    _cachedInventory = null;
     notifyListeners();
   }
 
@@ -255,7 +251,6 @@ class InventoryRepository extends ChangeNotifier {
     );
 
     safePrint('🎒 Unequipped: $itemType/$itemId');
-    _cachedInventory = null;
     notifyListeners();
   }
 
@@ -286,7 +281,7 @@ class InventoryRepository extends ChangeNotifier {
 
   /// Clear cache
   void clearCache() {
-    _cachedInventory = null;
+    // Cache was removed as it was never used
   }
 
   /// Get inventory summary

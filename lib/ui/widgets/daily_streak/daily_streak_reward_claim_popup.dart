@@ -244,14 +244,14 @@ class _DailyStreakRewardClaimPopupState extends State<DailyStreakRewardClaimPopu
         height: buttonSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 179),
           border: Border.all(
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 230),
             width: borderWidth,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 128),
               blurRadius: 12.0 * scaleFactor,
               spreadRadius: 2.0 * scaleFactor,
               offset: Offset(0, 2.0 * scaleFactor),

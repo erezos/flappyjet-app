@@ -18,7 +18,6 @@ enum MissionType {
   useContinue,      // Use continue R times
   collectCoins,     // Collect X coins (from any source)
   surviveTime,      // Survive for X seconds in a game
-  shareScore,       // Share score on social media
   completeLevel,    // Complete story level X
   completeZone,     // Complete all levels in zone X
   collectBonuses,   // Collect X in-game bonuses (shields, magnets, etc.)
@@ -622,18 +621,6 @@ class MissionsManager extends ChangeNotifier {
           description: 'Survive for $target seconds in a single game',
           target: target,
           reward: difficulty == MissionDifficulty.hard ? 400 : 200,
-          createdAt: createdAt,
-        );
-      
-      case MissionType.shareScore:
-        return Mission(
-          id: 'daily_share_${createdAt.millisecondsSinceEpoch}',
-          type: MissionType.shareScore,
-          difficulty: MissionDifficulty.easy,
-          title: 'Social Butterfly',
-          description: 'Share your score on social media once today',
-          target: 1,
-          reward: 100,
           createdAt: createdAt,
         );
       

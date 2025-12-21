@@ -69,12 +69,12 @@ class TournamentRoundFailedPopup extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.red.withOpacity(0.5),
+            color: Colors.red.withValues(alpha: 0.5),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.red.withOpacity(0.3),
+              color: Colors.red.withValues(alpha: 0.3),
               blurRadius: 15,
               spreadRadius: 1,
             ),
@@ -91,9 +91,9 @@ class TournamentRoundFailedPopup extends StatelessWidget {
                 height: iconSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.red.withOpacity(0.2),
+                  color: Colors.red.withValues(alpha: 0.2),
                   border: Border.all(
-                    color: Colors.red.withOpacity(0.5),
+                    color: Colors.red.withValues(alpha: 0.5),
                     width: 2,
                   ),
                 ),
@@ -124,7 +124,7 @@ class TournamentRoundFailedPopup extends StatelessWidget {
                 '${tournament.name} - Round ${entry.currentRound}',
                 style: TextStyle(
                   fontSize: bodySize,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -166,7 +166,7 @@ class TournamentRoundFailedPopup extends StatelessWidget {
             Text(
               'Progress',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: fontSize,
               ),
             ),
@@ -185,7 +185,7 @@ class TournamentRoundFailedPopup extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
             value: progress,
-            backgroundColor: Colors.white.withOpacity(0.1),
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
             valueColor: AlwaysStoppedAnimation<Color>(
               progress > 0.7 ? Colors.green : Colors.amber,
             ),
@@ -200,10 +200,10 @@ class TournamentRoundFailedPopup extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(padding * 0.8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.amber.withOpacity(0.3),
+          color: Colors.amber.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -232,12 +232,13 @@ class TournamentRoundFailedPopup extends StatelessWidget {
               ),
               SizedBox(width: padding * 0.5),
               // Gems button
+              // Always enable button - insufficient currency flow will handle it
               Expanded(
                 child: _buildContinueButton(
                   icon: Icons.diamond,
                   label: '$gemCost',
                   color: hasEnoughGems ? Colors.cyan : Colors.grey,
-                  onTap: hasEnoughGems ? onContinueWithGems : null,
+                  onTap: onContinueWithGems,
                   height: buttonHeight - 4,
                   fontSize: fontSize,
                 ),
@@ -263,9 +264,9 @@ class TournamentRoundFailedPopup extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           gradient: onTap != null
-              ? LinearGradient(colors: [color, color.withOpacity(0.7)])
+              ? LinearGradient(colors: [color, color.withValues(alpha: 0.7)])
               : null,
-          color: onTap == null ? color.withOpacity(0.3) : null,
+          color: onTap == null ? color.withValues(alpha: 0.3) : null,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -291,7 +292,7 @@ class TournamentRoundFailedPopup extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -302,7 +303,7 @@ class TournamentRoundFailedPopup extends StatelessWidget {
           Text(
             '${entry.triesRemaining} tries remaining',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontWeight: FontWeight.w500,
               fontSize: fontSize,
             ),
@@ -354,12 +355,12 @@ class TournamentRoundFailedPopup extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.7)],
+            colors: [color, color.withValues(alpha: 0.7)],
           ),
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: color.withValues(alpha: 0.4),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),

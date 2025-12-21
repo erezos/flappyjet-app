@@ -215,7 +215,6 @@ void main() {
       expect(MissionType.values, contains(MissionType.useContinue));
       expect(MissionType.values, contains(MissionType.collectCoins));
       expect(MissionType.values, contains(MissionType.surviveTime));
-      expect(MissionType.values, contains(MissionType.shareScore));
       expect(MissionType.values, contains(MissionType.completeLevel));
       expect(MissionType.values, contains(MissionType.completeZone));
       expect(MissionType.values, contains(MissionType.collectBonuses));

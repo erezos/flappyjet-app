@@ -119,10 +119,6 @@ class ObstacleManager {
       gap = storyModeObstacleGap!;
       speed = DifficultySystem.getBaseObstacleSpeed() * storyModeSpeedMultiplier!;
       
-      // Verbose obstacle spawn log - only every 5th obstacle to reduce spam
-      if (score % 5 == 0) {
-        Logger.d('🎯 STORY MODE: gap=${gap.toStringAsFixed(0)}, speed=${speed.toStringAsFixed(0)}, score=$score');
-      }
     } else {
       // Endless mode: Use continuous difficulty curves + micro-variance + breathers/assist
       gap = DifficultySystem.getGapRatioContinuous(score) * screenH;

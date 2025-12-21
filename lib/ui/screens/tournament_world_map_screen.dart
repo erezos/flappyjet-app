@@ -86,24 +86,85 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
     super.dispose();
   }
 
-  /// Get node positions along the path in the stunt world map image
+  /// Get node positions along the path in the tournament world map image
   /// Positions are percentages of usable area (0.0 - 1.0) to be responsive
   /// ADJUSTED: Nodes are positioned HIGHER to avoid being hidden by UI elements
-  List<Offset> _getStuntMapNodePositions() {
-    // These positions follow the winding yellow path in stunt_tournament_worldmap.png
-    // From bottom (start) to top (finish)
-    // Y positions lowered (smaller values = higher on screen)
-    return const [
-      Offset(0.38, 0.72),  // Node 1: Start - bottom area
-      Offset(0.28, 0.56),  // Node 2: First S-curve (left side)
-      Offset(0.55, 0.42),  // Node 3: Middle curve (center-right)
-      Offset(0.32, 0.28),  // Node 4: Upper S-curve (center-left)
-      Offset(0.58, 0.14),  // Node 5: Finish - top area
-    ];
+  List<Offset> _getTournamentMapNodePositions() {
+    final tournamentId = widget.tournament.id;
+    final levelCount = widget.tournament.levels.length;
+    
+    if (tournamentId == 'christmas_tournament') {
+      // Christmas tournament: 6 levels
+      // Positions follow the path in christmas_world_map.png
+      return const [
+        Offset(0.35, 0.75),  // Node 1: Start - bottom area
+        Offset(0.25, 0.62),  // Node 2: First curve (left side)
+        Offset(0.50, 0.50),  // Node 3: Middle (center)
+        Offset(0.30, 0.38),  // Node 4: Upper curve (center-left)
+        Offset(0.55, 0.26),  // Node 5: Upper right
+        Offset(0.40, 0.12),  // Node 6: Finish - top area
+      ];
+    } else if (tournamentId == 'stunt_tournament') {
+      // Stunt tournament: 5 levels
+      // These positions follow the winding yellow path in stunt_tournament_worldmap.png
+      return const [
+        Offset(0.38, 0.72),  // Node 1: Start - bottom area
+        Offset(0.28, 0.56),  // Node 2: First S-curve (left side)
+        Offset(0.55, 0.42),  // Node 3: Middle curve (center-right)
+        Offset(0.32, 0.28),  // Node 4: Upper S-curve (center-left)
+        Offset(0.58, 0.14),  // Node 5: Finish - top area
+      ];
+    }
+    
+    // Default: Generate positions evenly spaced for any tournament
+    final positions = <Offset>[];
+    for (int i = 0; i < levelCount; i++) {
+      final yPos = 0.75 - (i * 0.6 / (levelCount - 1));
+      final xPos = 0.35 + (i % 2 == 0 ? 0.0 : 0.2);
+      positions.add(Offset(xPos, yPos));
+    }
+    return positions;
+  }
+  
+  /// Get tournament world map image path
+  String _getTournamentWorldMapPath() {
+    final tournamentId = widget.tournament.id;
+    if (tournamentId == 'christmas_tournament') {
+      return 'assets/images/tournaments/Christmas/christmas_world_map.png';
+    } else if (tournamentId == 'stunt_tournament') {
+      return 'assets/images/tournaments/stunt_tournament_worldmap.png';
+    }
+    // Default fallback
+    return 'assets/images/tournaments/stunt_tournament_worldmap.png';
   }
 
   /// Get tournament trophy image path
   String _getTournamentTrophyPath() {
+    // Special handling for Christmas tournament
+    if (widget.tournament.id == 'christmas_tournament') {
+      return 'assets/images/tournaments/Christmas/christmas_trophy.png';
+    }
+    
+    // Check if tournament has a custom trophy ID
+    final trophyId = widget.tournament.completionReward.trophyId;
+    if (trophyId != null) {
+      if (trophyId == 'christmas_champion_trophy') {
+        return 'assets/images/tournaments/Christmas/christmas_trophy.png';
+      }
+      // Map other trophy IDs to their paths
+      final trophyPathMap = {
+        'bosses_showdown_champion': 'trophy_bosses_showdown.png',
+        'stunt_master_trophy': 'trophy_stunt_tournament.png',
+        'chopper_champion_trophy': 'trophy_chopper_adventures.png',
+      };
+      final mappedPath = trophyPathMap[trophyId];
+      if (mappedPath != null) {
+        return 'assets/images/tournaments/$mappedPath';
+      }
+      return 'assets/images/tournaments/trophy_$trophyId.png';
+    }
+    
+    // Fallback to tournament ID-based path
     return 'assets/images/tournaments/trophy_${widget.tournament.id}.png';
   }
 
@@ -118,7 +179,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
           // World map background image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/tournaments/stunt_tournament_worldmap.png',
+              _getTournamentWorldMapPath(),
               fit: BoxFit.cover,
             ),
           ),
@@ -503,6 +564,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
   }
 
   /// Build the grand prize section - COMPACT with tournament trophy (DEPRECATED - kept for reference)
+  // ignore: unused_element
   Widget _buildGrandPrizeSection(TournamentReward reward) {
     // Get actual jet skin for display
     JetSkin? rewardSkin;
@@ -526,7 +588,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
                   decoration: BoxDecoration(
                     gradient: RadialGradient(
                       colors: [
-                        Colors.amber.withOpacity(0.08),
+                        Colors.amber.withValues(alpha: 20),
                         Colors.transparent,
                       ],
                       radius: 1.2,
@@ -544,14 +606,14 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
                       vertical: ResponsiveConfig.responsivePadding(16.0, screenSize),
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
+                      color: Colors.white.withValues(alpha: 10),
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.white.withOpacity(0.06),
-                          Colors.amber.withOpacity(0.08),
-                          Colors.black.withOpacity(0.10),
+                          Colors.white.withValues(alpha: 15),
+                          Colors.amber.withValues(alpha: 20),
+                          Colors.black.withValues(alpha: 26),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(14.0, screenSize)),
@@ -561,7 +623,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
                       ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.amber.withOpacity(0.25),
+                      color: Colors.amber.withValues(alpha: 64),
                       blurRadius: 22,
                       spreadRadius: 2,
                       offset: const Offset(0, 6),
@@ -636,7 +698,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
                               );
                             },
                           ),
-                          glowColor: Colors.purpleAccent.withOpacity(0.35),
+                          glowColor: Colors.purpleAccent.withValues(alpha: 89),
                           glowSize: ResponsiveConfig.responsiveSize(110.0, screenSize),
                         ),
                         label: rewardSkin.displayName,
@@ -715,7 +777,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4DDCFF).withOpacity(0.5),
+            color: const Color(0xFF4DDCFF).withValues(alpha: 128),
             blurRadius: 10,
             spreadRadius: 1,
           ),
@@ -744,7 +806,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
             gradient: RadialGradient(
               colors: [
                 glowColor,
-                glowColor.withOpacity(0.0),
+                glowColor.withValues(alpha: 0),
               ],
               stops: const [0.0, 1.0],
             ),
@@ -757,7 +819,7 @@ class _TournamentWorldMapScreenState extends State<TournamentWorldMapScreen>
 
   /// Calculate actual node positions based on screen size
   List<Offset> _calculateNodePositions(double width, double height) {
-    final relativePositions = _getStuntMapNodePositions();
+    final relativePositions = _getTournamentMapNodePositions();
     final positions = <Offset>[];
     
     for (final relPos in relativePositions) {

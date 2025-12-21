@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/analytics/unified_analytics_manager.dart';
 import '../core/events/event_bus.dart';
 import '../core/debug_logger.dart';
+import '../game/systems/no_ads_manager.dart';
 
 /// Manages interstitial ads for Story Mode with frequency caps and cooldowns
 /// 
@@ -491,6 +492,13 @@ class InterstitialAdManager {
   /// Returns true if we're NOT in cooldown (can show ad)
   /// Returns false if we're in cooldown (should NOT show ad)
   bool canShowTournamentInterstitial() {
+    // 🚫 Check No Ads status first
+    final noAdsManager = NoAdsManager();
+    if (noAdsManager.hasNoAds) {
+      safePrint('📺 Tournament: No Ads active - skipping interstitial ad');
+      return false;
+    }
+    
     if (!_isAdReady) {
       safePrint('📺 Tournament: Ad not ready');
       return false;
@@ -603,6 +611,13 @@ class InterstitialAdManager {
 
   /// Check if ad should be shown based on current state
   Future<bool> shouldShowAd() async {
+    // 🚫 Check No Ads status first
+    final noAdsManager = NoAdsManager();
+    if (noAdsManager.hasNoAds) {
+      safePrint('📺 No Ads active - skipping interstitial ad');
+      return false;
+    }
+
     // Check if ad is ready
     if (!_isAdReady) {
       safePrint('📺 Ad not ready to show');

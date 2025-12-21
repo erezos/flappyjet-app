@@ -34,7 +34,6 @@ class WorldMapJetWidget extends StatefulWidget {
 class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<Offset> _positionAnimation;
   late Animation<double> _rotationAnimation;
   late Animation<double> _scaleAnimation;
   
@@ -81,15 +80,6 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
   void _setupAnimations() {
     final start = _currentAnimatedPosition;
     final end = widget.targetPosition ?? widget.currentPosition;
-    
-    // Position animation with smooth curve
-    _positionAnimation = Tween<Offset>(
-      begin: start,
-      end: end,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
     
     // Calculate rotation based on direction
     final angle = _calculateFlightAngle(start, end);
@@ -198,19 +188,7 @@ class _WorldMapJetWidgetState extends State<WorldMapJetWidget>
       height: widget.jetSize,
       decoration: BoxDecoration(
         color: Colors.transparent, // 🔧 CRITICAL: Prevent gray square on real devices
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-          if (_controller.isAnimating)
-            BoxShadow(
-              color: Colors.blue.withValues(alpha: 0.5),
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-        ],
+        // Shadow removed - no shade around jet skin
       ),
       child: Image.asset(
         'assets/images/${jetSkin.assetPath}',

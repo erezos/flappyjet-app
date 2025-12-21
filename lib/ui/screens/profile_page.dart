@@ -4,7 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 import '../../game/systems/achievements_manager.dart';
-import 'profile_screen.dart';
+import 'profile_screen_new.dart';
 
 class ProfilePage extends StatefulWidget {
   final AchievementsManager achievements;
@@ -21,9 +21,8 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
-    // For now, wrap the existing ProfileScreen
-    // In Phase 4, we'll adapt this to fit the new navigation paradigm
-    return const ProfileScreen();
+    // Use the new redesigned ProfileScreen
+    return const ProfileScreenNew();
   }
 }
 

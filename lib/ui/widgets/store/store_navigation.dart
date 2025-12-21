@@ -22,25 +22,25 @@ class StoreNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
     
-    // Responsive sizing using ResponsiveConfig
+    // Responsive sizing using ResponsiveConfig - Reduced padding to give more space to content
     final containerMargin = ResponsiveConfig.responsivePadding(12.0, screenSize);
-    final containerPadding = ResponsiveConfig.responsivePadding(4.0, screenSize);
+    final containerPadding = ResponsiveConfig.responsivePadding(2.0, screenSize); // Reduced from 4.0
     final borderRadius = ResponsiveConfig.responsiveSize(35.0, screenSize);
-    final verticalPadding = ResponsiveConfig.responsivePadding(12.0, screenSize);
-    final horizontalPadding = ResponsiveConfig.responsivePadding(8.0, screenSize);
-    final iconSpacing = ResponsiveConfig.responsivePadding(2.0, screenSize);
+    final verticalPadding = ResponsiveConfig.responsivePadding(8.0, screenSize); // Reduced from 12.0
+    final horizontalPadding = ResponsiveConfig.responsivePadding(4.0, screenSize); // Reduced from 8.0
+    final iconSpacing = ResponsiveConfig.responsivePadding(4.0, screenSize); // Increased from 2.0 for better spacing
     
     // Calculate available width per tab to prevent text wrapping
     final availableWidth = screenSize.width - (containerMargin * 2) - (containerPadding * 2);
     final tabWidth = availableWidth / categories.length;
-    // Use responsive font size with min/max constraints
-    final baseTextSize = tabWidth > 80 ? 11.0 : tabWidth > 60 ? 10.0 : 8.0;
+    // Use responsive font size with min/max constraints - Much bigger text
+    final baseTextSize = tabWidth > 80 ? 16.0 : tabWidth > 60 ? 14.0 : 12.0; // Increased from 11/10/8
     final textSize = ResponsiveConfig.responsiveFontSize(
       baseTextSize,
       screenSize,
       context,
-      minScale: 0.8,
-      maxScale: 1.3,
+      minScale: 0.9,
+      maxScale: 1.5, // Increased max scale
     );
     
     return Container(
@@ -76,8 +76,8 @@ class StoreNavigation extends StatelessWidget {
           final isSelected = selectedCategory == category;
           final categoryIcon = _getCategoryIcon(category);
           
-          // Responsive icon sizing
-          final baseIconSize = isSelected ? 20.0 : 16.0;
+          // Responsive icon sizing - Much bigger icons
+          final baseIconSize = isSelected ? 40.0 : 32.0; // Doubled from 20/16
           final iconSize = ResponsiveConfig.responsiveIconSize(baseIconSize, screenSize);
           
           return Expanded(
@@ -115,26 +115,57 @@ class StoreNavigation extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Use icon widgets for Gems and Coins, emoji for others
+                      // Use icon widgets for Currency, images for Special and Jets, emoji fallback
                       Center(
-                        child: category == 'Gems'
-                            ? Gem3DIcon(size: iconSize)
-                            : category == 'Coins'
-                                ? Coin3DIcon(size: iconSize)
-                                : Text(
-                                    categoryIcon,
-                                    style: TextStyle(
-                                      fontSize: iconSize,
-                                      color: Colors.white,
+                        child: category == 'Currency'
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Gem3DIcon(size: iconSize * 0.8), // Increased from 0.7
+                                  SizedBox(width: iconSpacing * 0.5),
+                                  Coin3DIcon(size: iconSize * 0.8), // Increased from 0.7
+                                ],
+                              )
+                            : category == 'Special'
+                                ? Image.asset(
+                                    'assets/images/ui/no_ads_icon.png',
+                                    width: iconSize,
+                                    height: iconSize,
+                                    errorBuilder: (_, __, ___) => Text(
+                                      categoryIcon,
+                                      style: TextStyle(
+                                        fontSize: iconSize,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    textAlign: TextAlign.center,
-                                  ),
+                                  )
+                                : category == 'Jets'
+                                    ? Image.asset(
+                                        'assets/images/jets/Crimson_viper.png',
+                                        width: iconSize,
+                                        height: iconSize,
+                                        errorBuilder: (_, __, ___) => Text(
+                                          categoryIcon,
+                                          style: TextStyle(
+                                            fontSize: iconSize,
+                                            color: Colors.white,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      )
+                                    : Text(
+                                        categoryIcon,
+                                        style: TextStyle(
+                                          fontSize: iconSize,
+                                          color: Colors.white,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
                       ),
                       SizedBox(height: iconSpacing),
                       Text(
-                        category == 'Heart Booster'
-                            ? 'BOOST'
-                            : category.toUpperCase(),
+                        category.toUpperCase(),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -159,16 +190,12 @@ class StoreNavigation extends StatelessWidget {
 
   String _getCategoryIcon(String category) {
     switch (category) {
+      case 'Currency':
+        return '💰';
+      case 'Special':
+        return '⭐';
       case 'Jets':
         return '🛩️';
-      case 'Gems':
-        return '💎';
-      case 'Coins':
-        return '🪙';
-      case 'Hearts':
-        return '❤️';
-      case 'Heart Booster':
-        return '⚡';
       default:
         return '🎮';
     }

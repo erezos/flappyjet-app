@@ -27,20 +27,20 @@ class TutorialCompleteDialog extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF1E3A8A).withOpacity(0.95), // Dark blue
-              const Color(0xFF3B82F6).withOpacity(0.95), // Bright blue
+              const Color(0xFF1E3A8A).withValues(alpha: 242 / 255.0), // Dark blue
+              const Color(0xFF3B82F6).withValues(alpha: 242 / 255.0), // Bright blue
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 77 / 255.0),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 128 / 255.0),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -53,7 +53,7 @@ class TutorialCompleteDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 51 / 255.0),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -92,10 +92,10 @@ class TutorialCompleteDialog extends StatelessWidget {
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 26 / 255.0),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 51 / 255.0),
                 ),
               ),
               child: Column(
@@ -122,7 +122,7 @@ class TutorialCompleteDialog extends StatelessWidget {
               'You\'re ready to fly!',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 230 / 255.0),
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -146,7 +146,7 @@ class TutorialCompleteDialog extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 4,
-                  shadowColor: Colors.black.withOpacity(0.3),
+                  shadowColor: Colors.black.withValues(alpha: 77 / 255.0),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -183,14 +183,14 @@ class TutorialCompleteDialog extends StatelessWidget {
             Icon(
               icon,
               size: 20,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 204 / 255.0),
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 204 / 255.0),
               ),
             ),
           ],

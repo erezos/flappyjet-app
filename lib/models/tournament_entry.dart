@@ -34,6 +34,9 @@ class TournamentEntry {
   int continuesUsedThisTry;
   int totalContinuesUsed;
   
+  // Game count tracking (for interstitial ads - every 2 games)
+  int gamesPlayed;
+  
   // Rewards earned (partial rewards kept on failure)
   int coinsEarned;
   int gemsEarned;
@@ -63,6 +66,7 @@ class TournamentEntry {
     int? triesRemaining,
     this.continuesUsedThisTry = 0,
     this.totalContinuesUsed = 0,
+    this.gamesPlayed = 0,
     this.coinsEarned = 0,
     this.gemsEarned = 0,
     List<RoundResult>? roundResults,
@@ -274,6 +278,7 @@ class TournamentEntry {
     'tries_remaining': triesRemaining,
     'continues_used_this_try': continuesUsedThisTry,
     'total_continues_used': totalContinuesUsed,
+    'games_played': gamesPlayed,
     'coins_earned': coinsEarned,
     'gems_earned': gemsEarned,
     'round_results': roundResults.map((r) => r.toJson()).toList(),
@@ -296,6 +301,7 @@ class TournamentEntry {
       triesRemaining: json['tries_remaining'] as int?,
       continuesUsedThisTry: json['continues_used_this_try'] as int? ?? 0,
       totalContinuesUsed: json['total_continues_used'] as int? ?? 0,
+      gamesPlayed: json['games_played'] as int? ?? 0,
       coinsEarned: json['coins_earned'] as int? ?? 0,
       gemsEarned: json['gems_earned'] as int? ?? 0,
       roundResults: (json['round_results'] as List<dynamic>?)

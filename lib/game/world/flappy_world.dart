@@ -52,8 +52,11 @@ class FlappyWorld extends World {
     
     // 1. Create background (renders first)
     // 🎯 STORY MODE: Use level's background asset if in story mode
+    // 🎯 TOURNAMENT: Handle tournament backgrounds (e.g., tournaments/Christmas/christmas_background.png)
     final backgroundAsset = storyModeLevel != null 
-        ? 'backgrounds/${storyModeLevel!.theme.background}'
+        ? (storyModeLevel!.theme.background.contains('/')
+            ? storyModeLevel!.theme.background  // Already has full path (e.g., tournaments/Christmas/christmas_background.png)
+            : 'backgrounds/${storyModeLevel!.theme.background}')  // Prepend backgrounds/ for story mode backgrounds
         : null;
     background = ParallaxBackground(
       storyModeBackgroundAsset: backgroundAsset,

@@ -193,9 +193,9 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF0A0A1F).withOpacity(0.90),
-                    _getTierColor().withOpacity(0.3),
-                    const Color(0xFF0F0F1A).withOpacity(0.95),
+                    const Color(0xFF0A0A1F).withValues(alpha: 0.90),
+                    _getTierColor().withValues(alpha: 0.3),
+                    const Color(0xFF0F0F1A).withValues(alpha: 0.95),
                   ],
                 ),
               ),
@@ -279,14 +279,14 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                Colors.amber.withOpacity(0.4 * _pulseAnimation.value),
-                Colors.amber.withOpacity(0.1),
+                Colors.amber.withValues(alpha: 0.4 * _pulseAnimation.value),
+                Colors.amber.withValues(alpha: 0.1),
                 Colors.transparent,
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.amber.withOpacity(0.4 * _pulseAnimation.value),
+                color: Colors.amber.withValues(alpha: 0.4 * _pulseAnimation.value),
                 blurRadius: 40,
                 spreadRadius: 10,
               ),
@@ -331,7 +331,7 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
                 letterSpacing: 4,
                 shadows: [
                   Shadow(
-                    color: Colors.amber.withOpacity(0.8),
+                    color: Colors.amber.withValues(alpha: 0.8),
                     blurRadius: 20,
                   ),
                   const Shadow(
@@ -357,15 +357,15 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: _getTierColor().withOpacity(0.2),
+            color: _getTierColor().withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: _getTierColor().withOpacity(0.6),
+              color: _getTierColor().withValues(alpha: 0.6),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: _getTierColor().withOpacity(0.3 * _pulseAnimation.value),
+                color: _getTierColor().withValues(alpha: 0.3 * _pulseAnimation.value),
                 blurRadius: 15,
                 spreadRadius: 2,
               ),
@@ -404,19 +404,19 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.amber.withOpacity(0.25),
-                    Colors.orange.withOpacity(0.15),
-                    Colors.amber.withOpacity(0.1),
+                    Colors.amber.withValues(alpha: 0.25),
+                    Colors.orange.withValues(alpha: 0.15),
+                    Colors.amber.withValues(alpha: 0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.amber.withOpacity(0.5),
+                  color: Colors.amber.withValues(alpha: 0.5),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     blurRadius: 15,
                     spreadRadius: 1,
                   ),
@@ -467,7 +467,7 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.amber.withOpacity(0.5),
+                              Colors.amber.withValues(alpha: 0.5),
                               Colors.transparent,
                             ],
                           ),
@@ -514,7 +514,7 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
                 color: Colors.white,
                 shadows: [
                   Shadow(
-                    color: Colors.amber.withOpacity(0.5),
+                    color: Colors.amber.withValues(alpha: 0.5),
                     blurRadius: 8,
                   ),
                 ],
@@ -552,7 +552,7 @@ class _TournamentRoundWinScreenState extends State<TournamentRoundWinScreen>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.4),
+                    color: Colors.amber.withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),

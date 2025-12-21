@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'gem_3d_icon.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
-import '../../game/systems/social_sharing_manager.dart';
 
 class GameOverMenu extends StatefulWidget {
   final int score;
@@ -16,7 +15,6 @@ class GameOverMenu extends StatefulWidget {
   final VoidCallback onContinueWithAd;
   final VoidCallback? onBuySingleHeart;
   final VoidCallback? onGoToStore; // Added callback to navigate to store
-  final Function(String platform) onShare;
   final int? secondsUntilHeart;
   final bool canContinue;
   final int continuesRemaining;
@@ -33,7 +31,6 @@ class GameOverMenu extends StatefulWidget {
     required this.onContinueWithAd,
     this.onBuySingleHeart,
     this.onGoToStore,
-    required this.onShare,
     this.secondsUntilHeart,
     required this.canContinue,
     required this.continuesRemaining,
@@ -257,20 +254,6 @@ class _GameOverMenuState extends State<GameOverMenu>
                 ),
 
                 SizedBox(height: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16)),
-
-                // "Brag about your score!" text
-                _buildBragText(
-                  isVerySmallScreen: isVerySmallScreen, 
-                  isSmallScreen: isSmallScreen,
-                ),
-
-                SizedBox(height: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-
-                // Social media icons
-                _buildSocialIcons(
-                  isVerySmallScreen: isVerySmallScreen, 
-                  isSmallScreen: isSmallScreen,
-                ),
               ],
             ),
           ),
@@ -553,18 +536,10 @@ class _GameOverMenuState extends State<GameOverMenu>
                     borderRadius: BorderRadius.circular(26),
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      if (hasEnoughGems) {
-                        // User has enough gems - continue with gems
-                        // TODO: Implement gem continue functionality
-                        // For now, use the existing heart purchase
-                        if (widget.onBuySingleHeart != null) {
-                          widget.onBuySingleHeart!();
-                        }
-                      } else {
-                        // User doesn't have enough gems - go to store
-                        if (widget.onGoToStore != null) {
-                          widget.onGoToStore!();
-                        }
+                      // Always call onBuySingleHeart - it uses handleContinueWithInsufficientCurrency
+                      // which will show insufficient currency popup if needed
+                      if (widget.onBuySingleHeart != null) {
+                        widget.onBuySingleHeart!();
                       }
                     },
                     child: Row(
@@ -638,157 +613,4 @@ class _GameOverMenuState extends State<GameOverMenu>
     );
   }
 
-  Widget _buildBragText({required bool isVerySmallScreen, required bool isSmallScreen}) {
-    return Text(
-      'Brag about your score!',
-      style: TextStyle(
-        fontSize: isVerySmallScreen ? 14 : (isSmallScreen ? 15 : 16),
-        fontWeight: FontWeight.w600,
-        color: Colors.amber.shade300,
-        decoration: TextDecoration.none,
-      ),
-    );
-  }
-
-  Widget _buildSocialIcons({required bool isVerySmallScreen, required bool isSmallScreen}) {
-    final socialPlatforms = [
-      {
-        'icon': Icons.music_note,
-        'platform': SocialPlatform.tiktok,
-        'color': Colors.black,
-        'name': 'TikTok',
-      },
-      {
-        'icon': Icons.camera_alt,
-        'platform': SocialPlatform.instagram,
-        'color': Colors.pink,
-        'name': 'Instagram',
-      },
-      {
-        'icon': Icons.message,
-        'platform': SocialPlatform.whatsapp,
-        'color': Colors.green,
-        'name': 'WhatsApp',
-      },
-      {
-        'icon': Icons.facebook,
-        'platform': SocialPlatform.facebook,
-        'color': Colors.indigo,
-        'name': 'Facebook',
-      },
-    ];
-
-    final iconSize = isVerySmallScreen ? 40.0 : (isSmallScreen ? 44.0 : 48.0);
-    final iconInnerSize = isVerySmallScreen ? 20.0 : (isSmallScreen ? 22.0 : 24.0);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: socialPlatforms.map((social) {
-        return GestureDetector(
-          onTap: () async {
-            HapticFeedback.selectionClick();
-            
-            // 📊 Track share button click (OLD ANALYTICS REMOVED)
-            // OLD: ComprehensiveAnalyticsManager().trackEvent('click_share', {...})
-            // Now using EventBus for analytics
-            
-            await _handleSocialShare(social['platform'] as SocialPlatform);
-          },
-          child: Container(
-            width: iconSize,
-            height: iconSize,
-            decoration: BoxDecoration(
-              color: (social['color'] as Color).withValues(alpha: 0.8),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              social['icon'] as IconData,
-              color: Colors.white,
-              size: iconInnerSize,
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  /// Handle social sharing with randomized template-based score cards
-  Future<void> _handleSocialShare(SocialPlatform platform) async {
-    try {
-      final sharingManager = SocialSharingManager();
-      final result = await sharingManager.shareScore(
-        score: widget.score,
-        platform: platform,
-      );
-
-      if (result.isSuccess) {
-        // Show enhanced success feedback with platform-specific message
-        final sharingManager = SocialSharingManager();
-        final platformDescription = sharingManager.getPlatformSharingDescription(platform);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.rocket_launch, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Text('Shared to ${platform.name.toUpperCase()}!'),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  platformDescription,
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else {
-        // Show error feedback with helpful message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Text('Sharing via system menu'),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'App not installed or unavailable. Using default sharing.',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      // Fallback to old system
-      widget.onShare(platform.name);
-    }
-  }
 }

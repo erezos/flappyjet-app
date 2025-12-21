@@ -22,6 +22,7 @@ import 'tournament_round_failed_popup.dart';
 import 'tournament_round_complete_popup.dart';
 import 'tournament_victory_screen.dart';
 import 'tournament_failed_screen.dart';
+import '../continue_with_insufficient_currency.dart';
 
 class TournamentGameWrapper extends StatefulWidget {
   final TournamentConfig tournament;
@@ -363,41 +364,44 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
     final gemCost = widget.tournament.continues.gemCost;
     safePrint('🏆 Continue with $gemCost gems requested');
 
-    if (_inventoryManager.gems < gemCost) {
-      safePrint('🏆 ⚠️ Not enough gems');
-      return;
-    }
-
-    // Deduct gems
-    final success = await _inventoryManager.spendGems(gemCost);
-    if (!success) {
-      safePrint('🏆 ⚠️ Failed to spend gems');
-      return;
-    }
-
-    // Track continue usage
-    await _tournamentManager.useContinue(tournamentId: widget.tournament.id);
-
-    // Restore hearts
-    final maxHearts = _livesManager.maxLives;
-    await _livesManager.setLives(maxHearts);
-
-    // Track for missions
-    final gameEventsTracker = GameEventsTracker();
-    await gameEventsTracker.onContinueUsed(gemsCost: gemCost);
-
-    // Close popup and continue game
-    if (mounted) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (mounted && Navigator.canPop(dialogContext)) {
-          Navigator.of(dialogContext).pop();
+    // Use smart insufficient currency handler
+    await handleContinueWithInsufficientCurrency(
+      context: context,
+      gemCost: gemCost,
+      continueContext: 'tournament',
+      onContinueAction: () async {
+        // Deduct gems
+        final success = await _inventoryManager.spendGems(gemCost);
+        if (!success) {
+          safePrint('🏆 ⚠️ Failed to spend gems');
+          return;
         }
-      });
-    }
 
-    _roundEnded = false;
-    _game.continueGame();
-    _startUpdateTimer();
+        // Track continue usage
+        await _tournamentManager.useContinue(tournamentId: widget.tournament.id);
+
+        // Restore hearts
+        final maxHearts = _livesManager.maxLives;
+        await _livesManager.setLives(maxHearts);
+
+        // Track for missions
+        final gameEventsTracker = GameEventsTracker();
+        await gameEventsTracker.onContinueUsed(gemsCost: gemCost);
+
+        // Close popup and continue game
+        if (mounted) {
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            if (mounted && Navigator.canPop(dialogContext)) {
+              Navigator.of(dialogContext).pop();
+            }
+          });
+        }
+
+        _roundEnded = false;
+        _game.continueGame();
+        _startUpdateTimer();
+      },
+    );
   }
 
   void _handleTryFailed() async {
@@ -547,7 +551,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -573,7 +577,7 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -601,13 +605,13 @@ class _TournamentGameWrapperState extends State<TournamentGameWrapper> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'Try ${widget.entry.currentTry}/${widget.entry.totalTries}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 12,
                   ),
                 ),

@@ -86,7 +86,7 @@ class TournamentTicketIconGlow extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: TournamentTicketIcon.getGlowColor(tier).withOpacity(0.4),
+            color: TournamentTicketIcon.getGlowColor(tier).withValues(alpha: 0.4),
             blurRadius: size * 0.3,
             spreadRadius: size * 0.1,
           ),

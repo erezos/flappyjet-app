@@ -31,7 +31,6 @@ void main() {
       await missionsManager.initialize();
 
       achievementsManager = AchievementsManager();
-      achievementsManager.resetForTesting();
       await achievementsManager.initialize();
     });
 

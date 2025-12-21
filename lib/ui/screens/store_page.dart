@@ -8,10 +8,12 @@ import 'store_screen.dart';
 
 class StorePage extends StatefulWidget {
   final MonetizationManager monetization;
+  final String? initialCategory; // ✅ NEW: Support initial category selection
 
   const StorePage({
     super.key,
     required this.monetization,
+    this.initialCategory,
   });
 
   @override
@@ -21,9 +23,8 @@ class StorePage extends StatefulWidget {
 class _StorePageState extends State<StorePage> {
   @override
   Widget build(BuildContext context) {
-    // For now, wrap the existing StoreScreen
-    // In Phase 4, we'll redesign this to fit the new navigation paradigm
-    return const StoreScreen();
+    // Wrap the existing StoreScreen with optional initial category
+    return StoreScreen(initialCategory: widget.initialCategory);
   }
 }
 

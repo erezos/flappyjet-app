@@ -100,6 +100,9 @@ class MonetizationManager extends ChangeNotifier {
   /// 🛡️ BULLETPROOF rewarded ad - AdMob Mediation (Unity Ads + AdMob Network)
   /// 🎯 CRITICAL: Ad shows FIRST, then game continues (proper UX flow)
   /// ✅ Google's mediation adapters guarantee callback order (no race conditions)
+  /// 
+  /// NOTE: Rewarded ads are NOT affected by No Ads purchase.
+  /// Users can still watch rewarded ads to continue games, get extra lives, etc.
   Future<void> showRewardedAdForExtraLife({
     required VoidCallback onReward,
     VoidCallback? onAdFailure,

@@ -416,10 +416,10 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color(0xFF0A0A1F).withOpacity(0.60),
-                      const Color(0xFF0D1B2A).withOpacity(0.65),
-                      const Color(0xFF1B2838).withOpacity(0.60),
-                      const Color(0xFF0D1B2A).withOpacity(0.65),
+                      const Color(0xFF0A0A1F).withValues(alpha: 0.60),
+                      const Color(0xFF0D1B2A).withValues(alpha: 0.65),
+                      const Color(0xFF1B2838).withValues(alpha: 0.60),
+                      const Color(0xFF0D1B2A).withValues(alpha: 0.65),
                     ],
                   ),
                 ),
@@ -524,7 +524,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
             child: Container(
               padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(10.0, screenSize)),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
               ),
               child: Icon(
@@ -584,7 +584,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.3 + 0.3 * _glowAnimation.value),
+                    color: Colors.amber.withValues(alpha: 0.3 + 0.3 * _glowAnimation.value),
                     blurRadius: 30 + 15 * _glowAnimation.value,
                     spreadRadius: 5 + 5 * _glowAnimation.value,
                   ),
@@ -709,13 +709,13 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF00D4FF).withOpacity(0.25),
-                const Color(0xFF0097A7).withOpacity(0.25),
+                const Color(0xFF00D4FF).withValues(alpha: 0.25),
+                const Color(0xFF0097A7).withValues(alpha: 0.25),
               ],
             ),
             borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
             border: Border.all(
-              color: const Color(0xFF00D4FF).withOpacity(0.4 + 0.3 * _glowAnimation.value),
+              color: const Color(0xFF00D4FF).withValues(alpha: 0.4 + 0.3 * _glowAnimation.value),
               width: ResponsiveConfig.responsiveSize(1.5, screenSize),
             ),
           ),
@@ -728,7 +728,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
                 decoration: BoxDecoration(
                   color: const Color(0xFF00D4FF),
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: const Color(0xFF00D4FF).withOpacity(_glowAnimation.value), blurRadius: 6)],
+                  boxShadow: [BoxShadow(color: const Color(0xFF00D4FF).withValues(alpha: _glowAnimation.value), blurRadius: 6)],
                 ),
               ),
               SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
@@ -803,18 +803,18 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF1E3A5F).withOpacity(0.8),
-                  const Color(0xFF0D1B2A).withOpacity(0.9),
+                  const Color(0xFF1E3A5F).withValues(alpha: 0.8),
+                  const Color(0xFF0D1B2A).withValues(alpha: 0.9),
                 ],
               ),
               borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
               border: Border.all(
-                color: const Color(0xFF00D4FF).withOpacity(0.5),
+                color: const Color(0xFF00D4FF).withValues(alpha: 0.5),
                 width: ResponsiveConfig.responsiveSize(2.0, screenSize),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00D4FF).withOpacity(0.3),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.3),
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),
@@ -919,10 +919,10 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
             gradient: isHighlighted
                 ? const LinearGradient(colors: [Color(0xFFFF5722), Color(0xFFFF9800)])
                 : null,
-            color: !isHighlighted ? Colors.white.withOpacity(0.1) : null,
+            color: !isHighlighted ? Colors.white.withValues(alpha: 0.1) : null,
             borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
             boxShadow: isHighlighted ? [
-              BoxShadow(color: Colors.orange.withOpacity(0.4), blurRadius: 10),
+              BoxShadow(color: Colors.orange.withValues(alpha: 0.4), blurRadius: 10),
             ] : null,
           ),
           child: Text(
@@ -965,7 +965,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
             decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [Color(0xFF00D4FF), Color(0xFF0097A7)]),
               borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(8.0, screenSize)),
-              boxShadow: [BoxShadow(color: const Color(0xFF00D4FF).withOpacity(0.5), blurRadius: 8)],
+              boxShadow: [BoxShadow(color: const Color(0xFF00D4FF).withValues(alpha: 0.5), blurRadius: 8)],
             ),
             child: Text(
               'YOU',
@@ -984,7 +984,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: jet.isPlayer ? [
-              BoxShadow(color: const Color(0xFF00D4FF).withOpacity(0.5), blurRadius: 15, spreadRadius: 2),
+              BoxShadow(color: const Color(0xFF00D4FF).withValues(alpha: 0.5), blurRadius: 15, spreadRadius: 2),
             ] : null,
           ),
           child: skin != null
@@ -1027,9 +1027,9 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
         vertical: ResponsiveConfig.responsivePadding(10.0, screenSize),
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -1045,7 +1045,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
               vertical: ResponsiveConfig.responsivePadding(4.0, screenSize),
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(8.0, screenSize)),
             ),
             child: Text(
@@ -1117,8 +1117,8 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.1),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        color: Colors.white.withValues(alpha: 0.1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Icon(Icons.airplanemode_active, size: size * 0.5, color: Colors.white30),
     );
@@ -1139,7 +1139,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
           end: Alignment.bottomCenter,
           colors: [
             Colors.transparent,
-            const Color(0xFF0D1B2A).withOpacity(0.9),
+            const Color(0xFF0D1B2A).withValues(alpha: 0.9),
           ],
         ),
       ),
@@ -1166,7 +1166,7 @@ class _PlayoffBracketScreenState extends State<PlayoffBracketScreen>
               borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(16.0, screenSize)),
               boxShadow: [
                 BoxShadow(
-                  color: (isChampion ? Colors.amber : Colors.orange).withOpacity(0.4),
+                  color: (isChampion ? Colors.amber : Colors.orange).withValues(alpha: 0.4),
                   blurRadius: 15,
                   offset: const Offset(0, 4),
                 ),

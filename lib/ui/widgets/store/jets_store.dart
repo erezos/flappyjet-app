@@ -7,6 +7,7 @@ import '../../../game/core/economy_config.dart';
 import '../../../game/systems/inventory_manager.dart';
 import '../gem_3d_icon.dart';
 import '../coin_3d_icon.dart';
+import '../../utils/responsive_config.dart';
 
 class JetsStore extends StatelessWidget {
   final InventoryManager inventory;
@@ -29,6 +30,7 @@ class JetsStore extends StatelessWidget {
       ...JetSkinCatalog.premiumSkins,
     ];
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenSize = MediaQuery.of(context).size;
     final isTablet = screenWidth > 600;
 
     return Padding(
@@ -36,7 +38,13 @@ class JetsStore extends StatelessWidget {
         horizontal: isTablet ? 24 : 16,
         vertical: 12,
       ),
-      child: GridView.builder(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header with Jets title and Crimson Viper image
+          _buildSectionHeader(context, screenSize),
+          SizedBox(height: ResponsiveConfig.responsivePadding(16.0, screenSize)),
+          GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -56,7 +64,38 @@ class JetsStore extends StatelessWidget {
             onEquip: () => onEquipJet(skin),
           );
         },
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, Size screenSize) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Much bigger image - engaging and prominent
+        Image.asset(
+          'assets/images/jets/Crimson_viper.png',
+          width: ResponsiveConfig.responsiveSize(64.0, screenSize),
+          height: ResponsiveConfig.responsiveSize(64.0, screenSize),
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.airplanemode_active,
+            color: Colors.white,
+            size: ResponsiveConfig.responsiveSize(64.0, screenSize),
+          ),
+        ),
+        SizedBox(width: ResponsiveConfig.responsivePadding(16.0, screenSize)),
+        Text(
+          'Jets',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -367,7 +406,7 @@ class ModernJetCard extends StatelessWidget {
                   isGemExclusive ? '$gemPrice' : '$coinPrice',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: isTablet ? 11 : 10,
+                    fontSize: isTablet ? 16 : 14, // Increased from 11:10 to make price more prominent
                     fontWeight: FontWeight.bold,
                   ),
                 ),

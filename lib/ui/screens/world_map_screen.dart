@@ -11,8 +11,9 @@ import '../../game/systems/lives_manager.dart';
 import '../../game/systems/inventory_manager.dart';
 import '../../models/level_data_schema.dart';
 import '../widgets/world_map_path_painter.dart';
+import '../widgets/world_map_layout.dart';
 import '../widgets/world_map_jet_widget.dart';
-import '../widgets/zone_selector_dropdown.dart';
+// ✅ REMOVED: WorldMapBanner import (banners removed, layout system kept for future use)
 import 'level_objective_popup.dart';
 import '../../core/debug_logger.dart';
 import '../widgets/buttons/modern_game_button.dart';
@@ -22,13 +23,23 @@ import '../../game/systems/missions_manager.dart';
 import '../../game/systems/achievements_manager.dart';
 import '../../integrations/ftue_integration.dart';
 import '../../integrations/interstitial_ad_manager.dart';
-import '../widgets/floating_missions_banner.dart';
-import '../widgets/floating_store_banner.dart';
-import '../widgets/floating_tournaments_banner.dart';
-import '../widgets/store_bottom_sheet.dart';
+// ✅ REMOVED: Old floating banner imports (replaced by homepage banners system)
 import '../utils/responsive_config.dart';
 import 'daily_missions_screen.dart';
-import 'home_navigator_screen.dart';
+// ✅ REMOVED: Legacy HomeNavigatorScreen import (replaced by HomepageLayout)
+import '../widgets/status_bar/coins_gems_display.dart';
+import '../widgets/status_bar/hearts_display.dart';
+import '../widgets/daily_streak/daily_streak_homepage_integration.dart';
+import '../widgets/daily_streak/daily_streak_floating_banner.dart';
+import '../widgets/missions_achievements_claim_banner.dart';
+import '../widgets/tournament/christmas_tournament_banner.dart';
+import '../widgets/homepage_footer_navigator.dart';
+import '../layouts/homepage_layout.dart';
+import 'store_page.dart';
+import 'tournament_hub_screen.dart';
+import 'profile_page.dart';
+import '../widgets/store/starter_boss_pack_popup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WorldMapScreen extends StatefulWidget {
   /// ✅ NEW: Parameters for jet animation flow
@@ -49,15 +60,18 @@ class WorldMapScreen extends StatefulWidget {
   State<WorldMapScreen> createState() => _WorldMapScreenState();
 }
 
-class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStateMixin {
+class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   final LevelSystemManager _levelSystemManager = LevelSystemManager();
   final LivesManager _livesManager = LivesManager();
   final InventoryManager _inventoryManager = InventoryManager();
   bool _isInitialized = false;
   
+  // ✅ NEW: PageView controller for zone swiping
+  PageController? _pageController; // Nullable - will be initialized with correct page
+  int _currentPageIndex = 0; // Tracks which zone page is currently visible
+  
   // Animation state
   List<Offset> _nodePath = [];
-  Offset? _jetTargetPosition;
   bool _isJetAnimating = false;
   
   // ✅ NEW: Jet movement animation system
@@ -70,9 +84,28 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   @override
   void initState() {
     super.initState();
+    // ✅ NEW: Add lifecycle observer to handle navigation back
+    WidgetsBinding.instance.addObserver(this);
+    // ✅ FIXED: Don't initialize PageController here - wait for managers to load
+    // Will be initialized with correct page in _initializeManagers
     _initializeManagers();
     // Listen for zone changes
     _levelSystemManager.addListener(_onLevelSystemChanged);
+  }
+
+  bool _hasCheckedZoneOnBuild = false;
+  int? _lastCheckedZone;
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ✅ FIXED: When navigating back to world map, ensure we're on the current level's zone
+    // This fixes the issue where viewing a completed zone and navigating away/back
+    // would keep you on that completed zone instead of returning to current level zone
+    if (_isInitialized && _pageController != null) {
+      _hasCheckedZoneOnBuild = false; // Reset to allow checking again
+      _ensureCorrectZone();
+    }
   }
 
   void _onLevelSystemChanged() {
@@ -86,9 +119,54 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _levelSystemManager.removeListener(_onLevelSystemChanged);
     _jetAnimationController?.dispose();
+    _pageController?.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // ✅ FIXED: When app resumes, ensure we're on the current level's zone
+    if (state == AppLifecycleState.resumed && _isInitialized && _pageController != null) {
+      _hasCheckedZoneOnBuild = false; // Reset to allow checking again
+      _lastCheckedZone = null; // Reset to force check
+      _ensureCorrectZone();
+    }
+  }
+  
+  /// ✅ NEW: Ensure we're viewing the current level's zone
+  void _ensureCorrectZone() {
+    if (!_isInitialized || _pageController == null || !_pageController!.hasClients) return;
+    
+    final currentLevel = _levelSystemManager.getLevelById(_levelSystemManager.currentLevel);
+    final currentLevelZone = currentLevel?.zone ?? _levelSystemManager.currentZone;
+    final allZones = _levelSystemManager.allZones;
+    if (allZones.isEmpty) return;
+    
+    final expectedPageIndex = (currentLevelZone - 1).clamp(0, allZones.length - 1);
+    
+    // ✅ FIXED: Check if we need to jump to correct zone
+    // Only jump if we're on the wrong zone AND we haven't already checked for this zone
+    if (_currentPageIndex != expectedPageIndex && _lastCheckedZone != currentLevelZone) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController != null && _pageController!.hasClients) {
+          _pageController!.jumpToPage(expectedPageIndex);
+          setState(() {
+            _currentPageIndex = expectedPageIndex;
+            _lastCheckedZone = currentLevelZone;
+            _hasCheckedZoneOnBuild = true; // Mark as checked
+          });
+          _calculateNodePositionsForZone(currentLevelZone);
+        }
+      });
+    } else if (_currentPageIndex == expectedPageIndex) {
+      // We're on the correct zone, just update the tracking
+      _lastCheckedZone = currentLevelZone;
+      _hasCheckedZoneOnBuild = true;
+    }
   }
 
   Future<void> _initializeManagers() async {
@@ -97,23 +175,25 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     }
     await _livesManager.initialize();
     
-    // ✅ FIX: Navigate to the zone of the player's current level
-    // This ensures we always show the relevant zone when opening the world map
-    final currentLevel = _levelSystemManager.getLevelById(_levelSystemManager.currentLevel);
-    if (currentLevel != null && currentLevel.zone != _levelSystemManager.currentZone) {
-      safePrint('🗺️ Navigating to zone ${currentLevel.zone} (player\'s current level)');
-      await _levelSystemManager.setCurrentZone(currentLevel.zone);
-    }
+    // ✅ FIXED: Set initial page to player's saved current zone (0-indexed)
+    // Use saved currentZone directly - it's the source of truth for player's progress
+    final initialZone = _levelSystemManager.currentZone;
+    final allZones = _levelSystemManager.allZones;
+    final initialPageIndex = (initialZone - 1).clamp(0, allZones.length > 0 ? allZones.length - 1 : 0); // Convert to 0-indexed, clamp to valid range
     
     if (mounted) {
+      // ✅ FIXED: Initialize PageController with the correct initial page
+      _pageController = PageController(initialPage: initialPageIndex);
+      
       setState(() {
+        _currentPageIndex = initialPageIndex;
         _isInitialized = true;
       });
       
-      // Calculate node positions after first frame
+      // Calculate node positions for the initial zone after first frame
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _calculateNodePositions();
+          _calculateNodePositionsForZone(initialZone);
           
           // ✅ NEW: Start jet animation if requested
           if (widget.shouldAnimateJet) {
@@ -132,25 +212,73 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     }
   }
 
-  void _calculateNodePositions() {
+  /// Calculate node positions for a specific zone
+  void _calculateNodePositionsForZone(int zoneId) {
     final screenSize = MediaQuery.of(context).size;
-    final currentZoneLevels = _levelSystemManager.allLevels
-        .where((level) => level.zone == _levelSystemManager.currentZone)
+    final zoneLevels = _levelSystemManager.allLevels
+        .where((level) => level.zone == zoneId)
         .toList();
     
-    if (currentZoneLevels.isEmpty) return;
+    if (zoneLevels.isEmpty) {
+      setState(() {
+        _nodePath = [];
+      });
+      return;
+    }
+    
+    // ✅ NEW: Use layout system to get padding and exclusion zones
+    final layout = WorldMapLayout(screenSize);
+    final topOverlayHeight = layout.getTopPadding();
+    final bottomOverlayHeight = layout.getBottomPadding();
+    final exclusionZones = layout.getExclusionZones();
     
     setState(() {
       _nodePath = WorldMapPathCalculator.calculateZonePath(
-        zoneId: _levelSystemManager.currentZone,
-        levelCount: currentZoneLevels.length,
+        zoneId: zoneId,
+        levelCount: zoneLevels.length,
         screenSize: screenSize,
-        topPadding: 200, // Space for header + zone selector
-        bottomPadding: 280, // ✅ INCREASED: More space for bottom nav bar + first level visibility
+        topPadding: topOverlayHeight, // Space for top overlays (balance)
+        bottomPadding: bottomOverlayHeight, // Space for bottom overlay (footer navigator)
+        exclusionZones: exclusionZones, // ✅ NEW: Avoid UI element areas
       );
     });
+  }
+  
+  /// Calculate node positions for the currently visible zone
+  void _calculateNodePositions() {
+    final visibleZone = _currentPageIndex + 1; // Convert 0-indexed to 1-indexed
+    _calculateNodePositionsForZone(visibleZone);
+  }
+  
+  /// Handle page change in PageView
+  void _onPageChanged(int pageIndex) {
+    final newZone = pageIndex + 1; // Convert 0-indexed to 1-indexed
+    setState(() {
+      _currentPageIndex = pageIndex;
+    });
     
-    // 🛑 PERFORMANCE: Node position log removed - called multiple times during layout
+    // ✅ FIXED: Only update current zone if:
+    // 1. Zone is unlocked (can play levels)
+    // 2. AND it's the player's actual current zone or a higher zone
+    // This prevents overwriting progress when just viewing completed zones
+    final unlockedZones = _levelSystemManager.getUnlockedZones();
+    final playerCurrentZone = _levelSystemManager.currentZone;
+    
+    if (unlockedZones.contains(newZone)) {
+      // Only update if viewing current zone or a higher zone (forward progress)
+      // Don't update if viewing a lower/completed zone (would overwrite progress)
+      if (newZone >= playerCurrentZone) {
+        _levelSystemManager.setCurrentZone(newZone);
+      } else {
+        // Viewing a completed/lower zone - don't update saved progress
+        // This allows viewing but preserves player's actual current zone
+        safePrint('🗺️ Viewing completed zone $newZone (current zone: $playerCurrentZone) - not updating progress');
+      }
+    }
+    // For locked zones, we just show them but don't update current zone
+    
+    // Recalculate node positions for the new zone (works for both locked and unlocked)
+    _calculateNodePositionsForZone(newZone);
   }
   
   /// ✅ NEW: Animate jet from completed level to next level (or from center)
@@ -276,12 +404,69 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   }
   
   /// ✅ NEW: Show level preview (used after jet animation)
-  void _showLevelPreview(LevelData level) {
+  /// ✅ NEW: Shows Starter Boss Pack offer after level 5 preview opens
+  Future<void> _showLevelPreview(LevelData level) async {
+    // Show level preview dialog
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => LevelObjectivePopup(level: level),
     );
+    
+    // ✅ NEW: After level preview opens, show Starter Boss Pack offer if needed
+    // Only show for level 5, and only if user doesn't have all skins and hasn't purchased
+    // Use a small delay to ensure the preview dialog is fully rendered first
+    if (level.id == 5 && mounted) {
+      // Wait for the preview dialog to fully render
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        await _showStarterBossPackOfferIfNeeded();
+      }
+    }
+  }
+  
+  /// ✅ NEW: Show Starter Boss Pack offer if conditions are met
+  /// Checks if user has all 3 skins or already purchased, and shows popup if needed
+  Future<void> _showStarterBossPackOfferIfNeeded() async {
+    if (!mounted) return;
+    
+    try {
+      // Check if user already purchased Starter Boss Pack
+      final prefs = await SharedPreferences.getInstance();
+      final hasPurchased = prefs.getBool('starter_boss_pack_purchased') ?? false;
+      
+      if (hasPurchased) {
+        safePrint('⚔️ User already purchased Starter Boss Pack - skipping offer');
+        return;
+      }
+      
+      // Check if user already owns all Boss Pack jet skins
+      const bossPackJetSkins = ['police_patrol', 'red_alert', 'green_lightning'];
+      final inventoryManager = InventoryManager();
+      final allSkinsOwned = bossPackJetSkins.every((skinId) => inventoryManager.isOwned(skinId));
+      
+      if (allSkinsOwned) {
+        safePrint('⚔️ User already owns all Starter Boss Pack jet skins - skipping offer');
+        return;
+      }
+      
+      // Show the Starter Boss Pack offer popup
+      safePrint('⚔️ Showing Starter Boss Pack offer after level 5 preview');
+      await showStarterBossPackPopup(
+        context: context,
+        onPurchaseComplete: () {
+          safePrint('⚔️ Starter Boss Pack purchased from level 5 offer');
+          // Purchase handled - user can continue playing
+        },
+        onDismiss: () {
+          safePrint('⚔️ Starter Boss Pack offer dismissed from level 5');
+          // User dismissed - continue playing
+        },
+      );
+    } catch (e) {
+      safePrint('⚔️ ⚠️ Error showing Starter Boss Pack offer: $e');
+      // Continue even if offer fails - don't block user progress
+    }
   }
 
   @override
@@ -295,224 +480,281 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       );
     }
 
-    final currentZone = _levelSystemManager.getCurrentZone();
-    final allLevels = _levelSystemManager.allLevels;
-
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          safePrint('🗺️ Navigating back to story tab from world map');
+    // ✅ FIXED: Always check zone on build to ensure we're on the correct zone
+    // This handles the case where navigating back from a completed zone
+    // Uses saved currentZone directly (not derived from currentLevel)
+    if (_pageController != null && _pageController!.hasClients) {
+      // ✅ FIXED: Use saved currentZone directly - it's the source of truth
+      final playerCurrentZone = _levelSystemManager.currentZone;
+      final allZones = _levelSystemManager.allZones;
+      if (allZones.isNotEmpty) {
+        final expectedPageIndex = (playerCurrentZone - 1).clamp(0, allZones.length - 1);
+        
+        // ✅ FIXED: Always check if we're on the wrong zone, regardless of check flag
+        // This ensures we jump to the correct zone when navigating back
+        if (_currentPageIndex != expectedPageIndex && _lastCheckedZone != playerCurrentZone) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _pageController != null && _pageController!.hasClients) {
+              _pageController!.jumpToPage(expectedPageIndex);
+              setState(() {
+                _currentPageIndex = expectedPageIndex;
+                _lastCheckedZone = playerCurrentZone;
+                _hasCheckedZoneOnBuild = true;
+              });
+              _calculateNodePositionsForZone(playerCurrentZone);
+            }
+          });
+        } else if (_currentPageIndex == expectedPageIndex) {
+          // We're on the correct zone, just update tracking
+          _lastCheckedZone = playerCurrentZone;
+          _hasCheckedZoneOnBuild = true;
         }
-      },
-      child: Scaffold(
-      backgroundColor: const Color(0xFF1A237E),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(currentZone),
-            
-            // World Map (scrollable)
-            Expanded(
-              child: _buildWorldMap(allLevels),
-            ),
-            
-            // ✅ REMOVED: Bottom completion bar (redundant UI)
-          ],
-        ),
-      ),
-    ),
-    );
-  }
+      }
+    }
 
-  Widget _buildHeader(ZoneData? currentZone) {
+    final allLevels = _levelSystemManager.allLevels;
     final screenSize = MediaQuery.sizeOf(context);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: ResponsiveConfig.responsivePadding(12.0, screenSize),
-        vertical: ResponsiveConfig.responsivePadding(12.0, screenSize),
-      ),
-      decoration: BoxDecoration(
-        // Modern deep gradient
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF1E3A8A),
-            Color(0xFF1E293B),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-        child: Row(
+    
+    // ✅ Calculate footer height (same as HomepageLayout)
+    final footerHeight = screenSize.width * (391.0 / 1490.0); // Footer aspect ratio
+    
+    // ✅ FIXED: Account for system navigation bar (Xiaomi, Samsung, etc.)
+    // Mobile Gaming Best Practice: Treat system UI as NOT part of active screen
+    // Flame Best Practice: Use actual viewport size excluding system UI
+    final totalBottomPadding = ResponsiveConfig.getTotalBottomPadding(context, footerHeight);
+    final safeFooterBottom = ResponsiveConfig.getSafeFooterBottomPosition(context, footerHeight);
+
+    // ✅ Home page - no back navigation needed
+    return Scaffold(
+        backgroundColor: Colors.transparent, // ✅ Transparent so background image shows through
+        body: Stack(
           children: [
-            // Back button with modern styling
-            Container(
-              width: ResponsiveConfig.responsiveSize(42.0, screenSize),
-              height: ResponsiveConfig.responsiveSize(42.0, screenSize),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.2),
-                    Colors.white.withValues(alpha: 0.1),
-                  ],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: ResponsiveConfig.responsiveIconSize(22.0, screenSize),
-                ),
-                padding: EdgeInsets.zero,
-                onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-              ),
+            // ✅ World map with bottom padding to respect footer + system navigation bar
+            Padding(
+              padding: EdgeInsets.only(bottom: totalBottomPadding),
+              child: _buildWorldMapWithPageView(allLevels),
             ),
             
-            SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
-            
-            // Zone selector dropdown
-            Expanded(
-              child: ZoneSelectorDropdown(
-                allZones: _levelSystemManager.allZones,
-                currentZone: _levelSystemManager.currentZone,
-                unlockedZones: _levelSystemManager.getUnlockedZones(),
-                onZoneSelected: (zoneId) async {
-                  await _levelSystemManager.setCurrentZone(zoneId);
-                  _calculateNodePositions();
-                },
-              ),
+            // ✅ Top left: Balance (home page - no back button) - respect SafeArea top inset
+            Positioned(
+              top: MediaQuery.of(context).padding.top + ResponsiveConfig.responsivePadding(12.0, screenSize),
+              left: ResponsiveConfig.responsivePadding(12.0, screenSize),
+              child: CoinsGemsDisplay(),
             ),
             
-            SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
+            // ✅ Daily Streak Floating Banner - appears under balance when reward is available
+            DailyStreakFloatingBanner(),
             
-            // Hearts display with modern badge styling
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: ResponsiveConfig.responsivePadding(12.0, screenSize),
-                vertical: ResponsiveConfig.responsivePadding(8.0, screenSize),
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.red.shade600,
-                    Colors.pink.shade700,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(20.0, screenSize)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.red.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.favorite,
-                    color: Colors.white,
-                    size: ResponsiveConfig.responsiveIconSize(18.0, screenSize),
-                  ),
-                  SizedBox(width: ResponsiveConfig.responsivePadding(4.0, screenSize)),
-                  Text(
-                    '${_livesManager.currentLives}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+            // ✅ Missions & Achievements Claim Banner - appears below daily streak banner (or balance) when rewards are available
+            MissionsAchievementsClaimBanner(),
+            
+            // ✅ Top right: Hearts display - respect SafeArea top inset
+            Positioned(
+              top: MediaQuery.of(context).padding.top + ResponsiveConfig.responsivePadding(12.0, screenSize),
+              right: ResponsiveConfig.responsivePadding(12.0, screenSize),
+              child: HeartsDisplay(),
+            ),
+            
+            // ✅ Christmas Tournament Banner - appears at bottom left when tournament is available
+            const ChristmasTournamentBanner(),
+            
+            // ✅ Banners removed - layout system still calculates exclusion zones for future use
+            
+            // ✅ Daily Streak Auto-Popup - shows automatically when reward is available
+            DailyStreakHomepageIntegration(),
+            
+            // ✅ FIXED: Footer Navigator positioned above system navigation bar
+            // This prevents overlap on devices with system navigation bars (Xiaomi, etc.)
+            Positioned(
+              bottom: safeFooterBottom, // Position above system navigation bar
+              left: 0,
+              right: 0,
+              child: HomepageFooterNavigator(
+                activeSection: FooterNavigatorSection.worldMap,
+                onSectionTap: _handleFooterNavigation,
               ),
             ),
           ],
         ),
     );
   }
+  
+  /// Handle footer navigator section taps
+  void _handleFooterNavigation(FooterNavigatorSection section) {
+    switch (section) {
+      case FooterNavigatorSection.store:
+        _navigateToStore();
+        break;
+      case FooterNavigatorSection.tournaments:
+        _navigateToTournaments();
+        break;
+      case FooterNavigatorSection.worldMap:
+        // Already on world map, do nothing (or could show a subtle feedback)
+        break;
+      case FooterNavigatorSection.missions:
+        _showMissionsScreen();
+        break;
+      case FooterNavigatorSection.profile:
+        _navigateToProfile();
+        break;
+    }
+  }
+  
+  /// Navigate to Store
+  void _navigateToStore() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => HomepageLayout(
+          activeSection: FooterNavigatorSection.store,
+          child: StorePage(
+            monetization: MonetizationManager(),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// Navigate to Tournaments
+  void _navigateToTournaments() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => HomepageLayout(
+          activeSection: FooterNavigatorSection.tournaments,
+          child: TournamentHubScreen(
+            monetization: MonetizationManager(),
+            missions: MissionsManager(),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// Navigate to Profile
+  void _navigateToProfile() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => HomepageLayout(
+          activeSection: FooterNavigatorSection.profile,
+          child: ProfilePage(
+            achievements: AchievementsManager(),
+          ),
+        ),
+      ),
+    );
+  }
 
-  Widget _buildWorldMap(List<LevelData> levels) {
-    // Get levels for the current zone only
-    final currentZoneLevels = levels
-        .where((level) => level.zone == _levelSystemManager.currentZone)
-        .toList();
+  // ✅ REMOVED: Banner rendering method
+  // Layout system still calculates exclusion zones for future banner use
+  // Banners can be added later without code changes - just add images and they'll be positioned correctly
+  
+
+  /// Build world map with PageView for zone swiping
+  Widget _buildWorldMapWithPageView(List<LevelData> levels) {
+    final allZones = _levelSystemManager.allZones;
     
-    // Check if current zone exists but has no levels
-    final currentZone = _levelSystemManager.getCurrentZone();
-    final hasLevels = currentZoneLevels.isNotEmpty;
+    // ✅ FIXED: Ensure PageController is initialized before building PageView
+    if (_pageController == null) {
+      // Fallback: initialize with page 0 if somehow not initialized
+      final fallbackPageIndex = (_levelSystemManager.currentZone - 1).clamp(0, allZones.length > 0 ? allZones.length - 1 : 0);
+      _pageController = PageController(initialPage: fallbackPageIndex);
+      _currentPageIndex = fallbackPageIndex;
+    }
     
-    if (!hasLevels && currentZone != null) {
+    return PageView.builder(
+      controller: _pageController!,
+      onPageChanged: _onPageChanged,
+      itemCount: allZones.length,
+      itemBuilder: (context, index) {
+        final zoneId = index + 1; // Convert 0-indexed to 1-indexed
+        return _buildWorldMapForZone(levels, zoneId);
+      },
+    );
+  }
+
+  /// Build world map for a specific zone
+  Widget _buildWorldMapForZone(List<LevelData> levels, int zoneId) {
+    // Get levels for this zone
+    final zoneLevels = levels.where((level) => level.zone == zoneId).toList();
+    
+    // Check if zone exists but has no levels
+    final zone = _levelSystemManager.getZoneById(zoneId);
+    final hasLevels = zoneLevels.isNotEmpty;
+    
+    if (!hasLevels && zone != null) {
       return _buildEmptyZoneMessage();
     }
     
-    // Responsive: fit to screen, but allow scrolling if needed
+    // ✅ Map height: screen height minus footer and system navigation bar
+    // Mobile Gaming Best Practice: Use active screen area (excluding system UI)
     final screenSize = MediaQuery.of(context).size;
-    final availableHeight = screenSize.height - 160; // Account for header and footer
+    final footerHeight = screenSize.width * (391.0 / 1490.0); // Footer aspect ratio
+    final systemNavBarHeight = ResponsiveConfig.getSystemNavigationBarHeight(context);
+    final totalBottomPadding = footerHeight + systemNavBarHeight;
+    final minMapHeight = screenSize.height - totalBottomPadding; // Content area above footer + system UI
     
-    // ✅ FIX: Use BoxFit.contain to auto-calculate image height
-    // This prevents excessive scrolling by fitting the image naturally
-    final minMapHeight = availableHeight;
+    // Check if zone is unlocked
+    final unlockedZones = _levelSystemManager.getUnlockedZones();
+    final isZoneUnlocked = unlockedZones.contains(zoneId);
+    
+    // ✅ NEW: Use layout system to get padding and exclusion zones
+    final layout = WorldMapLayout(screenSize);
+    final topOverlayHeight = layout.getTopPadding();
+    final bottomOverlayHeight = layout.getBottomPadding();
+    final exclusionZones = layout.getExclusionZones();
+    
+    // ✅ FIXED: Pass actual content height to calculator
+    // The calculator now expects screenSize.height to be the full screen,
+    // but it will calculate content height internally (screen - footer)
+    // Calculate node positions for this zone (respecting exclusion zones)
+    final nodePath = zoneLevels.isEmpty
+        ? <Offset>[]
+        : WorldMapPathCalculator.calculateZonePath(
+            zoneId: zoneId,
+            levelCount: zoneLevels.length,
+            screenSize: screenSize, // Full screen size - calculator handles content height
+            topPadding: topOverlayHeight,
+            bottomPadding: bottomOverlayHeight,
+            exclusionZones: exclusionZones, // ✅ NEW: Avoid UI element areas
+          );
     
     return Stack(
-      clipBehavior: Clip.none, // ✅ Allow badge overflow on tournament banner
+      clipBehavior: Clip.none,
       children: [
-        // Background image with responsive scrolling
-        SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: minMapHeight,
-              minWidth: screenSize.width,
-            ),
-            child: Stack(
-              children: [
-                // Background image (zone-specific)
-                // ✅ FIX: Use BoxFit.cover to ensure image ALWAYS fills the screen
-                // This prevents nodes from appearing outside the image on different aspect ratios
-                Image.asset(
-                  'assets/images/backgrounds/world_map_zone${_levelSystemManager.currentZone}.png',
-                  width: screenSize.width,
-                  height: minMapHeight,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: const Color(0xFF1A237E),
-                      child: Center(
-                        child: Icon(
-                          Icons.map,
-                          size: ResponsiveConfig.responsiveIconSize(100.0, screenSize),
-                          color: Colors.white24,
-                        ),
-                      ),
-                    );
-                  },
+        // ✅ Background image - full screen, extends behind status bar
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/backgrounds/world_map_zone$zoneId.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: const Color(0xFF1A237E),
+                child: Center(
+                  child: Icon(
+                    Icons.map,
+                    size: ResponsiveConfig.responsiveIconSize(100.0, screenSize),
+                    color: Colors.white24,
+                  ),
                 ),
+              );
+            },
+          ),
+        ),
+        
+        // Content with fixed layout (no vertical scrolling - nodes should not move)
+        SafeArea(
+          bottom: false, // ✅ Don't apply bottom insets - footer should be at screen bottom
+          child: SizedBox(
+            height: minMapHeight, // ✅ Fixed: Use explicit height instead of minHeight to avoid infinite constraints
+            width: screenSize.width,
+            child: Stack(
+                children: [
                 
-                // Animated path between nodes
-                if (_nodePath.isNotEmpty)
+                // Animated path between nodes (only for unlocked zones)
+                if (nodePath.isNotEmpty && isZoneUnlocked)
                   CustomPaint(
                     size: Size(screenSize.width, minMapHeight),
                     painter: WorldMapPathPainter(
-                      nodePositions: _nodePath,
+                      nodePositions: nodePath,
                       completedUpTo: _levelSystemManager.totalLevelsCompleted,
                       pathColor: const Color(0xFF42A5F5),
                       completedPathColor: const Color(0xFF66BB6A),
@@ -522,196 +764,47 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
                   ),
                 
                 // Level nodes overlay
-                ..._nodePath.asMap().entries.map((entry) {
+                ...nodePath.asMap().entries.map((entry) {
                   final index = entry.key;
                   final position = entry.value;
-                  final level = currentZoneLevels[index];
-                  return _buildLevelNode(level, position, context);
+                  final level = zoneLevels[index];
+                  // For locked zones, all nodes are locked
+                  final isLevelUnlocked = isZoneUnlocked && _levelSystemManager.isLevelUnlocked(level.id);
+                  return _buildLevelNodeForZone(level, position, isLevelUnlocked, zoneId == _levelSystemManager.currentZone);
                 }),
                 
-                // ✅ FIXED: Animated jet sprite using AnimatedBuilder
-                if (_nodePath.isNotEmpty)
-                  _buildAnimatedJet(),
+                // ✅ FIXED: Animated jet sprite (only for current zone)
+                if (nodePath.isNotEmpty && zoneId == _levelSystemManager.currentZone)
+                  _buildAnimatedJetForZone(nodePath, zoneLevels, zoneId),
               ],
             ),
           ),
-        ),
-        
-        // 🎯 Floating Banners Column (top-left corner)
-        // Uses SafeArea-aware positioning for consistent appearance across devices
-        // Position: Right under header for easy access
-        Positioned(
-          left: 16,
-          top: MediaQuery.of(context).padding.top + 8,
-          child: _buildFloatingBannersColumn(context),
-        ),
-        
-        // 🏆 Tournament Banner (top-right corner, aligned with missions banner)
-        Positioned(
-          right: 16,
-          top: MediaQuery.of(context).padding.top + 8,
-          child: _buildTournamentBanner(context),
-        ),
+        ), // ✅ Closes SafeArea
       ],
     );
   }
+
+  // ✅ REMOVED: Legacy _showTournamentsScreen method (unused - navigation handled by _navigateToTournaments)
   
-  /// Build vertically stacked floating banners (Missions + Store)
-  /// Responsive spacing based on screen size
-  Widget _buildFloatingBannersColumn(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    // Responsive gap between banners
-    final double bannerGap = screenWidth < 360 
-        ? 4.0 
-        : (screenHeight > 800 ? 10.0 : 6.0);
-    
-    // Banner size (same for both for visual consistency) - now responsive
-    final double bannerSize = ResponsiveConfig.responsiveSize(55.0, Size(screenWidth, screenHeight));
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Missions Banner (top)
-        FloatingMissionsBanner(
-          onTap: _showMissionsPopup,
-          size: bannerSize,
-        ),
-        
-        SizedBox(height: bannerGap),
-        
-        // Store Banner (below missions)
-        FloatingStoreBanner(
-          onTap: _showStorePopup,
-          size: bannerSize,
-        ),
-      ],
-    );
-  }
-  
-  /// Build tournament banner (top-right, bigger for visibility)
-  Widget _buildTournamentBanner(BuildContext context) {
-    const double bannerSize = 100; // Bigger than missions/store for prominence
-    
-    return FloatingTournamentsBanner(
-      onTap: _showTournamentsScreen,
-      size: bannerSize,
-    );
-  }
-  
-  /// Navigate to tournaments tab when banner is tapped
-  void _showTournamentsScreen() {
-    // Navigate to HomeNavigatorScreen with tournaments tab selected (index 1)
+  /// ✅ NEW: Show missions screen (full screen navigation with footer)
+  void _showMissionsScreen() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => HomeNavigatorScreen(
-          firebaseEnabled: true,
-          monetization: MonetizationManager(),
-          missions: MissionsManager(),
-          achievements: AchievementsManager(),
-          initialTabIndex: 1, // Tournaments tab
-        ),
-      ),
-    );
-  }
-  
-  /// Show store popup when banner is tapped
-  void _showStorePopup() {
-    showStoreBottomSheet(context);
-  }
-  
-  /// Show missions popup when banner is tapped
-  void _showMissionsPopup() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF1A237E),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Stack(
-            children: [
-              // Main content
-              DailyMissionsScreen(
-                missionsManager: MissionsManager(),
-                achievementsManager: AchievementsManager(),
-              ),
-              // X close button (top-right)
-              Positioned(
-                right: 12,
-                top: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Builder(
-                    builder: (context) {
-                      final screenSize = MediaQuery.sizeOf(context);
-                      return Container(
-                        width: ResponsiveConfig.responsiveSize(36.0, screenSize),
-                        height: ResponsiveConfig.responsiveSize(36.0, screenSize),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: ResponsiveConfig.responsiveSize(1.0, screenSize),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: ResponsiveConfig.responsiveIconSize(20.0, screenSize),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
+        builder: (context) => HomepageLayout(
+          activeSection: FooterNavigatorSection.missions,
+          child: DailyMissionsScreen(
+            missionsManager: MissionsManager(),
+            achievementsManager: AchievementsManager(),
           ),
         ),
       ),
     );
   }
 
-  Offset _getCurrentJetPosition() {
-    if (_nodePath.isEmpty) return Offset.zero;
-    
-    // Get current/next level index (0-based)
-    final currentZoneLevels = _levelSystemManager.allLevels
-        .where((level) => level.zone == _levelSystemManager.currentZone)
-        .toList();
-    
-    if (currentZoneLevels.isEmpty) return Offset.zero;
-    
-    // Find the first unlocked but not completed level
-    int jetIndex = 0;
-    for (int i = 0; i < currentZoneLevels.length; i++) {
-      final level = currentZoneLevels[i];
-      if (!_levelSystemManager.isLevelCompleted(level.id)) {
-        jetIndex = i;
-        break;
-      }
-      // If all completed, put jet at last level
-      if (i == currentZoneLevels.length - 1) {
-        jetIndex = i;
-      }
-    }
-    
-    return WorldMapPathCalculator.getLevelPosition(_nodePath, jetIndex);
-  }
-
-  /// ✅ NEW: Build animated jet sprite with smooth movement
-  Widget _buildAnimatedJet() {
+  /// Build animated jet for a specific zone
+  Widget _buildAnimatedJetForZone(List<Offset> nodePath, List<LevelData> zoneLevels, int zoneId) {
     // If animating to next level, use AnimatedBuilder
-    if (_jetAnimationController != null && _jetPositionAnimation != null) {
+    if (_jetAnimationController != null && _jetPositionAnimation != null && zoneId == _levelSystemManager.currentZone) {
       return AnimatedBuilder(
         animation: _jetAnimationController!,
         builder: (context, child) {
@@ -721,8 +814,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           final screenSize = MediaQuery.sizeOf(context);
           final jetSize = ResponsiveConfig.responsiveSize(70.0, screenSize);
           return Positioned(
-            left: currentPos.dx - (jetSize / 2), // Center the jet
-            top: currentPos.dy - (jetSize + 40),  // Position jet ABOVE the node
+            left: currentPos.dx - (jetSize / 2),
+            top: currentPos.dy - (jetSize + 15),  // Position jet closer to the node
             child: SizedBox(
               width: jetSize,
               height: jetSize,
@@ -734,7 +827,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
                   child: WorldMapJetWidget(
                     jetSkinId: _inventoryManager.equippedSkinId,
                     currentPosition: currentPos,
-                    targetPosition: null, // No additional animation
+                    targetPosition: null,
                     animationDuration: Duration.zero,
                     onAnimationComplete: () {},
                     jetSize: jetSize,
@@ -747,54 +840,49 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       );
     }
     
-    // ✅ FIX: If animation is pending (shouldAnimateJet=true but controller not created yet),
-    // position jet at the FROM level, not the current level
-    Offset staticPosition = _getCurrentJetPosition();
-    if (widget.shouldAnimateJet && widget.fromLevel != null) {
-      // Animation is pending - position jet at the FROM level
-      final currentZoneLevels = _levelSystemManager.allLevels
-          .where((level) => level.zone == _levelSystemManager.currentZone)
-          .toList();
-      
-      final fromIndex = currentZoneLevels.indexWhere((l) => l.id == widget.fromLevel);
-      if (fromIndex != -1 && fromIndex < _nodePath.length) {
-        staticPosition = _nodePath[fromIndex];
-        safePrint('✈️ Animation pending - jet positioned at FROM level ${widget.fromLevel}');
-      }
-    }
+    // Static position for current level in this zone
+    Offset staticPosition = _getCurrentJetPositionForZone(nodePath, zoneLevels, zoneId);
     
-    // Otherwise, use static position (no animation)
     final screenSize = MediaQuery.sizeOf(context);
     final jetSize = ResponsiveConfig.responsiveSize(70.0, screenSize);
     return Positioned(
-      left: staticPosition.dx - (jetSize / 2), // Center the jet
-      top: staticPosition.dy - (jetSize + 40),  // Position jet ABOVE the node
+      left: staticPosition.dx - (jetSize / 2),
+      top: staticPosition.dy - (jetSize + 15),  // Position jet closer to the node
       child: SizedBox(
         width: jetSize,
         height: jetSize,
         child: WorldMapJetWidget(
           jetSkinId: _inventoryManager.equippedSkinId,
           currentPosition: staticPosition,
-          targetPosition: _jetTargetPosition,
-          animationDuration: const Duration(seconds: 2),
-          onAnimationComplete: () {
-            if (mounted) {
-              setState(() {
-                _isJetAnimating = false;
-                _jetTargetPosition = null;
-              });
-            }
-          },
+          targetPosition: null,
+          animationDuration: Duration.zero,
+          onAnimationComplete: () {},
           jetSize: jetSize,
         ),
       ),
     );
   }
 
-  Widget _buildLevelNode(LevelData level, Offset position, BuildContext context) {
-    final isUnlocked = _levelSystemManager.isLevelUnlocked(level.id);
+  /// Get current jet position for a specific zone
+  Offset _getCurrentJetPositionForZone(List<Offset> nodePath, List<LevelData> zoneLevels, int zoneId) {
+    if (nodePath.isEmpty || zoneLevels.isEmpty) return Offset.zero;
+    
+    // Find current level in this zone
+    final currentLevel = _levelSystemManager.currentLevel;
+    final currentLevelIndex = zoneLevels.indexWhere((level) => level.id == currentLevel);
+    
+    if (currentLevelIndex != -1 && currentLevelIndex < nodePath.length && zoneId == _levelSystemManager.currentZone) {
+      return nodePath[currentLevelIndex];
+    }
+    
+    // Default to first node if current level not in this zone
+    return nodePath.first;
+  }
+
+  /// Build level node for a specific zone (supports locked zones)
+  Widget _buildLevelNodeForZone(LevelData level, Offset position, bool isUnlocked, bool isCurrentZone) {
     final isCompleted = _levelSystemManager.isLevelCompleted(level.id);
-    final isCurrent = level.id == _levelSystemManager.currentLevel;
+    final isCurrent = level.id == _levelSystemManager.currentLevel && isCurrentZone;
     final isBotBattle = level.botBattle != null;
 
     // VS nodes are larger and have special styling
@@ -817,6 +905,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       ),
     );
   }
+
   
   Widget _buildLevelNumber(LevelData level) {
     // For all nodes, just show the level number centered
@@ -938,6 +1027,15 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
       barrierDismissible: false,
       builder: (context) => LevelObjectivePopup(level: level),
     );
+    
+    // ✅ NEW: Show Starter Boss Pack offer after level 5 preview opens (manual tap)
+    if (level.id == 5) {
+      // Wait for the preview dialog to fully render
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        await _showStarterBossPackOfferIfNeeded();
+      }
+    }
   }
 
 }

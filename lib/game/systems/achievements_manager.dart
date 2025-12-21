@@ -454,79 +454,6 @@ class AchievementsManager extends ChangeNotifier {
       isSecret: true,
     ));
 
-    // === SOCIAL SHARING ACHIEVEMENTS ===
-    _registerAchievement(Achievement(
-      id: 'first_share',
-      title: 'First Share',
-      description: 'Share your score for the first time',
-      category: AchievementCategory.special,
-      rarity: AchievementRarity.bronze,
-      target: 1,
-      coinReward: 100,
-      gemReward: 5,
-      iconPath: 'achievements/first_share.png',
-    ));
-
-    _registerAchievement(Achievement(
-      id: 'social_pilot',
-      title: 'Social Pilot',
-      description: 'Share your score 5 times total',
-      category: AchievementCategory.special,
-      rarity: AchievementRarity.silver,
-      target: 5,
-      coinReward: 200,
-      gemReward: 10,
-      iconPath: 'achievements/social_pilot.png',
-    ));
-
-    _registerAchievement(Achievement(
-      id: 'influencer',
-      title: 'Influencer',
-      description: 'Share your score 10 times total',
-      category: AchievementCategory.special,
-      rarity: AchievementRarity.gold,
-      target: 10,
-      coinReward: 300,
-      gemReward: 15,
-      iconPath: 'achievements/influencer.png',
-    ));
-
-    _registerAchievement(Achievement(
-      id: 'viral_star',
-      title: 'Viral Star',
-      description: 'Share your score 20 times total',
-      category: AchievementCategory.special,
-      rarity: AchievementRarity.gold,
-      target: 20,
-      coinReward: 500,
-      gemReward: 25,
-      iconPath: 'achievements/viral_star.png',
-    ));
-
-    _registerAchievement(Achievement(
-      id: 'social_legend',
-      title: 'Social Legend',
-      description: 'Share your score 50 times total',
-      category: AchievementCategory.mastery,
-      rarity: AchievementRarity.platinum,
-      target: 50,
-      coinReward: 1000,
-      gemReward: 50,
-      iconPath: 'achievements/social_legend.png',
-    ));
-
-    _registerAchievement(Achievement(
-      id: 'platform_master',
-      title: 'Platform Master',
-      description: 'Share to all 4 platforms in one session',
-      category: AchievementCategory.special,
-      rarity: AchievementRarity.platinum,
-      target: 1,
-      coinReward: 750,
-      gemReward: 30,
-      iconPath: 'achievements/platform_master.png',
-    ));
-
     // === STORY MODE ACHIEVEMENTS ===
     // Level Completion Achievements
     _registerAchievement(Achievement(
@@ -659,16 +586,52 @@ class AchievementsManager extends ChangeNotifier {
       iconPath: 'achievements/survivor_champion.png',
     ));
 
+    // === TOTAL GAMES PLAYED ACHIEVEMENTS ===
     _registerAchievement(Achievement(
-      id: 'no_continues_hero',
-      title: 'No Continues Hero',
-      description: 'Complete 5 levels without using continue',
+      id: 'dedicated_flyer',
+      title: 'Dedicated Flyer',
+      description: 'Play 20 games total',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.bronze,
+      target: 20,
+      coinReward: 150,
+      iconPath: 'achievements/dedicated_flyer.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'veteran_pilot',
+      title: 'Veteran Pilot',
+      description: 'Play 100 games total',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.silver,
+      target: 100,
+      coinReward: 400,
+      gemReward: 8,
+      iconPath: 'achievements/veteran_pilot.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'elite_aviator',
+      title: 'Elite Aviator',
+      description: 'Play 500 games total',
+      category: AchievementCategory.mastery,
+      rarity: AchievementRarity.gold,
+      target: 500,
+      coinReward: 800,
+      gemReward: 20,
+      iconPath: 'achievements/elite_aviator.png',
+    ));
+
+    _registerAchievement(Achievement(
+      id: 'sky_legend',
+      title: 'Sky Legend',
+      description: 'Play 1000 games total',
       category: AchievementCategory.mastery,
       rarity: AchievementRarity.platinum,
-      target: 5,
-      coinReward: 500,
-      gemReward: 15,
-      iconPath: 'achievements/no_continues_hero.png',
+      target: 1000,
+      coinReward: 1500,
+      gemReward: 40,
+      iconPath: 'achievements/sky_legend.png',
     ));
 
     // === NEW ENGAGEMENT ACHIEVEMENTS === 🆕
@@ -1049,7 +1012,6 @@ class AchievementsManager extends ChangeNotifier {
     // Flawless victory
     if (wasFlawless) {
       await updateProgress('flawless_victory', 1);
-      await updateProgress('no_continues_hero', 1);
     }
     
     // Zone completion achievements
@@ -1081,6 +1043,14 @@ class AchievementsManager extends ChangeNotifier {
     await setProgress('jet_collector', ownedJetsCount);
     await setProgress('fleet_commander', ownedJetsCount);
     await setProgress('jet_master', ownedJetsCount);
+  }
+
+  /// Check and update total games played achievements
+  Future<void> checkTotalGamesAchievements(int totalGamesPlayed) async {
+    await setProgress('dedicated_flyer', totalGamesPlayed);
+    await setProgress('veteran_pilot', totalGamesPlayed);
+    await setProgress('elite_aviator', totalGamesPlayed);
+    await setProgress('sky_legend', totalGamesPlayed);
   }
 
   /// Check and update special achievements

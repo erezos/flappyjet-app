@@ -72,6 +72,7 @@ class IAPProduct {
 enum IAPProductType {
   gemPack,
   heartBooster,
+  noAds,
   jetSkin,
   convenience,
   bundle,
@@ -172,6 +173,113 @@ class IAPProductCatalog {
     ),
   };
 
+  /// 🚫 NO ADS PRODUCTS - Remove ads for various durations
+  static const Map<String, IAPProduct> noAdsProducts = {
+    'no_ads_24h': IAPProduct(
+      id: 'no_ads_24h',
+      storeId: 'com.flappyjet.no_ads.24h',
+      priceUSD: 0.49,
+      displayName: 'No Ads - 24 Hours',
+      description: 'Remove ads for 24 hours',
+      type: IAPProductType.noAds,
+      primaryColor: Color(0xFF42A5F5),
+      secondaryColor: Color(0xFF1976D2),
+    ),
+    'no_ads_week': IAPProduct(
+      id: 'no_ads_week',
+      storeId: 'com.flappyjet.no_ads.week',
+      priceUSD: 0.99,
+      displayName: 'No Ads - 1 Week',
+      description: 'Remove ads for 7 days',
+      type: IAPProductType.noAds,
+      primaryColor: Color(0xFF42A5F5),
+      secondaryColor: Color(0xFF1976D2),
+    ),
+    'no_ads_lifetime': IAPProduct(
+      id: 'no_ads_lifetime',
+      storeId: 'com.flappyjet.no_ads.lifetime',
+      priceUSD: 4.99,
+      displayName: 'No Ads - Lifetime',
+      description: 'Remove all ads forever',
+      type: IAPProductType.noAds,
+      isBestValue: true,
+      primaryColor: Color(0xFFFFD700),
+      secondaryColor: Color(0xFFFFA000),
+    ),
+  };
+
+  /// 🎁 BUNDLE PRODUCTS - Heart Booster + No Ads
+  static const Map<String, IAPProduct> bundleProducts = {
+    'bundle_24h': IAPProduct(
+      id: 'bundle_24h',
+      storeId: 'com.flappyjet.bundle.24h',
+      priceUSD: 1.29,
+      displayName: '24H Bundle',
+      description: '6 Hearts + No Ads for 24 hours',
+      type: IAPProductType.bundle,
+      heartBoosterHours: 24,
+      primaryColor: Color(0xFF9C27B0),
+      secondaryColor: Color(0xFF673AB7),
+    ),
+    'bundle_48h': IAPProduct(
+      id: 'bundle_48h',
+      storeId: 'com.flappyjet.bundle.48h',
+      priceUSD: 2.49,
+      displayName: '48H Bundle',
+      description: '6 Hearts + No Ads for 48 hours',
+      type: IAPProductType.bundle,
+      heartBoosterHours: 48,
+      primaryColor: Color(0xFF9C27B0),
+      secondaryColor: Color(0xFF673AB7),
+    ),
+    'bundle_72h': IAPProduct(
+      id: 'bundle_72h',
+      storeId: 'com.flappyjet.bundle.72h',
+      priceUSD: 3.59,
+      displayName: '72H Bundle',
+      description: '6 Hearts + No Ads for 72 hours',
+      type: IAPProductType.bundle,
+      heartBoosterHours: 72,
+      isBestValue: true,
+      primaryColor: Color(0xFFFF6B35),
+      secondaryColor: Color(0xFFF7931E),
+    ),
+  };
+
+  /// 🎄 CHRISTMAS SPECIAL OFFER - 3 Jet Skins Bundle
+  static const Map<String, IAPProduct> specialOffers = {
+    'christmas_jet_bundle': IAPProduct(
+      id: 'christmas_jet_bundle',
+      storeId: 'com.flappyjet.christmas_jet_bundle',
+      priceUSD: 1.99,
+      displayName: 'Christmas Jet Bundle',
+      description: 'Get Blitzen, Comet, and Rudolph - 3 exclusive Christmas jets!',
+      type: IAPProductType.bundle,
+      // Note: jetSkinId is single, but this bundle unlocks multiple skins
+      // We'll handle multiple skin unlocks in the purchase handler
+      jetSkinId: 'blitzen', // Primary skin (will be equipped)
+      isBestValue: true,
+      isImpulse: true,
+      primaryColor: Color(0xFFFF0000), // Red for Christmas
+      secondaryColor: Color(0xFF00FF00), // Green for Christmas
+    ),
+    'starter_boss_pack': IAPProduct(
+      id: 'starter_boss_pack',
+      storeId: 'com.flappyjet.starter_boss_pack',
+      priceUSD: 0.99,
+      displayName: 'Starter Boss Pack',
+      description: 'Get Police Patrol, Red Alert, and Green Lightning - 3 powerful boss jets!',
+      type: IAPProductType.bundle,
+      // Note: jetSkinId is single, but this bundle unlocks multiple skins
+      // We'll handle multiple skin unlocks in the purchase handler
+      jetSkinId: 'police_patrol', // Primary skin (will be equipped)
+      isBestValue: true,
+      isImpulse: true,
+      primaryColor: Color(0xFFFF0000), // Red
+      secondaryColor: Color(0xFFFFD700), // Gold
+    ),
+  };
+
   /// 🚁 PREMIUM JET SKINS - NOT CURRENTLY SOLD (commented out to prevent missing product errors)
   // static const Map<String, IAPProduct> premiumJets = {};
 
@@ -179,10 +287,62 @@ class IAPProductCatalog {
   // static const Map<String, IAPProduct> conveniencePacks = {};
 
   /// Get all products as a single map - Only includes products actually being sold
+  /// 💎💰 CURRENCY BUNDLES - Gems + Coins Combined
+  static const Map<String, IAPProduct> currencyBundles = {
+    'currency_bundle_starter': IAPProduct(
+      id: 'currency_bundle_starter',
+      storeId: 'com.flappyjet.currency_bundle.starter',
+      priceUSD: 1.39,
+      displayName: 'Starter Bundle',
+      description: '100 Gems + 500 Coins',
+      type: IAPProductType.bundle,
+      gems: 100,
+      bonusGems: 0,
+      coins: 500,
+      bonusCoins: 0,
+      isImpulse: true,
+      primaryColor: Color(0xFF9C27B0),
+      secondaryColor: Color(0xFF6A1B9A),
+    ),
+    'currency_bundle_value': IAPProduct(
+      id: 'currency_bundle_value',
+      storeId: 'com.flappyjet.currency_bundle.value',
+      priceUSD: 5.49,
+      displayName: 'Value Bundle',
+      description: '550 Gems + 1500 Coins',
+      type: IAPProductType.bundle,
+      gems: 500,
+      bonusGems: 50,
+      coins: 1200,
+      bonusCoins: 300,
+      isBestValue: true,
+      primaryColor: Color(0xFF4CAF50),
+      secondaryColor: Color(0xFF2E7D32),
+    ),
+    'currency_bundle_mega': IAPProduct(
+      id: 'currency_bundle_mega',
+      storeId: 'com.flappyjet.currency_bundle.mega',
+      priceUSD: 10.99,
+      displayName: 'Mega Bundle',
+      description: '1200 Gems + 3250 Coins',
+      type: IAPProductType.bundle,
+      gems: 1000,
+      bonusGems: 200,
+      coins: 2500,
+      bonusCoins: 750,
+      primaryColor: Color(0xFFFF9800),
+      secondaryColor: Color(0xFFE65100),
+    ),
+  };
+
   static Map<String, IAPProduct> getAllProducts() {
     return {
       ...gemPacks,
       ...heartBoosterPacks,
+      ...noAdsProducts,
+      ...bundleProducts,
+      ...currencyBundles,
+      ...specialOffers,
       // ...premiumJets,        // Commented out - not currently sold
       // ...conveniencePacks,    // Commented out - not currently sold
     };

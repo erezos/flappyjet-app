@@ -219,7 +219,7 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
                                 width: placeholderSize,
                                 height: placeholderSize,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
+                                  color: Colors.white.withValues(alpha: 26 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
                                   borderRadius: BorderRadius.circular(placeholderSize / 2),
                                 ),
                                 child: Icon(
@@ -324,7 +324,7 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
                     'Tap anywhere to continue',
                     style: TextStyle(
                       fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 153 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
                     ),
                   ),
                 ),
@@ -344,10 +344,10 @@ class _ZoneCompletionScreenState extends State<ZoneCompletionScreen>
         vertical: ResponsiveConfig.responsivePadding(12.0, screenSize),
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 26 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
         borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 51 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
           width: ResponsiveConfig.responsiveSize(1.0, screenSize),
         ),
       ),

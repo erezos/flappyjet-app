@@ -22,7 +22,6 @@ library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flame/game.dart';
 import '../../../models/tournament_config.dart';
 import '../../../models/tournament_entry.dart';
@@ -47,6 +46,9 @@ import 'tournament_game_over_popup.dart';
 import '../../../game/core/jet_skins.dart';
 import '../../screens/tournament_world_map_screen.dart';
 import 'linear_tournament_completion_payload.dart';
+import '../continue_with_insufficient_currency.dart';
+import '../../widgets/store/insufficient_currency_popup.dart';
+import '../../../game/core/special_offer_config.dart';
 
 /// Game over popup for linear tournament mode
 class LinearTournamentGameOverPopup extends StatelessWidget {
@@ -331,12 +333,13 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
               ),
               SizedBox(width: ResponsiveConfig.responsivePadding(10.0, screenSize)),
               // Gems button
+              // Always enable button - insufficient currency flow will handle it
               Expanded(
                 child: _buildContinueButton(
                   icon: Icons.diamond,
                   label: '$gemCost',
                   color: hasEnoughGems ? Colors.cyan : Colors.grey,
-                  onTap: hasEnoughGems ? onContinueWithGems : null,
+                  onTap: onContinueWithGems,
                 ),
               ),
             ],
@@ -397,9 +400,15 @@ class LinearTournamentGameOverPopup extends StatelessWidget {
     return Builder(
       builder: (context) {
         final screenSize = MediaQuery.sizeOf(context);
+    final entryFee = tournament.entry;
+    final feeText = entryFee.type == EntryFeeType.gems 
+        ? '$discountedFee 💎'
+        : entryFee.type == EntryFeeType.coins
+            ? '$discountedFee 🪙'
+            : 'Ticket';
     final buttonLabel = hasTriesRemaining
-        ? 'START OVER (${entry.triesRemaining} tries left)'
-        : 'START OVER ($discountedFee 💎)';
+        ? 'RETRY (${entry.triesRemaining} tries left)'
+        : 'START OVER ($feeText)';
     
     return GestureDetector(
       onTap: onStartOver,
@@ -793,7 +802,7 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
     if (mounted) setState(() {});
   }
 
-  void _onGameOver() {
+  void _onGameOver() async {
     if (_levelEnded) return;
     
     // ✅ Consume a life from global LivesManager
@@ -812,10 +821,31 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
         }
       });
     } else {
-      // No hearts left - show game over popup
+      // No hearts left - consume a try immediately (before showing popup)
+      // This ensures try count is correct whether user clicks "Start Over" or "X"
+      if (widget.entry.triesRemaining > 0) {
+        // Preserve current round before failing try (since failCurrentTry resets to round 1)
+        final preservedRound = widget.entry.currentRound;
+        
+        // Consume a try
+        await _tournamentManager.failCurrentTry(tournamentId: widget.tournament.id);
+        
+        // Restore the current round so if they retry, they restart from the same level
+        widget.entry.startRound(preservedRound);
+        
+        // Update entry in tournament manager to persist the state
+        _tournamentManager.updateActiveEntry(widget.tournament.id, widget.entry);
+        
+        safePrint('🎪 Try consumed on crash. Tries remaining: ${widget.entry.triesRemaining}, Round preserved: $preservedRound');
+      }
+      
+      // No hearts left - increment game count and show game over popup
       _levelEnded = true;
       _updateTimer?.cancel();
       _game.gameStateManager.pauseGameTime();
+      
+      // Increment game count and check for interstitial (every 2 games)
+      await _incrementGameCount();
       
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -852,6 +882,9 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
     safePrint('🎪 ✅ Level ${widget.entry.currentRound} completed!');
     safePrint('🎪 Duration: ${duration.inSeconds}s, Continues: $_continuesUsed');
 
+    // Increment game count and check for interstitial (every 2 games)
+    await _incrementGameCount();
+
     final heartsUsed = _livesManager.maxLives - _livesManager.currentLives;
 
     // Run completion tasks while the victory animation plays
@@ -875,6 +908,21 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
     }
   }
 
+  /// Increment game count and show interstitial if needed (every 2 games)
+  Future<void> _incrementGameCount() async {
+    widget.entry.gamesPlayed++;
+    
+    // Update entry in tournament manager and persist
+    _tournamentManager.updateActiveEntry(widget.tournament.id, widget.entry);
+    
+    // Show interstitial every 2 games (after games 2, 4, 6, etc.)
+    // Only for Christmas tournament
+    if (widget.tournament.id == 'christmas_tournament' && widget.entry.gamesPlayed % 2 == 0) {
+      safePrint('🎪 Game ${widget.entry.gamesPlayed} completed - showing interstitial (every 2 games)');
+      await _interstitialAdManager.showTournamentRoundWinAd();
+    }
+  }
+
   Future<void> _handlePostVictoryNavigation() async {
     if (_postVictoryNavigationHandled) {
       return;
@@ -886,7 +934,8 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
       safePrint('⚠️ Failed to stop music: $e');
     }));
 
-    // Show interstitial after round win (with 90s cooldown) and continue only after it closes
+    // Note: Interstitial is now shown in _incrementGameCount (every 2 games)
+    // We still show the round win ad for backward compatibility, but it respects cooldown
     final adShown = await _interstitialAdManager.showTournamentRoundWinAd(
       onAdClosed: () async {
         await _maybeContinueAfterWinAd();
@@ -1077,7 +1126,7 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
           _handleQuit();
         },
         startOverLabel: hasTriesRemaining
-            ? 'START OVER'
+            ? 'RETRY (${widget.entry.triesRemaining} tries left)'
             : 'START OVER - ${_formatFee(widget.tournament.entry)}',
         continueGemCost: widget.tournament.continues.gemCost,
       ),
@@ -1135,45 +1184,48 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
     final gemCost = widget.tournament.continues.gemCost;
     safePrint('🎪 Continue with $gemCost gems requested');
 
-    final success = await runGemContinueForLinearTournament(
-      inventoryManager: _inventoryManager,
-      livesManager: _livesManager,
-      tournamentManager: _tournamentManager,
-      tournamentId: widget.tournament.id,
-      eventsTracker: GameEventsTracker(),
+    // Use smart insufficient currency handler
+    await handleContinueWithInsufficientCurrency(
+      context: context,
       gemCost: gemCost,
-    );
-
-    if (!success) {
-      safePrint('🎪 ⚠️ Not enough gems');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not enough gems')),
+      continueContext: 'linear_tournament',
+      onContinueAction: () async {
+        final success = await runGemContinueForLinearTournament(
+          inventoryManager: _inventoryManager,
+          livesManager: _livesManager,
+          tournamentManager: _tournamentManager,
+          tournamentId: widget.tournament.id,
+          eventsTracker: GameEventsTracker(),
+          gemCost: gemCost,
         );
-      }
-      return;
-    }
 
-    _continuesUsed++;
+        if (!success) {
+          safePrint('🎪 ⚠️ Failed to spend gems');
+          return;
+        }
 
-    _game.resumeEngine();
-    _game.gameStateManager.resumeGameTime();
+        _continuesUsed++;
 
-    // Close popup
-    if (mounted) {
-      Navigator.of(dialogContext).pop();
-    }
+        _game.resumeEngine();
+        _game.gameStateManager.resumeGameTime();
 
-    _levelEnded = false;
-    _game.continueGame(continueType: 'gems');
-    _game.gameStateManager.resumeGameTime();
-    _startUpdateTimer();
-    
-    if (mounted) setState(() {});
+        // Close popup
+        if (mounted) {
+          Navigator.of(dialogContext).pop();
+        }
+
+        _levelEnded = false;
+        _game.continueGame(continueType: 'gems');
+        _game.gameStateManager.resumeGameTime();
+        _startUpdateTimer();
+        
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   Future<void> _handleStartOver() async {
-    safePrint('🎪 Start Over requested');
+    safePrint('🎪 Start Over/Retry requested');
 
     _game.resumeEngine();
     _game.gameStateManager.resumeGameTime();
@@ -1181,37 +1233,57 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
     final hasTriesRemaining = widget.entry.triesRemaining > 0;
 
     if (hasTriesRemaining) {
-      // Show interstitial ad, then restart tournament
+      // RETRY: Show interstitial ad, then restart from same level
+      // Note: Try was already consumed when user crashed (in _onGameOver)
+      // So we just need to restart from the same level
       await _interstitialAdManager.showTournamentStartOverAd();
-      
-      // Use a try
-      await _tournamentManager.failCurrentTry(tournamentId: widget.tournament.id);
       
       // Fire event
       _eventBus.fire('tournament_start_over', {
         'tournament_id': widget.tournament.id,
         'tournament_name': widget.tournament.name,
         'level_number': widget.entry.currentRound,
-        'tries_remaining': widget.entry.triesRemaining - 1,
+        'tries_remaining': widget.entry.triesRemaining,
         'fee_charged': 0,
         'fee_type': 'free',
       });
       
-      // Restart from level 1
-      _restartTournament();
+      // Restart from same level (retry) - try already consumed on crash
+      _restartTournament(fromSameLevel: true);
     } else {
-      // Need to pay entry fee again to get new tries
+      // START OVER: Need to pay entry fee again to get new tries
       final entryFee = widget.tournament.entry;
 
+      // Check if user has enough currency
+      bool canAfford = false;
+      switch (entryFee.type) {
+        case EntryFeeType.coins:
+          canAfford = _inventoryManager.softCurrency >= entryFee.amount;
+          break;
+        case EntryFeeType.gems:
+          canAfford = _inventoryManager.gems >= entryFee.amount;
+          break;
+        case EntryFeeType.freeTicket:
+          canAfford = _tournamentManager.hasFreeTicketFor(widget.tournament);
+          break;
+      }
+
+      if (!canAfford) {
+        // Show insufficient currency popup
+        await _handleInsufficientCurrencyForReentry(entryFee);
+        return;
+      }
+
+      // User has enough currency - proceed with payment and restart
       final feePaid = await _payEntryFee(entryFee);
       if (!feePaid) {
-        safePrint('🎪 ⚠️ Not enough currency to restart tournament');
+        safePrint('🎪 ⚠️ Failed to pay entry fee');
         return;
       }
 
       // Purchase extra tries equal to original total
       await _tournamentManager.purchaseExtraTries(
-        extraTries: widget.entry.totalTries,
+        extraTries: widget.tournament.tries.count,
         cost: entryFee.amount,
         costType: entryFee.type,
         tournamentId: widget.tournament.id,
@@ -1221,7 +1293,7 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
         'tournament_id': widget.tournament.id,
         'tournament_name': widget.tournament.name,
         'level_number': widget.entry.currentRound,
-        'tries_remaining': widget.entry.totalTries,
+        'tries_remaining': widget.tournament.tries.count,
         'fee_charged': entryFee.amount,
         'fee_type': entryFee.type.name,
       });
@@ -1229,8 +1301,66 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
       // Show interstitial ad
       await _interstitialAdManager.showTournamentStartOverAd();
       
-      // Restart from level 1
-      _restartTournament();
+      // Restart from level 1 (new entry)
+      _restartTournament(fromSameLevel: false);
+    }
+  }
+
+  /// Handle insufficient currency for tournament re-entry
+  Future<void> _handleInsufficientCurrencyForReentry(TournamentEntryConfig entryFee) async {
+    if (!mounted) return;
+
+    final neededCurrency = entryFee.type == EntryFeeType.gems 
+        ? OfferCurrencyType.gems 
+        : OfferCurrencyType.coins;
+    final currentAmount = entryFee.type == EntryFeeType.gems
+        ? _inventoryManager.gems
+        : _inventoryManager.softCurrency;
+    final neededAmount = entryFee.amount;
+
+    // Show insufficient currency popup with currency bundles
+    final purchased = await showInsufficientCurrencyPopup(
+      context: context,
+      neededCurrency: neededCurrency,
+      neededAmount: neededAmount,
+      currentAmount: currentAmount,
+      config: const InsufficientCurrencyConfig(
+        useCurrencyBundles: true, // Use currency bundles for tournament re-entry
+      ),
+      onPurchase: () async {
+        // After purchase, automatically deduct fee and restart
+        final feePaid = await _payEntryFee(entryFee);
+        if (feePaid) {
+          // Purchase extra tries
+          await _tournamentManager.purchaseExtraTries(
+            extraTries: widget.tournament.tries.count,
+            cost: entryFee.amount,
+            costType: entryFee.type,
+            tournamentId: widget.tournament.id,
+          );
+
+          _eventBus.fire('tournament_start_over', {
+            'tournament_id': widget.tournament.id,
+            'tournament_name': widget.tournament.name,
+            'level_number': widget.entry.currentRound,
+            'tries_remaining': widget.tournament.tries.count,
+            'fee_charged': entryFee.amount,
+            'fee_type': entryFee.type.name,
+          });
+
+          // Show interstitial ad
+          await _interstitialAdManager.showTournamentStartOverAd();
+          
+          // Restart from level 1 (new entry)
+          if (mounted) {
+            _restartTournament(fromSameLevel: false);
+          }
+        }
+      },
+    );
+
+    if (purchased == false) {
+      safePrint('🎪 User dismissed insufficient currency popup');
     }
   }
 
@@ -1262,11 +1392,14 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
     }
   }
 
-  void _restartTournament() {
-    safePrint('🎪 Restarting tournament from level 1');
+  void _restartTournament({bool fromSameLevel = false}) {
+    // If fromSameLevel is true, restart from current level; otherwise from level 1
+    final restartLevel = fromSameLevel ? widget.entry.currentRound : 1;
     
-    // Reset to level 1
-    widget.entry.startRound(1);
+    safePrint('🎪 Restarting tournament from level $restartLevel');
+    
+    // Reset to restart level
+    widget.entry.startRound(restartLevel);
     
     setState(() {
       _levelEnded = false;
@@ -1281,12 +1414,24 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
 
   void _handleQuit() {
     safePrint('🎪 Quitting tournament');
-    _tournamentManager.abandonTournament(tournamentId: widget.tournament.id);
+    
+    // Only abandon if user has no tries remaining
+    // If they have tries remaining, keep the entry active so they can continue
+    if (widget.entry.triesRemaining <= 0) {
+      _tournamentManager.abandonTournament(tournamentId: widget.tournament.id);
+      _tournamentManager.clearActiveEntry(tournamentId: widget.tournament.id);
+    } else {
+      // User has tries remaining - keep entry active so they can continue from tournament hub
+      // Update entry in tournament manager to ensure it's persisted
+      _tournamentManager.updateActiveEntry(widget.tournament.id, widget.entry);
+      safePrint('🎪 User has ${widget.entry.triesRemaining} tries remaining - keeping entry active');
+    }
+    
     _returnToHub();
   }
 
   void _returnToHub() {
-    _tournamentManager.clearActiveEntry(tournamentId: widget.tournament.id);
+    // Don't clear active entry if user has tries remaining (handled in _handleQuit)
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 

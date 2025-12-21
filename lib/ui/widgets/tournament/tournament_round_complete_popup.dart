@@ -94,12 +94,12 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.green.withOpacity(0.5),
+                color: Colors.green.withValues(alpha: 0.5),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.green.withOpacity(0.3),
+                  color: Colors.green.withValues(alpha: 0.3),
                   blurRadius: 15,
                   spreadRadius: 1,
                 ),
@@ -124,7 +124,7 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.4),
+                          color: Colors.green.withValues(alpha: 0.4),
                           blurRadius: 10,
                         ),
                       ],
@@ -156,7 +156,7 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
                     'Round ${widget.roundNumber} of ${widget.tournament.totalRounds}',
                     style: TextStyle(
                       fontSize: bodySize,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
 
@@ -167,7 +167,7 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
                     width: double.infinity,
                     padding: EdgeInsets.all(padding * 0.8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -201,7 +201,7 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
                               Text(
                                 'No rewards this round',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                   fontSize: bodySize,
                                 ),
                               ),
@@ -234,7 +234,7 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
                         boxShadow: [
                           BoxShadow(
                             color: (isLastRound ? Colors.amber : Colors.green)
-                                .withOpacity(0.4),
+                                .withValues(alpha: 0.4),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
                           ),
@@ -319,7 +319,7 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
             shape: BoxShape.circle,
             color: isCompleted
                 ? Colors.green
-                : Colors.white.withOpacity(0.2),
+                : Colors.white.withValues(alpha: 0.2),
             border: isCurrent
                 ? Border.all(color: Colors.white, width: 2)
                 : null,
@@ -330,7 +330,7 @@ class _TournamentRoundCompletePopupState extends State<TournamentRoundCompletePo
                 : Text(
                     '$roundNum',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: fontSize - 3,
                       fontWeight: FontWeight.bold,
                     ),

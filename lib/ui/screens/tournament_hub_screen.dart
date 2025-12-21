@@ -6,10 +6,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/systems/tournament_manager.dart';
 import '../../game/systems/inventory_manager.dart';
+import '../../game/systems/lives_manager.dart';
 import '../../integrations/interstitial_ad_manager.dart';
 import '../../models/tournament_config.dart';
 import '../../models/tournament_entry.dart';
@@ -25,6 +27,12 @@ import '../widgets/tournament/linear_tournament_game_wrapper.dart';
 import '../widgets/tournament/tournament_victory_screen.dart';
 import '../widgets/tournament/tournament_round_win_screen.dart';
 import '../widgets/status_bar/coins_gems_display.dart'; // ✅ Consistent balance display
+import '../widgets/store/insufficient_currency_popup.dart';
+import '../widgets/store/store_purchase_handler.dart';
+import '../widgets/store/christmas_jet_bundle_popup.dart';
+import '../widgets/store/starter_boss_pack_popup.dart';
+import '../../game/core/economy_config.dart';
+import '../../game/core/special_offer_config.dart';
 
 /// Tournament Hub - Main entry point for the new tournament system
 class TournamentHubScreen extends StatefulWidget {
@@ -129,7 +137,6 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
 
   Widget _buildCompactHeader(Size screenSize) {
     final padding = ResponsiveConfig.responsiveSize(12, screenSize);
-    final iconSize = ResponsiveConfig.responsiveSize(32, screenSize, minScale: 0.9, maxScale: 1.1);
     final titleSize = ResponsiveConfig.responsiveSize(18, screenSize, minScale: 0.9, maxScale: 1.1);
     
     return Container(
@@ -139,38 +146,13 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withOpacity(0.3),
+            Colors.black.withValues(alpha: 77),
             Colors.transparent,
           ],
         ),
       ),
       child: Row(
         children: [
-          // Trophy icon
-          Container(
-            width: iconSize,
-            height: iconSize,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(iconSize / 2),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFFD700).withOpacity(0.4),
-                  blurRadius: 10,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.emoji_events,
-              color: Colors.white,
-              size: iconSize * 0.6,
-            ),
-          ),
-          SizedBox(width: padding * 0.5),
-          
           // Title - Flexible to prevent overflow on small screens
           Flexible(
             child: FittedBox(
@@ -305,7 +287,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
               height: iconSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.amber.withOpacity(0.2),
+                color: Colors.amber.withValues(alpha: 51),
               ),
               child: Icon(
                 Icons.emoji_events,
@@ -328,7 +310,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: subtitleSize,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 179),
               ),
             ),
           ],
@@ -373,18 +355,25 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
       }
 
       if (!canEnter) {
-        // Still show popup to explain why (insufficient funds / no ticket)
-        final entry = await showTournamentInfoPopup(
-          context: context,
-          tournament: tournament,
-          playerCoins: _inventoryManager.softCurrency,
-          playerGems: _inventoryManager.gems,
-          hasFreeTicket: hasFreeTicket,
-          hasActiveEntry: hasActiveEntry,
-        );
-        if (entry != null && mounted) {
-          _startTournamentGameplay(entry, tournament);
+        // Show insufficient currency popup if user lacks funds
+        // (If it's a free ticket issue, show the info popup instead)
+        if (feeType == EntryFeeType.freeTicket) {
+          final entry = await showTournamentInfoPopup(
+            context: context,
+            tournament: tournament,
+            playerCoins: _inventoryManager.softCurrency,
+            playerGems: _inventoryManager.gems,
+            hasFreeTicket: hasFreeTicket,
+            hasActiveEntry: hasActiveEntry,
+          );
+          if (entry != null && mounted) {
+            _startTournamentGameplay(entry, tournament);
+          }
+          return;
         }
+        
+        // Show insufficient currency popup with cheapest bundle
+        await _handleInsufficientCurrencyForTournamentEntry(tournament, feeType, feeAmount);
         return;
       }
 
@@ -407,18 +396,8 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
       }
 
       if (!paid) {
-        // Could not deduct — show popup as fallback
-        final entry = await showTournamentInfoPopup(
-          context: context,
-          tournament: tournament,
-          playerCoins: _inventoryManager.softCurrency,
-          playerGems: _inventoryManager.gems,
-          hasFreeTicket: hasFreeTicket,
-          hasActiveEntry: hasActiveEntry,
-        );
-        if (entry != null && mounted) {
-          _startTournamentGameplay(entry, tournament);
-        }
+        // Could not deduct — show insufficient currency popup
+        await _handleInsufficientCurrencyForTournamentEntry(tournament, feeType, feeAmount);
         return;
       }
 
@@ -443,6 +422,8 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
     }
 
     // Check affordability inline (coins/gems/free ticket)
+    // Use hasFreeTicketFor to properly check tier matching
+    final hasFreeTicketForTournament = _tournamentManager.hasFreeTicketFor(tournament);
     final feeType = tournament.entry.type;
     final feeAmount = tournament.entry.amount;
     bool canEnter = true;
@@ -450,19 +431,19 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
 
     switch (feeType) {
       case EntryFeeType.freeTicket:
-        canEnter = hasFreeTicket;
-        useFreeTicketFlag = hasFreeTicket;
+        canEnter = hasFreeTicketForTournament;
+        useFreeTicketFlag = hasFreeTicketForTournament;
         break;
       case EntryFeeType.coins:
         canEnter = _inventoryManager.softCurrency >= feeAmount;
-        if (hasFreeTicket) {
+        if (hasFreeTicketForTournament) {
           useFreeTicketFlag = true;
           canEnter = true;
         }
         break;
       case EntryFeeType.gems:
         canEnter = _inventoryManager.gems >= feeAmount;
-        if (hasFreeTicket) {
+        if (hasFreeTicketForTournament) {
           useFreeTicketFlag = true;
           canEnter = true;
         }
@@ -470,18 +451,25 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
     }
 
     if (!canEnter) {
-      // Show popup to explain why (insufficient funds / no ticket)
-      final entry = await showTournamentInfoPopup(
-        context: context,
-        tournament: tournament,
-        playerCoins: _inventoryManager.softCurrency,
-        playerGems: _inventoryManager.gems,
-        hasFreeTicket: hasFreeTicket,
-        hasActiveEntry: hasActiveEntry,
-      );
-      if (entry != null && mounted) {
-        _startTournamentGameplay(entry, tournament);
+      // Show insufficient currency popup if user lacks funds
+      // (If it's a free ticket issue, show the info popup instead)
+      if (feeType == EntryFeeType.freeTicket) {
+        final entry = await showTournamentInfoPopup(
+          context: context,
+          tournament: tournament,
+          playerCoins: _inventoryManager.softCurrency,
+          playerGems: _inventoryManager.gems,
+          hasFreeTicket: hasFreeTicket,
+          hasActiveEntry: hasActiveEntry,
+        );
+        if (entry != null && mounted) {
+          _startTournamentGameplay(entry, tournament);
+        }
+        return;
       }
+      
+      // Show insufficient currency popup with cheapest bundle
+      await _handleInsufficientCurrencyForTournamentEntry(tournament, feeType, feeAmount);
       return;
     }
 
@@ -504,18 +492,8 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
     }
 
     if (!paid) {
-      // Could not deduct — show popup as fallback
-      final entry = await showTournamentInfoPopup(
-        context: context,
-        tournament: tournament,
-        playerCoins: _inventoryManager.softCurrency,
-        playerGems: _inventoryManager.gems,
-        hasFreeTicket: hasFreeTicket,
-        hasActiveEntry: hasActiveEntry,
-      );
-      if (entry != null && mounted) {
-        _startTournamentGameplay(entry, tournament);
-      }
+      // Could not deduct — show insufficient currency popup
+      await _handleInsufficientCurrencyForTournamentEntry(tournament, feeType, feeAmount);
       return;
     }
 
@@ -526,6 +504,117 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
     if (entry != null && mounted) {
       _tournamentManager.selectTournamentContext(tournament.id);
       _startTournamentGameplay(entry, tournament);
+    }
+  }
+
+  /// Handle insufficient currency flow for tournament entry
+  /// Shows popup with cheapest coins+gems bundle, purchases it, then enters tournament
+  Future<void> _handleInsufficientCurrencyForTournamentEntry(
+    TournamentConfig tournament,
+    EntryFeeType feeType,
+    int feeAmount,
+  ) async {
+    // Determine needed currency type and amounts
+    final neededCurrency = feeType == EntryFeeType.coins
+        ? OfferCurrencyType.coins
+        : OfferCurrencyType.gems;
+    final currentAmount = feeType == EntryFeeType.coins
+        ? _inventoryManager.softCurrency
+        : _inventoryManager.gems;
+    final neededAmount = feeAmount;
+    
+    // Find cheapest currency bundle that covers the need
+    final shortfall = neededAmount - currentAmount;
+    final targetAmount = (shortfall * 1.2).ceil(); // 20% bonus
+    
+    final bundles = EconomyConfig.currencyBundles.values.toList()
+      ..sort((a, b) => a.usdPrice.compareTo(b.usdPrice));
+    
+    CurrencyBundle? recommendedBundle;
+    for (final bundle in bundles) {
+      final bundleAmount = neededCurrency == OfferCurrencyType.gems
+          ? bundle.totalGems
+          : bundle.totalCoins;
+      
+      if (bundleAmount >= targetAmount) {
+        recommendedBundle = bundle;
+        break;
+      }
+    }
+    
+    // Fallback to largest bundle if none covers the need
+    recommendedBundle ??= bundles.last;
+    
+    // Show insufficient currency popup
+    final purchased = await showInsufficientCurrencyPopup(
+      context: context,
+      neededCurrency: neededCurrency,
+      neededAmount: neededAmount,
+      currentAmount: currentAmount,
+      config: const InsufficientCurrencyConfig(
+        useCurrencyBundles: true, // Always use currency bundles for tournament entry
+      ),
+      onPurchase: () async {
+        // Purchase the recommended currency bundle
+        final purchaseHandler = StorePurchaseHandler(
+          context: context,
+          inventory: _inventoryManager,
+          monetization: widget.monetization,
+          economy: EconomyConfig(),
+          livesManager: LivesManager(),
+        );
+        
+        await purchaseHandler.purchaseCurrencyBundle(recommendedBundle!);
+        
+        // Wait a moment for the purchase to complete and currency to be granted
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Refresh inventory to get updated amounts
+        if (mounted) {
+          setState(() {});
+        }
+        
+        // Check if we now have enough currency
+        final updatedAmount = feeType == EntryFeeType.coins
+            ? _inventoryManager.softCurrency
+            : _inventoryManager.gems;
+        
+        if (updatedAmount >= feeAmount) {
+          // Deduct the tournament entry fee
+          bool paid = false;
+          if (feeType == EntryFeeType.coins && feeAmount > 0) {
+            paid = await _inventoryManager.spendSoftCurrency(
+              feeAmount,
+              spentOn: 'tournament_entry',
+              itemId: tournament.id,
+            );
+          } else if (feeType == EntryFeeType.gems && feeAmount > 0) {
+            paid = await _inventoryManager.spendGems(
+              feeAmount,
+              spentOn: 'tournament_entry',
+              itemId: tournament.id,
+            );
+          }
+          
+          if (paid && mounted) {
+            // Enter the tournament
+            final entry = await _tournamentManager.enterTournament(
+              tournament,
+              useFreeTicket: false,
+            );
+            
+            if (entry != null && mounted) {
+              _tournamentManager.selectTournamentContext(tournament.id);
+              _startTournamentGameplay(entry, tournament);
+            }
+          }
+        }
+      },
+    );
+    
+    // If user dismissed, do nothing (they can try again later)
+    if (purchased == false) {
+      return;
     }
   }
 
@@ -542,6 +631,18 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
   }
 
   void _showTournamentMap(TournamentEntry entry, TournamentConfig tournament) {
+    // Show Christmas special offer popup if entering Christmas tournament
+    if (tournament.id == 'christmas_tournament') {
+      _showChristmasSpecialOffer(entry, tournament);
+    } else if (tournament.id == 'bosses_showdown') {
+      // Show Starter Boss Pack special offer popup if entering Bosses Showdown tournament
+      _showStarterBossPackOffer(entry, tournament);
+    } else {
+      _navigateToTournamentMap(entry, tournament);
+    }
+  }
+
+  void _navigateToTournamentMap(TournamentEntry entry, TournamentConfig tournament) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TournamentWorldMapScreen(
@@ -562,6 +663,132 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _showChristmasSpecialOffer(
+    TournamentEntry entry,
+    TournamentConfig tournament,
+  ) async {
+    // ✅ Check if user already owns all Christmas jet skins
+    // If they do, skip the popup and navigate directly to tournament map
+    const christmasJetSkins = ['blitzen', 'comet', 'rudolph'];
+    final allSkinsOwned = christmasJetSkins.every((skinId) => _inventoryManager.isOwned(skinId));
+    
+    if (allSkinsOwned) {
+      safePrint('🎄 User already owns all Christmas jet skins - skipping popup');
+      _navigateToTournamentMap(entry, tournament);
+      return;
+    }
+    
+    // ✅ FIX: Track if navigation has already happened to avoid duplicate navigation
+    bool navigationHandled = false;
+    
+    final purchased = await showChristmasJetBundlePopup(
+      context: context,
+      onPurchaseComplete: () {
+        // Purchase completed - user stays on tournament page
+        // Navigate to tournament map after purchase
+        if (mounted && !navigationHandled) {
+          navigationHandled = true;
+          _navigateToTournamentMap(entry, tournament);
+        }
+      },
+      onDismiss: () {
+        // User dismissed - navigation will be handled by the return value check below
+        // Don't navigate here to avoid duplicate navigation
+      },
+    );
+
+    // ✅ FIX: Only navigate if not already handled and popup was dismissed without purchase
+    // This ensures clean navigation stack and prevents double navigation
+    if (purchased != true && mounted && !navigationHandled) {
+      // Small delay to ensure dialog route is fully removed from stack
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted) {
+        _navigateToTournamentMap(entry, tournament);
+      }
+    }
+  }
+
+  Future<void> _showStarterBossPackOffer(
+    TournamentEntry entry,
+    TournamentConfig tournament,
+  ) async {
+    // ✅ Check if user already purchased Starter Boss Pack
+    // If they did, skip the popup and navigate directly to tournament bracket/map
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasPurchased = prefs.getBool('starter_boss_pack_purchased') ?? false;
+      if (hasPurchased) {
+        safePrint('⚔️ User already purchased Starter Boss Pack - skipping popup');
+        // Bosses Showdown is a playoff tournament, so navigate to bracket
+        if (tournament.isPlayoff) {
+          _showPlayoffBracket(entry, tournament, skipOffer: true); // Skip offer since already purchased
+        } else {
+          _navigateToTournamentMap(entry, tournament);
+        }
+        return;
+      }
+    } catch (e) {
+      safePrint('⚔️ ⚠️ Error checking Starter Boss Pack purchase status: $e');
+      // Continue to check skins if purchase check fails
+    }
+    
+    // ✅ Check if user already owns all Boss Pack jet skins
+    // If they do, skip the popup and navigate directly to tournament bracket/map
+    const bossPackJetSkins = ['police_patrol', 'red_alert', 'green_lightning'];
+    final allSkinsOwned = bossPackJetSkins.every((skinId) => _inventoryManager.isOwned(skinId));
+    
+    if (allSkinsOwned) {
+      safePrint('⚔️ User already owns all Starter Boss Pack jet skins - skipping popup');
+      // Bosses Showdown is a playoff tournament, so navigate to bracket
+      if (tournament.isPlayoff) {
+        _showPlayoffBracket(entry, tournament, skipOffer: true); // Skip offer since we already checked
+      } else {
+        _navigateToTournamentMap(entry, tournament);
+      }
+      return;
+    }
+    
+    // ✅ FIX: Track if navigation has already happened to avoid duplicate navigation
+    bool navigationHandled = false;
+    
+    final purchased = await showStarterBossPackPopup(
+      context: context,
+      onPurchaseComplete: () {
+        // Purchase completed - user stays on tournament page
+        // Navigate to tournament bracket/map after purchase
+        if (mounted && !navigationHandled) {
+          navigationHandled = true;
+          // Bosses Showdown is a playoff tournament, so navigate to bracket
+          if (tournament.isPlayoff) {
+            _showPlayoffBracket(entry, tournament, skipOffer: true); // Skip offer after purchase
+          } else {
+            _navigateToTournamentMap(entry, tournament);
+          }
+        }
+      },
+      onDismiss: () {
+        // User dismissed - navigation will be handled by the return value check below
+        // Don't navigate here to avoid duplicate navigation
+      },
+    );
+
+    // ✅ FIX: Only navigate if not already handled and popup was dismissed without purchase
+    // This ensures clean navigation stack and prevents double navigation
+    // ✅ FIX: Pass skipOffer: true to prevent infinite loop when user dismisses popup
+    if (purchased != true && mounted && !navigationHandled) {
+      // Small delay to ensure dialog route is fully removed from stack
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted) {
+        // Bosses Showdown is a playoff tournament, so navigate to bracket
+        if (tournament.isPlayoff) {
+          _showPlayoffBracket(entry, tournament, skipOffer: true); // Skip offer to prevent infinite loop
+        } else {
+          _navigateToTournamentMap(entry, tournament);
+        }
+      }
+    }
   }
 
   void _navigateToLinearLevel(TournamentEntry entry, TournamentConfig tournament) {
@@ -587,8 +814,15 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
   // These callbacks were used by the old TournamentLinearGameWrapper.
   // The new LinearTournamentGameWrapper handles all logic internally.
 
-  void _showPlayoffBracket(TournamentEntry entry, TournamentConfig tournament) {
+  void _showPlayoffBracket(TournamentEntry entry, TournamentConfig tournament, {bool skipOffer = false}) {
     safePrint('🏆 Showing playoff bracket for: ${tournament.name}');
+    
+    // Show Starter Boss Pack special offer popup if entering Bosses Showdown tournament
+    // ✅ FIX: Only show offer if not skipping (prevents infinite loop when navigating from dismissed popup)
+    if (tournament.id == 'bosses_showdown' && !skipOffer) {
+      _showStarterBossPackOffer(entry, tournament);
+      return;
+    }
     
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -756,7 +990,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
                   onAdClosed: () {
                     if (mounted) {
                       Navigator.of(context).pop(); // Pop celebration screen
-                      _showPlayoffBracket(updatedEntry, tournament);
+                      _showPlayoffBracket(updatedEntry, tournament, skipOffer: true); // Skip offer - user already saw it
                     }
                   },
                 );
@@ -807,7 +1041,7 @@ class _TournamentHubScreenState extends State<TournamentHubScreen>
       // Can retry - go back to bracket
       if (mounted) {
         Navigator.of(context).pop();
-        _showPlayoffBracket(updatedEntry, tournament);
+        _showPlayoffBracket(updatedEntry, tournament, skipOffer: true); // Skip offer - user already saw it
       }
     }
   }

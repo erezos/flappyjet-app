@@ -77,9 +77,9 @@ class TournamentFailedScreen extends StatelessWidget {
                   height: iconSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.red.withOpacity(0.2),
+                    color: Colors.red.withValues(alpha: 0.2),
                     border: Border.all(
-                      color: Colors.red.withOpacity(0.5),
+                      color: Colors.red.withValues(alpha: 0.5),
                       width: 2,
                     ),
                   ),
@@ -109,7 +109,7 @@ class TournamentFailedScreen extends StatelessWidget {
                   tournament.name,
                   style: TextStyle(
                     fontSize: subtitleSize,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -152,10 +152,10 @@ class TournamentFailedScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(ResponsiveConfig.responsiveSize(14, screenSize)),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -219,7 +219,7 @@ class TournamentFailedScreen extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: fontSize - 2,
           ),
         ),
@@ -234,10 +234,10 @@ class TournamentFailedScreen extends StatelessWidget {
         vertical: ResponsiveConfig.responsiveSize(10, screenSize),
       ),
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.1),
+        color: Colors.amber.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: Colors.amber.withOpacity(0.3),
+          color: Colors.amber.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -289,17 +289,17 @@ class TournamentFailedScreen extends StatelessWidget {
           gradient: canAfford
               ? LinearGradient(
                   colors: [
-                    Colors.purple.withOpacity(0.35),
-                    Colors.purple.withOpacity(0.15),
+                    Colors.purple.withValues(alpha: 0.35),
+                    Colors.purple.withValues(alpha: 0.15),
                   ],
                 )
               : null,
-          color: canAfford ? null : Colors.grey.withOpacity(0.2),
+          color: canAfford ? null : Colors.grey.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: canAfford
-                ? Colors.purple.withOpacity(0.5)
-                : Colors.grey.withOpacity(0.3),
+                ? Colors.purple.withValues(alpha: 0.5)
+                : Colors.grey.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
@@ -343,7 +343,7 @@ class TournamentFailedScreen extends StatelessWidget {
                   Text(
                     'Get ${deal.extraTries} more tries',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: fontSize - 1,
                     ),
                   ),
@@ -358,7 +358,7 @@ class TournamentFailedScreen extends StatelessWidget {
                 Text(
                   '${deal.baseGemCost}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: fontSize - 1,
                     decoration: TextDecoration.lineThrough,
                   ),

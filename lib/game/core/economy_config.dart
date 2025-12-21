@@ -32,6 +32,8 @@ class EconomyConfig extends ChangeNotifier {
   /// Get gem price for mythic skins (converted from USD price)
   int getSkinGemPrice(JetSkin skin) {
     if (skin.rarity != JetRarity.mythic) return 0;
+    // Special case: Rudolph costs exactly 1599 gems
+    if (skin.id == 'rudolph') return 1599;
     // Convert USD to gems (1 USD = ~100 gems base rate)
     return (skin.price * 100).round();
   }
@@ -80,6 +82,45 @@ class EconomyConfig extends ChangeNotifier {
     ),
   };
 
+  // === CURRENCY BUNDLES ===
+  /// Currency bundle definitions (Gems + Coins combined at discounted price)
+  /// Based on mobile game best practices: 7-12% discount vs buying separately
+  static const Map<String, CurrencyBundle> currencyBundles = {
+    'currency_bundle_starter': CurrencyBundle(
+      id: 'currency_bundle_starter',
+      gems: 100,
+      bonusGems: 0,
+      coins: 500,
+      bonusCoins: 0,
+      usdPrice: 1.39, // $0.99 (gems) + $0.50 (coins) = $1.49, 7% discount
+      displayName: 'Starter Bundle',
+      description: '100 Gems + 500 Coins',
+      isBestValue: false,
+    ),
+    'currency_bundle_value': CurrencyBundle(
+      id: 'currency_bundle_value',
+      gems: 500,
+      bonusGems: 50,
+      coins: 1200,
+      bonusCoins: 300,
+      usdPrice: 5.49, // $4.99 (gems) + $1.20 (coins) = $6.19, 11% discount
+      displayName: 'Value Bundle',
+      description: '550 Gems + 1500 Coins',
+      isBestValue: true, // Best value bundle
+    ),
+    'currency_bundle_mega': CurrencyBundle(
+      id: 'currency_bundle_mega',
+      gems: 1000,
+      bonusGems: 200,
+      coins: 2500,
+      bonusCoins: 750,
+      usdPrice: 10.99, // $9.99 (gems) + $2.50 (coins) = $12.49, 12% discount
+      displayName: 'Mega Bundle',
+      description: '1200 Gems + 3250 Coins',
+      isBestValue: false,
+    ),
+  };
+
   // === GEMS PACKS ===
   /// Gem pack definitions (IAP products)
   static const Map<String, GemPack> gemPacks = {
@@ -117,16 +158,103 @@ class EconomyConfig extends ChangeNotifier {
     ),
   };
 
+  // === NO ADS PRODUCTS ===
+  /// No Ads product definitions (IAP products)
+  static const Map<String, NoAdsProduct> noAdsProducts = {
+    'no_ads_24h': NoAdsProduct(
+      id: 'no_ads_24h',
+      type: NoAdsProductType.hours24,
+      usdPrice: 0.49,
+      displayName: 'No Ads - 24 Hours',
+      description: 'Remove ads for 24 hours',
+      isBestValue: false,
+      savingsText: null,
+    ),
+    'no_ads_week': NoAdsProduct(
+      id: 'no_ads_week',
+      type: NoAdsProductType.week,
+      usdPrice: 0.99,
+      displayName: 'No Ads - 1 Week',
+      description: 'Remove ads for 7 days',
+      isBestValue: false,
+      savingsText: null,
+    ),
+    'no_ads_lifetime': NoAdsProduct(
+      id: 'no_ads_lifetime',
+      type: NoAdsProductType.lifetime,
+      usdPrice: 4.99,
+      displayName: 'No Ads - Lifetime',
+      description: 'Remove all ads forever',
+      isBestValue: true,
+      savingsText: 'Best Value',
+    ),
+  };
+
+  // === BUNDLES ===
+  /// Bundle product definitions (Heart Booster + No Ads)
+  static const Map<String, BundleProduct> bundleProducts = {
+    'bundle_24h': BundleProduct(
+      id: 'bundle_24h',
+      heartBoosterHours: 24,
+      noAdsHours: 24,
+      usdPrice: 1.29,
+      displayName: '24H Bundle',
+      description: '6 Hearts + No Ads for 24 hours',
+      isBestValue: false,
+    ),
+    'bundle_48h': BundleProduct(
+      id: 'bundle_48h',
+      heartBoosterHours: 48,
+      noAdsHours: 48,
+      usdPrice: 2.49,
+      displayName: '48H Bundle',
+      description: '6 Hearts + No Ads for 48 hours',
+      isBestValue: false,
+    ),
+    'bundle_72h': BundleProduct(
+      id: 'bundle_72h',
+      heartBoosterHours: 72,
+      noAdsHours: 72,
+      usdPrice: 3.59,
+      displayName: '72H Bundle',
+      description: '6 Hearts + No Ads for 72 hours',
+      isBestValue: true,
+    ),
+  };
+
   // === HEART BOOSTER ===
-  /// Heart Booster pack definition
-  static const HeartBoosterPack heartBoosterPack = HeartBoosterPack(
-    id: 'heart_booster_24h',
-    durationHours: 24,
-    gemPrice: 50,
-    usdPrice: 1.99,
-    displayName: '24H Heart Booster',
-    description: '6 Max Hearts + Faster Regen for 24 Hours',
-  );
+  /// Heart Booster pack definitions (enhanced with multiple durations)
+  static const Map<String, HeartBoosterPack> heartBoosterPacks = {
+    'heart_booster_24h': HeartBoosterPack(
+      id: 'heart_booster_24h',
+      durationHours: 24,
+      gemPrice: 50,
+      usdPrice: 1.99,
+      displayName: '24H Heart Booster',
+      description: '6 Max Hearts + Faster Regen for 24 Hours',
+    ),
+    'heart_booster_48h': HeartBoosterPack(
+      id: 'heart_booster_48h',
+      durationHours: 48,
+      gemPrice: 90,
+      usdPrice: 2.99,
+      displayName: '48H Heart Booster',
+      description: '6 Max Hearts + Faster Regen for 48 Hours',
+      isBestValue: true,
+    ),
+    'heart_booster_72h': HeartBoosterPack(
+      id: 'heart_booster_72h',
+      durationHours: 72,
+      gemPrice: 120,
+      usdPrice: 3.99,
+      displayName: '72H Heart Booster',
+      description: '6 Max Hearts + Faster Regen for 72 Hours',
+      isBestValue: true,
+    ),
+  };
+
+  /// Legacy single heart booster pack (for backward compatibility)
+  static HeartBoosterPack get heartBoosterPack => heartBoosterPacks['heart_booster_24h']!;
 
   // === REWARDED ADS ===
   /// 📺 OPTIMIZED AD REWARDS (Balanced for engagement without devaluing IAP)
@@ -307,6 +435,35 @@ class GemPack {
   bool get hasBonus => bonusGems > 0;
 }
 
+/// No Ads product data class
+class NoAdsProduct {
+  final String id;
+  final NoAdsProductType type;
+  final double usdPrice;
+  final String displayName;
+  final String description;
+  final bool isBestValue;
+  final String? savingsText;
+
+  const NoAdsProduct({
+    required this.id,
+    required this.type,
+    required this.usdPrice,
+    required this.displayName,
+    required this.description,
+    this.isBestValue = false,
+    this.savingsText,
+  });
+}
+
+/// No Ads product type enumeration
+enum NoAdsProductType {
+  hours24,
+  week,
+  lifetime,
+  monthly, // Keep for backward compatibility
+}
+
 /// Heart Booster pack data class
 class HeartBoosterPack {
   final String id;
@@ -315,6 +472,7 @@ class HeartBoosterPack {
   final double usdPrice;
   final String displayName;
   final String description;
+  final bool isBestValue;
 
   const HeartBoosterPack({
     required this.id,
@@ -323,9 +481,37 @@ class HeartBoosterPack {
     required this.usdPrice,
     required this.displayName,
     required this.description,
+    this.isBestValue = false,
   });
 
   Duration get duration => Duration(hours: durationHours);
+  
+  /// Value per hour (for comparison)
+  double get valuePerHour => usdPrice / durationHours;
+  
+  /// Gems per hour (for comparison)
+  double get gemsPerHour => gemPrice / durationHours;
+}
+
+/// Bundle product data class (Heart Booster + No Ads)
+class BundleProduct {
+  final String id;
+  final int heartBoosterHours;
+  final int noAdsHours;
+  final double usdPrice;
+  final String displayName;
+  final String description;
+  final bool isBestValue;
+
+  const BundleProduct({
+    required this.id,
+    required this.heartBoosterHours,
+    required this.noAdsHours,
+    required this.usdPrice,
+    required this.displayName,
+    required this.description,
+    this.isBestValue = false,
+  });
 }
 
 /// Coin pack data class (Gem-to-Coins exchange)
@@ -352,4 +538,34 @@ class CoinPack {
   
   /// Gems per 100 coins ratio (for value comparison)
   double get gemsPerHundredCoins => (gemPrice / totalCoins) * 100;
+}
+
+/// Currency bundle data class (Gems + Coins combined)
+class CurrencyBundle {
+  final String id;
+  final int gems;
+  final int bonusGems;
+  final int coins;
+  final int bonusCoins;
+  final double usdPrice;
+  final String displayName;
+  final String description;
+  final bool isBestValue;
+
+  const CurrencyBundle({
+    required this.id,
+    required this.gems,
+    this.bonusGems = 0,
+    required this.coins,
+    this.bonusCoins = 0,
+    required this.usdPrice,
+    required this.displayName,
+    required this.description,
+    this.isBestValue = false,
+  });
+
+  int get totalGems => gems + bonusGems;
+  int get totalCoins => coins + bonusCoins;
+  bool get hasGemBonus => bonusGems > 0;
+  bool get hasCoinBonus => bonusCoins > 0;
 }

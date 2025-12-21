@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../../models/tournament_config.dart';
 import '../../../models/tournament_entry.dart';
 import '../../../game/systems/tournament_manager.dart';
+import '../../../game/core/jet_skins.dart';
 import '../../../core/debug_logger.dart';
 import '../../utils/responsive_config.dart';
 import '../coin_3d_icon.dart';
@@ -88,7 +89,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -139,10 +140,10 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -159,7 +160,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             if (_isLoading)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   child: const Center(
                     child: CircularProgressIndicator(
                       color: Colors.amber,
@@ -177,7 +178,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     final screenSize = MediaQuery.sizeOf(context);
     return Row(
       children: [
-        // Trophy icon
+        // Trophy icon - Use Christmas trophy for Christmas tournament
         Container(
           width: 70,
           height: 70,
@@ -186,23 +187,41 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             gradient: LinearGradient(
               colors: [
                 _getTierColor(),
-                _getTierColor().withOpacity(0.6),
+                _getTierColor().withValues(alpha: 0.6),
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: _getTierColor().withOpacity(0.4),
+                color: _getTierColor().withValues(alpha: 0.4),
                 blurRadius: 15,
               ),
             ],
           ),
           child: Center(
-            child: Text(
-              widget.tournament.tier.emoji,
-              style: TextStyle(
-                fontSize: ResponsiveConfig.responsiveFontSize(36.0, screenSize, context),
-              ),
-            ),
+            child: widget.tournament.id == 'christmas_tournament'
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(35),
+                    child: Image.asset(
+                      'assets/images/tournaments/Christmas/christmas_trophy.png',
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Text(
+                          widget.tournament.tier.emoji,
+                          style: TextStyle(
+                            fontSize: ResponsiveConfig.responsiveFontSize(36.0, screenSize, context),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                : Text(
+                    widget.tournament.tier.emoji,
+                    style: TextStyle(
+                      fontSize: ResponsiveConfig.responsiveFontSize(36.0, screenSize, context),
+                    ),
+                  ),
           ),
         ),
         
@@ -216,7 +235,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _getTierColor().withOpacity(0.2),
+                  color: _getTierColor().withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -243,7 +262,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                 widget.tournament.description,
                 style: TextStyle(
                   fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -258,10 +277,10 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     return Container(
       padding: EdgeInsets.all(ResponsiveConfig.responsivePadding(16.0, screenSize)),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(ResponsiveConfig.responsiveSize(12.0, screenSize)),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       child: Row(
@@ -322,7 +341,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
           label,
           style: TextStyle(
             fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
-            color: Colors.white.withOpacity(0.6),
+            color: Colors.white.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -333,7 +352,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     return Container(
       width: 1,
       height: 40,
-      color: Colors.white.withOpacity(0.1),
+      color: Colors.white.withValues(alpha: 0.1),
     );
   }
 
@@ -358,7 +377,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -368,7 +387,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                   height: 32,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _getTierColor().withOpacity(0.3),
+                    color: _getTierColor().withValues(alpha: 0.3),
                   ),
                   child: Center(
                     child: Text(
@@ -435,7 +454,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             child: Text(
               '+ ${widget.tournament.levels.length - 5} more rounds',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
               ),
             ),
@@ -456,13 +475,13 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.amber.withOpacity(0.2),
-            Colors.orange.withOpacity(0.1),
+            Colors.amber.withValues(alpha: 0.2),
+            Colors.orange.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.amber.withOpacity(0.3),
+          color: Colors.amber.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -507,14 +526,11 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             ],
           ),
           
-          // Skin reward
+          // Skin reward - 4x bigger jet skin image
           if (widget.tournament.completionReward.skinId != null) ...[
             const SizedBox(height: 12),
-            _buildBonusRewardItem(
-              emoji: '✨',
-              label: 'Exclusive Jet Skin',
-              value: widget.tournament.completionReward.skinId!,
-              color: Colors.purple,
+            _buildJetSkinRewardItem(
+              skinId: widget.tournament.completionReward.skinId!,
             ),
           ],
           
@@ -544,9 +560,108 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
               color: Colors.amber,
             ),
           ],
+          
+          // Trophy reward - always show trophy for all tournaments
+          const SizedBox(height: 8),
+          _buildTrophyRewardItem(),
         ],
       ),
     );
+  }
+
+  Widget _buildTrophyRewardItem() {
+    final screenSize = MediaQuery.sizeOf(context);
+    final trophyPath = _getTrophyImagePath(widget.tournament);
+    final trophySize = ResponsiveConfig.responsiveIconSize(32.0, screenSize);
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Trophy image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.asset(
+              trophyPath,
+              width: trophySize,
+              height: trophySize,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback to emoji if image not found
+                return Text(
+                  '🏆',
+                  style: TextStyle(fontSize: trophySize),
+                );
+              },
+            ),
+          ),
+          SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Champion Trophy',
+                  style: TextStyle(
+                    fontSize: ResponsiveConfig.responsiveFontSize(14.0, screenSize, context),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Exclusive tournament trophy',
+                  style: TextStyle(
+                    fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Get trophy image path from tournament config
+  String _getTrophyImagePath(TournamentConfig tournament) {
+    // Use trophyId from completion reward if available
+    final trophyId = tournament.completionReward.trophyId;
+    
+    if (trophyId != null) {
+      // Special handling for Christmas tournament trophy
+      if (trophyId == 'christmas_champion_trophy') {
+        return 'assets/images/tournaments/Christmas/christmas_trophy.png';
+      }
+      
+      // Map trophy IDs to actual file names
+      final trophyPathMap = {
+        'bosses_showdown_champion': 'trophy_bosses_showdown.png',
+        'stunt_master_trophy': 'trophy_stunt_tournament.png',
+        'chopper_champion_trophy': 'trophy_chopper_adventures.png',
+      };
+      
+      // Use mapped path if available, otherwise try trophyId pattern
+      final mappedPath = trophyPathMap[trophyId];
+      if (mappedPath != null) {
+        return 'assets/images/tournaments/$mappedPath';
+      }
+      
+      // Fallback: try trophyId pattern
+      return 'assets/images/tournaments/trophy_$trophyId.png';
+    }
+    
+    // Fallback to tournament ID pattern: tournaments/trophy_{tournament.id}.png
+    return 'assets/images/tournaments/trophy_${tournament.id}.png';
   }
 
   Widget _buildPrizeItem({
@@ -584,7 +699,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
               label,
               style: TextStyle(
                 fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -604,9 +719,9 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
@@ -627,7 +742,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
                   label,
                   style: TextStyle(
                     fontSize: ResponsiveConfig.responsiveFontSize(11.0, screenSize, context),
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                 ),
                 Text(
@@ -643,6 +758,106 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Build jet skin reward item with 4x bigger image
+  Widget _buildJetSkinRewardItem({required String skinId}) {
+    final screenSize = MediaQuery.sizeOf(context);
+    
+    // Look up the skin in the catalog
+    final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
+      (skin) => skin.id == skinId,
+      orElse: () => JetSkinCatalog.starterJet,
+    );
+    
+    // Calculate size for 4x bigger, but constrain to prevent overflow
+    final baseSize = ResponsiveConfig.responsiveSize(32.0, screenSize);
+    final desiredSize = baseSize * 4; // 4x bigger
+    
+    // Use LayoutBuilder to get available width and constrain the jet image
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxImageWidth = constraints.maxWidth * 0.8; // Max 80% of available width
+        final actualImageSize = desiredSize.clamp(baseSize, maxImageWidth); // Clamp to max width
+        
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.purple.withValues(alpha: 0.3),
+                Colors.purple.withValues(alpha: 0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.purple.withValues(alpha: 0.5),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withValues(alpha: 0.3),
+                blurRadius: 12,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Large jet skin image - 4x bigger
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: actualImageSize,
+                  maxHeight: actualImageSize,
+                ),
+                child: Image.asset(
+                  'assets/images/${jetSkin.assetPath}',
+                  width: actualImageSize,
+                  height: actualImageSize,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: actualImageSize,
+                      height: actualImageSize,
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '✨',
+                          style: TextStyle(fontSize: actualImageSize * 0.4),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Label and name
+              Text(
+                'Exclusive Jet Skin',
+                style: TextStyle(
+                  fontSize: ResponsiveConfig.responsiveFontSize(12.0, screenSize, context),
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                jetSkin.displayName,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: ResponsiveConfig.responsiveFontSize(16.0, screenSize, context),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -698,7 +913,7 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
             child: Text(
               text,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: ResponsiveConfig.responsiveFontSize(13.0, screenSize, context),
                 height: 1.4,
               ),
@@ -777,14 +992,14 @@ class _TournamentInfoPopupState extends State<TournamentInfoPopup> {
         height: 56,
         decoration: BoxDecoration(
           gradient: onTap != null
-              ? LinearGradient(colors: [color, color.withOpacity(0.8)])
+              ? LinearGradient(colors: [color, color.withValues(alpha: 0.8)])
               : null,
           color: onTap == null ? color : null,
           borderRadius: BorderRadius.circular(16),
           boxShadow: onTap != null
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.4),
+                    color: color.withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),

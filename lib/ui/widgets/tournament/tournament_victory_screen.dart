@@ -319,7 +319,29 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
     // Trophy takes 80% of available height or width (whichever is smaller)
     final trophySize = (availableHeight * 0.8).clamp(50.0, availableWidth * 0.7);
     
-    final trophyImagePath = 'tournaments/trophy_${widget.tournament.id}.png';
+    // Use tournament's custom trophy if available, otherwise fallback to default
+    String trophyImagePath;
+    final trophyId = widget.tournament.completionReward.trophyId;
+    if (trophyId != null) {
+      if (trophyId == 'christmas_champion_trophy') {
+        trophyImagePath = 'tournaments/Christmas/christmas_trophy.png';
+      } else {
+        // Try mapped path first
+        final trophyPathMap = {
+          'bosses_showdown_champion': 'trophy_bosses_showdown.png',
+          'stunt_master_trophy': 'trophy_stunt_tournament.png',
+          'chopper_champion_trophy': 'trophy_chopper_adventures.png',
+        };
+        final mappedPath = trophyPathMap[trophyId];
+        if (mappedPath != null) {
+          trophyImagePath = 'tournaments/$mappedPath';
+        } else {
+          trophyImagePath = 'tournaments/trophy_$trophyId.png';
+        }
+      }
+    } else {
+      trophyImagePath = 'tournaments/trophy_${widget.tournament.id}.png';
+    }
     
     return AnimatedBuilder(
       animation: Listenable.merge([_trophyScaleAnimation, _pulseAnimation]),
@@ -340,12 +362,12 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.amber.withOpacity(0.5 * _pulseAnimation.value),
+                          color: Colors.amber.withValues(alpha: 0.5 * _pulseAnimation.value),
                           blurRadius: 60,
                           spreadRadius: 20,
                         ),
                         BoxShadow(
-                          color: _getTierColor().withOpacity(0.3 * _pulseAnimation.value),
+                          color: _getTierColor().withValues(alpha: 0.3 * _pulseAnimation.value),
                           blurRadius: 40,
                           spreadRadius: 15,
                         ),
@@ -390,10 +412,16 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
   }
 
   Widget _buildAnimatedBackground() {
+    // Use tournament image for background (from display.bannerImage)
     final bannerImage = widget.tournament.display.bannerImage;
-    final bannerPath = bannerImage.endsWith('.png')
-        ? 'assets/images/$bannerImage'
-        : 'assets/images/$bannerImage.png';
+    String bannerPath;
+    if (bannerImage == 'christmas_tournament_image.png') {
+      bannerPath = 'assets/images/tournaments/Christmas/christmas_tournament_image.png';
+    } else if (bannerImage.endsWith('.png')) {
+      bannerPath = 'assets/images/$bannerImage';
+    } else {
+      bannerPath = 'assets/images/$bannerImage.png';
+    }
 
     return AnimatedBuilder(
       animation: _shimmerController,
@@ -408,7 +436,7 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                   imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                   child: ColorFiltered(
                     colorFilter: ColorFilter.mode(
-                      Colors.black.withOpacity(0.25),
+                      Colors.black.withValues(alpha: 0.25),
                       BlendMode.darken,
                     ),
                     child: Image.asset(
@@ -428,9 +456,9 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                   end: Alignment.bottomRight,
                   colors: [
                     const Color(0xFF1A1A2E),
-                    _getTierColor().withOpacity(0.25),
+                    _getTierColor().withValues(alpha: 0.25),
                     const Color(0xFF0F0F1A),
-                    _getTierColor().withOpacity(0.18),
+                    _getTierColor().withValues(alpha: 0.18),
                     const Color(0xFF1A1A2E),
                   ],
                   stops: [
@@ -597,19 +625,19 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.amber.withOpacity(0.3),
-                    Colors.orange.withOpacity(0.2),
-                    Colors.amber.withOpacity(0.1),
+                    Colors.amber.withValues(alpha: 0.3),
+                    Colors.orange.withValues(alpha: 0.2),
+                    Colors.amber.withValues(alpha: 0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.amber.withOpacity(0.6),
+                  color: Colors.amber.withValues(alpha: 0.6),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.3),
+                    color: Colors.amber.withValues(alpha: 0.3),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -662,7 +690,7 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                         delay: 1,
                       ),
                       if (completionReward.skinId != null)
-                    _buildSkinRewardIcon(completionReward.skinId!, valueSize * 1.8),
+                    _buildSkinRewardIcon(completionReward.skinId!, valueSize * 4.0), // Much bigger jet skin
                       if (completionReward.freeTicketTier != null)
                         TournamentTicketIcon(
                           tier: completionReward.freeTicketTier!,
@@ -703,7 +731,7 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                 color: Colors.white,
                 shadows: [
                   Shadow(
-                    color: Colors.amber.withOpacity(0.5),
+                    color: Colors.amber.withValues(alpha: 0.5),
                     blurRadius: 10,
                   ),
                 ],
@@ -713,7 +741,7 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
               label,
               style: TextStyle(
                 fontSize: valueSize * 0.4,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 letterSpacing: 1,
               ),
             ),
@@ -723,18 +751,27 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
     );
   }
 
-  Widget _buildSkinRewardIcon(String skinId, double size) {
+  Widget _buildSkinRewardIcon(String skinId, double desiredSize) {
     final jetSkin = JetSkinCatalog.getAllSkins().firstWhere(
       (skin) => skin.id == skinId,
       orElse: () => JetSkinCatalog.starterJet,
     );
 
-    return Image.asset(
-      'assets/images/${jetSkin.assetPath}',
-      width: size,
-      height: size,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => Text('✨', style: TextStyle(fontSize: size * 0.6)),
+    // Use LayoutBuilder to constrain the jet skin to prevent overflow
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Max 80% of available width to prevent overflow
+        final maxImageWidth = constraints.maxWidth * 0.8;
+        final actualSize = desiredSize.clamp(desiredSize * 0.5, maxImageWidth);
+
+        return Image.asset(
+          'assets/images/${jetSkin.assetPath}',
+          width: actualSize,
+          height: actualSize,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Text('✨', style: TextStyle(fontSize: actualSize * 0.6)),
+        );
+      },
     );
   }
 
@@ -765,7 +802,7 @@ class _TournamentVictoryScreenState extends State<TournamentVictoryScreen>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.5),
+                    color: Colors.amber.withValues(alpha: 0.5),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -836,7 +873,7 @@ class _SparklePainter extends CustomPainter {
       
       // Sparkle opacity varies with progress
       final opacity = ((math.sin(progress * math.pi * 2 + i) + 1) / 2) * 0.8;
-      paint.color = color.withOpacity(opacity);
+      paint.color = color.withValues(alpha: opacity);
       
       // Draw diamond sparkle
       final sparkleSize = 4 + random.nextDouble() * 4;

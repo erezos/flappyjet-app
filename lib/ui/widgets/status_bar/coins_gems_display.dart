@@ -59,7 +59,7 @@ class CoinsGemsDisplay extends StatelessWidget {
     final content = Container(
       padding: EdgeInsets.symmetric(horizontal: padding, vertical: verticalPadding),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
+        color: Colors.black.withValues(alpha: 0.6), // ✅ Darker background for better readability
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: IntrinsicWidth(

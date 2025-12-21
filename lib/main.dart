@@ -4,13 +4,14 @@ library;
 
 import 'dart:async';
 import 'dart:io'; // ✅ For Platform.isIOS check
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart'; // ✅ iOS ATT
 import 'firebase_options.dart';
-import 'ui/screens/home_navigator_screen.dart';
+import 'ui/screens/world_map_screen.dart';
 
 // Platform optimization system - Now using AAA adaptive quality system
 import 'core/debug_manager.dart';
@@ -40,11 +41,11 @@ import 'game/systems/global_leaderboard_service.dart';
 import 'game/systems/firebase_analytics_manager.dart';
 import 'game/systems/missions_manager.dart';
 import 'game/systems/achievements_manager.dart';
+import 'game/core/jet_skins.dart';
 import 'integrations/push_notification_manager.dart' show PushNotificationManager, firebaseMessagingBackgroundHandler;
 import 'integrations/notification_reward_handler.dart' show NotificationRewardHandler, notificationNavigatorKey;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'game/systems/audio_settings_manager.dart';
-import 'game/systems/social_sharing_manager.dart';
 import 'game/systems/remote_config_manager.dart';
 import 'game/systems/local_notification_manager.dart';
 import 'game/systems/rate_us_manager.dart';
@@ -53,6 +54,8 @@ import 'game/systems/rate_us_manager.dart';
 import 'core/network/network_manager.dart';
 import 'core/data/game_data_manager.dart';
 import 'core/analytics/user_analytics_manager.dart';
+import 'core/analytics/unified_analytics_manager.dart';
+import 'core/analytics/app_lifecycle_analytics.dart';
 
 // Services
 import 'services/fcm_service.dart' hide firebaseMessagingBackgroundHandler;
@@ -137,7 +140,6 @@ class LoadingScreen extends StatefulWidget {
 class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserver {
   String _loadingText = 'Starting FlappyJet...';
   double _loadingProgress = 0.0;
-  bool _isComplete = false;
 
   // System managers (same as before - zero risk)
   late MonetizationManager _monetization;
@@ -162,6 +164,7 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
     super.initState();
     // 🔥 NEW: Register lifecycle observer to flush events when app goes to background
     WidgetsBinding.instance.addObserver(this);
+    
     _initializeAllSystems();
   }
   
@@ -289,6 +292,11 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
       final backgroundTasks = [
         _initTask('FCM Service', () => FCMService().initialize()),
         _initTask('Firebase Analytics', () => FirebaseAnalyticsManager().initialize()),
+        // ✅ Initialize UnifiedAnalyticsManager AFTER FirebaseAnalyticsManager (dependency)
+        _initTask('Unified Analytics', () => UnifiedAnalyticsManager().initialize()),
+        // ✅ Initialize App Lifecycle Analytics AFTER UnifiedAnalyticsManager (dependency)
+        // This initializes ConversionEventsManager and checks for missed milestones on app open
+        _initTask('App Lifecycle Analytics', () => AppLifecycleAnalytics().initialize()),
         _initTask('Player Identity', () => PlayerIdentityManager().initialize()),
         _initTask('Network Manager', () => NetworkManager().initialize()),
         _initTask('User Analytics', () => UserAnalyticsManager().initialize()),
@@ -297,11 +305,6 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
         _initTask('Remote Config', () => RemoteConfigManager().initialize()),
         _initTask('Missions', () => _missions.initialize()),
         _initTask('Achievements', () => _achievements.initialize()),
-        _initTask('Social Sharing', () => SocialSharingManager(
-          analytics: FirebaseAnalyticsManager(),
-          missions: _missions,
-          achievements: _achievements,
-        ).initialize()),
         _initTask('Daily Streak', () => DailyStreakIntegration.initialize()),
         _initTask('Notifications', () => LocalNotificationManager().initialize()),
         _initTask('Push Notifications', () async {
@@ -361,7 +364,6 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
       setState(() {
         _loadingText = 'Ready to fly!';
         _loadingProgress = 1.0;
-        _isComplete = true;
       });
 
       // Navigate to home navigator screen after brief delay
@@ -372,12 +374,7 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
         
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => HomeNavigatorScreen(
-              firebaseEnabled: widget.firebaseEnabled,
-              monetization: _monetization,
-              missions: _missions,
-              achievements: _achievements,
-            ),
+            builder: (context) => const WorldMapScreen(),
           ),
         );
       }
@@ -389,12 +386,7 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => HomeNavigatorScreen(
-              firebaseEnabled: widget.firebaseEnabled,
-              monetization: _monetization,
-              missions: _missions,
-              achievements: _achievements,
-            ),
+            builder: (context) => const WorldMapScreen(),
           ),
         );
       }
@@ -450,222 +442,201 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
     final screenHeight = screenSize.height;
     
     // Responsive sizing
-    final logoSize = screenWidth * 0.25; // 25% of screen width
+    final jetSize = screenWidth * 0.3; // 30% of screen width (bigger for impact)
     final titleSize = screenWidth * 0.08; // 8% of screen width
-    final progressWidth = screenWidth * 0.7; // 70% of screen width
     
-    return Scaffold(
-      body: Container(
+    // Get jet skin (use starter jet as default)
+    final jetSkin = JetSkinCatalog.starterJet;
+    
+    // ✅ Full screen loading screen - no Scaffold constraints
+    return Material(
+      child: Container(
+        width: double.infinity, // ✅ Full screen width
+        height: double.infinity, // ✅ Full screen height
         decoration: BoxDecoration(
+          // ✅ NEW: Animated gradient background with stars
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF0F0F23), // Deep space blue
-              Color(0xFF1a1a2e), // Slightly lighter
-              Color(0xFF16213e), // Even lighter
+              Color(0xFF0A0A1A), // Deeper space blue
+              Color(0xFF1a1a2e),
+              Color(0xFF16213e),
+              Color(0xFF0F1419), // Darker at bottom
             ],
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Animated Jet Logo
-              TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 2000),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Transform.translate(
-                    offset: Offset(0, -20 * (1 - value)), // Fly in from top
-                    child: Transform.scale(
-                      scale: 0.8 + (0.2 * value), // Scale up
-                      child: Container(
-                        width: logoSize,
-                        height: logoSize,
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              Colors.orange.shade400,
-                              Colors.orange.shade600,
-                              Colors.deepOrange.shade700,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(logoSize * 0.2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.orange.withValues(alpha: 0.4),
-                              blurRadius: 30,
-                              spreadRadius: 5,
-                            ),
-                            BoxShadow(
-                              color: Colors.deepOrange.withValues(alpha: 0.2),
-                              blurRadius: 50,
-                              spreadRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Jet icon
-                            Icon(
-                              Icons.flight_takeoff,
-                              size: logoSize * 0.5,
+        child: Stack(
+          children: [
+            // ✅ Static starfield background (full screen)
+            Positioned.fill(
+              child: _buildStaticStarfield(screenSize),
+            ),
+            
+            // Main content (with SafeArea for content only)
+            SafeArea(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // ✅ Static Jet Skin (using existing asset) - centered
+                    _buildStaticJet(jetSkin, jetSize),
+                    
+                    SizedBox(height: screenHeight * 0.04),
+                    
+                    // ✅ Loading progress bar
+                    _buildLoadingBar(screenWidth, screenHeight),
+                    
+                    SizedBox(height: screenHeight * 0.06),
+                    
+                    // ✅ Game Title image - centered
+                    Center(
+                      child: Image.asset(
+                        'assets/images/homepage/flappy_jet_title.png',
+                        width: screenWidth * 0.7,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback to text if image fails
+                          return Text(
+                            'Flappy Jet',
+                            style: TextStyle(
+                              fontSize: titleSize,
+                              fontWeight: FontWeight.w900,
                               color: Colors.white,
                             ),
-                            // Subtle sparkle effect
-                            if (value > 0.5)
-                              Positioned(
-                                right: logoSize * 0.1,
-                                top: logoSize * 0.1,
-                                child: Icon(
-                                  Icons.star,
-                                  size: logoSize * 0.15,
-                                  color: Colors.yellow.shade300,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              
-              SizedBox(height: screenHeight * 0.05),
-              
-              // Game Title with casual styling
-              TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 1500),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Transform.translate(
-                    offset: Offset(0, 30 * (1 - value)),
-                    child: Opacity(
-                      opacity: value,
-                      child: Text(
-                        'FlappyJet',
-                        style: TextStyle(
-                          fontSize: titleSize,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 2.0,
-                          shadows: [
-                            Shadow(
-                              color: Colors.orange.withValues(alpha: 0.6),
-                              blurRadius: 15,
-                              offset: Offset(0, 3),
-                            ),
-                            Shadow(
-                              color: Colors.deepOrange.withValues(alpha: 0.3),
-                              blurRadius: 25,
-                              offset: Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              
-              SizedBox(height: screenHeight * 0.08),
-              
-              // Casual loading indicator
-              TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 1000),
-                tween: Tween(begin: 0.0, end: 1.0),
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: SizedBox(
-                      width: progressWidth,
-                      child: Column(
-                        children: [
-                          // Simple progress bar with game-like styling
-                          Container(
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade800.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: Colors.orange.shade300.withValues(alpha: 0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: _loadingProgress,
-                                backgroundColor: Colors.transparent,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.orange.shade400,
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          SizedBox(height: screenHeight * 0.02),
-                          
-                          // Casual loading text
-                          Text(
-                            _loadingText,
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.04,
-                              color: Colors.grey.shade300,
-                              fontWeight: FontWeight.w500,
-                            ),
                             textAlign: TextAlign.center,
-                          ),
-                          
-                          SizedBox(height: screenHeight * 0.01),
-                          
-                          // Simple percentage
-                          Text(
-                            '${(_loadingProgress * 100).toInt()}%',
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.035,
-                              color: Colors.orange.shade300,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
                     ),
-                  );
-                },
-              ),
-              
-              SizedBox(height: screenHeight * 0.1),
-              
-              // Skip Button (for development/testing)
-              if (!_isComplete && kDebugMode)
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => HomeNavigatorScreen(
-                          firebaseEnabled: widget.firebaseEnabled,
-                          monetization: _monetization,
-                          missions: _missions,
-                          achievements: _achievements,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    'Skip (Debug)',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: screenWidth * 0.035,
-                    ),
-                  ),
+                  ],
                 ),
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+  
+  /// ✅ Build static jet (no animations)
+  Widget _buildStaticJet(JetSkin jetSkin, double jetSize) {
+    return SizedBox(
+      width: jetSize,
+      height: jetSize,
+      child: Image.asset(
+        'assets/images/${jetSkin.assetPath}',
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to icon if image fails
+          return Icon(
+            Icons.flight_takeoff,
+            size: jetSize * 0.6,
+            color: Colors.white,
+          );
+        },
+      ),
+    );
+  }
+  
+  /// ✅ Build loading progress bar
+  Widget _buildLoadingBar(double screenWidth, double screenHeight) {
+    final progressWidth = screenWidth * 0.6; // 60% of screen width
+    final progressHeight = 6.0;
+    
+    return SizedBox(
+      width: progressWidth,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Progress bar track
+          ClipRRect(
+            borderRadius: BorderRadius.circular(progressHeight / 2),
+            child: Container(
+              height: progressHeight,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(progressHeight / 2),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: _loadingProgress.clamp(0.0, 1.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.orange.shade400,
+                        Colors.deepOrange.shade500,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(progressHeight / 2),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          SizedBox(height: screenHeight * 0.01),
+          
+          // Loading text
+          Text(
+            _loadingText,
+            style: TextStyle(
+              fontSize: screenWidth * 0.035,
+              color: Colors.white.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+              shadows: [
+                Shadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// ✅ Build static starfield background (no animations)
+  Widget _buildStaticStarfield(Size screenSize) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return CustomPaint(
+          size: Size(constraints.maxWidth, constraints.maxHeight),
+          painter: _StaticStarfieldPainter(),
+        );
+      },
+    );
+  }
+}
+
+/// ✅ Static starfield painter (no animations)
+class _StaticStarfieldPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(42); // Fixed seed for consistent stars
+    final paint = Paint()..color = Colors.white;
+    
+    // Draw static stars
+    for (int i = 0; i < 50; i++) {
+      final x = (random.nextDouble() * size.width);
+      final y = (random.nextDouble() * size.height);
+      final starOpacity = 0.5 + (random.nextDouble() * 0.5); // Random opacity between 0.5-1.0
+      
+      paint.color = Colors.white.withValues(alpha: starOpacity);
+      canvas.drawCircle(
+        Offset(x, y),
+        1.5,
+        paint,
+      );
+    }
+  }
+  
+  @override
+  bool shouldRepaint(_StaticStarfieldPainter oldDelegate) => false; // Static, no repaint needed
 }

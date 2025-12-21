@@ -15,11 +15,13 @@ import '../utils/responsive_config.dart';
 class DailyMissionsScreen extends StatefulWidget {
   final MissionsManager? missionsManager;
   final AchievementsManager? achievementsManager;
+  final int? initialTabIndex; // 0 = Missions, 1 = Achievements
 
   const DailyMissionsScreen({
     super.key,
     this.missionsManager,
     this.achievementsManager,
+    this.initialTabIndex,
   });
 
   @override
@@ -49,7 +51,12 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _tabController = TabController(length: 2, vsync: this);
+    final initialIndex = widget.initialTabIndex ?? 0;
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: initialIndex.clamp(0, 1),
+    );
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -491,7 +498,6 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
   Widget _buildTabSelector(BuildContext context, Size screenSize) {
     // ✅ RESPONSIVE: Use ResponsiveConfig for consistent sizing
     final isTablet = ResponsiveConfig.isTablet(screenSize);
-    final isLargeTablet = ResponsiveConfig.isLargeTablet(screenSize);
     
     // Calculate tab height - modern and compact
     final tabHeight = ResponsiveConfig.responsiveSize(
@@ -820,7 +826,12 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
         return FadeTransition(
           opacity: _animationController,
           child: ListView.builder(
-            padding: EdgeInsets.all(screenSize.width > 600 ? 24.0 : 16.0),
+            padding: EdgeInsets.only(
+              left: ResponsiveConfig.responsivePadding(16.0, screenSize),
+              right: ResponsiveConfig.responsivePadding(16.0, screenSize),
+              top: ResponsiveConfig.responsivePadding(16.0, screenSize),
+              // ✅ No bottom padding - let content extend to footer (HomepageLayout handles footer spacing)
+            ),
             itemCount: missions.length,
             itemBuilder: (context, index) {
               final mission = missions[index];
@@ -977,7 +988,12 @@ class _DailyMissionsScreenState extends State<DailyMissionsScreen>
     }
 
     return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: isTablet ? 24.0 : 16.0),
+      padding: EdgeInsets.only(
+        left: ResponsiveConfig.responsivePadding(16.0, screenSize),
+        right: ResponsiveConfig.responsivePadding(16.0, screenSize),
+        top: ResponsiveConfig.responsivePadding(12.0, screenSize),
+        // ✅ No bottom padding - let content extend to footer (HomepageLayout handles footer spacing)
+      ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
         final category = categories.keys.elementAt(index);

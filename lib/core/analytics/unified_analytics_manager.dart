@@ -5,6 +5,7 @@
 /// with zero performance impact on the app
 library;
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../debug_logger.dart';
 import '../../game/systems/firebase_analytics_manager.dart';
@@ -44,6 +45,9 @@ class UnifiedAnalyticsManager {
   }
 
   /// Track event to Firebase (Railway events handled by EventBus)
+  /// 
+  /// Fire-and-forget: Non-blocking, never interrupts user experience.
+  /// Follows Flame game engine best practices for analytics.
   void trackEvent(String eventName, Map<String, dynamic> parameters) {
     if (!_isInitialized) {
       safePrint('🚀 ⚠️ Analytics not initialized, skipping: $eventName');
@@ -51,8 +55,10 @@ class UnifiedAnalyticsManager {
     }
 
     try {
-      // Track to Firebase (synchronous, but lightweight)
-      _firebaseAnalytics?.trackEvent(eventName, parameters);
+      // Track to Firebase (fire-and-forget, non-blocking)
+      // Using unawaited to explicitly mark as fire-and-forget
+      // This ensures zero impact on game performance (Flame best practice)
+      unawaited(_firebaseAnalytics?.trackEvent(eventName, parameters));
 
       // ❌ DISABLED: SmartRailwayAnalytics (using deprecated endpoint)
       // Railway events are now handled by EventBus directly via /api/events
@@ -65,6 +71,7 @@ class UnifiedAnalyticsManager {
 
     } catch (e) {
       safePrint('🚀 ❌ Failed to track event $eventName: $e');
+      // Silently fail - analytics should never break the app
     }
   }
 

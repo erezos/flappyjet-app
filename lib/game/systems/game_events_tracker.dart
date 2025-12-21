@@ -3,6 +3,7 @@ library;
 import '../../core/debug_logger.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'missions_manager.dart';
 import 'achievements_manager.dart';
 import 'inventory_manager.dart';
@@ -93,6 +94,11 @@ class GameEventsTracker extends ChangeNotifier {
     if (_achievementsManager != null) {
       await _achievementsManager!.checkScoreAchievements(finalScore);
       await _achievementsManager!.checkSurvivalAchievements(survivalTimeSeconds);
+      
+      // Check total games played achievements
+      final prefs = await SharedPreferences.getInstance();
+      final totalGamesPlayed = prefs.getInt('stats_total_games') ?? 0;
+      await _achievementsManager!.checkTotalGamesAchievements(totalGamesPlayed);
     }
     // Check streak achievements inline
     const streakThreshold = 5;
@@ -314,6 +320,67 @@ class GameEventsTracker extends ChangeNotifier {
     );
 
     safePrint('🎮 IAP Purchase: $productId for \$${priceUSD.toStringAsFixed(2)}');
+  }
+
+  /// Track No Ads purchase
+  Future<void> onNoAdsPurchased({
+    required String productType, // 'lifetime' or 'monthly'
+    required double priceUSD,
+  }) async {
+    // 📊 Report analytics to Firebase
+    _analytics?.trackPurchase(
+      itemId: 'no_ads_$productType',
+      itemName: 'No Ads - $productType',
+      price: priceUSD,
+      currency: 'USD',
+      purchaseType: 'real_money',
+    );
+
+    // 📊 Send to backend via EventBus
+    EventBus().fire('no_ads_purchased', {
+      'product_type': productType,
+      'price_usd': priceUSD,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    safePrint('🚫 No Ads purchased: $productType for \$${priceUSD.toStringAsFixed(2)}');
+  }
+
+  /// Track Currency Bundle purchase
+  Future<void> onCurrencyBundlePurchased({
+    required String bundleId,
+    required int gems,
+    required int coins,
+    required double priceUSD,
+  }) async {
+    // 📊 Report analytics to Firebase
+    _analytics?.trackPurchase(
+      itemId: bundleId,
+      itemName: 'Currency Bundle - $gems Gems + $coins Coins',
+      price: priceUSD,
+      currency: 'USD',
+      purchaseType: 'real_money',
+    );
+
+    // 📊 Track detailed event with additional parameters
+    _analytics?.trackEvent('currency_bundle_purchased', {
+      'bundle_id': bundleId,
+      'gems': gems,
+      'coins': coins,
+      'price_usd': priceUSD,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    // 📊 Send to backend via EventBus
+    EventBus().fire('currency_bundle_purchased', {
+      'bundle_id': bundleId,
+      'gems': gems,
+      'coins': coins,
+      'price_usd': priceUSD,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    safePrint('🎁 Currency Bundle purchased: $bundleId - $gems Gems + $coins Coins for \$${priceUSD.toStringAsFixed(2)}');
   }
 
 

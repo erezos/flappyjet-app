@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 2.3.3+88
+version: 2.3.13+98
 
 environment:
   sdk: '^3.8.0'
@@ -74,8 +74,7 @@ dependencies:
   # Push Notifications (Android only)
   firebase_messaging: ^15.2.10
   
-  # Social Sharing
-  share_plus: ^7.2.2
+  # URL Launcher (for privacy/terms links)
   url_launcher: ^6.2.5
   
 
@@ -117,18 +116,14 @@ flutter:
     - assets/images/jets/
     # - assets/images/jets/states/     # 🔥 BLOCKBUSTER jet fire sprites (directory not found)
     - assets/images/homepage/      # Stunning homepage assets
-    - assets/images/buttons/       # Button graphics  
     - assets/images/icons/         # Homepage button icons
-    - assets/images/share_templates/  # Social sharing score card templates
     - assets/images/ui/               # Daily streak and UI assets (VS battle nodes)
     - assets/images/UI/               # Capitalized UI assets (VS battle nodes legacy path)
     - assets/images/ui/vs_battle_node_completed.png  # Explicit include for 1v1 badge
-    - assets/images/ui/missions/      # Floating missions banner assets
-    - assets/images/ui/store/         # Store banner assets
     - assets/images/icons/missions/   # Mission 3D icons
     - assets/images/tournaments/      # Tournament banner images
+    - assets/images/tournaments/Christmas/  # Christmas tournament assets
     - assets/images/backgrounds/   # Background elements
-    - assets/images/text/          # Custom text assets
     - assets/audio/
     - assets/images/obstacles/   # Dynamic obstacle sprites
     - assets/images/bonuses/     # In-game collectible bonuses (shields, coins, gems)

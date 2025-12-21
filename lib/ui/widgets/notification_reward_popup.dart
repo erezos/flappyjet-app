@@ -218,18 +218,18 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF1A1A2E).withOpacity(0.98),
-              const Color(0xFF0F0F1E).withOpacity(0.98),
+              const Color(0xFF1A1A2E).withValues(alpha: 250 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
+              const Color(0xFF0F0F1E).withValues(alpha: 250 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
             ],
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 51 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 128 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -251,7 +251,7 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        const Color(0xFF4FC3F7).withOpacity(0.3),
+                        const Color(0xFF4FC3F7).withValues(alpha: 77 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
                         Colors.transparent,
                       ],
                     ),
@@ -274,7 +274,7 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
                       Text(
                         'Thanks for returning to FlappyJet!',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 179 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
                           fontSize: subtitleFontSize,
                         ),
                         textAlign: TextAlign.center,
@@ -306,8 +306,8 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
                                 gradient: RadialGradient(
                                   colors: [
                                     widget.rewardType == 'coins'
-                                        ? const Color(0xFFFFD700).withOpacity(0.3)
-                                        : const Color(0xFF4FC3F7).withOpacity(0.3),
+                                        ? const Color(0xFFFFD700).withValues(alpha: 77 / 255.0) // Fixed: convert 0-255 to 0.0-1.0
+                                        : const Color(0xFF4FC3F7).withValues(alpha: 77 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
                                     Colors.transparent,
                                   ],
                                 ),
@@ -344,7 +344,7 @@ class _NotificationRewardPopupState extends State<NotificationRewardPopup>
                       Text(
                         'Claim your reward for coming back!',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 179 / 255.0), // Fixed: convert 0-255 to 0.0-1.0
                           fontSize: descriptionFontSize,
                         ),
                         textAlign: TextAlign.center,

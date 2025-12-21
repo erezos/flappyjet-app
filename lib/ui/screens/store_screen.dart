@@ -11,10 +11,8 @@ import '../utils/responsive_config.dart';
 import '../widgets/store/store_header.dart';
 import '../widgets/store/store_navigation.dart';
 import '../widgets/store/jets_store.dart';
-import '../widgets/store/gems_store.dart';
-import '../widgets/store/coins_store.dart';
-import '../widgets/store/hearts_store.dart';
-import '../widgets/store/heart_booster_store.dart';
+import '../widgets/store/currency_store.dart';
+import '../widgets/store/premium_store.dart';
 import '../widgets/store/store_purchase_handler.dart';
 
 class StoreScreen extends StatefulWidget {
@@ -36,17 +34,15 @@ class _StoreScreenState extends State<StoreScreen> {
   late StorePurchaseHandler purchaseHandler;
 
   final List<String> categories = [
+    'Currency',
+    'Special',
     'Jets',
-    'Gems',
-    'Coins',
-    'Hearts',
-    'Heart Booster',
   ];
 
   @override
   void initState() {
     super.initState();
-    selectedCategory = widget.initialCategory ?? 'Jets';
+    selectedCategory = widget.initialCategory ?? 'Currency';
     _initializeStore();
   }
 
@@ -125,34 +121,30 @@ class _StoreScreenState extends State<StoreScreen> {
 
   Widget _buildStoreContent() {
     switch (selectedCategory) {
+      case 'Currency':
+        return CurrencyStore(
+          inventory: inv,
+          economy: economy,
+          onPurchaseGemPack: purchaseHandler.purchaseGemPack,
+          onPurchaseCoinPack: purchaseHandler.purchaseCoinPack,
+          onPurchaseCurrencyBundle: purchaseHandler.purchaseCurrencyBundle,
+        );
+      case 'Special':
+        return PremiumStore(
+          monetization: monetization,
+          inventory: inv,
+          onPurchaseNoAds: purchaseHandler.purchaseNoAds,
+          onPurchaseBooster: (duration) {
+            purchaseHandler.purchaseHeartBooster(duration);
+          },
+          onPurchaseBundle: purchaseHandler.purchaseBundle,
+        );
       case 'Jets':
         return JetsStore(
           inventory: inv,
           economy: economy,
           onPurchaseJet: purchaseHandler.purchaseJetSkin,
           onEquipJet: purchaseHandler.equipJetSkin,
-        );
-      case 'Gems':
-        return GemsStore(onPurchaseGemPack: purchaseHandler.purchaseGemPack);
-      case 'Coins':
-        return CoinsStore(
-          inventory: inv,
-          economy: economy,
-          onPurchaseCoinPack: purchaseHandler.purchaseCoinPack,
-        );
-      case 'Hearts':
-        return HeartsStore(
-          livesManager: livesManager,
-          economy: economy,
-          onPurchaseFullHeartsRefill: purchaseHandler.purchaseFullHeartsRefill,
-        );
-      case 'Heart Booster':
-        return HeartBoosterStore(
-          inventory: inv,
-          onPurchaseBooster: (duration) {
-            // Handle booster purchase based on duration
-            purchaseHandler.purchaseHeartBooster(duration);
-          },
         );
       default:
         return const SizedBox();

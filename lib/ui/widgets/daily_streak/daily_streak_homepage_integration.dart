@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'daily_streak_integration.dart';
 
-/// Example integration for showing daily streak in menu/tab navigation
-/// Add this to your main screen to show the daily streak notification
+/// Auto-popup integration for daily streak - checks once per session at app open
+/// Add this to your main screen to auto-show the daily streak popup when reward is available
+/// 
+/// Features:
+/// - Checks only once per session (at app open)
+/// - Shows popup automatically if reward is available
+/// - No UI rendering (invisible widget)
 class DailyStreakHomepageIntegration extends StatefulWidget {
   const DailyStreakHomepageIntegration({super.key});
   
@@ -11,19 +16,28 @@ class DailyStreakHomepageIntegration extends StatefulWidget {
 }
 
 class _DailyStreakHomepageIntegrationState extends State<DailyStreakHomepageIntegration> {
+  static bool _hasCheckedThisSession = false; // ✅ Session-level flag
   
   @override
   void initState() {
     super.initState();
-    _initializeDailyStreak();
+    _checkAndShowPopup();
   }
   
-  Future<void> _initializeDailyStreak() async {
+  /// Check and show popup once per session
+  Future<void> _checkAndShowPopup() async {
+    // ✅ Only check once per session
+    if (_hasCheckedThisSession) {
+      return;
+    }
+    
+    _hasCheckedThisSession = true;
+    
     await DailyStreakIntegration.initialize();
     
-    // Show popup after a short delay if needed
+    // Show popup after a short delay if reward is available
     if (mounted && DailyStreakIntegration.shouldShowPopup()) {
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 1500)); // Slightly longer delay for better UX
       if (mounted) {
         await DailyStreakIntegration.showDailyStreakPopup(context);
       }
@@ -32,116 +46,9 @@ class _DailyStreakHomepageIntegrationState extends State<DailyStreakHomepageInte
   
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: DailyStreakIntegration.streakManager,
-      builder: (context, child) {
-        final hasNotification = DailyStreakIntegration.hasNotification;
-        final currentStreak = DailyStreakIntegration.streakManager.currentStreak;
-        
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              // Streak icon with notification badge
-              Stack(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: hasNotification 
-                            ? [Colors.amber, Colors.orange]
-                            : [Colors.grey.shade400, Colors.grey.shade600],
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: hasNotification ? [
-                        BoxShadow(
-                          color: Colors.amber.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ] : null,
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: hasNotification ? () {
-                          DailyStreakIntegration.showDailyStreakPopup(context);
-                        } : null,
-                        child: const Icon(
-                          Icons.calendar_today,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // Notification badge
-                  if (hasNotification)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.star,
-                          color: Colors.white,
-                          size: 8,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              
-              const SizedBox(width: 12),
-              
-              // Streak info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      hasNotification ? 'Daily Bonus Ready!' : 'Daily Streak',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: hasNotification ? Colors.amber : Colors.white,
-                      ),
-                    ),
-                    Text(
-                      currentStreak > 0 
-                          ? '$currentStreak day${currentStreak == 1 ? '' : 's'} streak'
-                          : 'Start your streak today!',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Arrow indicator
-              if (hasNotification)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.amber,
-                  size: 16,
-                ),
-            ],
-          ),
-        );
-      },
-    );
+    // ✅ Invisible widget - only handles auto-popup logic
+    // No UI rendering needed
+    return const SizedBox.shrink();
   }
 }
 

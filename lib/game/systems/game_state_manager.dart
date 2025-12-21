@@ -455,25 +455,46 @@ class GameStateManager extends ChangeNotifier {
 
   /// Save best score (async, non-blocking)
   /// ✅ MIGRATED: Now uses UserStatsRepository instead of SharedPreferences
+  /// ✅ FIX: Always check against database, not local _bestScore (which may not be loaded yet)
   Future<void> saveBestScore(int score) async {
-    if (score > _bestScore) {
-      _bestScore = score;
-      safePrint('🏆 New best score: $_bestScore');
-      
-      // Save to SQLite via UserStatsRepository
-      if (_userStats != null) {
-        try {
-          final isNewRecord = await _userStats.updateHighScore(score);
-          if (isNewRecord) {
-            safePrint('🏆 ✅ Best score saved to SQLite: $score');
+    // Always call updateHighScore - it checks against the database value
+    // This fixes the issue where _bestScore might not be loaded yet from async init
+    if (_userStats != null) {
+      try {
+        // Get current high score for logging
+        final currentStats = await _userStats.getUserStats();
+        final oldHighScore = currentStats.highScore;
+        
+        final isNewRecord = await _userStats.updateHighScore(score);
+        if (isNewRecord) {
+          _bestScore = score; // Update local cache only if it's actually a new record
+          safePrint('🏆 ✅ New high score saved to SQLite: $score (was: $oldHighScore)');
+          
+          // Notify UI listeners
+          notifyListeners();
+        } else {
+          // Not a new record, but update local cache if it's higher than current
+          if (score > _bestScore) {
+            _bestScore = score;
+            notifyListeners();
           }
-        } catch (e) {
-          safePrint('🏆 ❌ Failed to save best score: $e');
+          safePrint('🏆 Score $score (current high score is higher)');
+        }
+      } catch (e) {
+        safePrint('🏆 ❌ Failed to save best score: $e');
+        // Fallback: update local cache if score is higher
+        if (score > _bestScore) {
+          _bestScore = score;
+          notifyListeners();
         }
       }
-      
-      // Notify UI listeners
-      notifyListeners();
+    } else {
+      // No UserStatsRepository available, just update local cache
+      if (score > _bestScore) {
+        _bestScore = score;
+        safePrint('🏆 New best score (local only): $_bestScore');
+        notifyListeners();
+      }
     }
   }
 

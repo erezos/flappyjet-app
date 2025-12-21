@@ -126,6 +126,8 @@ class TournamentConfig {
   final TournamentDisplay display;
   final TournamentUnlockRequirement? unlockRequirement;
   final PlayoffBracketConfig? playoffConfig;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const TournamentConfig({
     required this.id,
@@ -143,6 +145,8 @@ class TournamentConfig {
     required this.display,
     this.unlockRequirement,
     this.playoffConfig,
+    this.startDate,
+    this.endDate,
   });
   
   /// Whether this is a playoff-style tournament
@@ -150,6 +154,21 @@ class TournamentConfig {
 
   /// Total rounds in the tournament
   int get totalRounds => levels.length;
+
+  /// Check if tournament is currently available (not expired and started)
+  bool get isAvailable {
+    if (status == TournamentStatus.hidden || status == TournamentStatus.ended) {
+      return false;
+    }
+    final now = DateTime.now();
+    if (startDate != null && now.isBefore(startDate!)) {
+      return false; // Tournament hasn't started yet
+    }
+    if (endDate != null) {
+      return now.isBefore(endDate!);
+    }
+    return true;
+  }
 
   /// Total possible rewards from all rounds
   int get totalCoinsFromRounds => 
@@ -176,6 +195,16 @@ class TournamentConfig {
 
   /// Parse from JSON
   factory TournamentConfig.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(String? dateStr) {
+      if (dateStr == null) return null;
+      try {
+        return DateTime.parse(dateStr).toUtc();
+      } catch (e) {
+        safePrint('⚠️ Failed to parse tournament date: $dateStr');
+        return null;
+      }
+    }
+
     return TournamentConfig(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -209,6 +238,8 @@ class TournamentConfig {
       playoffConfig: json['playoff_config'] != null
           ? PlayoffBracketConfig.fromJson(json['playoff_config'] as Map<String, dynamic>)
           : null,
+      startDate: parseDate(json['start_date'] as String?),
+      endDate: parseDate(json['end_date'] as String?),
     );
   }
 

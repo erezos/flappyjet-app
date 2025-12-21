@@ -161,7 +161,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
         return false; // Don't let system handle it
       },
       child: Scaffold(
-        backgroundColor: Colors.black.withOpacity(0.7), // Semi-transparent overlay
+        backgroundColor: Colors.black.withValues(alpha: 179 / 255.0), // Semi-transparent overlay
         body: Stack(
           children: [
             // Confetti (full screen)
@@ -280,17 +280,17 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               ResponsiveConfig.responsiveSize(30.0, screenSize).clamp(24.0, 36.0),
             ),
             border: Border.all(
-              color: const Color(0xFFFFD700).withOpacity(0.6), // Gold border
+              color: const Color(0xFFFFD700).withValues(alpha: 153 / 255.0), // Gold border
               width: ResponsiveConfig.responsiveSize(3.0, screenSize).clamp(2.0, 4.0),
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFFFD700).withOpacity(0.3),
+                color: const Color(0xFFFFD700).withValues(alpha: 77 / 255.0),
                 blurRadius: ResponsiveConfig.responsiveSize(30.0, screenSize),
                 spreadRadius: ResponsiveConfig.responsiveSize(5.0, screenSize),
               ),
               BoxShadow(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withValues(alpha: 102 / 255.0),
                 blurRadius: ResponsiveConfig.responsiveSize(20.0, screenSize),
                 offset: Offset(0, ResponsiveConfig.responsiveSize(10.0, screenSize)),
               ),
@@ -385,14 +385,14 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
         height: buttonSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.black.withOpacity(0.7), // More opaque for visibility on frame
+          color: Colors.black.withValues(alpha: 179 / 255.0), // More opaque for visibility on frame
           border: Border.all(
-            color: Colors.white.withOpacity(0.9), // High contrast white border
+            color: Colors.white.withValues(alpha: 230 / 255.0), // High contrast white border
             width: borderWidth,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 128 / 255.0),
               blurRadius: ResponsiveConfig.responsiveSize(12.0, screenSize),
               spreadRadius: ResponsiveConfig.responsiveSize(2.0, screenSize),
               offset: Offset(0, ResponsiveConfig.responsiveSize(2.0, screenSize)),
@@ -436,7 +436,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFD700).withOpacity(0.6),
+                      color: const Color(0xFFFFD700).withValues(alpha: 153 / 255.0),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -491,7 +491,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       'Level ${widget.level.id}: ${widget.level.name}',
       textAlign: TextAlign.center,
       style: TextStyle(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 230 / 255.0),
         fontSize: 13,
         fontWeight: FontWeight.w600,
       ),
@@ -524,7 +524,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildCompactStatRow('🎯', 'Objective', '${widget.objectiveAchieved}/${widget.level.objective.target}'),
-        Divider(height: 12, color: Colors.white.withOpacity(0.2), thickness: 1),
+        Divider(height: 12, color: Colors.white.withValues(alpha: 51 / 255.0), thickness: 1),
         _buildCompactStatRow('⏱️', 'Time', '${widget.timeTaken}s'),
       ],
     );
@@ -568,7 +568,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           Text(
             'Original reward already earned',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 153 / 255.0),
               fontSize: 10,
               fontStyle: FontStyle.italic,
             ),
@@ -591,7 +591,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withOpacity(0.5),
+              color: const Color(0xFF4CAF50).withValues(alpha: 128 / 255.0),
               blurRadius: 15,
               spreadRadius: 2,
             ),
@@ -629,7 +629,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           child: Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 204 / 255.0),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -664,7 +664,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 77 / 255.0),
             ),
             child: const Padding(
               padding: EdgeInsets.all(4),
@@ -677,7 +677,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
             height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 77 / 255.0),
             ),
             child: Padding(
               padding: const EdgeInsets.all(6),
