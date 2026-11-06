@@ -21,6 +21,8 @@ import 'package:path/path.dart' as path;
 import '../debug_logger.dart';
 import 'event.dart';
 import '../identity/device_identity_manager.dart';
+import '../attribution/campaign_attribution_manager.dart';
+import '../../game/systems/remote_config_manager.dart';
 
 /// EventBus - Central event management system
 class EventBus {
@@ -113,14 +115,26 @@ class EventBus {
       final enrichedData = {
         ...data,
         'app_version': _identityManager!.appVersion,
+        'version_code': _identityManager!.buildNumber,
         'platform': _identityManager!.platform,
       };
+      if (RemoteConfigManager().initialized) {
+        enrichedData.addAll(RemoteConfigManager().telemetryFields());
+      }
 
       // Include device locale if available (for language preference analytics)
       // Note: Geographic country is determined server-side via IP geolocation
       final deviceLocale = _identityManager!.locale;
       if (deviceLocale != null) {
         enrichedData['locale'] = deviceLocale;
+      }
+
+      // ✅ NEW: Add campaign_id for ROI analysis (if available)
+      // This enriches all events with campaign attribution
+      final campaignManager = CampaignAttributionManager();
+      final campaignId = campaignManager.getCampaignId();
+      if (campaignId != null) {
+        enrichedData['campaign_id'] = campaignId;
       }
 
       final event = Event(

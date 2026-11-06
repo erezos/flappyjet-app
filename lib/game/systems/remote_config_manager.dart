@@ -1,6 +1,9 @@
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
-import '../core/economy_config.dart';
 import '../../core/debug_logger.dart';
+import '../../core/identity/device_identity_manager.dart';
+import '../core/economy_config.dart';
+import 'holdout.dart';
 
 /// Remote Config manager for live updates without app deployment
 /// This provides a foundation for Firebase Remote Config integration
@@ -16,32 +19,100 @@ class RemoteConfigManager extends ChangeNotifier {
   bool get initialized => _initialized;
   bool get developmentMode => _developmentMode;
 
-  /// Initialize Remote Config (placeholder for Firebase integration)
+  /// Initialize Remote Config from Firebase, then fall back to local defaults.
   Future<void> initialize() async {
     try {
       safePrint('📱 🔧 Initializing Remote Config Manager...');
-      
-      // For now, use development mode with local defaults
+      await _loadDevelopmentDefaults();
       _developmentMode = true;
       _initialized = true;
-      
-      // Load default development config
-      await _loadDevelopmentDefaults();
-      
-      // TODO: Integrate Firebase Remote Config
-      // await FirebaseRemoteConfig.instance.setConfigSettings(RemoteConfigSettings(
-      //   fetchTimeout: const Duration(minutes: 1),
-      //   minimumFetchInterval: const Duration(hours: 1),
-      // ));
-      // await FirebaseRemoteConfig.instance.fetchAndActivate();
-      
-      safePrint('📱 ✅ Remote Config Manager initialized (development mode)');
+
+      try {
+        final remoteConfig = FirebaseRemoteConfig.instance;
+        await remoteConfig.setConfigSettings(RemoteConfigSettings(
+          fetchTimeout: const Duration(minutes: 1),
+          minimumFetchInterval: kDebugMode
+              ? const Duration(minutes: 1)
+              : const Duration(hours: 1),
+        ));
+        await remoteConfig.setDefaults(_firebaseDefaults());
+        await remoteConfig.fetchAndActivate();
+        _applyFirebaseValues(remoteConfig);
+        _pinHoldoutToDefaults();
+        _developmentMode = false;
+        safePrint('📱 ✅ Remote Config fetched from Firebase');
+      } catch (e) {
+        safePrint('📱 ⚠️ Firebase Remote Config unavailable, using local defaults: $e');
+        _developmentMode = true;
+      }
+
+      await _applyConfigToEconomy();
       notifyListeners();
-      
     } catch (e) {
       safePrint('📱 ⚠️ Remote Config initialization failed: $e');
       _initialized = false;
       _developmentMode = true;
+    }
+  }
+
+  Map<String, Object> _firebaseDefaults() {
+    return {
+      'interstitial_min_wins': 8,
+      'loss_streak_ads_enabled': false,
+      'continue_gem_second': 20,
+      'continue_gem_third': 50,
+      'continue_min_progress': 0.5,
+      'max_offers_per_session': 1,
+      'starter_offer_min_session': 2,
+      'show_story_hearts': false,
+      'heart_booster_enabled': false,
+      'free_flight_enabled': true,
+      'weekly_challenge_enabled': true,
+      'daily_missions_enabled': true,
+      'leaderboard_enabled': true,
+      'rewarded_ads_enabled': true,
+      'daily_tournament_entries': 3,
+    };
+  }
+
+  bool get playerIsHoldout => Holdout.isControl(DeviceIdentityManager().userId);
+
+  /// Values logged on existing events. The holdout always reports the defaults.
+  Map<String, Object> telemetryFields() {
+    final defaults = _firebaseDefaults();
+    final holdout = playerIsHoldout;
+    final values = <String, Object>{
+      'holdout': holdout,
+      'config_source': holdout
+          ? 'holdout_defaults'
+          : (_developmentMode ? 'defaults' : 'remote'),
+    };
+    for (final entry in defaults.entries) {
+      final live = _cachedConfig[entry.key];
+      values[entry.key] = holdout ? entry.value : (live ?? entry.value);
+    }
+    return values;
+  }
+
+  void _pinHoldoutToDefaults() {
+    if (!playerIsHoldout) return;
+    _cachedConfig.addAll(_firebaseDefaults());
+  }
+
+  void _applyFirebaseValues(FirebaseRemoteConfig remoteConfig) {
+    final defaults = _firebaseDefaults();
+    for (final entry in defaults.entries) {
+      final key = entry.key;
+      final fallback = entry.value;
+      if (fallback is bool) {
+        _cachedConfig[key] = remoteConfig.getBool(key);
+      } else if (fallback is int) {
+        _cachedConfig[key] = remoteConfig.getInt(key);
+      } else if (fallback is double) {
+        _cachedConfig[key] = remoteConfig.getDouble(key);
+      } else {
+        _cachedConfig[key] = remoteConfig.getString(key);
+      }
     }
   }
 
@@ -67,10 +138,22 @@ class RemoteConfigManager extends ChangeNotifier {
       'daily_bonus_coins': [10, 15, 20, 25, 30, 40, 50],
       
       // Feature flags
-      'heart_booster_enabled': true,
+      'heart_booster_enabled': false,
       'rewarded_ads_enabled': true,
-      'daily_missions_enabled': false, // Coming soon
-      'leaderboard_enabled': false, // Coming soon
+      'daily_missions_enabled': true,
+      'leaderboard_enabled': true,
+      'interstitial_min_wins': 8,
+      'loss_streak_ads_enabled': false,
+      'continue_gem_second': 20,
+      'continue_gem_third': 50,
+      'continue_min_progress': 0.5,
+      'max_offers_per_session': 1,
+      'starter_offer_min_session': 2,
+      'show_story_hearts': false,
+      'free_flight_enabled': true,
+      'weekly_challenge_enabled': true,
+      'daily_tournament_entries': 3,
+      'heart_booster_store_enabled': false,
       
       // A/B testing parameters
       'difficulty_multiplier': 1.0,
@@ -104,13 +187,12 @@ class RemoteConfigManager extends ChangeNotifier {
       safePrint('📱 🔄 Fetching Remote Config...');
       
       if (_developmentMode) {
-        // Simulate fetch delay in development
-        await Future.delayed(const Duration(milliseconds: 500));
         safePrint('📱 🧪 Development mode: Using cached config');
       } else {
-        // TODO: Fetch from Firebase Remote Config
-        // await FirebaseRemoteConfig.instance.fetchAndActivate();
-        // _cachedConfig = FirebaseRemoteConfig.instance.getAll();
+        final remoteConfig = FirebaseRemoteConfig.instance;
+        await remoteConfig.fetchAndActivate();
+        _applyFirebaseValues(remoteConfig);
+        _pinHoldoutToDefaults();
       }
       
       await _applyConfigToEconomy();
@@ -137,11 +219,23 @@ class RemoteConfigManager extends ChangeNotifier {
   /// Get boolean value
   bool getBool(String key, bool defaultValue) => getValue(key, defaultValue);
 
-  /// Get integer value  
-  int getInt(String key, int defaultValue) => getValue(key, defaultValue);
+  /// Get integer value
+  int getInt(String key, int defaultValue) {
+    final value = _cachedConfig[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
 
   /// Get double value
-  double getDouble(String key, double defaultValue) => getValue(key, defaultValue);
+  double getDouble(String key, double defaultValue) {
+    final value = _cachedConfig[key];
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
 
   /// Get string value
   String getString(String key, String defaultValue) => getValue(key, defaultValue);

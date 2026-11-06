@@ -8,6 +8,8 @@ import 'package:flutter/widgets.dart';
 import '../debug_logger.dart';
 import 'unified_analytics_manager.dart';
 import 'conversion_events_manager.dart';
+import '../events/event_bus.dart';
+import '../identity/device_identity_manager.dart';
 
 /// App Lifecycle Analytics Manager
 class AppLifecycleAnalytics with WidgetsBindingObserver {
@@ -17,6 +19,8 @@ class AppLifecycleAnalytics with WidgetsBindingObserver {
 
   final UnifiedAnalyticsManager _analytics = UnifiedAnalyticsManager();
   final ConversionEventsManager _conversionEvents = ConversionEventsManager();
+  final EventBus _eventBus = EventBus();
+  final DeviceIdentityManager _identityManager = DeviceIdentityManager();
   
   DateTime? _sessionStartTime;
   DateTime? _lastActiveTime;
@@ -107,6 +111,18 @@ class AppLifecycleAnalytics with WidgetsBindingObserver {
       action: 'app_paused',
       sessionDurationSeconds: sessionDuration,
     );
+    
+    // ✅ NEW: Fire session_ended event when app is paused (backgrounded)
+    // Only fire if session was longer than 5 seconds (to filter out accidental backgrounding)
+    if (sessionDuration >= 5) {
+      _eventBus.fire('session_ended', {
+        'session_id': _identityManager.sessionId,
+        'duration_seconds': sessionDuration,
+        'timestamp': now.toIso8601String(),
+        'reason': 'app_paused',
+      });
+      safePrint('📤 Fired session_ended event (app paused, ${sessionDuration}s)');
+    }
 
     _lastActiveTime = now;
     safePrint('📊 App paused - session duration: ${sessionDuration}s');
@@ -144,6 +160,13 @@ class AppLifecycleAnalytics with WidgetsBindingObserver {
       action: 'session_end',
       sessionDurationSeconds: sessionDuration,
     );
+    
+    // ✅ NEW: Fire session_ended event to EventBus for backend analytics
+    _eventBus.fire('session_ended', {
+      'session_id': _identityManager.sessionId,
+      'duration_seconds': sessionDuration,
+      'timestamp': now.toIso8601String(),
+    });
 
     safePrint('📊 Session ended - duration: ${sessionDuration}s');
   }

@@ -30,6 +30,8 @@ import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 import '../../core/repositories/user_stats_repository.dart';
 import '../../core/database/local_database_manager.dart';
+import '../../game/systems/stunt_obstacle_manager.dart'; // 🎪 For stunt mode
+import '../../game/components/stunt_obstacle.dart'; // 🎪 For stunt config
 import 'game/in_game_hearts_display.dart';
 import 'game/vs_indicator.dart';
 import 'game/objective_indicator.dart';
@@ -101,6 +103,11 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       'is_first_attempt': _wasFirstAttempt, // ✅ FIX: Use stored class member
     });
 
+    // 🎪 STUNT MODE: Build stunt obstacle config if level has stunt_config
+    final stuntObstacleConfig = widget.level.stuntConfig != null
+        ? _buildStuntObstacleConfig()
+        : null;
+    
     // Create game instance with story mode configuration
     _game = FlappyGame(
       monetization: MonetizationManager(), // ✅ Pass monetization for continue option
@@ -112,6 +119,7 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
       userStatsRepository: userStats,  // Phase 2: For persistence
       eventBus: eventBus,               // Phase 3: For game_ended events
       hideLivesDisplay: true, // ❤️ Wrapper shows consistent Flutter hearts overlay
+      stuntObstacleConfig: stuntObstacleConfig, // 🎪 Pass stunt config if present
     );
 
     // Listen to game state changes (use game's GameStateManager, not our own)
@@ -154,6 +162,48 @@ class _StoryModeGameWrapperState extends State<StoryModeGameWrapper> {
         _startUpdateTimer();
       }
     });
+  }
+
+  /// 🎪 Build StuntObstacleManagerConfig from story level's stunt_config
+  /// This configures the single moving obstacles for stunt mode
+  StuntObstacleManagerConfig _buildStuntObstacleConfig() {
+    final stuntConfig = widget.level.stuntConfig;
+    
+    if (stuntConfig == null) {
+      // Default config if stunt_config is missing
+      safePrint('🎪 ⚠️ No stunt_config in level, using defaults');
+      return const StuntObstacleManagerConfig();
+    }
+    
+    // Parse the stunt config from JSON
+    // Asset path from config should be the FULL path relative to assets/images/
+    // e.g., "obstacles/moving_obstacle_spikes1.png"
+    final assetPath = stuntConfig['asset_path'] as String? ?? 'obstacles/desert_obstacles.png';
+    final sizePercent = (stuntConfig['obstacle_size_percent'] as num?)?.toDouble() ?? 0.2;
+    final scrollSpeed = (stuntConfig['scroll_speed'] as num?)?.toDouble() ?? 150.0;
+    final spawnInterval = (stuntConfig['spawn_interval'] as num?)?.toDouble() ?? 2.5;
+    final spawnVariance = (stuntConfig['spawn_variance'] as num?)?.toDouble() ?? 0.1;
+    final verticalAmplitudePercent = (stuntConfig['vertical_amplitude_percent'] as num?)?.toDouble() ?? 0.3;
+    final verticalFrequency = (stuntConfig['vertical_frequency'] as num?)?.toDouble() ?? 0.4;
+    final oneAtATime = stuntConfig['one_at_a_time'] as bool? ?? true;
+    
+    safePrint('🎪 Story Mode Stunt config: asset=$assetPath, size=${(sizePercent*100).toInt()}%, speed=$scrollSpeed, interval=$spawnInterval');
+    
+    return StuntObstacleManagerConfig(
+      spawnInterval: spawnInterval,
+      spawnVariance: spawnVariance,
+      obstacleConfig: StuntObstacleConfig(
+        assetPath: assetPath,
+        sizePercent: sizePercent,
+        scrollSpeed: scrollSpeed,
+        verticalAmplitudePercent: verticalAmplitudePercent,
+        verticalFrequency: verticalFrequency,
+      ),
+      minSpawnYPercent: 0.2,
+      maxSpawnYPercent: 0.8,
+      staggerPhases: true,
+      oneAtATime: oneAtATime,
+    );
   }
 
   void _startUpdateTimer() {

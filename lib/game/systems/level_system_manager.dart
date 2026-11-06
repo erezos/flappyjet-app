@@ -124,13 +124,14 @@ class LevelSystemManager extends ChangeNotifier {
   /// Load level data from JSON files
   Future<void> _loadLevelData() async {
     try {
-      // Load all 5 zones
+      // Load all 6 zones
       final zoneFiles = [
         'zone1_levels.json',
         'zone2_levels.json',
         'zone3_levels.json',
         'zone4_levels.json',
         'zone5_levels.json',
+        'zone6_levels.json',
       ];
       
       for (int i = 0; i < zoneFiles.length; i++) {

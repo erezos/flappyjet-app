@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/core/economy_config.dart';
 import '../../utils/responsive_config.dart';
+import 'store_price.dart';
 
 class BundlesSection extends StatelessWidget {
   final Function(BundleProduct) onPurchaseBundle;
@@ -298,7 +299,7 @@ class BundlesSection extends StatelessWidget {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          '\$${product.usdPrice.toStringAsFixed(2)}',
+                          StorePrice.forProduct(product.id, product.usdPrice),
                           style: TextStyle(
                             fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
                             fontWeight: FontWeight.bold,

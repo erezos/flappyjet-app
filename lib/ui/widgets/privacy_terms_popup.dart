@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../config/legal_config.dart';
 import 'popups/base_popup.dart';
 import 'buttons/modern_game_button.dart';
 import 'buttons/button_styles.dart';
@@ -506,6 +507,13 @@ class _PrivacyTermsPopupState extends State<PrivacyTermsPopup>
       child: Column(
         children: [
           // Contact Support Button - Modern Game Style
+          ModernGameButton(
+            label: 'PRIVACY POLICY',
+            onPressed: () => _launchUrl(LegalConfig.privacyPolicyUrl),
+            height: isSmallScreen ? 48 : 54,
+            style: ModernButtonStyle.primary,
+          ),
+          SizedBox(height: isSmallScreen ? 8 : 12),
           ModernGameButton(
             label: 'CONTACT SUPPORT',
             onPressed: () => _launchUrl('mailto:flappyjet2025@gmail.com'),

@@ -146,6 +146,9 @@ class UnifiedLevelData {
   
   /// Create from a story mode LevelData
   factory UnifiedLevelData.fromStoryLevel(LevelData level) {
+    // 🎪 STUNT MODE: Check if level has stunt config
+    final isStuntMode = level.stuntConfig != null;
+    
     return UnifiedLevelData(
       id: 'story_${level.id}',
       name: level.name,
@@ -154,8 +157,13 @@ class UnifiedLevelData {
       objective: level.objective,
       theme: level.theme,
       difficulty: level.difficulty,
-      obstacleSpawnerType: ObstacleSpawnerType.pillarPair,
+      obstacleSpawnerType: isStuntMode 
+          ? ObstacleSpawnerType.singleVertical 
+          : ObstacleSpawnerType.pillarPair,
       obstaclePatterns: const [], // Story mode uses default patterns
+      stuntConfig: isStuntMode 
+          ? StuntObstacleConfiguration.fromJson(level.stuntConfig!)
+          : null,
       botBattle: level.botBattle != null
           ? UnifiedBotConfig.fromStoryBotBattle(level.botBattle!)
           : null,

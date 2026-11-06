@@ -79,6 +79,10 @@ class RateUsManager {
   /// Minimum streak day to trigger after daily streak
   /// Best practice: Day 3+ shows commitment
   static const int minStreakDayForTrigger = 3;
+  
+  /// Session number to auto-trigger rate us popup
+  /// Shows popup automatically when user opens app for this session
+  static const int sessionAutoTrigger = 3;
 
   // State
   bool _isInitialized = false;
@@ -414,6 +418,21 @@ class RateUsManager {
     }
     
     safePrint('⭐ Daily streak check: ELIGIBLE (day $streakDay)');
+    return true;
+  }
+
+  /// Check if user should be prompted on session start (3rd session trigger)
+  /// Call this after app initialization to auto-show rate us on specific session
+  bool shouldPromptOnSessionStart() {
+    if (!shouldShowRateUsPrompt) return false;
+    
+    // Only trigger on the exact session number
+    if (_currentSessionCount != sessionAutoTrigger) {
+      safePrint('⭐ Session start check: Not trigger session ($_currentSessionCount != $sessionAutoTrigger)');
+      return false;
+    }
+    
+    safePrint('⭐ Session start check: ELIGIBLE (session $sessionAutoTrigger)');
     return true;
   }
 

@@ -8,6 +8,8 @@ library;
 
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
+import '../config/legal_config.dart';
 import '../core/debug_logger.dart';
 
 /// Tournament tier levels
@@ -128,6 +130,10 @@ class TournamentConfig {
   final PlayoffBracketConfig? playoffConfig;
   final DateTime? startDate;
   final DateTime? endDate;
+  
+  /// Rotation group for tournaments that alternate (e.g., "premium_rotation")
+  /// Tournaments in the same group rotate every 3 days.
+  final String? rotationGroup;
 
   const TournamentConfig({
     required this.id,
@@ -147,6 +153,7 @@ class TournamentConfig {
     this.playoffConfig,
     this.startDate,
     this.endDate,
+    this.rotationGroup,
   });
   
   /// Whether this is a playoff-style tournament
@@ -240,6 +247,7 @@ class TournamentConfig {
           : null,
       startDate: parseDate(json['start_date'] as String?),
       endDate: parseDate(json['end_date'] as String?),
+      rotationGroup: json['rotation_group'] as String?,
     );
   }
 
@@ -259,37 +267,150 @@ class TournamentConfig {
     'display': display.toJson(),
     'unlock_requirement': unlockRequirement?.toJson(),
     'playoff_config': playoffConfig?.toJson(),
+    if (rotationGroup != null) 'rotation_group': rotationGroup,
   };
 
   /// Load all tournaments from assets (local JSON file)
   /// Can be extended to load from Remote Config for server-side control
   static Future<List<TournamentConfig>> loadAllTournaments() async {
     try {
+      final hosted = await _loadHostedTournaments();
+      if (hosted.isNotEmpty) return hosted;
+    } catch (e) {
+      safePrint('🏆 ⚠️ Hosted tournaments unavailable, using the bundled file: $e');
+    }
+    return _loadBundledTournaments();
+  }
+
+  static Future<List<TournamentConfig>> _loadHostedTournaments() async {
+    final response = await http
+        .get(Uri.parse(LegalConfig.tournamentsUrl))
+        .timeout(const Duration(seconds: 4));
+    if (response.statusCode != 200 || response.body.isEmpty) {
+      throw Exception('hosted tournaments ${response.statusCode}');
+    }
+    return _decodeTournaments(jsonDecode(response.body));
+  }
+
+  static Future<List<TournamentConfig>> _loadBundledTournaments() async {
+    try {
       final jsonString = await rootBundle.loadString('assets/data/tournaments.json');
-      final decoded = jsonDecode(jsonString);
-      
-      // Handle both single tournament and array of tournaments
-      if (decoded is List) {
-        return decoded
-            .map((t) => TournamentConfig.fromJson(t as Map<String, dynamic>))
-            .toList();
-      } else if (decoded is Map) {
-        // Single tournament or wrapped in 'tournaments' key
-        if (decoded.containsKey('tournaments')) {
-          return (decoded['tournaments'] as List)
-              .map((t) => TournamentConfig.fromJson(t as Map<String, dynamic>))
-              .toList();
-        } else {
-          return [TournamentConfig.fromJson(decoded as Map<String, dynamic>)];
-        }
-      }
-      
-      safePrint('🏆 ⚠️ Unexpected tournaments.json format');
-      return [];
+      return _decodeTournaments(jsonDecode(jsonString));
     } catch (e) {
       safePrint('🏆 ❌ Failed to load tournaments: $e');
       return [];
     }
+  }
+
+  static List<TournamentConfig> _decodeTournaments(Object? decoded) {
+    if (decoded is List) {
+      return decoded
+          .map((t) => TournamentConfig.fromJson(t as Map<String, dynamic>))
+          .toList();
+    }
+    if (decoded is Map && decoded.containsKey('tournaments')) {
+      return (decoded['tournaments'] as List)
+          .map((t) => TournamentConfig.fromJson(t as Map<String, dynamic>))
+          .toList();
+    }
+    if (decoded is Map) {
+      return [TournamentConfig.fromJson(decoded as Map<String, dynamic>)];
+    }
+    safePrint('🏆 ⚠️ Unexpected tournaments.json format');
+    return [];
+  }
+}
+
+/// 🔄 Tournament Rotation Helper
+/// 
+/// Manages rotating tournaments that alternate every N days.
+/// Example: Chopper Adventures and Christmas Tournament rotate every 3 days.
+class TournamentRotationHelper {
+  /// Rotation epoch date (Jan 27, 2026) - the date rotation starts
+  /// Chopper Adventures is active on days 0-2, Christmas on days 3-5, etc.
+  static final DateTime rotationEpoch = DateTime.utc(2026, 1, 27);
+  
+  /// Days per tournament in a rotation cycle
+  static const int daysPerTournament = 3;
+  
+  /// Order of tournaments in the "premium_rotation" group
+  /// First tournament is active on days 0-2, second on days 3-5, etc.
+  static const List<String> premiumRotationOrder = [
+    'chopper_adventures',
+    'christmas_tournament',
+  ];
+  
+  /// Get the currently active tournament ID for a rotation group
+  static String? getActiveTournamentId(String rotationGroup) {
+    if (rotationGroup != 'premium_rotation') {
+      // Only premium_rotation is implemented
+      return null;
+    }
+    
+    final now = DateTime.now().toUtc();
+    final daysSinceEpoch = now.difference(rotationEpoch).inDays;
+    
+    // Handle dates before epoch (show first tournament)
+    if (daysSinceEpoch < 0) {
+      return premiumRotationOrder.first;
+    }
+    
+    // Calculate total cycle length
+    final cycleLength = premiumRotationOrder.length * daysPerTournament;
+    
+    // Get position in current cycle
+    final cycleDay = daysSinceEpoch % cycleLength;
+    
+    // Determine which tournament is active
+    final tournamentIndex = cycleDay ~/ daysPerTournament;
+    
+    return premiumRotationOrder[tournamentIndex];
+  }
+  
+  /// Check if a tournament is currently active in its rotation
+  static bool isActiveInRotation(String tournamentId, String? rotationGroup) {
+    // If no rotation group, always active
+    if (rotationGroup == null) return true;
+    
+    final activeTournamentId = getActiveTournamentId(rotationGroup);
+    return activeTournamentId == tournamentId;
+  }
+  
+  /// Get time remaining until rotation changes (for countdown display)
+  static Duration getTimeUntilNextRotation() {
+    final now = DateTime.now().toUtc();
+    final daysSinceEpoch = now.difference(rotationEpoch).inDays;
+    
+    // Handle dates before epoch
+    if (daysSinceEpoch < 0) {
+      return rotationEpoch.difference(now);
+    }
+    
+    // Calculate next rotation time
+    final cycleLength = premiumRotationOrder.length * daysPerTournament;
+    final cycleDay = daysSinceEpoch % cycleLength;
+    final currentTournamentDay = cycleDay % daysPerTournament;
+    final daysUntilRotation = daysPerTournament - currentTournamentDay;
+    
+    // Next rotation is at midnight UTC
+    final nextRotationDate = DateTime.utc(
+      now.year, now.month, now.day + daysUntilRotation
+    );
+    
+    return nextRotationDate.difference(now);
+  }
+  
+  /// Get the rotation info for display
+  static Map<String, dynamic> getRotationInfo(String rotationGroup) {
+    final activeTournamentId = getActiveTournamentId(rotationGroup);
+    final timeUntilRotation = getTimeUntilNextRotation();
+    
+    return {
+      'active_tournament_id': activeTournamentId,
+      'hours_until_rotation': timeUntilRotation.inHours,
+      'days_until_rotation': timeUntilRotation.inDays,
+      'rotation_group': rotationGroup,
+    };
   }
 }
 

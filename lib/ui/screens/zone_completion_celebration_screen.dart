@@ -355,7 +355,7 @@ class _ZoneCompletionCelebrationScreenState
 
   Widget _buildContinueButton() {
     final nextZone = widget.completedZone.id + 1;
-    final hasNextZone = nextZone <= 5; // Assuming 5 zones total
+    final hasNextZone = nextZone <= 6; // Total zones: 6
 
     return AnimatedBuilder(
       animation: _animationController,

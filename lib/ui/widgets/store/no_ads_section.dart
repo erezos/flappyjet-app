@@ -10,6 +10,7 @@ import '../../../game/core/economy_config.dart';
 import '../../../game/systems/no_ads_manager.dart';
 import '../../../game/systems/monetization_manager.dart';
 import '../../utils/responsive_config.dart';
+import 'store_price.dart';
 
 class NoAdsSection extends StatefulWidget {
   final Function(NoAdsProduct) onPurchaseNoAds;
@@ -48,7 +49,9 @@ class _NoAdsSectionState extends State<NoAdsSection> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final hasNoAds = noAdsManager.hasNoAds;
-    final products = EconomyConfig.noAdsProducts.values.toList();
+    final products = EconomyConfig.noAdsProducts.values
+        .where((product) => product.id == 'no_ads_lifetime')
+        .toList();
 
     // If user already has No Ads, show status instead
     if (hasNoAds) {
@@ -348,7 +351,7 @@ class _NoAdsSectionState extends State<NoAdsSection> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          '\$${product.usdPrice.toStringAsFixed(2)}',
+                          StorePrice.forProduct(product.id, product.usdPrice),
                           style: TextStyle(
                             fontSize: ResponsiveConfig.responsiveFontSize(20.0, screenSize, context),
                             fontWeight: FontWeight.bold,

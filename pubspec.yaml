@@ -1,7 +1,7 @@
 name: flappy_jet_pro
 description: "FlappyJet Pro - Modern Endless Runner with Progressive Themes"
 publish_to: 'none'
-version: 2.3.14+99
+version: 2.5.0+110
 
 environment:
   sdk: '^3.8.0'
@@ -12,8 +12,8 @@ dependencies:
     sdk: flutter
   
   # Game Engine
-  flame: ^1.32.0
-  flame_behaviors: ^1.2.0
+  flame: ^1.34.0
+  flame_behaviors: ^1.3.1
   
   # State Management
   flutter_bloc: ^8.1.0
@@ -27,7 +27,7 @@ dependencies:
   path: ^1.9.0  # For database path operations
   
   # Audio - Modern Flame Audio Stack
-  flame_audio: ^2.1.0
+  flame_audio: ^2.11.12
   
   # Ads & Monetization
   google_mobile_ads: ^5.3.1  # AdMob Mediation (includes Unity Ads adapter)
@@ -43,10 +43,10 @@ dependencies:
   firebase_performance: ^0.10.0+8
   firebase_app_installations: ^0.3.1+1
   google_sign_in: ^6.2.2
-  http: ^1.3.0
+  http: ^1.6.0
   intl: ^0.20.2
   json_annotation: ^4.9.0
-  uuid: ^4.5.1
+  uuid: ^4.5.2
   
   # UI & Animations
   flutter_animate: ^4.5.2
@@ -56,13 +56,17 @@ dependencies:
   safe_text: ^1.0.8
   
   # Device & System
-  vibration: ^3.1.3  # Updated to latest version for NDK 27 compatibility
+  vibration: ^3.1.5  # Updated to latest version for NDK 27 compatibility
   device_info_plus: ^9.1.1
   package_info_plus: ^4.2.0
+  play_install_referrer: ^0.5.0  # ✅ NEW: Android Install Referrer API for campaign attribution (replacement for discontinued android_play_install_referrer)
   
   # Performance & Development
   path_provider: ^2.1.0
-  in_app_purchase: ^3.2.1
+  in_app_purchase: ^3.3.1
+  # 0.5.0 is Billing Library 8 and builds on Flutter 3.38.
+  # 0.5.0+1 and later need Flutter 3.44, so stay on 0.5.0 until the toolchain moves.
+  in_app_purchase_android: 0.5.0
   
   # App Store Integration
   in_app_review: ^2.0.9
@@ -76,6 +80,8 @@ dependencies:
   
   # URL Launcher (for privacy/terms links)
   url_launcher: ^6.2.5
+  share_plus: ^10.1.4
+  app_links: ^6.3.3
   
 
   provider: any

@@ -368,8 +368,9 @@
       "name": "🚁 Chopper Adventures",
       "description": "The ultimate helicopter showdown! Face elite chopper pilots in a 5-round playoff!",
       "tier": "gold",
-      "status": "hidden",
+      "status": "active",
       "progression_type": "playoff",
+      "rotation_group": "premium_rotation",
       
       "entry": {
         "type": "gems",
@@ -549,8 +550,7 @@
       "tier": "gold",
       "status": "active",
       "progression_type": "linear",
-      "start_date": "2025-12-01T00:00:00Z",
-      "end_date": "2026-01-20T23:59:59Z",
+      "rotation_group": "premium_rotation",
       
       "entry": {
         "type": "gems",

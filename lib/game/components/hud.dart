@@ -84,6 +84,27 @@ class HUD extends Component {
     }
   }
 
+  /// Brief floating label for pickups and near misses.
+  void showFloat(String text, {Color color = const Color(0xFFFFD54F)}) {
+    if (!isMounted) return;
+    final popup = TextComponent(
+      text: text,
+      anchor: Anchor.center,
+      position: Vector2(_screenWidth / 2, 140),
+      textRenderer: TextPaint(
+        style: TextStyle(
+          color: color,
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+    add(popup);
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (popup.isMounted) popup.removeFromParent();
+    });
+  }
+
   /// Update the score display
   void updateScore(int newScore) {
     _score = newScore;

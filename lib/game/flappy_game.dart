@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 // ✅ REFACTOR v1.7.0: Collision detection now handled by HasCollisionDetection mixin (removed unused import)
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/scheduler.dart';
 import '../core/debug_logger.dart';
 import 'systems/adaptive_quality.dart';
@@ -79,6 +80,9 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   // 🎪 STUNT MODE: Use single moving obstacles instead of pillar pairs
   final StuntObstacleManagerConfig? stuntObstacleConfig;
 
+  /// Shared weekly-challenge seed. Null keeps the endless run unseeded.
+  final int? challengeSeed;
+
   // REPOSITORY INTEGRATION (for persistence)
   final UserStatsRepository? userStatsRepository;
   
@@ -98,6 +102,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     this.eventBus,
     this.hideLivesDisplay = false, // 🎪 For stunt mode with wrapper-managed hearts
     this.stuntObstacleConfig, // 🎪 For stunt tournament with single moving obstacles
+    this.challengeSeed,
   }) : levelSystemManager = levelSystemManager ?? LevelSystemManager();
   
   @override
@@ -286,11 +291,15 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Collision detection is now automatic via the mixin added to FlappyGame class
 
     // Initialize obstacle manager
-    _obstacleManager = ObstacleManager();
+    _obstacleManager = ObstacleManager(seed: challengeSeed);
     
     // 🎪 STUNT MODE: Initialize stunt obstacle manager if config provided
     if (stuntObstacleConfig != null) {
       _stuntObstacleManager = StuntObstacleManager(config: stuntObstacleConfig!);
+      // 🎯 STORY MODE: Connect obstacle passed callback for objective tracking
+      if (isStoryMode && onObstaclePassed != null) {
+        _stuntObstacleManager!.onObstaclePassed = onObstaclePassed;
+      }
       safePrint('🎪 STUNT MODE: Using StuntObstacleManager with config: ${stuntObstacleConfig!}');
     }
     // 🎯 STORY MODE: Set story mode obstacle asset and difficulty settings if in story mode
@@ -756,6 +765,10 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
 
     // Flame Audio: Play collision sound
     _audioManager.playCollision();
+    if (isLoaded) {
+      FlappyCamera.shake(_camera);
+      HapticFeedback.mediumImpact();
+    }
 
     // ✅ SIMPLIFIED: Removed setDamageStateFromLives() - jet always looks normal
     // Health is tracked by GameStateManager.lives and displayed in HUD
@@ -822,11 +835,24 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
   }
 
   /// ❤️ Keep LivesManager in sync with the current in-game lives (story mode only)
+  /// 
+  /// ✅ FIX: Uses SchedulerBinding.addPostFrameCallback to defer state updates
+  /// until after the build phase completes, preventing setState() during build errors.
+  /// Follows Flame game engine best practices and mobile gaming standards.
   @visibleForTesting
   Future<void> syncStoryModeLivesWithManager() async {
     if (!isStoryMode) return;
-    final livesManager = LivesManager();
-    livesManager.setLivesInMemory(_gameStateManager.lives);
+    
+    // ✅ FIX: Defer state update until after build phase completes
+    // This prevents "setState() during build" errors when collision happens during build
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      try {
+        final livesManager = LivesManager();
+        livesManager.setLivesInMemory(_gameStateManager.lives);
+      } catch (e) {
+        safePrint('⚠️ Failed to sync LivesManager: $e');
+      }
+    });
   }
 
   /// 💨 Create crash smoke effect on-demand (Flame + Mobile best practice)
@@ -1257,6 +1283,22 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _handleCollision();
   }
   
+  void _maybeNearMiss() {
+    if (!isLoaded) return;
+    DynamicObstacle? passed;
+    for (final obstacle in _obstacleManager.obstacles) {
+      if (obstacle.position.x < _jet.position.x) passed = obstacle;
+    }
+    if (passed == null) return;
+    final gapTop = passed.position.y;
+    final gapBottom = passed.position.y + passed.gapSize;
+    final clearance = math.min(_jet.position.y - gapTop, gapBottom - _jet.position.y);
+    if (clearance < 36) {
+      _hud.showFloat('CLOSE!');
+      HapticFeedback.selectionClick();
+    }
+  }
+
   /// PUBLIC METHOD: Increment score from score zone collision
   /// ✅ REFACTOR v1.7.0: Called from JetPlayer when passing through ScoreZone
   void incrementScoreFromZone() {
@@ -1281,6 +1323,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     _celebrationSystem.handleScoreCelebrations(_gameStateManager.score, Size(size.x, size.y), _gameStateManager.currentTheme);
     _checkPhaseTransition(_gameStateManager.score);
     _audioManager.playScore();
+    _maybeNearMiss();
     _celebrationSystem.createCelebrationBurst(_jet.position, _gameStateManager.score);
     _checkThemeTransition();
     _checkAchievement(_gameStateManager.score);
@@ -1619,7 +1662,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Update game state tracking
     _gameStateManager.addCoinsCollectedThisRun(amount);
     
-    // Update HUD (TODO: Add coin popup animation)
+    if (isLoaded) _hud.showFloat('+$amount', color: const Color(0xFFFFD54F));
     safePrint('🪙 Coins collected: +$amount (total this run: ${_gameStateManager.coinsCollectedThisRun})');
   }
   
@@ -1636,7 +1679,7 @@ class FlappyGame extends FlameGame with HasCollisionDetection {
     // Update game state tracking
     _gameStateManager.addGemsCollectedThisRun(amount);
     
-    // Update HUD (TODO: Add gem popup animation)
+    if (isLoaded) _hud.showFloat('+$amount', color: const Color(0xFF80DEEA));
     safePrint('💎 Gems collected: +$amount (total this run: ${_gameStateManager.gemsCollectedThisRun})');
   }
   

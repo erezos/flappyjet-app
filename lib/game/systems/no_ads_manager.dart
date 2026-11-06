@@ -38,25 +38,42 @@ class NoAdsManager extends ChangeNotifier {
   }
 
   /// Initialize from shared preferences
+  /// ✅ FIX: Properly loads and validates expiry even if _monthlyActive flag is missing
   Future<void> initialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
       _lifetimePurchased = prefs.getBool(_prefLifetimePurchased) ?? false;
-      _monthlyActive = prefs.getBool(_prefMonthlyActive) ?? false;
       
+      // ✅ FIX: Load expiry timestamp first, then check if it's valid
       final expiryTimestamp = prefs.getInt(_prefMonthlyExpiry);
       if (expiryTimestamp != null) {
         _monthlyExpiry = DateTime.fromMillisecondsSinceEpoch(expiryTimestamp);
+        
+        // ✅ FIX: Check if expiry is still valid (even if _monthlyActive flag is missing/corrupted)
+        if (_isMonthlyValid()) {
+          // Expiry is valid, ensure _monthlyActive is true
+          _monthlyActive = true;
+          safePrint('🚫 ✅ Restored active No Ads until $_monthlyExpiry');
+        } else {
+          // Expiry has passed, clear the state
+          _monthlyActive = false;
+          _monthlyExpiry = null;
+          await _saveState(); // Clean up expired data
+          safePrint('🚫 ⚠️ No Ads subscription expired');
+        }
+      } else {
+        // No expiry timestamp, check the flag (for backward compatibility)
+        _monthlyActive = prefs.getBool(_prefMonthlyActive) ?? false;
+        if (_monthlyActive && _monthlyExpiry == null) {
+          // Flag is set but no expiry - this is invalid, clear it
+          _monthlyActive = false;
+          await _saveState();
+          safePrint('🚫 ⚠️ Invalid No Ads state (flag set but no expiry) - cleared');
+        }
       }
 
-      // Check if monthly subscription has expired
-      if (_monthlyActive && !_isMonthlyValid()) {
-        _monthlyActive = false;
-        await _saveState();
-      }
-
-      safePrint('🚫 No Ads Manager initialized - Lifetime: $_lifetimePurchased, Monthly: $_monthlyActive');
+      safePrint('🚫 No Ads Manager initialized - Lifetime: $_lifetimePurchased, Active: $_monthlyActive, Expiry: $_monthlyExpiry');
       notifyListeners();
     } catch (e) {
       safePrint('🚫 ⚠️ Error initializing No Ads Manager: $e');

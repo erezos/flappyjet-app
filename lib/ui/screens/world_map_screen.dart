@@ -39,7 +39,16 @@ import 'store_page.dart';
 import 'tournament_hub_screen.dart';
 import 'profile_page.dart';
 import '../widgets/store/starter_boss_pack_popup.dart';
+import '../widgets/no_ads_banner.dart';
+import '../../game/systems/no_ads_banner_manager.dart';
+import 'package:app_links/app_links.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/rate_us_integration.dart';
+import '../../game/systems/session_gate.dart';
+import '../../game/systems/remote_config_manager.dart';
+import '../../game/systems/notification_permission_manager.dart';
+import 'game_screen.dart';
+import 'weekly_challenge_screen.dart';
 
 class WorldMapScreen extends StatefulWidget {
   /// ✅ NEW: Parameters for jet animation flow
@@ -64,6 +73,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   final LevelSystemManager _levelSystemManager = LevelSystemManager();
   final LivesManager _livesManager = LivesManager();
   final InventoryManager _inventoryManager = InventoryManager();
+  final NoAdsBannerManager _bannerManager = NoAdsBannerManager();
+  final GlobalKey<NoAdsBannerState> _bannerKey = GlobalKey<NoAdsBannerState>();
   bool _isInitialized = false;
   
   // ✅ NEW: PageView controller for zone swiping
@@ -91,6 +102,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     _initializeManagers();
     // Listen for zone changes
     _levelSystemManager.addListener(_onLevelSystemChanged);
+    // Initialize banner manager
+    _bannerManager.initialize();
   }
 
   bool _hasCheckedZoneOnBuild = false;
@@ -197,15 +210,54 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
           
           // ✅ NEW: Start jet animation if requested
           if (widget.shouldAnimateJet) {
-            // ✅ FIX: Longer delay to ensure:
-            // 1. Screen is fully painted and visible
-            // 2. User can see the world map
-            // 3. Brief moment to orient before animation starts
-            Future.delayed(const Duration(milliseconds: 1200), () {
+            // ✅ FIX: Reduced delay to prevent "flash of final state"
+            // Screen needs to be painted, but we want animation to start quickly
+            // to prevent user seeing jet at destination before animation begins
+            Future.delayed(const Duration(milliseconds: 300), () {
               if (mounted) {
                 _animateJetToNextLevel();
               }
             });
+          }
+          
+          // ✅ Check if no-ads banner should be shown after level completion
+          if (widget.fromLevel != null) {
+            safePrint('🚫 WorldMapScreen: Checking banner for level ${widget.fromLevel}');
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                if (_bannerKey.currentState != null) {
+                  safePrint('🚫 WorldMapScreen: Banner key has state, calling showForLevel(${widget.fromLevel})');
+                  _bannerKey.currentState!.showForLevel(widget.fromLevel!);
+                } else {
+                  safePrint('🚫 WorldMapScreen: ⚠️ Banner key has no state yet, retrying...');
+                  // Retry after a bit more delay
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (mounted && _bannerKey.currentState != null) {
+                      safePrint('🚫 WorldMapScreen: Retry - calling showForLevel(${widget.fromLevel})');
+                      _bannerKey.currentState!.showForLevel(widget.fromLevel!);
+                    } else {
+                      safePrint('🚫 WorldMapScreen: ⚠️ Banner key still has no state after retry');
+                    }
+                  });
+                }
+              }
+            });
+          }
+          
+          // ⭐ Rate us popup trigger on 3rd session (only on fresh app start, not after level completion)
+          if (!widget.shouldAnimateJet && widget.fromLevel == null) {
+            RateUsIntegration.showOnSessionStart(context);
+            () async {
+              await SessionGate.ensureStarted();
+              if (!mounted) return;
+              if (await _openLinkedChallenge()) return;
+              await _openFirstFlightIfNeeded();
+              if (!mounted) return;
+              await _maybeShowSessionOffer();
+              if (mounted && SessionGate.session >= 2) {
+                NotificationPermissionManager().showPermissionPopup(context);
+              }
+            }();
           }
         }
       });
@@ -416,19 +468,46 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
     // ✅ NEW: After level preview opens, show Starter Boss Pack offer if needed
     // Only show for level 5, and only if user doesn't have all skins and hasn't purchased
     // Use a small delay to ensure the preview dialog is fully rendered first
-    if (level.id == 5 && mounted) {
-      // Wait for the preview dialog to fully render
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        await _showStarterBossPackOfferIfNeeded();
-      }
-    }
   }
   
   /// ✅ NEW: Show Starter Boss Pack offer if conditions are met
   /// Checks if user has all 3 skins or already purchased, and shows popup if needed
+  Future<bool> _openLinkedChallenge() async {
+    try {
+      final uri = await AppLinks().getInitialLink();
+      if (uri == null || !uri.path.contains('challenge') || !mounted) return false;
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const WeeklyChallengeScreen(),
+      ));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _openFirstFlightIfNeeded() async {
+    await SessionGate.ensureStarted();
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('ftue_completed') == true) return;
+    if (!mounted) return;
+    final level = _levelSystemManager.allLevels.where((l) => l.id == 1).firstOrNull;
+    if (level == null) return;
+    await _proceedToLevel(level);
+  }
+
+  Future<void> _maybeShowSessionOffer() async {
+    await SessionGate.ensureStarted();
+    final minSession = RemoteConfigManager().getInt('starter_offer_min_session', 2);
+    if (SessionGate.session < minSession || !SessionGate.canShowOffer) return;
+    if (!await SessionGate.hasClearedALevel()) return;
+    await _showStarterBossPackOfferIfNeeded();
+  }
+
   Future<void> _showStarterBossPackOfferIfNeeded() async {
     if (!mounted) return;
+    if (!SessionGate.canShowOffer) return;
+    final minSession = RemoteConfigManager().getInt('starter_offer_min_session', 2);
+    if (SessionGate.session < minSession) return;
     
     try {
       // Check if user already purchased Starter Boss Pack
@@ -450,8 +529,9 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
         return;
       }
       
-      // Show the Starter Boss Pack offer popup
-      safePrint('⚔️ Showing Starter Boss Pack offer after level 5 preview');
+      if (!mounted) return;
+      SessionGate.markOfferShown();
+      safePrint('⚔️ Showing Starter Boss Pack offer');
       await showStarterBossPackPopup(
         context: context,
         onPurchaseComplete: () {
@@ -548,12 +628,20 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
             // ✅ Missions & Achievements Claim Banner - appears below daily streak banner (or balance) when rewards are available
             MissionsAchievementsClaimBanner(),
             
-            // ✅ Top right: Hearts display - respect SafeArea top inset
+            if (RemoteConfigManager().getBool('show_story_hearts', false))
+              Positioned(
+                top: MediaQuery.of(context).padding.top + ResponsiveConfig.responsivePadding(12.0, screenSize),
+                right: ResponsiveConfig.responsivePadding(12.0, screenSize),
+                child: HeartsDisplay(),
+              ),
             Positioned(
-              top: MediaQuery.of(context).padding.top + ResponsiveConfig.responsivePadding(12.0, screenSize),
-              right: ResponsiveConfig.responsivePadding(12.0, screenSize),
-              child: HeartsDisplay(),
+              left: 12,
+              bottom: totalBottomPadding + 12,
+              child: _buildFlightButtons(screenSize),
             ),
+            
+            // ✅ No-ads banner - appears after completing levels 5, 8, 12, 16
+            NoAdsBanner(key: _bannerKey),
             
             // ✅ Christmas Tournament Banner - appears at bottom left when tournament is available
             const ChristmasTournamentBanner(),
@@ -867,6 +955,21 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   Offset _getCurrentJetPositionForZone(List<Offset> nodePath, List<LevelData> zoneLevels, int zoneId) {
     if (nodePath.isEmpty || zoneLevels.isEmpty) return Offset.zero;
     
+    // ✅ FIX: If animation is pending, use fromLevel (completed level) as initial position
+    // This prevents the "flash of final state" bug where jet appears at destination before animation
+    if (widget.shouldAnimateJet && 
+        widget.fromLevel != null && 
+        !_isAnimatingToNextLevel && 
+        _jetAnimationController == null) {
+      final fromLevel = widget.fromLevel!;
+      final fromLevelIndex = zoneLevels.indexWhere((level) => level.id == fromLevel);
+      
+      if (fromLevelIndex != -1 && fromLevelIndex < nodePath.length && zoneId == _levelSystemManager.currentZone) {
+        safePrint('✈️ Using fromLevel ($fromLevel) for initial jet position (animation pending)');
+        return nodePath[fromLevelIndex];
+      }
+    }
+    
     // Find current level in this zone
     final currentLevel = _levelSystemManager.currentLevel;
     final currentLevelIndex = zoneLevels.indexWhere((level) => level.id == currentLevel);
@@ -1007,35 +1110,65 @@ class _WorldMapScreenState extends State<WorldMapScreen> with TickerProviderStat
   }
   
   /// Helper method to proceed to level (after potential ad)
+  Widget _buildFlightButtons(Size screenSize) {
+    final config = RemoteConfigManager();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (config.getBool('free_flight_enabled', true))
+          _flightButton('Free Flight', () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => GameScreen(
+                monetization: MonetizationManager(),
+                missions: MissionsManager(),
+              ),
+            ));
+          }),
+        if (config.getBool('weekly_challenge_enabled', true)) ...[
+          const SizedBox(height: 8),
+          _flightButton('Weekly', () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const WeeklyChallengeScreen(),
+            ));
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _flightButton(String label, VoidCallback onTap) {
+    return Material(
+      color: const Color(0xCC0D47A1),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ),
+      ),
+    );
+  }
+
   Future<void> _proceedToLevel(LevelData level) async {
-    // 🎮 TUTORIAL: Always show tutorial before Level 1 (repeatable for practice)
     if (level.id == 1) {
-      safePrint('🎮 Tutorial: Showing before Level 1');
-      await FTUEIntegration.showTutorialAnimation(context);
-      
-      // After tutorial completes, check if we're still mounted
-      if (!mounted) {
-        safePrint('🎮 Tutorial: Widget unmounted after tutorial, aborting level start');
-        return;
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('ftue_completed') != true) {
+        safePrint('🎮 Tutorial: First visit to Level 1');
+        await FTUEIntegration.showTutorialAnimation(context);
+        await prefs.setBool('ftue_completed', true);
+        if (!mounted) return;
       }
-      safePrint('🎮 Tutorial: Complete, continuing to level objective popup');
     }
 
-    // Show level objective popup
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => LevelObjectivePopup(level: level),
     );
-    
-    // ✅ NEW: Show Starter Boss Pack offer after level 5 preview opens (manual tap)
-    if (level.id == 5) {
-      // Wait for the preview dialog to fully render
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        await _showStarterBossPackOfferIfNeeded();
-      }
-    }
   }
 
 }

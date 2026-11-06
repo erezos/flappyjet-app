@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 import '../../../game/core/jet_skins.dart';
 import '../../../game/core/iap_products.dart';
 import '../../../game/systems/inventory_manager.dart';
@@ -48,9 +49,17 @@ Future<bool?> showStarterBossPackPopup({
       },
       child: StarterBossPackPopupWidget(
         onPurchaseComplete: () {
-          // ✅ FIX: Use dialogContext to ensure correct navigation
+          // ✅ FIX: Close dialog first, then defer callback to ensure dialog route is fully removed
+          // This prevents input blocking and ensures the game remains responsive
           Navigator.of(dialogContext).pop(true);
-          onPurchaseComplete();
+          
+          // ✅ FIX: Defer callback to next frame + small delay to ensure dialog route is completely removed
+          // This prevents the game from being stuck in an unresponsive state
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            Future.delayed(const Duration(milliseconds: 150), () {
+              onPurchaseComplete();
+            });
+          });
         },
         onDismiss: () {
           // ✅ FIX: Use dialogContext to ensure correct navigation
@@ -90,7 +99,7 @@ class _StarterBossPackPopupWidgetState extends State<StarterBossPackPopupWidget>
 
   // Jet skins in the bundle
   static const List<String> _jetSkinIds = ['police_patrol', 'red_alert', 'green_lightning'];
-  static const String _equipSkinId = 'police_patrol';
+  static const String _equipSkinId = 'red_alert'; // ✅ Changed from 'police_patrol' to 'red_alert'
 
   @override
   void initState() {
@@ -759,7 +768,7 @@ class _StarterBossPackPopupWidgetState extends State<StarterBossPackPopupWidget>
         await inventory.refresh();
       }
 
-      // Equip police_patrol
+      // ✅ Equip red_alert (changed from police_patrol)
       await inventory.equipSkin(_equipSkinId);
       safePrint('✅ Equipped skin: $_equipSkinId');
 
@@ -814,28 +823,40 @@ class _StarterBossPackPopupWidgetState extends State<StarterBossPackPopupWidget>
 
       HapticFeedback.heavyImpact();
       
-      // ✅ Auto-close popup immediately after successful purchase
+      // ✅ FIX: Auto-close popup and handle purchase completion properly
+      // The wrapper will handle closing the dialog and calling onPurchaseComplete
+      // after the dialog is fully removed from the navigation stack
       if (mounted) {
         setState(() => _isPurchasing = false);
         
-        // Close the dialog
-        Navigator.of(context).pop(true);
-        
-        // Show success message after dialog closes
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('🎉 Starter Boss Pack purchased! All 3 jets unlocked! Police Patrol equipped! 24 hours No Ads activated!'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        });
-        
-        // Call purchase complete callback
+        // ✅ FIX: Call onPurchaseComplete - the wrapper will close the dialog first
+        // and then call the callback after the dialog route is fully removed
+        // This prevents input blocking and ensures clean navigation
         widget.onPurchaseComplete();
+        
+        // ✅ FIX: Show success message after dialog closes
+        // The wrapper ensures dialog is closed before callback, so we can safely
+        // show the snackbar in the next frame
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 400), () {
+            // Try to show snackbar, but don't fail if context is invalid
+            // The tournament screen will handle showing success feedback
+            try {
+              if (mounted && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('🎉 Starter Boss Pack purchased! All 3 jets unlocked! Red Alert equipped! 24 hours No Ads activated!'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            } catch (e) {
+              // Context might be invalid - that's okay, tournament screen will show feedback
+              safePrint('⚠️ Could not show snackbar (context invalid): $e');
+            }
+          });
+        });
       }
     } catch (e) {
       safePrint('⚠️ Error handling purchase success: $e');

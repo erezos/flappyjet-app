@@ -13,6 +13,7 @@ import 'lives_manager.dart';
 import 'daily_streak_manager.dart';
 import 'firebase_analytics_manager.dart';
 import '../../core/debug_logger.dart';
+import '../../integrations/notification_router.dart';
 
 /// Notification types for analytics and management
 enum NotificationType {
@@ -196,13 +197,10 @@ class LocalNotificationManager {
     // Handle different notification types
     switch (payload) {
       case 'hearts_refilled':
-        // Navigate to game or show hearts status
-        break;
       case 'engagement_reminder':
-        // Navigate to main game screen
-        break;
       case 'daily_streak_reminder':
-        // Navigate to daily streak screen
+      case 'weekly_challenge':
+        NotificationRouter.open(payload);
         break;
     }
   }
@@ -262,7 +260,7 @@ class LocalNotificationManager {
       }
 
       // Calculate when hearts will be full (estimate 30 minutes per heart)
-      final timeToFullHearts = Duration(minutes: 30) * (maxLives - currentLives);
+      final timeToFullHearts = Duration(minutes: 10) * (maxLives - currentLives);
       final scheduledTime = tz.TZDateTime.now(tz.local).add(timeToFullHearts);
 
       const DarwinNotificationDetails iOSPlatformChannelSpecifics =

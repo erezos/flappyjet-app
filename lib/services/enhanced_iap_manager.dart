@@ -7,17 +7,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../core/debug_logger.dart';
 import '../game/core/iap_products.dart';
 import '../game/systems/inventory_manager.dart';
 import '../game/systems/lives_manager.dart';
 import '../game/systems/no_ads_manager.dart';
-import '../game/core/economy_config.dart';
 import '../game/systems/firebase_analytics_manager.dart';
 import '../game/systems/player_identity_manager.dart';
 import '../game/systems/purchase_history_manager.dart';
 import '../config/iap_config.dart';
+import '../core/events/event_bus.dart';
 import 'iap_receipt_validator.dart';
 
 /// Purchase completion event data
@@ -280,7 +281,7 @@ class EnhancedIAPManager extends ChangeNotifier {
     final availableProducts = <IAPProduct>[];
     
     for (final iapProduct in IAPProductCatalog.getAllProducts().values) {
-      final storeProduct = _products[iapProduct.storeId];
+      final storeProduct = _products[iapProduct.platformStoreId];
       if (storeProduct != null) {
         availableProducts.add(iapProduct);
       }
@@ -305,9 +306,9 @@ class EnhancedIAPManager extends ChangeNotifier {
       return await _simulateEmulatorPurchase(iapProduct);
     }
 
-    final storeProduct = _products[iapProduct.storeId];
+    final storeProduct = _products[iapProduct.platformStoreId];
     if (storeProduct == null) {
-      return PurchaseResult.failed('Store product not available: ${iapProduct.storeId}');
+      return PurchaseResult.failed('Store product not available: ${iapProduct.platformStoreId}');
     }
 
     // Track purchase attempt
@@ -360,41 +361,40 @@ class EnhancedIAPManager extends ChangeNotifier {
     }
   }
 
-  /// Process individual purchase update
+  /// Process individual purchase update.
+  ///
+  /// Completes the original [PurchaseDetails]. A copy never has
+  /// [PurchaseDetails.pendingCompletePurchase] set, so Play leaves the
+  /// purchase unacknowledged and refunds it after three days.
   Future<void> _processPurchaseUpdate(PurchaseDetails purchaseDetails) async {
     safePrint('💳 📦 Processing purchase: ${purchaseDetails.productID} - ${purchaseDetails.status}');
 
-    // Use the original product ID directly - no mapping needed
-    // The product IDs in the purchase stream should match our storeId values
-    final mappedPurchaseDetails = PurchaseDetails(
-      productID: purchaseDetails.productID,
-      transactionDate: purchaseDetails.transactionDate,
-      status: purchaseDetails.status,
-      verificationData: purchaseDetails.verificationData,
-      purchaseID: purchaseDetails.purchaseID,
-    );
-
     switch (purchaseDetails.status) {
       case PurchaseStatus.pending:
-        await _handlePendingPurchase(mappedPurchaseDetails);
+        await _handlePendingPurchase(purchaseDetails);
         break;
       case PurchaseStatus.purchased:
-        await _handleSuccessfulPurchase(mappedPurchaseDetails);
+        await _handleSuccessfulPurchase(purchaseDetails, isRestore: false);
         break;
       case PurchaseStatus.error:
-        await _handleFailedPurchase(mappedPurchaseDetails);
+        await _handleFailedPurchase(purchaseDetails);
         break;
       case PurchaseStatus.restored:
-        await _handleRestoredPurchase(mappedPurchaseDetails);
+        await _handleRestoredPurchase(purchaseDetails);
         break;
       case PurchaseStatus.canceled:
-        await _handleCancelledPurchase(mappedPurchaseDetails);
+        await _handleCancelledPurchase(purchaseDetails);
         break;
     }
 
-    // Complete the purchase if needed
-    if (mappedPurchaseDetails.pendingCompletePurchase) {
-      await _iap.completePurchase(mappedPurchaseDetails);
+    if (purchaseDetails.pendingCompletePurchase) {
+      await _iap.completePurchase(purchaseDetails);
+      await _trackPurchaseEvent('purchase_acknowledged', {
+        'product_id': purchaseDetails.productID,
+        'transaction_id': purchaseDetails.purchaseID,
+        'acknowledged': true,
+        'status': purchaseDetails.status.name,
+      });
     }
 
     _isPurchasing = false;
@@ -414,8 +414,21 @@ class EnhancedIAPManager extends ChangeNotifier {
   }
 
   /// Handle successful purchase
-  Future<void> _handleSuccessfulPurchase(PurchaseDetails purchaseDetails) async {
+  Future<void> _handleSuccessfulPurchase(
+    PurchaseDetails purchaseDetails, {
+    required bool isRestore,
+  }) async {
     try {
+      final grantToken = _grantToken(purchaseDetails);
+      if (await _wasAlreadyGranted(grantToken)) {
+        safePrint('💳 🔁 Purchase already granted: $grantToken');
+        await _trackPurchaseEvent('purchase_grant_skipped_duplicate', {
+          'product_id': purchaseDetails.productID,
+          'transaction_id': purchaseDetails.purchaseID,
+        });
+        return;
+      }
+
       // 🔥 CRITICAL: Set processing flag to prevent backend overwrite
       _isProcessingPurchase = true;
       
@@ -435,6 +448,14 @@ class EnhancedIAPManager extends ChangeNotifier {
       );
 
       safePrint('💳 🔐 Validation result: valid=${validationResult.isValid}, method=${validationResult.validationMethod}, error=${validationResult.error}');
+
+      if (validationResult.validationMethod.contains('config_missing')) {
+        await _trackPurchaseEvent('purchase_validation_unverified', {
+          'product_id': iapProduct.id,
+          'transaction_id': purchaseDetails.purchaseID,
+          'validation_method': validationResult.validationMethod,
+        });
+      }
 
       if (!validationResult.isValid) {
         safePrint('💳 ❌ Purchase validation failed: ${validationResult.error}');
@@ -467,7 +488,8 @@ class EnhancedIAPManager extends ChangeNotifier {
       }
 
       // Grant the purchased items
-      await _grantPurchaseRewards(iapProduct, purchaseDetails);
+      await _grantPurchaseRewards(iapProduct, purchaseDetails, isRestore: isRestore);
+      await _rememberGrant(grantToken);
 
       // Mark as validated
       _validatedPurchases.add(purchaseDetails.purchaseID ?? '');
@@ -534,17 +556,53 @@ class EnhancedIAPManager extends ChangeNotifier {
     }
   }
 
+  String _grantToken(PurchaseDetails purchaseDetails) {
+    final id = purchaseDetails.purchaseID;
+    if (id != null && id.isNotEmpty) return id;
+    final server = purchaseDetails.verificationData.serverVerificationData;
+    if (server.isNotEmpty) return server;
+    return '${purchaseDetails.productID}:${purchaseDetails.transactionDate}';
+  }
+
+  Future<bool> _wasAlreadyGranted(String token) async {
+    if (token.isEmpty) return false;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList('granted_purchase_tokens')?.contains(token) ?? false;
+  }
+
+  Future<void> _rememberGrant(String token) async {
+    if (token.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final granted = prefs.getStringList('granted_purchase_tokens') ?? <String>[];
+    if (!granted.contains(token)) granted.add(token);
+    final trimmed = granted.length > 200 ? granted.sublist(granted.length - 200) : granted;
+    await prefs.setStringList('granted_purchase_tokens', trimmed);
+  }
+
   /// Grant rewards for purchased product
-  Future<void> _grantPurchaseRewards(IAPProduct product, PurchaseDetails? purchaseDetails) async {
+  Future<void> _grantPurchaseRewards(
+    IAPProduct product,
+    PurchaseDetails? purchaseDetails, {
+    required bool isRestore,
+  }) async {
     try {
       safePrint('💳 🎁 Starting reward granting for: ${product.displayName}');
       safePrint('💳 🎁 Product details: gems=${product.totalGems}, coins=${product.totalCoins}, hearts=${product.hearts}, booster=${product.heartBoosterHours}h, skin=${product.jetSkinId}');
       
       // Grant gems
       if (product.totalGems > 0 && _inventory != null) {
-        safePrint('💳 💎 Granting ${product.totalGems} gems...');
-        await _inventory!.grantGems(product.totalGems);
-        safePrint('💳 💎 Granted ${product.totalGems} gems');
+        var gemsToGrant = product.totalGems;
+        if (!isRestore && product.priceUSD >= 4.99) {
+          final prefs = await SharedPreferences.getInstance();
+          if (prefs.getBool('first_large_pack_bonus_used') != true) {
+            gemsToGrant += product.totalGems;
+            await prefs.setBool('first_large_pack_bonus_used', true);
+            safePrint('💳 💎 First large-pack bonus doubled this grant');
+          }
+        }
+        safePrint('💳 💎 Granting $gemsToGrant gems...');
+        await _inventory!.grantGems(gemsToGrant);
+        safePrint('💳 💎 Granted gems for ${product.id}');
         
         // 📦 Track gem pack purchase for smart recommendations
         if (product.type == IAPProductType.gemPack) {
@@ -591,22 +649,27 @@ class EnhancedIAPManager extends ChangeNotifier {
         safePrint('💳 ⚡ Activated ${product.heartBoosterHours}h heart booster');
       }
 
-      // Unlock jet skin
-      // ✅ FIX: Skip automatic skin unlock for multi-skin bundle products
-      // These bundles (christmas_jet_bundle, starter_boss_pack) unlock multiple skins
-      // via their dedicated popup handlers, not through the automatic IAP unlock flow
-      final multiSkinBundleIds = {'christmas_jet_bundle', 'starter_boss_pack'};
-      final isMultiSkinBundle = multiSkinBundleIds.contains(product.id);
-      
-      if (product.jetSkinId != null && _inventory != null && !isMultiSkinBundle) {
+      const multiSkinBundles = {
+        'christmas_jet_bundle': ['blitzen', 'comet', 'rudolph'],
+        'starter_boss_pack': ['police_patrol', 'red_alert', 'green_lightning'],
+      };
+      final bundleSkins = multiSkinBundles[product.id];
+      if (bundleSkins != null && _inventory != null) {
+        for (final skinId in bundleSkins) {
+          await _inventory!.unlockSkin(skinId);
+        }
+        final equipId = product.jetSkinId;
+        if (equipId != null) {
+          await _inventory!.equipSkin(equipId);
+        }
+        if (product.id == 'starter_boss_pack') {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('starter_boss_pack_purchased', true);
+        }
+        safePrint('💳 🚁 Unlocked bundle skins for ${product.id}');
+      } else if (product.jetSkinId != null && _inventory != null) {
         await _inventory!.unlockSkin(product.jetSkinId!);
         safePrint('💳 🚁 Unlocked jet skin: ${product.jetSkinId}');
-        
-        // Skin sync is now handled automatically by InventoryManager via EventBus
-        // No need for manual backend sync
-      } else if (isMultiSkinBundle) {
-        safePrint('💳 ⚠️ Skipping automatic skin unlock for multi-skin bundle: ${product.id}');
-        safePrint('💳 ℹ️ Skins will be unlocked by the dedicated popup handler');
       }
 
       // Activate No Ads
@@ -618,30 +681,19 @@ class EnhancedIAPManager extends ChangeNotifier {
         } else if (product.id == 'no_ads_monthly') {
           await noAdsManager.activateMonthly();
           safePrint('💳 🚫 Activated monthly No Ads');
-        } else if (product.id == 'no_ads_24h') {
-          await noAdsManager.activate24Hours();
-          safePrint('💳 🚫 Activated 24 Hours No Ads');
-        } else if (product.id == 'no_ads_week') {
-          await noAdsManager.activate1Week();
-          safePrint('💳 🚫 Activated 1 Week No Ads');
+        } else if (product.id == 'no_ads_24h' || product.id == 'no_ads_week') {
+          await _grandfatherTimedNoAds(product.id, noAdsManager);
         }
       }
 
-      // Handle bundle products (Heart Booster + No Ads)
-      if (product.type == IAPProductType.bundle) {
+      // Heart-booster bundles only. Currency and skin bundles also use
+      // IAPProductType.bundle and must not fall through to a 24h booster.
+      const heartBundles = {'bundle_24h', 'bundle_48h', 'bundle_72h'};
+      if (heartBundles.contains(product.id) && product.heartBoosterHours > 0) {
         final noAdsManager = NoAdsManager();
         final inventory = InventoryManager();
-        
-        // Activate Heart Booster
-        final heartBoosterPack = EconomyConfig.heartBoosterPacks.values.firstWhere(
-          (pack) => pack.durationHours == product.heartBoosterHours,
-          orElse: () => EconomyConfig.heartBoosterPacks['heart_booster_24h']!,
-        );
-        await inventory.activateHeartBooster(heartBoosterPack.duration);
-        
-        // Activate No Ads for bundle duration (24h, 48h, or 72h)
-        final bundleHours = product.heartBoosterHours; // Bundle duration matches heart booster duration
-        await noAdsManager.extendNoAds(Duration(hours: bundleHours));
+        await inventory.activateHeartBooster(Duration(hours: product.heartBoosterHours));
+        await noAdsManager.extendNoAds(Duration(hours: product.heartBoosterHours));
         safePrint('💳 🎁 Activated Bundle: ${product.heartBoosterHours}h Heart Booster + No Ads');
       }
 
@@ -676,12 +728,28 @@ class EnhancedIAPManager extends ChangeNotifier {
     });
   }
 
+  /// Timed No Ads is retired. Existing buyers keep one grandfathered window.
+  Future<void> _grandfatherTimedNoAds(String productId, NoAdsManager noAdsManager) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'timed_no_ads_grandfathered_$productId';
+    if (prefs.getBool(key) == true) {
+      safePrint('💳 🚫 Timed No Ads already grandfathered: $productId');
+      return;
+    }
+    if (productId == 'no_ads_24h') {
+      await noAdsManager.activate24Hours();
+    } else if (productId == 'no_ads_week') {
+      await noAdsManager.activate1Week();
+    }
+    await prefs.setBool(key, true);
+  }
+
   /// Handle restored purchase
   Future<void> _handleRestoredPurchase(PurchaseDetails purchaseDetails) async {
     safePrint('💳 🔄 Purchase restored: ${purchaseDetails.productID}');
     
     // Process as successful purchase
-    await _handleSuccessfulPurchase(purchaseDetails);
+    await _handleSuccessfulPurchase(purchaseDetails, isRestore: true);
     
     await _trackPurchaseEvent('purchase_restored', {
       'product_id': purchaseDetails.productID,
@@ -712,6 +780,10 @@ class EnhancedIAPManager extends ChangeNotifier {
         'platform': Platform.isIOS ? 'ios' : 'android',
         ...parameters,
       });
+      EventBus().fire(eventName, {
+        'timestamp': DateTime.now().toIso8601String(),
+        ...parameters,
+      });
     } catch (e) {
       safePrint('💳 ⚠️ Failed to track purchase event: $e');
     }
@@ -722,7 +794,7 @@ class EnhancedIAPManager extends ChangeNotifier {
     final iapProduct = IAPProductCatalog.getProductById(productId);
     if (iapProduct == null) return null;
     
-    return _products[iapProduct.storeId];
+    return _products[iapProduct.platformStoreId];
   }
 
   /// Check if product is available for purchase
@@ -730,7 +802,7 @@ class EnhancedIAPManager extends ChangeNotifier {
     final iapProduct = IAPProductCatalog.getProductById(productId);
     if (iapProduct == null) return false;
     
-    return _products.containsKey(iapProduct.storeId);
+    return _products.containsKey(iapProduct.platformStoreId);
   }
 
   /// Enhanced IAP availability check with better emulator/device detection
@@ -867,7 +939,7 @@ class EnhancedIAPManager extends ChangeNotifier {
     
     try {
       // Grant rewards directly (skip server validation on emulator)
-      await _grantPurchaseRewards(iapProduct, null);
+      await _grantPurchaseRewards(iapProduct, null, isRestore: false);
       
       // 🎯 Emit purchase completion event for popups to listen to
       _purchaseCompletionController.add(PurchaseCompletionEvent(

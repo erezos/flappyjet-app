@@ -12,9 +12,10 @@
         "description": "Pass 12 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 381.7,
-        "obstacleFrequency": 2.4
+        "speedMultiplier": 1.10,
+        "obstacleGap": 350,
+        "obstacleFrequency": 2.9,
+        "maxGapShift": 50
       },
       "reward": {
         "coins": 25,
@@ -57,7 +58,18 @@
           "maxAmount": 1
         }
       },
-      "botBattle": null
+      "botBattle": null,
+      "stunt_config": {
+        "mode": "time_survival",
+        "asset_path": "obstacles/moving_obstacle_spikes1.png",
+        "obstacle_size_percent": 0.5,
+        "spawn_interval": 2.8,
+        "spawn_variance": 0.1,
+        "scroll_speed": 160,
+        "vertical_amplitude_percent": 0.12,
+        "vertical_frequency": 0.30,
+        "one_at_a_time": true
+      }
     },
     {
       "id": 12,
@@ -69,10 +81,10 @@
         "description": "Survive for 20 seconds"
       },
       "difficulty": {
-        "speedMultiplier": 1.05,
-        "obstacleGap": 369.6,
-        "obstacleFrequency": 0.65,
-        "maxGapShift": 60
+        "speedMultiplier": 1.0,
+        "obstacleGap": 350,
+        "obstacleFrequency": 3.0,
+        "maxGapShift": 50
       },
       "reward": {
         "coins": 30,
@@ -115,7 +127,18 @@
           "maxAmount": 1
         }
       },
-      "botBattle": null
+      "botBattle": null,
+      "stunt_config": {
+        "mode": "time_survival",
+        "asset_path": "obstacles/moving_obstacle_spikes1.png",
+        "obstacle_size_percent": 0.5,
+        "spawn_interval": 2.6,
+        "spawn_variance": 0.1,
+        "scroll_speed": 175,
+        "vertical_amplitude_percent": 0.14,
+        "vertical_frequency": 0.38,
+        "one_at_a_time": true
+      }
     },
     {
       "id": 13,
@@ -128,7 +151,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.08,
-        "obstacleGap": 358.6,
+        "obstacleGap": 394.5,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -185,7 +208,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.08,
-        "obstacleGap": 466.4,
+        "obstacleGap": 513.0,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -243,7 +266,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 300.3,
+        "obstacleGap": 330.3,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -307,7 +330,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.1,
-        "obstacleGap": 346.5,
+        "obstacleGap": 381.2,
         "obstacleFrequency": 2.3
       },
       "reward": {
@@ -364,8 +387,9 @@
       },
       "difficulty": {
         "speedMultiplier": 1.1,
-        "obstacleGap": 335.5,
-        "obstacleFrequency": 2.2
+        "obstacleGap": 350,
+        "obstacleFrequency": 2.2,
+        "maxGapShift": 50
       },
       "reward": {
         "coins": 25,
@@ -408,7 +432,18 @@
           "maxAmount": 1
         }
       },
-      "botBattle": null
+      "botBattle": null,
+      "stunt_config": {
+        "mode": "time_survival",
+        "asset_path": "obstacles/desert_obstacles.png",
+        "obstacle_size_percent": 0.5,
+        "spawn_interval": 2.0,
+        "spawn_variance": 0.1,
+        "scroll_speed": 175,
+        "vertical_amplitude_percent": 0.14,
+        "vertical_frequency": 0.38,
+        "one_at_a_time": true
+      }
     },
     {
       "id": 18,
@@ -421,7 +456,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.1,
-        "obstacleGap": 335.5,
+        "obstacleGap": 369.1,
         "obstacleFrequency": 0.65,
         "maxGapShift": 60
       },
@@ -479,7 +514,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.12,
-        "obstacleGap": 323.4,
+        "obstacleGap": 355.7,
         "obstacleFrequency": 2.2
       },
       "reward": {
@@ -536,7 +571,7 @@
       },
       "difficulty": {
         "speedMultiplier": 1.15,
-        "obstacleGap": 289.3,
+        "obstacleGap": 318.2,
         "obstacleFrequency": 2.1
       },
       "reward": {

@@ -1,0 +1,26 @@
+{
+  "name": "Flappy Jet implementer",
+  "description": "Opens a code pull request only after you comment implement on a live-ops report.",
+  "workflow": {
+    "memoryEnabled": true,
+    "gitConfig": {
+      "repo": "erezos/flappyjet-app",
+      "branch": "v2.3.14"
+    },
+    "triggers": [
+      {
+        "git": {
+          "pullRequest": {
+            "repos": ["erezos/flappyjet-app"],
+            "commented": {}
+          }
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "prompt": "You are the Flappy Jet implementer. Run only when a pull request comment is exactly implement and the pull request is a live-ops report. Open a separate code pull request from the ship branch. Put new behavior behind a Remote Config flag that defaults off. Tests must pass. Do not merge. Do not create or reprice Play products, edit purchase acknowledgement or receipt validation, publish Remote Config, change consent or privacy behavior, send pushes, grant currency, migrate the player database, rename analytics events, or change a Play rollout."
+      }
+    ]
+  }
+}

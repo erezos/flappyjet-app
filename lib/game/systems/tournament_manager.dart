@@ -17,6 +17,7 @@ import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 import 'achievements_manager.dart';
 import 'missions_manager.dart';
+import 'remote_config_manager.dart';
 
 /// Tournament Manager - Singleton pattern for consistent state
 class TournamentManager extends ChangeNotifier {
@@ -53,13 +54,25 @@ class TournamentManager extends ChangeNotifier {
   Set<String> get completedTournamentIds => _completedTournamentIds;
   List<TournamentHistoryEntry> get history => _history;
 
-  /// Get available tournaments for display (active status only, not expired)
+  /// Get available tournaments for display (active status only, not expired, rotation-aware)
   List<TournamentConfig> get displayableTournaments =>
       _availableTournaments.where((t) => 
         (t.status == TournamentStatus.active || 
          t.status == TournamentStatus.upcoming) &&
-        t.isAvailable
+        t.isAvailable &&
+        _isActiveInRotation(t)
       ).toList();
+  
+  /// Check if a tournament is currently active in its rotation group
+  bool _isActiveInRotation(TournamentConfig tournament) {
+    // If no rotation group, always show
+    if (tournament.rotationGroup == null) return true;
+    
+    return TournamentRotationHelper.isActiveInRotation(
+      tournament.id, 
+      tournament.rotationGroup,
+    );
+  }
 
   /// Get count of free tickets for a specific tier
   int getFreeTickets(TournamentTier tier) => _freeTickets[tier.name] ?? 0;
@@ -95,6 +108,9 @@ class TournamentManager extends ChangeNotifier {
       
       // Load tournament configs (from assets or remote config)
       await _loadTournamentConfigs();
+      
+      // Check for rotated-out tournaments and clear their progress
+      await _clearRotatedOutTournaments();
 
       _isInitialized = true;
       notifyListeners();
@@ -110,6 +126,50 @@ class TournamentManager extends ChangeNotifier {
     } catch (e) {
       safePrint('🏆 ❌ TournamentManager initialization failed: $e');
       _isInitialized = true; // Mark as initialized even on error to prevent retry loops
+    }
+  }
+  
+  /// Clear progress for tournaments that have rotated out
+  /// This resets player progress when a rotating tournament becomes inactive
+  Future<void> _clearRotatedOutTournaments() async {
+    final entriesToClear = <String>[];
+    
+    for (final entry in _activeEntries.entries) {
+      final tournamentId = entry.key;
+      final tournament = _availableTournaments.firstWhere(
+        (t) => t.id == tournamentId,
+        orElse: () => _availableTournaments.first, // Fallback, won't match
+      );
+      
+      // Check if this tournament is in a rotation group and not currently active
+      if (tournament.rotationGroup != null && 
+          !TournamentRotationHelper.isActiveInRotation(tournamentId, tournament.rotationGroup)) {
+        safePrint('🏆 🔄 Tournament $tournamentId has rotated out - clearing progress');
+        entriesToClear.add(tournamentId);
+        
+        // Fire analytics event
+        _fireEvent('tournament_rotation_reset', {
+          'tournament_id': tournamentId,
+          'tournament_name': entry.value.tournamentName,
+          'highest_round_reached': entry.value.highestRoundReached,
+          'coins_earned': entry.value.coinsEarned,
+          'gems_earned': entry.value.gemsEarned,
+        });
+      }
+    }
+    
+    // Clear the entries
+    for (final id in entriesToClear) {
+      _activeEntries.remove(id);
+    }
+    
+    if (entriesToClear.isNotEmpty) {
+      // Update current tournament context if it was cleared
+      if (_currentTournamentId != null && entriesToClear.contains(_currentTournamentId)) {
+        _currentTournamentId = _selectDefaultCurrentTournamentId();
+      }
+      await _saveActiveEntries();
+      safePrint('🏆 🔄 Cleared ${entriesToClear.length} rotated-out tournament(s)');
     }
   }
 
@@ -273,6 +333,17 @@ class TournamentManager extends ChangeNotifier {
     }
   }
 
+  Future<bool> _consumeDailyEntry(String tournamentId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final day = DateTime.now().toUtc().toIso8601String().substring(0, 10);
+    final key = 'daily_entries_${tournamentId}_$day';
+    final used = prefs.getInt(key) ?? 0;
+    final cap = RemoteConfigManager().getInt('daily_tournament_entries', 3);
+    if (used >= cap) return false;
+    await prefs.setInt(key, used + 1);
+    return true;
+  }
+
   /// Enter a tournament (deducts cost, creates entry)
   /// Returns the entry if successful, null otherwise
   /// Note: Cost deduction should be handled by the caller (InventoryManager)
@@ -285,6 +356,11 @@ class TournamentManager extends ChangeNotifier {
       safePrint('🏆 ⚠️ Already have active entry for ${tournament.name}');
       _setCurrentTournament(tournament.id);
       return existingEntry;
+    }
+
+    if (!await _consumeDailyEntry(tournament.id)) {
+      safePrint('🏆 Daily entries used for ${tournament.name}');
+      return null;
     }
 
     // Use free ticket if applicable

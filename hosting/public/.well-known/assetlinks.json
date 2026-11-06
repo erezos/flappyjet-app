@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.flappyjet.pro.flappy_jet_pro",
+      "sha256_cert_fingerprints": [
+        "63:3D:28:3A:8D:39:9A:09:A3:93:06:F5:F4:98:A8:40:79:39:59:DA:BB:05:D4:40:58:6E:BB:76:69:68:91:3B"
+      ]
+    }
+  }
+]

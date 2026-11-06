@@ -15,7 +15,10 @@ import '../core/jet_skins.dart';
 /// - Boundary collision detection
 /// - Educational pause messages
 /// - Proper lifecycle management
-class FTUETutorialGame extends FlameGame with TapDetector {
+/// 
+/// ✅ FIX: Updated for Flame 1.34.0 - TapDetector replaced with TapCallbacks
+/// In Flame 1.34.0, games handle taps via TapCallbacks mixin
+class FTUETutorialGame extends FlameGame with TapCallbacks {
   FTUETutorialGame({
     required this.onComplete,
   });
@@ -132,8 +135,8 @@ class FTUETutorialGame extends FlameGame with TapDetector {
   }
 
   @override
-  void onTapDown(TapDownInfo info) {
-    if (_isCompleted) return;
+  bool onTapDown(TapDownEvent event) {
+    if (_isCompleted) return true;
     
     // If paused with initial message, start the game
     if (_isPaused && _initialTapMessage.parent != null) {
@@ -144,7 +147,7 @@ class FTUETutorialGame extends FlameGame with TapDetector {
       _tapCount++;
       HapticFeedback.lightImpact();
       safePrint('🎮 FTUE Tutorial: First tap - game started');
-      return;
+      return true;
     }
     
     // If paused (hit boundary), unpause on tap
@@ -160,7 +163,7 @@ class FTUETutorialGame extends FlameGame with TapDetector {
         // Hit ceiling, just resume (jet will fall naturally)
         safePrint('🎮 FTUE Tutorial: Resumed from ceiling');
       }
-      return;
+      return true;
     }
     
     // Normal gameplay tap
@@ -168,6 +171,7 @@ class FTUETutorialGame extends FlameGame with TapDetector {
     _jetComponent.jump();
     HapticFeedback.lightImpact();
     safePrint('🎮 FTUE Tutorial: Tap $_tapCount');
+    return true;
   }
 
   void _handleBoundaryCollision(BoundaryType type) {
@@ -479,9 +483,11 @@ class SkipButtonOverlay extends PositionComponent with HasGameRef<FTUETutorialGa
   }
 
   @override
-  void onTapDown(TapDownEvent event) {
+  bool onTapDown(TapDownEvent event) {
     if (isVisible) {
       onSkip();
+      return true;
     }
+    return false;
   }
 }

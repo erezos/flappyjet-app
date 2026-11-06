@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../game/systems/session_gate.dart';
 import 'daily_streak_integration.dart';
 
 /// Auto-popup integration for daily streak - checks once per session at app open
@@ -34,6 +35,7 @@ class _DailyStreakHomepageIntegrationState extends State<DailyStreakHomepageInte
     _hasCheckedThisSession = true;
     
     await DailyStreakIntegration.initialize();
+    if (!await SessionGate.hasClearedALevel()) return;
     
     // Show popup after a short delay if reward is available
     if (mounted && DailyStreakIntegration.shouldShowPopup()) {

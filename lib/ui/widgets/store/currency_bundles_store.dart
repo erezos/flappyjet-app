@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../game/core/economy_config.dart';
 import '../../utils/responsive_config.dart';
+import 'store_price.dart';
 
 class CurrencyBundlesStore extends StatelessWidget {
   final Function(CurrencyBundle) onPurchaseBundle;
@@ -338,7 +339,7 @@ class CurrencyBundlesStore extends StatelessWidget {
                             ),
                             child: Center(
                               child: Text(
-                                '\$${bundle.usdPrice.toStringAsFixed(2)}',
+                                StorePrice.forProduct(bundle.id, bundle.usdPrice),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: priceSize,

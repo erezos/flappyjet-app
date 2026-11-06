@@ -555,51 +555,27 @@ exports.scoreboard = functions
   .runWith({ serviceAccount: 'flappyjet-b31f9@appspot.gserviceaccount.com' })
   .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
+    const railwayUrl = 'https://flappyjet-backend-production.up.railway.app/api/events/scoreboard';
     try {
-      const now = Date.now();
-      const day = 24 * 60 * 60 * 1000;
-      const recentStart = new Date(now - 28 * day);
-      const priorStart = new Date(now - 56 * day);
-
-      async function windowStats(start, end) {
-        const snap = await db.collection(ANALYTICS)
-          .where('serverTimestamp', '>=', start)
-          .where('serverTimestamp', '<', end)
-          .limit(5000)
-          .get();
-        const counts = {};
-        snap.forEach((doc) => {
-          const name = doc.get('eventName') || 'unknown';
-          counts[name] = (counts[name] || 0) + 1;
+      const response = await fetch(railwayUrl);
+      const body = await response.json();
+      if (!response.ok || body.trusted !== true) {
+        res.status(200).json({
+          ...body,
+          trusted: false,
+          source: body.source || 'railway',
+          note: body.note || 'Scoreboard untrusted.',
         });
-        const installs = counts.user_installed || counts.first_open || 0;
-        const day1 = counts.session_started || 0;
-        return {
-          events: snap.size,
-          installs,
-          session_started: counts.session_started || 0,
-          level_completed: counts.level_completed || 0,
-          level_failed: counts.level_failed || 0,
-          interstitial_shown: counts.interstitial_shown || 0,
-          purchase_completed: counts.purchase_completed || counts.iap_purchase_completed || 0,
-          purchase_acknowledged: counts.purchase_acknowledged || counts.iap_purchase_acknowledged || 0,
-          ad_revenue_events: counts.ad_revenue || 0,
-          day1_over_installs: installs === 0 ? null : day1 / installs,
-        };
+        return;
       }
-
-      const recent = await windowStats(recentStart, new Date(now));
-      const prior = await windowStats(priorStart, recentStart);
-      res.json({
-        generated_at: new Date(now).toISOString(),
-        project: 'flappyjet-b31f9',
-        recent_28_days: recent,
-        prior_28_days: prior,
-        note: 'Counts come from the analytics collection written by reportEvent. Railway events are not included until they are mirrored here.',
-      });
+      res.json(body);
     } catch (error) {
       console.error('Scoreboard error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(200).json({
+        trusted: false,
+        source: 'railway',
+        note: 'Scoreboard untrusted: the Railway aggregate could not be read.',
+      });
     }
   });
 });

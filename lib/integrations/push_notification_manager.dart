@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_config.dart';
 import '../core/debug_logger.dart';
 import '../core/utils/notification_permission_guard.dart'; // 🔒 Crash fix
+import 'notification_router.dart';
 
 /// Top-level background message handler
 /// This MUST be a top-level function and registered before runApp()
@@ -517,6 +518,7 @@ class PushNotificationManager {
       final rewardType = data['reward_type'];
       final rewardAmount = int.tryParse(data['reward_amount']?.toString() ?? '0') ?? 0;
 
+      NotificationRouter.open(notificationType?.toString());
       Logger.i('🎯 Notification clicked: $notificationType, reward: $rewardType $rewardAmount');
       safePrint('🎯 Notification clicked: $notificationType, reward: $rewardType $rewardAmount');
 

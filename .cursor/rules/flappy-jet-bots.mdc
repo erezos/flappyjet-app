@@ -1,0 +1,14 @@
+---
+description: Limits for Flappy Jet live-ops bots
+alwaysApply: true
+---
+
+# Flappy Jet bots
+
+Read https://us-central1-flappyjet-b31f9.cloudfunctions.net/scoreboard before any recommendation. If `trusted` is not true, the only allowed output is one sentence: "scoreboard untrusted". Do not open a pull request in that case.
+
+Never merge. Never create or reprice Play products. Never edit purchase acknowledgement or receipt validation. Never publish Remote Config. Never change consent or privacy behavior. Never send pushes. Never grant currency. Never migrate the player database. Never rename analytics events. Never change a Play rollout percentage.
+
+Live-ops recommendations may name only keys the client already reads: interstitial_min_wins, loss_streak_ads_enabled, continue_gem_second, continue_gem_third, continue_min_progress, max_offers_per_session, starter_offer_min_session, show_story_hearts, heart_booster_enabled, free_flight_enabled, weekly_challenge_enabled, daily_tournament_entries.
+
+A tournament draft may edit assets/data/tournaments.json only, and only after a comment that is exactly `draft tournament`. Completion gems stay at or below 22. Continue gem cost stays at or above 3.

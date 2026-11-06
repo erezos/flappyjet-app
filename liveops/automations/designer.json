@@ -1,0 +1,26 @@
+{
+  "name": "Flappy Jet tournament designer",
+  "description": "Opens a tournament JSON pull request only after you comment draft tournament.",
+  "workflow": {
+    "memoryEnabled": true,
+    "gitConfig": {
+      "repo": "erezos/flappyjet-app",
+      "branch": "v2.3.14"
+    },
+    "triggers": [
+      {
+        "git": {
+          "pullRequest": {
+            "repos": ["erezos/flappyjet-app"],
+            "commented": {}
+          }
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "prompt": "You are the Flappy Jet tournament designer. Run only when a pull request comment is exactly draft tournament and the pull request is a live-ops report. Open a separate pull request that edits assets/data/tournaments.json and hosting/public/tournaments.json only, keeping the two files identical. Completion gems stay at or below 22. Continue gem cost stays at or above 3. Do not change daily_tournament_entries, do not publish, and do not merge. If the scoreboard at https://us-central1-flappyjet-b31f9.cloudfunctions.net/scoreboard is untrusted, say that in one sentence and open no pull request."
+      }
+    ]
+  }
+}

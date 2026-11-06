@@ -156,8 +156,11 @@ class IAPReceiptValidator {
   /// Validate Google Play Store receipt
   Future<ValidationResult> _validateGoogleReceipt(PurchaseDetails purchaseDetails) async {
     if (_googleServiceAccountKey == null || _androidPackageName == null) {
-      safePrint('🔐 ⚠️ Google Play credentials not configured, skipping validation');
-      return ValidationResult.success({'status': 'skipped'}, 'config_missing');
+      safePrint('🔐 ⚠️ Google Play credentials missing. Grant will continue, but this is not a verified receipt.');
+      return ValidationResult.success(
+        {'status': 'unverified'},
+        'unverified_config_missing',
+      );
     }
 
     try {

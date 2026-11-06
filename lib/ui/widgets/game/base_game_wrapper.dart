@@ -446,7 +446,7 @@ mixin TournamentWrapperMixin<T extends BaseGameWrapper> on BaseGameWrapperState<
       continuesUsed++;
       eventBus.fire('continue_used', {
         ...getEventData(),
-        'continue_type': 'ad',
+        'continue_type': 'ad_watch', // ✅ FIXED: Use correct value expected by backend
       });
       game.continueGame();
       _startUpdateTimer();
@@ -469,7 +469,7 @@ mixin TournamentWrapperMixin<T extends BaseGameWrapper> on BaseGameWrapperState<
     continuesUsed++;
     eventBus.fire('continue_used', {
       ...getEventData(),
-      'continue_type': 'gems',
+      'continue_type': 'gem_purchase', // ✅ FIXED: Use correct value expected by backend
       'gems_cost': continueGemCost,
     });
     game.continueGame();

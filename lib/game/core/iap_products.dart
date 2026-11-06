@@ -2,12 +2,14 @@
 /// Maps exactly to current EconomyConfig products with real IAP integration
 library;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 
 /// IAP Product data class
 class IAPProduct {
   final String id;
-  final String storeId; // Platform-specific store ID
+  final String storeId; // Base store ID (used for Android)
+  final String? iosStoreId; // iOS-specific store ID (if different from storeId)
   final double priceUSD;
   final String displayName;
   final String description;
@@ -34,6 +36,7 @@ class IAPProduct {
   const IAPProduct({
     required this.id,
     required this.storeId,
+    this.iosStoreId,
     required this.priceUSD,
     required this.displayName,
     required this.description,
@@ -51,6 +54,19 @@ class IAPProduct {
     this.primaryColor,
     this.secondaryColor,
   });
+  
+  /// Get the platform-specific store ID
+  String get platformStoreId {
+    if (iosStoreId != null && _isIOS()) {
+      return iosStoreId!;
+    }
+    return storeId;
+  }
+  
+  static bool _isIOS() {
+    // Using defaultTargetPlatform from Flutter foundation
+    return defaultTargetPlatform == TargetPlatform.iOS;
+  }
 
   /// Total gems including bonus
   int get totalGems => gems + bonusGems;
@@ -86,6 +102,7 @@ class IAPProductCatalog {
     'gems_pack_small': IAPProduct(
       id: 'gems_pack_small',
       storeId: 'com.flappyjet.gems.small',
+      iosStoreId: 'com.flappyjet.gems.small.v2',
       priceUSD: 0.99,
       displayName: 'Small Gem Pack',
       description: '100 Gems',
@@ -98,6 +115,7 @@ class IAPProductCatalog {
     'gems_pack_medium': IAPProduct(
       id: 'gems_pack_medium',
       storeId: 'com.flappyjet.gems.medium',
+      iosStoreId: 'com.flappyjet.gems.medium.v2',
       priceUSD: 4.99,
       displayName: 'Medium Gem Pack',
       description: '500 + 50 Bonus Gems',
@@ -110,6 +128,7 @@ class IAPProductCatalog {
     'gems_pack_large': IAPProduct(
       id: 'gems_pack_large',
       storeId: 'com.flappyjet.gems.large',
+      iosStoreId: 'com.flappyjet.gems.large.v2',
       priceUSD: 9.99,
       displayName: 'Large Gem Pack',
       description: '1000 + 200 Bonus Gems',
@@ -122,6 +141,7 @@ class IAPProductCatalog {
     'gems_pack_mega': IAPProduct(
       id: 'gems_pack_mega',
       storeId: 'com.flappyjet.gems.mega',
+      iosStoreId: 'com.flappyjet.gems.mega.v2',
       priceUSD: 19.99,
       displayName: 'Mega Gem Pack',
       description: '2500 + 750 Bonus Gems',
@@ -136,6 +156,7 @@ class IAPProductCatalog {
     'heart_booster_24h': IAPProduct(
       id: 'heart_booster_24h',
       storeId: 'com.flappyjet.booster.24h',
+      iosStoreId: 'com.flappyjet.booster.24h.v2',
       priceUSD: 0.99,
       displayName: 'Booster 24H',
       description: '6 Max Hearts + Faster Regen for 24 Hours',
@@ -149,6 +170,7 @@ class IAPProductCatalog {
     'heart_booster_48h': IAPProduct(
       id: 'heart_booster_48h',
       storeId: 'com.flappyjet.booster.48h',
+      iosStoreId: 'com.flappyjet.booster.48h.v2',
       priceUSD: 1.79,
       displayName: 'Booster 48H',
       description: '6 Max Hearts + Faster Regen for 48 Hours',
@@ -162,6 +184,7 @@ class IAPProductCatalog {
     'heart_booster_72h': IAPProduct(
       id: 'heart_booster_72h',
       storeId: 'com.flappyjet.booster.72h',
+      iosStoreId: 'com.flappyjet.booster.72h.v2',
       priceUSD: 2.39,
       displayName: 'Booster 72H',
       description: '6 Max Hearts + Faster Regen for 72 Hours',
@@ -178,6 +201,7 @@ class IAPProductCatalog {
     'no_ads_24h': IAPProduct(
       id: 'no_ads_24h',
       storeId: 'com.flappyjet.no_ads.24h',
+      iosStoreId: 'com.flappyjet.no_ads.24h.v2',
       priceUSD: 0.49,
       displayName: 'No Ads - 24 Hours',
       description: 'Remove ads for 24 hours',
@@ -188,6 +212,7 @@ class IAPProductCatalog {
     'no_ads_week': IAPProduct(
       id: 'no_ads_week',
       storeId: 'com.flappyjet.no_ads.week',
+      iosStoreId: 'com.flappyjet.no_ads.week.v2',
       priceUSD: 0.99,
       displayName: 'No Ads - 1 Week',
       description: 'Remove ads for 7 days',
@@ -198,6 +223,7 @@ class IAPProductCatalog {
     'no_ads_lifetime': IAPProduct(
       id: 'no_ads_lifetime',
       storeId: 'com.flappyjet.no_ads.lifetime',
+      iosStoreId: 'com.flappyjet.no_ads.lifetime.v2',
       priceUSD: 4.99,
       displayName: 'No Ads - Lifetime',
       description: 'Remove all ads forever',
@@ -213,6 +239,7 @@ class IAPProductCatalog {
     'bundle_24h': IAPProduct(
       id: 'bundle_24h',
       storeId: 'com.flappyjet.bundle.24h',
+      iosStoreId: 'com.flappyjet.bundle.24h.v2',
       priceUSD: 1.29,
       displayName: '24H Bundle',
       description: '6 Hearts + No Ads for 24 hours',
@@ -224,6 +251,7 @@ class IAPProductCatalog {
     'bundle_48h': IAPProduct(
       id: 'bundle_48h',
       storeId: 'com.flappyjet.bundle.48h',
+      iosStoreId: 'com.flappyjet.bundle.48h.v2',
       priceUSD: 2.49,
       displayName: '48H Bundle',
       description: '6 Hearts + No Ads for 48 hours',
@@ -235,6 +263,7 @@ class IAPProductCatalog {
     'bundle_72h': IAPProduct(
       id: 'bundle_72h',
       storeId: 'com.flappyjet.bundle.72h',
+      iosStoreId: 'com.flappyjet.bundle.72h.v2',
       priceUSD: 3.59,
       displayName: '72H Bundle',
       description: '6 Hearts + No Ads for 72 hours',
@@ -251,6 +280,7 @@ class IAPProductCatalog {
     'christmas_jet_bundle': IAPProduct(
       id: 'christmas_jet_bundle',
       storeId: 'com.flappyjet.christmas_jet_bundle',
+      iosStoreId: 'com.flappyjet.christmas_jet_bundle.v2',
       priceUSD: 1.99,
       displayName: 'Christmas Jet Bundle',
       description: 'Get Blitzen, Comet, and Rudolph - 3 exclusive Christmas jets!',
@@ -266,13 +296,14 @@ class IAPProductCatalog {
     'starter_boss_pack': IAPProduct(
       id: 'starter_boss_pack',
       storeId: 'com.flappyjet.starter_boss_pack',
+      iosStoreId: 'com.flappyjet.starter_boss_pack.v2',
       priceUSD: 0.99,
       displayName: 'Starter Boss Pack',
       description: 'Get Police Patrol, Red Alert, and Green Lightning - 3 powerful boss jets!',
       type: IAPProductType.bundle,
       // Note: jetSkinId is single, but this bundle unlocks multiple skins
       // We'll handle multiple skin unlocks in the purchase handler
-      jetSkinId: 'police_patrol', // Primary skin (will be equipped)
+      jetSkinId: 'red_alert', // ✅ Changed from 'police_patrol' to 'red_alert' - Primary skin (will be equipped)
       isBestValue: true,
       isImpulse: true,
       primaryColor: Color(0xFFFF0000), // Red
@@ -292,6 +323,7 @@ class IAPProductCatalog {
     'currency_bundle_starter': IAPProduct(
       id: 'currency_bundle_starter',
       storeId: 'com.flappyjet.currency_bundle.starter',
+      iosStoreId: 'com.flappyjet.currency_bundle.starter.v2',
       priceUSD: 1.39,
       displayName: 'Starter Bundle',
       description: '100 Gems + 500 Coins',
@@ -307,6 +339,7 @@ class IAPProductCatalog {
     'currency_bundle_value': IAPProduct(
       id: 'currency_bundle_value',
       storeId: 'com.flappyjet.currency_bundle.value',
+      iosStoreId: 'com.flappyjet.currency_bundle.value.v2',
       priceUSD: 5.49,
       displayName: 'Value Bundle',
       description: '550 Gems + 1500 Coins',
@@ -322,6 +355,7 @@ class IAPProductCatalog {
     'currency_bundle_mega': IAPProduct(
       id: 'currency_bundle_mega',
       storeId: 'com.flappyjet.currency_bundle.mega',
+      iosStoreId: 'com.flappyjet.currency_bundle.mega.v2',
       priceUSD: 10.99,
       displayName: 'Mega Bundle',
       description: '1200 Gems + 3250 Coins',
@@ -358,16 +392,16 @@ class IAPProductCatalog {
     return getAllProducts()[id];
   }
 
-  /// Get product by store ID
+  /// Get product by store ID (checks both base and iOS store IDs)
   static IAPProduct? getProductByStoreId(String storeId) {
     return getAllProducts().values
-        .where((p) => p.storeId == storeId)
+        .where((p) => p.storeId == storeId || p.iosStoreId == storeId)
         .firstOrNull;
   }
 
-  /// Get all store IDs for platform registration
+  /// Get all store IDs for platform registration (uses platform-specific IDs)
   static Set<String> getAllStoreIds() {
-    return getAllProducts().values.map((p) => p.storeId).toSet();
+    return getAllProducts().values.map((p) => p.platformStoreId).toSet();
   }
 
   /// Get popular products for featured display

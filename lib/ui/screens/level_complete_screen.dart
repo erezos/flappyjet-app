@@ -5,6 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'dart:math' as math;
 import '../../models/level_data_schema.dart';
 import '../../game/systems/level_reward_manager.dart';
 import '../../game/systems/level_system_manager.dart';
@@ -12,8 +13,12 @@ import '../../game/core/jet_skins.dart';
 import '../../core/debug_logger.dart';
 import '../utils/responsive_config.dart';
 import '../widgets/coin_3d_icon.dart';
+import '../widgets/animations/reward_fly_animation.dart';
 import 'world_map_screen.dart';
 import '../../integrations/interstitial_ad_manager.dart';
+import '../../game/systems/session_gate.dart';
+import '../../game/systems/inventory_manager.dart';
+import '../../game/systems/monetization_manager.dart';
 
 /// Get bot jet sprite path from JetSkinCatalog
 String _getBotJetSpritePath(String botJetSkinId) {
@@ -36,6 +41,10 @@ class LevelCompleteScreen extends StatefulWidget {
   
   /// ✅ NEW: Callback when user wants to continue (close popup and animate)
   final VoidCallback? onContinue;
+  
+  /// Optional target position for reward fly animation (top-left balance)
+  /// If not provided, will be calculated based on screen dimensions
+  final Offset? targetBalancePosition;
 
   const LevelCompleteScreen({
     super.key,
@@ -44,6 +53,7 @@ class LevelCompleteScreen extends StatefulWidget {
     required this.timeTaken,
     required this.continuesUsed,
     this.onContinue,
+    this.targetBalancePosition,
   });
 
   @override
@@ -66,6 +76,12 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
   bool _rewardsGranted = false;
   late bool _isReplay;
+  
+  // GlobalKeys for reward animation tracking
+  final GlobalKey _coinRewardKey = GlobalKey();
+  final GlobalKey _gemRewardKey = GlobalKey();
+  bool _animationTriggered = false;
+  final List<OverlayEntry> _animationOverlays = [];
 
   @override
   void initState() {
@@ -73,6 +89,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
     // Check if this is a replay
     _isReplay = _levelSystemManager.isLevelReplay(widget.level.id);
+    SessionGate.markLevelCleared();
     safePrint('🎉 Level Complete Screen: isReplay = $_isReplay');
 
     // Setup confetti
@@ -115,6 +132,13 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
     // Grant rewards
     _grantRewards();
+    
+    // Trigger reward fly animation after popup appears (mobile gaming best practice: delay for visual impact)
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted && !_animationTriggered) {
+        _triggerRewardFlyAnimation();
+      }
+    });
   }
 
   Future<void> _grantRewards() async {
@@ -143,9 +167,34 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
   @override
   void dispose() {
+    // ✅ FIX: Stop all animations before disposing controllers
+    // This ensures all tickers are stopped before disposal, preventing ticker disposal errors
+    // Follows Flutter best practices and mobile gaming standards
+    _confettiController.stop();
+    _animationController.stop();
+    _smokeController.stop();
+    
+    // ✅ FIX: Dispose animation controllers (after stopping)
+    // This ensures all tickers are properly disposed before the widget is unmounted
     _confettiController.dispose();
     _animationController.dispose();
     _smokeController.dispose();
+    
+    // ✅ FIX: Remove animation overlays safely
+    // Check if overlay is still valid before removing to prevent assertion errors
+    for (final overlay in _animationOverlays) {
+      try {
+        // OverlayEntry doesn't have a mounted property, but we can check
+        // if the overlay's builder context is still valid by trying to remove it
+        // If it's already been removed, remove() will throw an assertion error
+        overlay.remove();
+      } catch (e) {
+        // Overlay may have already been removed or widget disposed
+        // This is safe to ignore as the overlay will be cleaned up automatically
+        safePrint('⚠️ Overlay removal skipped (already disposed): $e');
+      }
+    }
+    _animationOverlays.clear();
     super.dispose();
   }
 
@@ -338,7 +387,8 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
                       
                       SizedBox(height: screenHeight * 0.02), // 2% spacing
 
-                      // ✅ MODERN: Continue button
+                      _buildDoubleCoinsButton(),
+                      SizedBox(height: screenHeight * 0.01),
                       _buildContinueButton(),
                     ],
                   ),
@@ -532,6 +582,9 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
   /// Build rewards section
   Widget _buildRewards() {
+    final coins = _isReplay ? 20 : widget.level.reward.coins;
+    final gems = _isReplay ? 0 : widget.level.reward.gems;
+    
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -550,15 +603,17 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildRewardItem(
+              key: coins > 0 ? _coinRewardKey : null,
               coinIcon: true, // Use Coin3DIcon instead of material icon
               iconColor: const Color(0xFFFFD700),
-              value: _isReplay ? '+20' : '+${widget.level.reward.coins}',
+              value: '+$coins',
             ),
-            if (!_isReplay && widget.level.reward.gems > 0) ...[
+            if (gems > 0) ...[
               const SizedBox(width: 16),
               _buildRewardItem(
+                key: _gemRewardKey,
                 assetPath: 'assets/images/icons/gem_icon.png',
-                value: '+${widget.level.reward.gems}',
+                value: '+$gems',
               ),
             ],
           ],
@@ -579,6 +634,22 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
   }
 
   /// Build continue button
+  bool _doubledCoins = false;
+
+  Widget _buildDoubleCoinsButton() {
+    final coins = widget.level.reward.coins;
+    if (coins <= 0 || _doubledCoins) return const SizedBox.shrink();
+    return TextButton(
+      onPressed: () {
+        MonetizationManager().showRewardedAdForExtraLife(onReward: () {
+          InventoryManager().grantSoftCurrency(coins, source: 'rewarded_double');
+          if (mounted) setState(() => _doubledCoins = true);
+        });
+      },
+      child: Text('Watch ad to double $coins coins'),
+    );
+  }
+
   Widget _buildContinueButton() {
     return SizedBox(
       width: 280, // Fixed width for button
@@ -650,6 +721,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
 
   /// ✅ NEW: Reward item with icon/asset and value
   Widget _buildRewardItem({
+    Key? key,
     bool coinIcon = false, // ✅ Use Coin3DIcon for coins
     Color? iconColor,
     String? assetPath,
@@ -660,6 +732,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       children: [
         if (coinIcon)
           Container(
+            key: key,
             width: 36,
             height: 36,
             decoration: BoxDecoration(
@@ -673,6 +746,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
           )
         else if (assetPath != null)
           Container(
+            key: key,
             width: 36,
             height: 36,
             decoration: BoxDecoration(
@@ -701,6 +775,120 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
         ),
       ],
     );
+  }
+  
+  /// Trigger reward fly animation (Flame best practice: smooth, performant animations)
+  void _triggerRewardFlyAnimation() {
+    if (_animationTriggered || !mounted) return;
+    _animationTriggered = true;
+    
+    final coins = _isReplay ? 20 : widget.level.reward.coins;
+    final gems = _isReplay ? 0 : widget.level.reward.gems;
+    
+    // Only animate if there are rewards
+    if (coins == 0 && gems == 0) return;
+    
+    // Wait for next frame to ensure keys are positioned
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      // Get source positions from reward icons
+      final coinSource = getPositionFromKey(_coinRewardKey);
+      final gemSource = getPositionFromKey(_gemRewardKey);
+      
+      // Get target position (top-left balance)
+      // Use provided position or calculate based on standard balance position
+      final screenSize = MediaQuery.of(context).size;
+      final targetPosition = widget.targetBalancePosition ?? Offset(
+        ResponsiveConfig.responsivePadding(12.0, screenSize) + 20, // Coin icon center (icon ~22px, so +11px)
+        MediaQuery.of(context).padding.top + ResponsiveConfig.responsivePadding(12.0, screenSize) + 15, // Icon center
+      );
+      
+      final overlay = Overlay.of(context);
+      
+      // Animate coins
+      if (coins > 0 && coinSource != null) {
+        // Calculate particle count: minimum 6, scales with amount, max 12
+        final particleCount = math.max(6, math.min(coins ~/ 10 + 3, 12));
+        
+        final coinOverlay = createRewardFlyOverlay(
+          config: RewardFlyConfig(
+            coins: coins,
+            gems: 0,
+            sourcePosition: coinSource,
+            targetPosition: targetPosition,
+            particleCount: particleCount, // More particles for better visual impact
+          ),
+          vsync: this,
+        );
+        overlay.insert(coinOverlay);
+        _animationOverlays.add(coinOverlay);
+        
+        // ✅ FIX: Remove overlay after animation completes
+        // Check if widget is still mounted and overlay is still valid before removing
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) {
+            try {
+              coinOverlay.remove();
+              _animationOverlays.remove(coinOverlay);
+            } catch (e) {
+              // Overlay may have already been removed or widget disposed
+              // This is safe to ignore - just clean up the list
+              safePrint('⚠️ Coin overlay removal skipped: $e');
+              _animationOverlays.remove(coinOverlay);
+            }
+          } else {
+            // Widget disposed - just clean up the list
+            _animationOverlays.remove(coinOverlay);
+          }
+        });
+      }
+      
+      // Animate gems (with slight delay for visual separation)
+      if (gems > 0 && gemSource != null) {
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (!mounted) return;
+          final gemTarget = Offset(
+            targetPosition.dx + 50, // Slightly to the right for gem icon
+            targetPosition.dy,
+          );
+          // Calculate particle count: minimum 6, scales with amount, max 12
+          final gemParticleCount = math.max(6, math.min(gems ~/ 2 + 4, 12));
+          
+          final gemOverlay = createRewardFlyOverlay(
+            config: RewardFlyConfig(
+              coins: 0,
+              gems: gems,
+              sourcePosition: gemSource,
+              targetPosition: gemTarget,
+              particleCount: gemParticleCount, // More particles for better visual impact
+            ),
+            vsync: this,
+          );
+          overlay.insert(gemOverlay);
+          _animationOverlays.add(gemOverlay);
+          
+          // ✅ FIX: Remove overlay after animation completes
+          // Check if widget is still mounted and overlay is still valid before removing
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) {
+              try {
+                gemOverlay.remove();
+                _animationOverlays.remove(gemOverlay);
+              } catch (e) {
+                // Overlay may have already been removed or widget disposed
+                // This is safe to ignore - just clean up the list
+                safePrint('⚠️ Gem overlay removal skipped: $e');
+                _animationOverlays.remove(gemOverlay);
+              }
+            } else {
+              // Widget disposed - just clean up the list
+              _animationOverlays.remove(gemOverlay);
+            }
+          });
+        });
+      }
+    });
   }
 
 

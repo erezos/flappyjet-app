@@ -2,6 +2,7 @@
 /// Implements LOD system and adaptive quality based on performance
 library;
 import '../../core/debug_logger.dart';
+import '../../core/performance/performance_tracker.dart';
 
 import 'dart:collection';
 import 'dart:math' as math;
@@ -258,6 +259,17 @@ class FrameRateOptimizer {
     
     // Add frame data
     _metrics.addFrame(frameTime);
+    
+    // ✅ NEW: Report FPS to PerformanceTracker
+    try {
+      final currentFps = double.tryParse(_metrics.getMetrics()['current_fps']) ?? 60.0;
+      final performanceTracker = PerformanceTracker();
+      if (performanceTracker.isInitialized) {
+        performanceTracker.updateFps(currentFps);
+      }
+    } catch (e) {
+      // Don't break frame timing if performance tracking fails
+    }
     
     // Check for adaptive quality adjustment
     if (_adaptiveQualityEnabled) {

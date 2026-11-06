@@ -282,9 +282,10 @@
         "description": "Pass 10 obstacles to complete"
       },
       "difficulty": {
-        "speedMultiplier": 0.95,
-        "obstacleGap": 438.9,
-        "obstacleFrequency": 2.6
+        "speedMultiplier": 1.0,
+        "obstacleGap": 350,
+        "obstacleFrequency": 3.5,
+        "maxGapShift": 50
       },
       "reward": {
         "coins": 40,
@@ -294,6 +295,17 @@
         "background": "phase2_sunny_complete.png",
         "obstacles": "phase1_wooden_pipes.png",
         "music": "legend.mp3"
+      },
+      "stunt_config": {
+        "mode": "time_survival",
+        "asset_path": "obstacles/moving_obstacle_spikes1.png",
+        "obstacle_size_percent": 0.5,
+        "spawn_interval": 3.0,
+        "spawn_variance": 0.1,
+        "scroll_speed": 160,
+        "vertical_amplitude_percent": 0.12,
+        "vertical_frequency": 0.30,
+        "one_at_a_time": true
       },
       "bonuses": {
         "enabled": true,

@@ -39,6 +39,14 @@
       "startLevel": 41,
       "endLevel": 50,
       "iconPath": "icons/zone_frozen.png"
+    },
+    {
+      "id": 6,
+      "name": "Cosmic Frontier",
+      "description": "Venture beyond the stars into the infinite void",
+      "startLevel": 51,
+      "endLevel": 60,
+      "iconPath": "icons/zone_cosmic.png"
     }
   ]
 }

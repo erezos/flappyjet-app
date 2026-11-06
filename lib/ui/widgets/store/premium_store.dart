@@ -12,6 +12,7 @@ import '../../utils/responsive_config.dart';
 import 'no_ads_section.dart';
 import 'heart_booster_store.dart';
 import 'bundles_section.dart';
+import '../../../game/systems/remote_config_manager.dart';
 
 class PremiumStore extends StatelessWidget {
   final Function(NoAdsProduct) onPurchaseNoAds;
@@ -67,9 +68,10 @@ class PremiumStore extends StatelessWidget {
           SizedBox(height: ResponsiveConfig.responsivePadding(32.0, screenSize)),
           
           // Bundles Section
-          BundlesSection(
-            onPurchaseBundle: onPurchaseBundle,
-          ),
+          if (RemoteConfigManager().getBool('heart_booster_enabled', false))
+            BundlesSection(
+              onPurchaseBundle: onPurchaseBundle,
+            ),
           
           SizedBox(height: ResponsiveConfig.responsivePadding(32.0, screenSize)),
           
@@ -89,11 +91,11 @@ class PremiumStore extends StatelessWidget {
           
           SizedBox(height: ResponsiveConfig.responsivePadding(32.0, screenSize)),
           
-          // Heart Booster Section
-          HeartBoosterStore(
-            inventory: inventory,
-            onPurchaseBooster: onPurchaseBooster,
-          ),
+          if (RemoteConfigManager().getBool('heart_booster_enabled', false))
+            HeartBoosterStore(
+              inventory: inventory,
+              onPurchaseBooster: onPurchaseBooster,
+            ),
         ],
       ),
     );

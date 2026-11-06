@@ -12,6 +12,7 @@ import '../../game/systems/inventory_manager.dart';
 import '../../game/systems/monetization_manager.dart';
 import '../../game/systems/missions_manager.dart';
 import '../../game/core/jet_skins.dart';
+import '../../game/core/continue_offer.dart';
 import '../../core/debug_logger.dart';
 import '../../core/events/event_bus.dart';
 import '../../integrations/interstitial_ad_manager.dart';
@@ -972,9 +973,20 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
 
   /// 🎬 COMPACT CONTINUE OPTIONS: Smaller, more engaging buttons
   Widget _buildCompactContinueOptions(Size screenSize) {
+    final progress = widget.objectiveTarget == 0
+        ? 1.0
+        : widget.objectiveAchieved / widget.objectiveTarget;
+    if (progress < ContinueOffer.minProgress()) {
+      return const SizedBox.shrink();
+    }
+    final attempt = 5 - widget.continuesRemaining;
+    if (!ContinueOffer.isOpen(attempt)) {
+      return const SizedBox.shrink();
+    }
     final playerGems = _inventoryManager.gems;
-    final continuePrice = 3; // 3 gems per continue
+    final continuePrice = ContinueOffer.gemCostForAttempt(attempt);
     final canAffordGems = playerGems >= continuePrice;
+    final showGems = continuePrice > 0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1000,18 +1012,18 @@ class _LevelFailedScreenState extends State<LevelFailedScreen>
           children: [
             // Watch Ad button - compact
             _buildCompactAdButton(
-              onPressed: widget.onContinueWithAd,
+              onPressed: attempt == 0 ? widget.onContinueWithAd : null,
               screenSize: screenSize,
             ),
-            SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
-            // Use Gems button - compact
-            // Always enable button - insufficient currency flow will handle it
-            _buildCompactGemButton(
-              gemCost: continuePrice,
-              canAfford: canAffordGems,
-              onPressed: widget.onContinueWithGems,
-              screenSize: screenSize,
-            ),
+            if (showGems) ...[
+              SizedBox(width: ResponsiveConfig.responsivePadding(12.0, screenSize)),
+              _buildCompactGemButton(
+                gemCost: continuePrice,
+                canAfford: canAffordGems,
+                onPressed: widget.onContinueWithGems,
+                screenSize: screenSize,
+              ),
+            ],
           ],
         ),
       ],

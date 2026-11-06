@@ -19,6 +19,7 @@ import 'core/debug_logger.dart';
 
 // 📱 iOS App Tracking Transparency
 import 'integrations/att_manager.dart';
+import 'integrations/consent_manager.dart';
 
 // Hybrid architecture - Event-driven system
 import 'core/identity/device_identity_manager.dart';
@@ -36,6 +37,8 @@ import 'game/systems/anonymous_identity_manager.dart';
 import 'game/systems/leaderboard_manager.dart';
 import 'game/systems/inventory_manager.dart';
 import 'game/systems/lives_manager.dart';
+import 'game/systems/no_ads_manager.dart';
+import 'game/systems/no_ads_banner_manager.dart';
 import 'game/systems/level_system_manager.dart';
 import 'game/systems/global_leaderboard_service.dart';
 import 'game/systems/firebase_analytics_manager.dart';
@@ -56,6 +59,9 @@ import 'core/data/game_data_manager.dart';
 import 'core/analytics/user_analytics_manager.dart';
 import 'core/analytics/unified_analytics_manager.dart';
 import 'core/analytics/app_lifecycle_analytics.dart';
+import 'core/attribution/campaign_attribution_manager.dart';
+import 'core/performance/performance_tracker.dart';
+import 'core/performance/crash_handler.dart';
 
 // Services
 import 'services/fcm_service.dart' hide firebaseMessagingBackgroundHandler;
@@ -253,6 +259,17 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
       if (_deviceIdentity.isFirstLaunch) {
         _eventBus.fire('user_installed', _deviceIdentity.getDeviceMetadata());
         safePrint('📤 Fired user_installed event');
+        
+        // ✅ NEW: Fire first_open event for funnel tracking
+        _eventBus.fire('first_open', {
+          ..._deviceIdentity.getDeviceMetadata(),
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+        safePrint('📤 Fired first_open event');
+        
+        // ✅ NEW: Check for campaign attribution on first launch
+        // This will fire user_acquired event if campaign data is available
+        unawaited(CampaignAttributionManager().checkAndCaptureFirstOpen());
       } else {
         _eventBus.fire('app_launched', {
           ..._deviceIdentity.getDeviceMetadata(),
@@ -260,6 +277,14 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
         });
         safePrint('📤 Fired app_launched event');
       }
+      
+      // ✅ NEW: Fire session_started event for session tracking
+      _eventBus.fire('session_started', {
+        'session_id': _deviceIdentity.sessionId,
+        'timestamp': DateTime.now().toIso8601String(),
+        ..._deviceIdentity.getSessionMetadata(),
+      });
+      safePrint('📤 Fired session_started event');
 
       // Initialize InventoryManager with repositories
       final inventoryManager = InventoryManager();
@@ -290,8 +315,25 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
 
       // Phase 2: Background systems (non-blocking)
       final backgroundTasks = [
+        // ✅ NEW: Initialize crash handler FIRST (catches all errors)
+        _initTask('Crash Handler', () async {
+          CrashHandler().initialize();
+        }),
+        // ✅ NEW: Initialize performance tracker (tracks FPS, load times)
+        _initTask('Performance Tracker', () => PerformanceTracker().initialize()),
         _initTask('FCM Service', () => FCMService().initialize()),
         _initTask('Firebase Analytics', () => FirebaseAnalyticsManager().initialize()),
+        // ✅ NEW: Initialize Campaign Attribution AFTER Firebase Analytics
+        _initTask('Campaign Attribution', () async {
+          final firebaseAnalytics = FirebaseAnalyticsManager();
+          if (firebaseAnalytics.isInitialized) {
+            await CampaignAttributionManager().initialize(firebaseAnalytics.analytics);
+            // Check if first launch and try to capture campaign data
+            if (_deviceIdentity.isFirstLaunch) {
+              await CampaignAttributionManager().checkAndCaptureFirstOpen();
+            }
+          }
+        }),
         // ✅ Initialize UnifiedAnalyticsManager AFTER FirebaseAnalyticsManager (dependency)
         _initTask('Unified Analytics', () => UnifiedAnalyticsManager().initialize()),
         // ✅ Initialize App Lifecycle Analytics AFTER UnifiedAnalyticsManager (dependency)
@@ -327,14 +369,19 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
         _initTask('Rate Us', () => RateUsManager().initialize()),
         // Removed: FTUE initialization (tutorial now triggers directly from Level 1)
         _initTask('Lives Manager', () => LivesManager().initialize()),
+        // ✅ FIX: Initialize NoAdsManager on app startup to restore persisted state
+        _initTask('No Ads Manager', () => NoAdsManager().initialize()),
+        // ✅ Initialize NoAdsBannerManager to track banner state
+        _initTask('No Ads Banner Manager', () => NoAdsBannerManager().initialize()),
         _initTask('Monetization', () => _monetization.initialize(
           inventory: inventoryManager,
           lives: LivesManager(),
         )),
-        // Starter heart booster for brand-new players (silent 24h, 6 hearts)
-        _initTask('Starter Heart Booster', () => _grantStarterHeartBoosterIfEligible(inventoryManager)),
         // ✅ Interstitial ads now initialize AFTER ATT (if iOS)
-        _initTask('Interstitial Ads', () => InterstitialAdManager().initialize()),
+        _initTask('Interstitial Ads', () async {
+          await ConsentManager().gatherConsent();
+          await InterstitialAdManager().initialize();
+        }),
         // OLD: Comprehensive Analytics removed - now using EventBus for all analytics
       ];
 
@@ -380,6 +427,9 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
       }
 
       safePrint('🚀 MAIN: All systems initialization completed successfully');
+      
+      // ✅ NEW: Track app load time
+      PerformanceTracker().trackAppLoadTime();
     } catch (e) {
       safePrint('🚀 MAIN: ❌ System initialization error: $e');
       // Even on error, show the home navigator screen (production safety)
@@ -407,32 +457,6 @@ class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserv
         // Continue with other systems (production safety)
       }
     };
-  }
-
-  /// Grant silent 24h heart booster for brand-new players (first session only)
-  Future<void> _grantStarterHeartBoosterIfEligible(
-    InventoryManager inventoryManager,
-  ) async {
-    try {
-      // Ensure identity and lives are initialized (idempotent)
-      final identity = PlayerIdentityManager();
-      if (!identity.isInitialized) {
-        await identity.initialize();
-      }
-
-      final applied = await inventoryManager.grantStarterHeartBoosterIfEligible(
-        isFirstTimeUser: identity.isFirstTimeUser,
-      );
-
-      if (applied) {
-        // Make sure lives respect the boosted max and are full
-        await LivesManager().initialize();
-        await LivesManager().refillToMax();
-        safePrint('💖 Starter heart booster applied (first session)');
-      }
-    } catch (e) {
-      safePrint('⚠️ Starter heart booster grant failed: $e');
-    }
   }
 
   @override

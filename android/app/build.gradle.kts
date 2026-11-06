@@ -22,7 +22,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.flappyjet.pro.flappy_jet_pro"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // ✅ Updated to SDK 36 for play_install_referrer package
     ndkVersion = "27.0.12077973"
 
     compileOptions {

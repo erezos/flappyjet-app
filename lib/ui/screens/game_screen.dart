@@ -23,6 +23,8 @@ class GameScreen extends StatefulWidget {
   final MissionsManager missions;
   final VoidCallback? onGameScreenOpened; // Callback to notify menu audio manager
   final VoidCallback? onGameScreenClosed; // Callback to notify menu audio manager
+  final int? challengeSeed;
+  final bool weeklyChallenge;
 
   const GameScreen({
     super.key,
@@ -30,6 +32,8 @@ class GameScreen extends StatefulWidget {
     required this.missions,
     this.onGameScreenOpened,
     this.onGameScreenClosed,
+    this.challengeSeed,
+    this.weeklyChallenge = false,
   });
 
   @override
@@ -54,6 +58,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       missions: widget.missions,
       userStatsRepository: userStats,  // Phase 2: For persistence
       eventBus: eventBus,               // Phase 3: For game_ended events
+      challengeSeed: widget.challengeSeed,
     );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     
@@ -139,8 +144,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
               return GameOverMenu(
                 score: game.currentScore,
                 bestScore: game.gameStateManager.bestScore,
+                allowGemContinue: !widget.weeklyChallenge,
                 onRestart: _handleRestart,
                 onMainMenu: () async {
+                  if (widget.weeklyChallenge) {
+                    Navigator.of(context).pop(game.currentScore);
+                    return;
+                  }
                   // ✅ NEW: Refill hearts to max when exiting to main menu
                   await LivesManager().refillToMax();
                   safePrint('🏠 ENDLESS MODE: Exiting to main menu - Hearts refilled to max');
@@ -161,7 +171,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     },
                   );
                 },
-                canContinue: game.gameStateManager.canContinueWithAd,
+                canContinue: widget.weeklyChallenge
+                    ? game.gameStateManager.continuesUsedThisRun == 0
+                    : game.gameStateManager.canContinueWithAd,
                 continuesRemaining: game.gameStateManager.continuesRemaining,
                 playerGems: InventoryManager().gems,
                 singleHeartPrice: _getSingleHeartPrice(),

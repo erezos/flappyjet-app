@@ -1,4 +1,6 @@
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
+import 'package:flutter/animation.dart';
 import '../world/flappy_world.dart';
 import '../components/hud.dart';
 
@@ -61,10 +63,8 @@ class FlappyCamera {
     }
   }
   
-  /// Camera shake effect (for future use - collisions, power-ups)
-  /// Can be enabled in future phases when we add more juice/polish
-  /*
-  static void shake(CameraComponent camera, {double intensity = 5.0, double duration = 0.2}) {
+  /// Short horizontal shake for crashes.
+  static void shake(CameraComponent camera, {double intensity = 8.0, double duration = 0.05}) {
     camera.viewport.add(
       MoveEffect.by(
         Vector2(intensity, 0),
@@ -77,6 +77,5 @@ class FlappyCamera {
       ),
     );
   }
-  */
 }
 

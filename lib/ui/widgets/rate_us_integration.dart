@@ -59,6 +59,26 @@ class RateUsIntegration {
     await _showRateUsPopup(context, triggerType: 'daily_streak', streakDay: streakDay);
   }
 
+  /// Show rate us popup on session start (3rd session auto-trigger)
+  /// 
+  /// Call this after app initialization (e.g., in WorldMapScreen init)
+  /// Will only show on the configured session number (default: session 3)
+  static Future<void> showOnSessionStart(BuildContext context) async {
+    if (!_rateUsManager.shouldPromptOnSessionStart()) {
+      return;
+    }
+
+    // Small delay to let the UI settle after app launch
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    if (!context.mounted) {
+      safePrint('⭐ Rate us: Context not mounted after delay, skipping session trigger');
+      return;
+    }
+
+    await _showRateUsPopup(context, triggerType: 'session_start');
+  }
+
   /// Internal method to show the popup
   static Future<void> _showRateUsPopup(
     BuildContext context, {

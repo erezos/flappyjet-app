@@ -6,6 +6,7 @@ import '../core/analytics/unified_analytics_manager.dart';
 import '../core/events/event_bus.dart';
 import '../core/debug_logger.dart';
 import '../game/systems/no_ads_manager.dart';
+import '../game/systems/remote_config_manager.dart';
 
 /// Manages interstitial ads for Story Mode with frequency caps and cooldowns
 /// 
@@ -31,8 +32,10 @@ class InterstitialAdManager {
   static const String _adUnitIdAndroid = 'ca-app-pub-9307424222926115/7832054871'; // PRODUCTION
   static const String _adUnitIdIOS = 'ca-app-pub-9307424222926115/5421513959'; // PRODUCTION
   
-  /// First interstitial shows after this many level completions
-  static const int _firstAdAfterLevels = 3;
+  /// First interstitial shows after this many level completions.
+  /// Remote Config key `interstitial_min_wins` overrides this. Day 0 stays
+  /// quiet until level 8.
+  static const int _firstAdAfterLevels = 8;
   
   /// Show ad every N level wins (after first ad)
   static const int _adFrequencyLevels = 2;
@@ -391,8 +394,17 @@ class InterstitialAdManager {
   /// Check if a loss streak ad should be shown before starting next game
   /// Call this from "Start Over" button or World Map "Play" button
   bool shouldShowLossStreakAd() {
+    if (!RemoteConfigManager().getBool('loss_streak_ads_enabled', false)) {
+      _lossStreakAdPending = false;
+      return false;
+    }
     // Not pending
     if (!_lossStreakAdPending) {
+      return false;
+    }
+    final noAdsManager = NoAdsManager();
+    if (noAdsManager.hasNoAds) {
+      _lossStreakAdPending = false;
       return false;
     }
     
@@ -624,8 +636,9 @@ class InterstitialAdManager {
       return false;
     }
 
-    // Rule 1: First ad only after completing level 3 (3 wins)
-    if (_totalLifetimeWins < _firstAdAfterLevels) {
+    final minWins = RemoteConfigManager().getInt('interstitial_min_wins', _firstAdAfterLevels);
+    // Rule 1: No interstitial before level 8 (lifetime wins stand in for level progress)
+    if (_totalLifetimeWins < minWins) {
       safePrint('📺 Not enough wins yet (${_totalLifetimeWins}/$_firstAdAfterLevels) - no ad');
       return false;
     }

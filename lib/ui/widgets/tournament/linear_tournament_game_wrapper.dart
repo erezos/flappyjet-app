@@ -1215,7 +1215,7 @@ class _LinearTournamentGameWrapperState extends State<LinearTournamentGameWrappe
         }
 
         _levelEnded = false;
-        _game.continueGame(continueType: 'gems');
+        _game.continueGame(continueType: 'gem_purchase'); // ✅ FIXED: Use correct value expected by backend
         _game.gameStateManager.resumeGameTime();
         _startUpdateTimer();
         

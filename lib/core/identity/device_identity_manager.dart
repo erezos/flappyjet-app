@@ -48,6 +48,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   String? _deviceModel;
   String? _osVersion;
   String? _appVersion;
+  String? _buildNumber;
   String? _platform;
   String? _locale; // Device locale (e.g., "en_US", "he_IL") - for language preference analytics
 
@@ -63,6 +64,7 @@ class DeviceIdentityManager extends ChangeNotifier {
   String get deviceModel => _deviceModel ?? 'unknown';
   String get osVersion => _osVersion ?? 'unknown';
   String get appVersion => _appVersion ?? '0.0.0';
+  String get buildNumber => _buildNumber ?? '0';
   String get platform => _platform ?? 'unknown';
   String? get locale => _locale; // Device locale getter (e.g., "en_US") - nullable
 
@@ -250,6 +252,7 @@ class DeviceIdentityManager extends ChangeNotifier {
       // App version
       final packageInfo = await PackageInfo.fromPlatform();
       _appVersion = packageInfo.version;
+      _buildNumber = packageInfo.buildNumber;
       
       // Detect device locale for language preference analytics
       _locale = _getDeviceLocale();
@@ -261,6 +264,7 @@ class DeviceIdentityManager extends ChangeNotifier {
       _deviceModel = 'unknown';
       _osVersion = 'unknown';
       _appVersion = '0.0.0';
+      _buildNumber = '0';
       _locale = null;
     }
   }

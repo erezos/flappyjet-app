@@ -1,0 +1,23 @@
+{
+  "name": "Flappy Jet health",
+  "description": "Monday read-only check for crashes, purchase acknowledgement, refunds, and revenue.",
+  "workflow": {
+    "memoryEnabled": true,
+    "gitConfig": {
+      "repo": "erezos/flappyjet-app",
+      "branch": "v2.3.14"
+    },
+    "triggers": [
+      {
+        "cron": {
+          "cron": "0 9 * * 1"
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "prompt": "You are the Flappy Jet health bot. Read https://us-central1-flappyjet-b31f9.cloudfunctions.net/scoreboard. If trusted is not true, or the scoreboard is missing or empty, reply with exactly one sentence: scoreboard untrusted. Stop. Do not open a pull request. When it is trusted, compare version 2.5.0 with the prior 28 days. Write a short note only when a guardrail breaks: crash-free rate, ANR rate, purchase acknowledgement below 100 percent, refunds, or a sharp drop in revenue per player. If every guardrail holds, say that in one sentence. Do not edit the game."
+      }
+    ]
+  }
+}

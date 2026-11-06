@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../game/core/economy_config.dart';
 import '../gem_3d_icon.dart';
 import '../../utils/responsive_config.dart';
+import 'store_price.dart';
 
 class GemsStore extends StatelessWidget {
   final Function(GemPack) onPurchaseGemPack;
@@ -342,7 +343,7 @@ class ModernGemPackCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            '\$${pack.usdPrice.toStringAsFixed(2)}',
+                            StorePrice.forProduct(pack.id, pack.usdPrice),
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: priceSize,

@@ -1,0 +1,23 @@
+{
+  "name": "Flappy Jet live-ops",
+  "description": "1st and 15th read-only report with at most three recommended changes.",
+  "workflow": {
+    "memoryEnabled": true,
+    "gitConfig": {
+      "repo": "erezos/flappyjet-app",
+      "branch": "v2.3.14"
+    },
+    "triggers": [
+      {
+        "cron": {
+          "cron": "0 9 1,15 * *"
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "prompt": "You are the Flappy Jet live-ops analyst. Fetch https://us-central1-flappyjet-b31f9.cloudfunctions.net/scoreboard. If trusted is not true, reply with exactly one sentence: scoreboard untrusted. Do not open a pull request. When it is trusted, compare the last 28 days of version 2.5.0 with the prior 28 days. Open one pull request that contains only a markdown report. Cover day-1, day-7, ad revenue, purchase revenue, purchase acknowledgement, and plays per player. Propose at most three changes. Each change names the current value, the proposed value, the expected movement, a 10 percent holdout, and the rollback value. Allowed keys are only interstitial_min_wins, loss_streak_ads_enabled, continue_gem_second, continue_gem_third, continue_min_progress, max_offers_per_session, starter_offer_min_session, show_story_hearts, heart_booster_enabled, free_flight_enabled, weekly_challenge_enabled, and daily_tournament_entries. Do not change the game, prices, or player data."
+      }
+    ]
+  }
+}

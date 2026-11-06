@@ -192,7 +192,7 @@ class DefaultSpecialOffers {
     priority: 100, // Highest priority - show first
     metadata: {
       'jet_skin_ids': ['police_patrol', 'red_alert', 'green_lightning'], // All 3 skins to unlock
-      'equip_skin_id': 'police_patrol', // Skin to equip after purchase
+      'equip_skin_id': 'red_alert', // ✅ Changed from 'police_patrol' to 'red_alert' - Skin to equip after purchase
       'iap_product_id': 'starter_boss_pack', // IAP product ID
     },
   );

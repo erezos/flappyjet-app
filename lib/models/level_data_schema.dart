@@ -18,6 +18,7 @@ class LevelData {
   final LevelTheme theme;
   final BotBattle? botBattle; // Null if not a bot level
   final BonusConfig bonuses; // 🎁 In-game bonus configuration
+  final Map<String, dynamic>? stuntConfig; // 🎪 Stunt mode configuration (if present, uses moving obstacles)
 
   const LevelData({
     required this.id,
@@ -29,6 +30,7 @@ class LevelData {
     required this.theme,
     this.botBattle,
     this.bonuses = BonusConfig.disabled,
+    this.stuntConfig,
   });
 
   /// Parse from JSON
@@ -47,6 +49,9 @@ class LevelData {
       bonuses: json['bonuses'] != null
           ? BonusConfig.fromJson(json['bonuses'] as Map<String, dynamic>)
           : BonusConfig.disabled,
+      stuntConfig: json['stunt_config'] != null
+          ? json['stunt_config'] as Map<String, dynamic>
+          : null,
     );
   }
 
@@ -62,6 +67,7 @@ class LevelData {
       'theme': theme.toJson(),
       'botBattle': botBattle?.toJson(),
       if (bonuses.enabled) 'bonuses': bonuses.toJson(),
+      if (stuntConfig != null) 'stunt_config': stuntConfig,
     };
   }
 

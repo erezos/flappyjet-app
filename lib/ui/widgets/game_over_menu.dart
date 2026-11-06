@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../game/core/continue_offer.dart';
 import 'gem_3d_icon.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
@@ -21,6 +22,7 @@ class GameOverMenu extends StatefulWidget {
   final int? playerGems;
   final int? singleHeartPrice;
   final bool isAdLoading; // NEW: Track ad loading state
+  final bool allowGemContinue;
 
   const GameOverMenu({
     super.key,
@@ -37,6 +39,7 @@ class GameOverMenu extends StatefulWidget {
     this.playerGems,
     this.singleHeartPrice,
     this.isAdLoading = false, // NEW: Default to false
+    this.allowGemContinue = true,
   });
 
   @override
@@ -411,7 +414,10 @@ class _GameOverMenuState extends State<GameOverMenu>
   }
 
   Widget _buildContinueSection({required bool isVerySmallScreen, required bool isSmallScreen}) {
-    final hasEnoughGems = widget.playerGems != null && widget.playerGems! >= 3;
+    final attempt = 5 - widget.continuesRemaining;
+    final gemCost = ContinueOffer.gemCostForAttempt(attempt);
+    final hasEnoughGems = widget.playerGems != null && widget.playerGems! >= gemCost;
+    final showGems = widget.allowGemContinue && gemCost > 0;
     
     return Column(
       children: [
@@ -510,9 +516,8 @@ class _GameOverMenuState extends State<GameOverMenu>
               ),
             ),
             
-            const SizedBox(width: 12),
-            
-            // 3 Gems button (purple)
+            if (showGems) const SizedBox(width: 12),
+            if (showGems)
             Expanded(
               child: Container(
                 height: isVerySmallScreen ? 44 : (isSmallScreen ? 48 : 52),
@@ -550,7 +555,7 @@ class _GameOverMenuState extends State<GameOverMenu>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '3',
+                          '$gemCost',
                           style: TextStyle(
                             fontSize: isVerySmallScreen ? 16 : (isSmallScreen ? 18 : 20),
                             fontWeight: FontWeight.bold,

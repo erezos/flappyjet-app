@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flappy Jet weekly challenge</title>
+</head>
+<body>
+  <h1>Beat this Flappy Jet week</h1>
+  <p id="line">Opening the challenge…</p>
+  <p><a id="store" href="https://play.google.com/store/apps/details?id=com.flappyjet.pro.flappy_jet_pro">Get Flappy Jet</a></p>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const score = params.get('score');
+    const seed = params.get('seed');
+    document.getElementById('line').textContent =
+      score ? 'Score to beat: ' + score + ' (week ' + seed + ').' : 'This week has one shared course.';
+  </script>
+</body>
+</html>

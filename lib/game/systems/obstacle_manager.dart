@@ -14,7 +14,13 @@ import 'difficulty_system.dart';
 /// 
 /// 🎪 TOURNAMENT v2.3.0: Supports moving obstacle patterns
 class ObstacleManager {
+  ObstacleManager({int? seed})
+      : _random = seed == null ? math.Random() : math.Random(seed),
+        seeded = seed != null;
+
   final List<DynamicObstacle> _obstacles = [];
+  final math.Random _random;
+  final bool seeded;
   double _timeSinceLastObstacle = 0.0;
   
   // 🎯 STORY MODE: Override obstacle asset path for story mode levels
@@ -142,13 +148,13 @@ class ObstacleManager {
         gap *= 1.10;
       } else {
         // Rare spice 1 in 10
-        if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) % 10 == 0) {
+        if (!seeded && (DateTime.now().millisecondsSinceEpoch ~/ 1000) % 10 == 0) {
           gap *= 0.95;
         }
       }
 
       // Micro-variance ±2–3%
-      final rnd = (math.Random().nextDouble() * 0.06) - 0.03;
+      final rnd = (_random.nextDouble() * 0.06) - 0.03;
       gap *= (1.0 + rnd).clamp(0.97, 1.03);
       speed *= (1.0 - rnd).clamp(0.97, 1.03);
 
@@ -178,7 +184,7 @@ class ObstacleManager {
       if (maxCenter <= minCenter) {
         gapY = prevCenter.clamp(minCenterAllowed, maxCenterAllowed);
       } else {
-        gapY = minCenter + math.Random().nextDouble() * (maxCenter - minCenter);
+        gapY = minCenter + _random.nextDouble() * (maxCenter - minCenter);
       }
       
       // Path logs removed - too verbose even for debug mode
@@ -186,7 +192,7 @@ class ObstacleManager {
       // First obstacle in constrained path: start in middle 60% of screen
       final safeMin = math.max(minCenterAllowed, gameSize.height * 0.2);
       final safeMax = math.min(maxCenterAllowed, gameSize.height * 0.8);
-      gapY = safeMin + math.Random().nextDouble() * (safeMax - safeMin);
+      gapY = safeMin + _random.nextDouble() * (safeMax - safeMin);
       
       // Path logs removed - too verbose even for debug mode
     } else {
@@ -202,7 +208,7 @@ class ObstacleManager {
       if (bandMax <= bandMin) {
         gapY = (minCenterAllowed + maxCenterAllowed) * 0.5;
       } else {
-        gapY = bandMin + math.Random().nextDouble() * (bandMax - bandMin);
+        gapY = bandMin + _random.nextDouble() * (bandMax - bandMin);
       }
     }
     
