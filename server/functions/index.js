@@ -551,7 +551,9 @@ async function applyABTesting(config, playerId) {
  * Read-only production scoreboard for the live-ops automations.
  * GET returns the last 28 days beside the prior 28 days.
  */
-exports.scoreboard = functions.https.onRequest(async (req, res) => {
+exports.scoreboard = functions
+  .runWith({ serviceAccount: 'flappyjet-b31f9@appspot.gserviceaccount.com' })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       const now = Date.now();
